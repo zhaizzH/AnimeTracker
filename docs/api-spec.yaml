@@ -1,0 +1,1628 @@
+openapi: 3.0.3
+info:
+  title: AnimeTracker API
+  description: |
+    # AnimeTracker REST API
+
+    个人动漫追踪平台后端接口。所有返回遵循统一响应格式 `ApiResponse<T>`。
+
+    ## 通用响应格式
+
+    ```json
+    // 成功
+    { "code": 200, "message": "success", "data": { ... } }
+
+    // 分页成功
+    { "code": 200, "message": "success",
+      "data": { "content": [...], "total": 1024, "page": 1, "size": 20 } }
+
+    // 错误
+    { "code": 400, "message": "请求参数错误", "data": null }
+    ```
+
+    ## 认证方式
+
+    在请求头中添加 `Authorization: Bearer <token>`。
+    Token 通过 `POST /api/user/auth/login` 获取，24 小时有效。
+
+    ## 变更历史
+
+    | 版本 | 日期 | 变更说明 |
+    |------|------|----------|
+    | 2.0 | 2026-07-03 | 重构版，单模块 API，集成 Knife4j 文档 |
+    | 1.0 | 2025-12-01 | 初始版本 |
+  version: "2.0"
+  contact:
+    name: AnimeTracker Team
+    url: https://github.com/zhaizzH/AnimeTracker
+
+servers:
+  - url: http://localhost:8080
+    description: 本地开发环境
+  - url: https://api.animetracker.local
+    description: 生产环境
+
+tags:
+  - name: 认证
+    description: 用户注册与登录
+  - name: 用户
+    description: 用户个人信息
+  - name: 条目
+    description: 动漫条目浏览与搜索
+  - name: 标签
+    description: 动漫标签浏览
+  - name: 管理员-条目
+    description: 管理员条目 CRUD
+  - name: 管理员-用户
+    description: 管理员用户管理
+  - name: 管理员-导入
+    description: 数据导入控制
+  - name: 管理员-缓存
+    description: 缓存管理
+
+paths:
+  # ============================================
+  # 认证接口
+  # ============================================
+  /api/user/auth/register:
+    post:
+      tags:
+        - 认证
+      summary: 用户注册
+      description: 新用户注册，返回 JWT Token 和用户信息
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "200":
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_LoginResult"
+        "400":
+          description: 参数校验失败（用户名已存在、密码太短等）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+        "409":
+          description: 用户名已存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+
+  /api/user/auth/login:
+    post:
+      tags:
+        - 认证
+      summary: 用户登录
+      description: 用户名密码登录，返回 JWT Token 和用户信息
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_LoginResult"
+        "401":
+          description: 用户名或密码错误
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+
+  # ============================================
+  # 用户接口
+  # ============================================
+  /api/user/me:
+    get:
+      tags:
+        - 用户
+      summary: 获取个人资料
+      description: 获取当前登录用户的个人信息
+      operationId: getMyProfile
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: 成功返回用户信息
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_UserVO"
+        "401":
+          description: 未认证或 Token 无效
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+    put:
+      tags:
+        - 用户
+      summary: 更新个人资料
+      description: 修改当前登录用户的昵称、头像、邮箱
+      operationId: updateMyProfile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_UserVO"
+        "400":
+          description: 参数校验失败
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+        "401":
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+
+  # ============================================
+  # 条目浏览接口
+  # ============================================
+  /api/user/subjects:
+    get:
+      tags:
+        - 条目
+      summary: 条目列表（分页）
+      description: 分页获取动漫条目列表，支持排序
+      operationId: listSubjects
+      parameters:
+        - name: page
+          in: query
+          description: 页码（从 1 开始）
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: size
+          in: query
+          description: 每页数量
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: sort
+          in: query
+          description: 排序字段
+          required: false
+          schema:
+            type: string
+            enum: [score, rank, air_date, created_at, name_cn]
+            default: created_at
+        - name: order
+          in: query
+          description: 排序方向
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        "200":
+          description: 成功返回分页条目列表
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Page_SubjectListVO"
+
+  /api/user/subjects/search:
+    get:
+      tags:
+        - 条目
+      summary: 搜索条目
+      description: 按关键词搜索动漫条目（匹配 name 和 name_cn）
+      operationId: searchSubjects
+      parameters:
+        - name: q
+          in: query
+          description: 搜索关键词（必填）
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - name: page
+          in: query
+          description: 页码
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: size
+          in: query
+          description: 每页数量
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: 成功返回搜索结果
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Page_SubjectListVO"
+        "400":
+          description: 缺少搜索关键词
+
+  /api/user/subjects/season:
+    get:
+      tags:
+        - 条目
+      summary: 季度条目
+      description: 按年+季度筛选当季动漫
+      operationId: getSeasonSubjects
+      parameters:
+        - name: year
+          in: query
+          description: 年份
+          required: true
+          schema:
+            type: integer
+            minimum: 2000
+            maximum: 2099
+            example: 2026
+        - name: quarter
+          in: query
+          description: 季度
+          required: true
+          schema:
+            type: string
+            enum: [winter, spring, summer, autumn]
+            example: spring
+        - name: page
+          in: query
+          description: 页码
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: size
+          in: query
+          description: 每页数量
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: 成功返回该季度条目
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Page_SubjectListVO"
+
+  /api/user/subjects/{id}:
+    get:
+      tags:
+        - 条目
+      summary: 条目详情
+      description: 获取单个动漫条目的完整信息（含标签）
+      operationId: getSubjectDetail
+      parameters:
+        - name: id
+          in: path
+          description: 条目 ID
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: 成功返回条目详情
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_SubjectDetailVO"
+        "404":
+          description: 条目不存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+
+  /api/user/subjects/{id}/episodes:
+    get:
+      tags:
+        - 条目
+      summary: 条目剧集列表
+      description: 获取指定条目的所有剧集（按 sort 排序）
+      operationId: getSubjectEpisodes
+      parameters:
+        - name: id
+          in: path
+          description: 条目 ID
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: 成功返回剧集列表
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_List_EpisodeVO"
+        "404":
+          description: 条目不存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+
+  # ============================================
+  # 标签接口
+  # ============================================
+  /api/user/tags:
+    get:
+      tags:
+        - 标签
+      summary: 标签列表
+      description: 获取所有标签及使用次数
+      operationId: listTags
+      parameters:
+        - name: page
+          in: query
+          description: 页码
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: size
+          in: query
+          description: 每页数量
+          required: false
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+      responses:
+        "200":
+          description: 成功返回标签列表
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_List_TagVO"
+
+  /api/user/tags/{tag}/subjects:
+    get:
+      tags:
+        - 标签
+      summary: 按标签筛选条目
+      description: 获取包含指定标签的所有条目（分页）
+      operationId: getTagSubjects
+      parameters:
+        - name: tag
+          in: path
+          description: 标签名称
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 32
+        - name: page
+          in: query
+          description: 页码
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: size
+          in: query
+          description: 每页数量
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: 成功返回该标签下的条目
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Page_SubjectListVO"
+        "404":
+          description: 标签不存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+
+  # ============================================
+  # 管理员-条目管理
+  # ============================================
+  /api/admin/subjects:
+    post:
+      tags:
+        - 管理员-条目
+      summary: 新增条目
+      description: 管理员创建新条目（需要 ADMIN 角色）
+      operationId: createSubject
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubjectCreateRequest"
+      responses:
+        "200":
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_SubjectDetailVO"
+        "400":
+          description: 参数校验失败
+        "403":
+          description: 无权限（非 ADMIN）
+
+  /api/admin/subjects/{id}:
+    put:
+      tags:
+        - 管理员-条目
+      summary: 编辑条目
+      description: 管理员修改条目信息（需要 ADMIN 角色）
+      operationId: updateSubject
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: 条目 ID
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubjectUpdateRequest"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_SubjectDetailVO"
+        "403":
+          description: 无权限
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+        "404":
+          description: 条目不存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+    delete:
+      tags:
+        - 管理员-条目
+      summary: 删除条目
+      description: 管理员删除条目（级联删除剧集和标签，需要 ADMIN 角色）
+      operationId: deleteSubject
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: 条目 ID
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+        "403":
+          description: 无权限
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+        "404":
+          description: 条目不存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+
+  # ============================================
+  # 管理员-用户管理
+  # ============================================
+  /api/admin/users:
+    get:
+      tags:
+        - 管理员-用户
+      summary: 用户列表（分页）
+      description: 管理员分页查看所有用户（需要 ADMIN 角色）
+      operationId: listUsers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: 页码
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: size
+          in: query
+          description: 每页数量
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: 成功返回用户列表
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Page_UserVO"
+        "403":
+          description: 无权限
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+
+  /api/admin/users/{id}/role:
+    put:
+      tags:
+        - 管理员-用户
+      summary: 修改用户角色
+      description: 管理员修改指定用户的角色（需要 ADMIN 角色）
+      operationId: updateUserRole
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: 用户 ID
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRoleRequest"
+      responses:
+        "200":
+          description: 角色更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_UserVO"
+        "403":
+          description: 无权限
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+        "404":
+          description: 用户不存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+
+  # ============================================
+  # 管理员-导入控制
+  # ============================================
+  /api/admin/import/run:
+    post:
+      tags:
+        - 管理员-导入
+      summary: 触发数据导入
+      description: 管理员手动触发从 Bangumi API 导入数据
+      operationId: triggerImport
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mode:
+                  type: string
+                  enum: [full, recent, season, since]
+                  description: 导入模式
+                  example: season
+                season_key:
+                  type: string
+                  description: 季度标识（mode=season 时必填）
+                  example: 2026-spring
+      responses:
+        "200":
+          description: 导入触发成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_ImportStatusVO"
+        "403":
+          description: 无权限
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+
+  /api/admin/import/status:
+    get:
+      tags:
+        - 管理员-导入
+      summary: 导入状态
+      description: 查看最近一次的导入状态
+      operationId: getImportStatus
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: 成功返回导入状态
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_ImportStatusVO"
+        "403":
+          description: 无权限
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+
+  # ============================================
+  # 管理员-缓存管理
+  # ============================================
+  /api/admin/cache/{key}:
+    delete:
+      tags:
+        - 管理员-缓存
+      summary: 清除缓存
+      description: 清除指定缓存键（需要 ADMIN 角色）
+      operationId: clearCache
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: key
+          in: path
+          description: 缓存键（支持 * 通配符，如 subject:detail:*）
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 缓存清除成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+        "403":
+          description: 无权限
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_Null"
+
+  # ============================================
+  # AI Agent 接口（通过 Vite Proxy 代理或直连）
+  # ============================================
+  /api/chat:
+    post:
+      tags:
+        - AI 助手
+      summary: 发送聊天消息
+      description: |
+        向 AI 助手发送消息，通过 SSE (Server-Sent Events) 流式返回回答。
+        响应格式为 text/event-stream 流式文本，每个 event 为一块 token。
+      operationId: chat
+      parameters:
+        - name: session_id
+          in: query
+          description: 会话 ID（为空则创建新会话）
+          required: false
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                  description: 用户消息内容
+                  example: 推荐一些好看的四月新番
+      responses:
+        "200":
+          description: SSE 流式响应开始
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: SSE 格式的流式 token（event: data\ndata: ...\n\n）
+
+  /api/chat/{session_id}/messages:
+    get:
+      tags:
+        - AI 助手
+      summary: 获取会话历史
+      description: 获取指定会话的历史消息列表
+      operationId: getChatMessages
+      parameters:
+        - name: session_id
+          in: path
+          description: 会话 ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 返回历史消息列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+
+  /api/sessions:
+    post:
+      tags:
+        - AI 助手
+      summary: 创建会话
+      description: 创建一个新的 AI 助手会话
+      operationId: createSession
+      responses:
+        "200":
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatSession"
+    get:
+      tags:
+        - AI 助手
+      summary: 会话列表
+      description: 获取所有 AI 助手会话
+      operationId: listSessions
+      responses:
+        "200":
+          description: 返回会话列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatSession"
+
+  /api/sessions/{session_id}:
+    delete:
+      tags:
+        - AI 助手
+      summary: 删除会话
+      description: 删除指定 AI 助手会话及其所有消息
+      operationId: deleteSession
+      parameters:
+        - name: session_id
+          in: path
+          description: 会话 ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 删除成功
+
+  /health:
+    get:
+      tags:
+        - AI 助手
+      summary: 健康检查
+      description: AI Agent 健康检查端点
+      operationId: healthCheck
+      responses:
+        "200":
+          description: 服务正常
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /api/config:
+    get:
+      tags:
+        - AI 助手
+      summary: Agent 配置
+      description: 获取 AI Agent 的当前配置信息（不包含敏感字段）
+      operationId: getAgentConfig
+      responses:
+        "200":
+          description: 返回配置信息
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  model:
+                    type: string
+                    example: qwen-plus
+                  temperature:
+                    type: number
+                    format: float
+                    example: 0.7
+                  backend_api_base:
+                    type: string
+                    example: "http://localhost:8080"
+
+components:
+  schemas:
+    # ============================
+    # 通用响应包装
+    # ============================
+    ApiResponse_Null:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: success
+        data:
+          type: "null"
+          nullable: true
+      required:
+        - code
+        - message
+
+    ApiResponse_LoginResult:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: success
+        data:
+          $ref: "#/components/schemas/LoginResult"
+      required:
+        - code
+        - message
+        - data
+
+    ApiResponse_UserVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: success
+        data:
+          $ref: "#/components/schemas/UserVO"
+      required:
+        - code
+        - message
+        - data
+
+    ApiResponse_SubjectDetailVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: success
+        data:
+          $ref: "#/components/schemas/SubjectDetailVO"
+      required:
+        - code
+        - message
+        - data
+
+    ApiResponse_List_EpisodeVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: success
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/EpisodeVO"
+      required:
+        - code
+        - message
+        - data
+
+    ApiResponse_List_TagVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: success
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/TagVO"
+      required:
+        - code
+        - message
+        - data
+
+    ApiResponse_Page_SubjectListVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: success
+        data:
+          $ref: "#/components/schemas/PageResult_SubjectListVO"
+      required:
+        - code
+        - message
+        - data
+
+    ApiResponse_Page_UserVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: success
+        data:
+          $ref: "#/components/schemas/PageResult_UserVO"
+      required:
+        - code
+        - message
+        - data
+
+    ApiResponse_ImportStatusVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: success
+        data:
+          $ref: "#/components/schemas/ImportStatusVO"
+      required:
+        - code
+        - message
+        - data
+
+    # ============================
+    # 分页结果
+    # ============================
+    PageResult_SubjectListVO:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubjectListVO"
+        total:
+          type: integer
+          description: 总数
+          example: 1024
+        page:
+          type: integer
+          description: 当前页码
+          example: 1
+        size:
+          type: integer
+          description: 每页数量
+          example: 20
+      required:
+        - content
+        - total
+        - page
+        - size
+
+    PageResult_UserVO:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserVO"
+        total:
+          type: integer
+          example: 50
+        page:
+          type: integer
+          example: 1
+        size:
+          type: integer
+          example: 20
+      required:
+        - content
+        - total
+        - page
+        - size
+
+    # ============================
+    # 认证相关
+    # ============================
+    RegisterRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 32
+          description: 用户名（3-32 位字母、数字或下划线）
+          pattern: "^[a-zA-Z0-9_]{3,32}$"
+          example: newuser
+        password:
+          type: string
+          minLength: 6
+          maxLength: 64
+          description: 密码（至少 6 位）
+          example: "password123"
+        email:
+          type: string
+          format: email
+          maxLength: 128
+          description: 邮箱（可选）
+          example: user@example.com
+
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          example: admin
+        password:
+          type: string
+          example: admin123
+
+    LoginResult:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT Token（有效期 24 小时）
+          example: eyJhbGciOiJIUzI1NiJ9...
+        user:
+          $ref: "#/components/schemas/UserVO"
+      required:
+        - token
+        - user
+
+    # ============================
+    # 用户相关
+    # ============================
+    UserVO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 用户 ID
+          example: 1
+        username:
+          type: string
+          description: 用户名
+          example: admin
+        email:
+          type: string
+          nullable: true
+          description: 邮箱
+          example: admin@animetracker.local
+        nickname:
+          type: string
+          nullable: true
+          description: 昵称
+          example: 管理员
+        avatar:
+          type: string
+          nullable: true
+          description: 头像 URL
+          example: null
+        role:
+          type: string
+          description: 角色
+          enum:
+            - USER
+            - ADMIN
+          example: ADMIN
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        nickname:
+          type: string
+          maxLength: 64
+          nullable: true
+          description: 新昵称
+          example: 新昵称
+        avatar:
+          type: string
+          maxLength: 512
+          nullable: true
+          description: 新头像 URL
+          example: https://example.com/avatar.png
+        email:
+          type: string
+          format: email
+          maxLength: 128
+          nullable: true
+          description: 新邮箱
+          example: newemail@example.com
+
+    UpdateRoleRequest:
+      type: object
+      required:
+        - role
+      properties:
+        role:
+          type: string
+          description: 新角色
+          enum:
+            - USER
+            - ADMIN
+          example: ADMIN
+
+    # ============================
+    # 条目相关
+    # ============================
+    SubjectListVO:
+      type: object
+      description: 条目列表 VO（精简信息）
+      properties:
+        id:
+          type: integer
+          description: 条目 ID
+          example: 1
+        bangumiId:
+          type: integer
+          description: Bangumi API 条目 ID
+          example: 12
+        name:
+          type: string
+          description: 日文/英文名
+          example: "ちょびっツ"
+        nameCn:
+          type: string
+          nullable: true
+          description: 中文名
+          example: 人形电脑天使心
+        type:
+          type: integer
+          description: 条目类型（2=动画）
+          example: 2
+        eps:
+          type: integer
+          nullable: true
+          description: 总集数
+          example: 27
+        airDate:
+          type: string
+          format: date
+          nullable: true
+          description: 播出日期
+          example: "2002-04-02"
+        image:
+          type: string
+          nullable: true
+          description: 封面图 URL
+          example: https://lain.bgm.tv/pic/cover/l/c2/0a/12_24O6L.jpg
+        score:
+          type: number
+          format: float
+          nullable: true
+          description: Bangumi 评分（0.0~10.0）
+          example: 7.6
+        rank:
+          type: integer
+          nullable: true
+          description: Bangumi 排名
+          example: 573
+
+    SubjectDetailVO:
+      type: object
+      description: 条目详情 VO（完整信息）
+      properties:
+        id:
+          type: integer
+          example: 1
+        bangumiId:
+          type: integer
+          example: 12
+        name:
+          type: string
+          example: "ちょびっツ"
+        nameCn:
+          type: string
+          nullable: true
+          example: 人形电脑天使心
+        summary:
+          type: string
+          nullable: true
+          description: 简介/描述
+          example: 在不久的将来...
+        type:
+          type: integer
+          example: 2
+        eps:
+          type: integer
+          nullable: true
+          example: 27
+        volumes:
+          type: integer
+          nullable: true
+          example: 3
+        airDate:
+          type: string
+          format: date
+          nullable: true
+          example: "2002-04-02"
+        airWeekday:
+          type: integer
+          nullable: true
+          description: 播出星期（0=周日）
+          example: 2
+        image:
+          type: string
+          nullable: true
+          example: https://lain.bgm.tv/pic/cover/l/c2/0a/12_24O6L.jpg
+        score:
+          type: number
+          format: float
+          nullable: true
+          example: 7.6
+        rank:
+          type: integer
+          nullable: true
+          example: 573
+        nsfw:
+          type: boolean
+          description: 是否 NSFW
+          example: false
+        tags:
+          type: array
+          description: 关联标签列表
+          items:
+            $ref: "#/components/schemas/TagVO"
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间
+          example: "2026-07-03T12:00:00"
+        updatedAt:
+          type: string
+          format: date-time
+          description: 更新时间
+          example: "2026-07-03T12:00:00"
+
+    SubjectCreateRequest:
+      type: object
+      required:
+        - bangumiId
+        - name
+      properties:
+        bangumiId:
+          type: integer
+          description: Bangumi API 条目 ID
+          example: 99999
+        name:
+          type: string
+          maxLength: 255
+          description: 日文/英文名
+        nameCn:
+          type: string
+          maxLength: 255
+          description: 中文名
+        summary:
+          type: string
+          description: 简介
+        type:
+          type: integer
+          default: 2
+          description: 条目类型
+        eps:
+          type: integer
+          description: 总集数
+        airDate:
+          type: string
+          format: date
+          description: 播出日期
+        image:
+          type: string
+          maxLength: 512
+          description: 封面图 URL
+        nsfw:
+          type: boolean
+          default: false
+          description: 是否 NSFW
+
+    SubjectUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        nameCn:
+          type: string
+          maxLength: 255
+        summary:
+          type: string
+        eps:
+          type: integer
+        airDate:
+          type: string
+          format: date
+        image:
+          type: string
+          maxLength: 512
+        nsfw:
+          type: boolean
+
+    # ============================
+    # 剧集相关
+    # ============================
+    EpisodeVO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 剧集 ID
+          example: 100
+        subjectId:
+          type: integer
+          description: 所属条目 ID
+          example: 1
+        bangumiEpId:
+          type: integer
+          nullable: true
+          description: Bangumi 剧集 ID
+          example: 1027
+        type:
+          type: integer
+          description: 剧集类型（0=本篇, 1=SP, 2=OP, 3=ED, 4=预告）
+          example: 0
+        sort:
+          type: number
+          format: float
+          nullable: true
+          description: 集数序号（支持小数）
+          example: 1.0
+        name:
+          type: string
+          nullable: true
+          description: 日文/英文标题
+          example: "ちぃ 目覚める"
+        nameCn:
+          type: string
+          nullable: true
+          description: 中文标题
+          example: 叽，觉醒了
+        duration:
+          type: string
+          nullable: true
+          description: 时长
+          example: "24m"
+        airdate:
+          type: string
+          format: date
+          nullable: true
+          description: 播出日期
+          example: "2002-04-03"
+        status:
+          type: string
+          description: 播出状态（Air=已播出, Today=今日, NA=未播出）
+          enum:
+            - Air
+            - Today
+            - NA
+          example: Air
+
+    # ============================
+    # 标签相关
+    # ============================
+    TagVO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 标签关联 ID
+          example: 1
+        name:
+          type: string
+          description: 标签名
+          example: 科幻
+        count:
+          type: integer
+          description: 该标签使用次数
+          example: 42
+
+    # ============================
+    # 导入相关
+    # ============================
+    ImportStatusVO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 导入记录 ID
+        mode:
+          type: string
+          description: 导入模式
+          enum:
+            - full
+            - recent
+            - season
+            - since
+        seasonKey:
+          type: string
+          nullable: true
+          description: 季度标识
+          example: 2026-spring
+        status:
+          type: string
+          description: 状态
+          enum:
+            - RUNNING
+            - COMPLETED
+            - FAILED
+          example: COMPLETED
+        subjectCount:
+          type: integer
+          description: 导入的条目数
+          example: 150
+        startedAt:
+          type: string
+          format: date-time
+          description: 开始时间
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 完成时间
+        errorMessage:
+          type: string
+          nullable: true
+          description: 错误信息
+
+    # ============================
+    # AI 助手相关
+    # ============================
+    ChatSession:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+          description: 会话 ID
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间
+        messageCount:
+          type: integer
+          description: 消息数
+          example: 5
+
+    ChatMessage:
+      type: object
+      properties:
+        role:
+          type: string
+          description: 角色
+          enum:
+            - user
+            - assistant
+          example: user
+        content:
+          type: string
+          description: 消息内容
+          example: 推荐一些好看的四月新番
+        timestamp:
+          type: string
+          format: date-time
+          description: 发送时间
+        toolsUsed:
+          type: array
+          description: 使用的工具（assistant 消息时）
+          items:
+            type: string
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        通过登录接口获取 JWT Token，在请求头中添加 `Authorization: Bearer <token>`。
+        Token 有效期 24 小时。

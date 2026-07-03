@@ -1,0 +1,123 @@
+# === Java / Maven ===
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+*.aar
+*.nar
+*.zip
+*.tar.gz
+*.tar
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# === Gradle (备用) ===
+.gradle/
+**/build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# === IntelliJ IDEA ===
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.idea_modules/
+
+# === VS Code ===
+.vscode/
+*.code-workspace
+.history/
+
+# === Eclipse ===
+.project
+.classpath
+.settings/
+bin/
+*.launch
+
+# === NetBeans ===
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# === Python (data-importer) ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+*.egg
+build/
+*.whl
+pip-log.txt
+pip-delete-this-directory.txt
+
+# === Node / Frontend ===
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.svelte-kit/
+frontend/.env
+frontend/.env.local
+*.tsbuildinfo
+.next/
+
+# === Environment & Secrets ===
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.cert
+secrets/
+
+# === OS Files ===
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# === Logs ===
+*.log
+log/
+logs/
+
+# === Docker ===
+.docker/
+docker-compose.override.yml
+
+# === Editor / Temp ===
+*.swp
+*.swo
+*~
+*.orig
+*.bak
+*.tmp
+*.temp
+
+# === Project specific ===
+.claude/
+backend/modules/app/src/main/resources/application-local.yml
