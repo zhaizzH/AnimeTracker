@@ -21,7 +21,7 @@ buildNumber.properties
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-# === Gradle (备用) ===
+# === Gradle ===
 .gradle/
 **/build/
 !**/src/main/**/build/
@@ -54,7 +54,7 @@ dist/
 nbdist/
 .nb-gradle/
 
-# === Python (data-importer) ===
+# === Python ===
 __pycache__/
 *.py[cod]
 *$py.class
@@ -65,25 +65,23 @@ venv/
 env/
 *.egg-info/
 *.egg
-build/
 *.whl
 pip-log.txt
 pip-delete-this-directory.txt
 
-# === Node / Frontend ===
+# === Node / Frontend (Vue + Vite) ===
 frontend/node_modules/
 frontend/dist/
 frontend/build/
-frontend/.svelte-kit/
 frontend/.env
 frontend/.env.local
 *.tsbuildinfo
-.next/
 
 # === Environment & Secrets ===
 .env
 .env.local
 .env.*.local
+.envrc
 *.pem
 *.key
 *.cert
@@ -117,7 +115,13 @@ docker-compose.override.yml
 *.bak
 *.tmp
 *.temp
+*.local
 
 # === Project specific ===
 .claude/
-backend/modules/app/src/main/resources/application-local.yml
+# Java local config
+backend/api/src/main/resources/application-local.yml
+# AI Agent local env
+backend/ai/.env
+# Python data-importer local env
+backend/data/importer/.env

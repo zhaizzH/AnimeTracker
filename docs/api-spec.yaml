@@ -829,7 +829,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/ChatMessage"
 
-  /api/sessions:
+  /api/chat/sessions:
     post:
       tags:
         - AI 助手
@@ -859,7 +859,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/ChatSession"
 
-  /api/sessions/{session_id}:
+  /api/chat/sessions/{session_id}:
     delete:
       tags:
         - AI 助手
@@ -878,7 +878,7 @@ paths:
         "200":
           description: 删除成功
 
-  /health:
+  /api/chat/health:
     get:
       tags:
         - AI 助手
@@ -897,7 +897,7 @@ paths:
                     type: string
                     example: ok
 
-  /api/config:
+  /api/chat/config:
     get:
       tags:
         - AI 助手
