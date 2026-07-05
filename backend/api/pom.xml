@@ -115,6 +115,12 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- Apache Commons Codec (SHA256) -->
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+        </dependency>
+
         <!-- Jackson -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

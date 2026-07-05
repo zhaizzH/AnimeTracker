@@ -1,16 +1,15 @@
 package top.zhaizz.animetracker.user.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import top.zhaizz.animetracker.common.exception.BizException;
 import top.zhaizz.animetracker.common.ErrorType;
 import top.zhaizz.animetracker.common.util.RedisClient;
+import top.zhaizz.animetracker.security.JwtTokenProvider;
 import top.zhaizz.animetracker.user.converter.UserConverter;
 import top.zhaizz.animetracker.common.dto.LoginDTO;
 import top.zhaizz.animetracker.common.dto.RegisterDTO;
@@ -20,10 +19,8 @@ import top.zhaizz.animetracker.user.service.AuthService;
 import top.zhaizz.animetracker.common.vo.LoginVO;
 import top.zhaizz.animetracker.common.vo.UserVO;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 认证服务实现
@@ -35,12 +32,12 @@ public class AuthServiceImpl implements AuthService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final RedisClient redisClient;
-
-    @Value("${jwt.secret}")
-    private String jwtSecret;   // JWT 密钥
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Value("${jwt.expiration}")
     private long jwtExpiration; // 过期时间，单位毫秒
+
+    private static final String REDIS_TOKEN_PREFIX = "auth:token:";
 
     @Override
     public UserVO register(RegisterDTO request) {
@@ -77,41 +74,27 @@ public class AuthServiceImpl implements AuthService {
             throw new BizException(ErrorType.UNAUTHORIZED, "用户名或密码错误");
         }
 
-        // 2. 生成 JWT
-        String token = generateToken(user.getId(), user.getRole());
+        // 2. 生成 JWT（统一使用 JwtTokenProvider）
+        String token = jwtTokenProvider.generateToken(user.getId(), user.getRole());
 
-        // 3. 保存信息到 Redis
-        redisClient.set("Authorization:Bearer " + token, user.getId().toString());
+        // 3. 计算 SHA256 摘要，存入 Redis（带 TTL）
+        String tokenHash = DigestUtils.sha256Hex(token);
+        redisClient.set(REDIS_TOKEN_PREFIX + tokenHash, user.getId().toString(), jwtExpiration, TimeUnit.MILLISECONDS);
 
         // 4. 返回 Token + 用户信息
         return new LoginVO(token, UserConverter.toUserVO(user));
     }
 
     @Override
-    public Void logout() {
-        // 1. 查找用户
-
-        // TODO 实现redis功能
-        // 2.从请求头获取 token
-
-        // 3. 从 Redis 中删除
-
-        // 4. 返回成功
-        return null;
+    public void logout(String token) {
+        // 计算 SHA256 摘要，从 Redis 删除
+        String tokenHash = DigestUtils.sha256Hex(token);
+        redisClient.del(REDIS_TOKEN_PREFIX + tokenHash);
     }
 
     @Override
     public String generateToken(Long userId, String role) {
-        SecretKey secretKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-        Date now = new Date();
-        Date expiry = new Date(now.getTime() + jwtExpiration);
-
-        return Jwts.builder()
-                .claim("userId", userId)
-                .claim("role", role)
-                .issuedAt(now)
-                .expiration(expiry)
-                .signWith(secretKey, SignatureAlgorithm.HS256)
-                .compact();
+        // 委派给 JwtTokenProvider（兼容旧调用者）
+        return jwtTokenProvider.generateToken(userId, role);
     }
 }

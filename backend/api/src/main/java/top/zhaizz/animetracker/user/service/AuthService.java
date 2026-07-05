@@ -25,8 +25,9 @@ public interface AuthService {
 
     /**
      * 用户注销
+     * @param token 原始 JWT Token 字符串（从请求头提取）
      */
-    Void logout();
+    void logout(String token);
 
     /**
      * 生成 JWT Token
