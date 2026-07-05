@@ -5,10 +5,12 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+import top.zhaizz.animetracker.common.util.RedisClient;
 
 import java.io.IOException;
 
@@ -20,8 +22,10 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final RedisClient redisClient;
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String REDIS_TOKEN_PREFIX = "auth:token:";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -31,12 +35,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = resolveToken(request);
 
         if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
-            Long userId = jwtTokenProvider.getUserIdFromToken(token);
-            String role = jwtTokenProvider.getRoleFromToken(token);
+            // 计算 SHA256 摘要，检查 Redis 白名单
+            String tokenHash = DigestUtils.sha256Hex(token);
+            Boolean exists = redisClient.exists(REDIS_TOKEN_PREFIX + tokenHash);
 
-            UserPrincipal principal = new UserPrincipal(userId, role);
-            principal.setAuthenticated(true);
-            SecurityContextHolder.getContext().setAuthentication(principal);
+            if (Boolean.TRUE.equals(exists)) {
+                Long userId = jwtTokenProvider.getUserIdFromToken(token);
+                String role = jwtTokenProvider.getRoleFromToken(token);
+
+                UserPrincipal principal = new UserPrincipal(userId, role);
+                principal.setAuthenticated(true);
+                SecurityContextHolder.getContext().setAuthentication(principal);
+            }
+            // Redis 中不存在 → token 已失效，不设置认证上下文
         }
 
         filterChain.doFilter(request, response);
