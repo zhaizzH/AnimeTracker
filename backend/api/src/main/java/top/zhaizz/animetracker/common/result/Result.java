@@ -1,4 +1,4 @@
-package top.zhaizz.animetracker.common;
+package top.zhaizz.animetracker.common.result;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
