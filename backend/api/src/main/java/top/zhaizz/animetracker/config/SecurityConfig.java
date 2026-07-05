@@ -32,8 +32,8 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // 公开接口：无需认证
-                .requestMatchers("/api/user/auth/**").permitAll()
+                // 公开接口：无需认证（注册、登录）
+                .requestMatchers("/api/user/auth/register", "/api/user/auth/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/user/subjects/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/user/tags/**").permitAll()
                 // Swagger
