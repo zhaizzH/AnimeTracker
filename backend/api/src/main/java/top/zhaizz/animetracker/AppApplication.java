@@ -9,7 +9,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *
  * @author AnimeTracker Team
  */
-@MapperScan({"top.zhaizz.animetracker.subject.mapper", "top.zhaizz.animetracker.user.mapper"})
 @SpringBootApplication
 public class AppApplication {
 

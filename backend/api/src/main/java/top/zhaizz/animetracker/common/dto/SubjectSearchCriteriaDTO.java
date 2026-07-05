@@ -1,4 +1,4 @@
-package top.zhaizz.animetracker.subject.dto;
+package top.zhaizz.animetracker.common.dto;
 
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
@@ -7,7 +7,7 @@ import lombok.Data;
  * 搜索参数封装
  */
 @Data
-public class SubjectSearchCriteria {
+public class SubjectSearchCriteriaDTO {
 
     @NotEmpty(message = "搜索关键词不能为空")
     private String q;

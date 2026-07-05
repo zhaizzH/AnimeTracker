@@ -8,13 +8,13 @@ import org.springframework.web.bind.annotation.*;
 import top.zhaizz.animetracker.common.ApiResponse;
 import top.zhaizz.animetracker.common.PageResult;
 import top.zhaizz.animetracker.subject.service.TagService;
-import top.zhaizz.animetracker.subject.vo.SubjectListVO;
-import top.zhaizz.animetracker.subject.vo.TagVO;
+import top.zhaizz.animetracker.common.vo.SubjectListVO;
+import top.zhaizz.animetracker.common.vo.TagVO;
 
 import java.util.List;
 
 /**
- * 用户标签控制器
+ * 标签控制器
  */
 @RestController
 @RequestMapping("/api/user/tags")

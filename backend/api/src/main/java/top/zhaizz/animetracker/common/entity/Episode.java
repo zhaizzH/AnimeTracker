@@ -1,18 +1,22 @@
-package top.zhaizz.animetracker.subject.vo;
+package top.zhaizz.animetracker.common.entity;
 
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
- * 剧集信息 VO
+ * 剧集实体
  */
 @Data
-public class EpisodeVO {
+@TableName("episode")
+public class Episode {
 
     private Long id;
     private Long subjectId;
+    private Integer bangumiEpId;
     private Integer type;           // 0=本篇 1=SP 2=OP 3=ED 4=预告
     private BigDecimal sort;
     private String name;
@@ -21,4 +25,5 @@ public class EpisodeVO {
     private LocalDate airdate;
     private String description;
     private String status;          // Air / Today / NA
+    private LocalDateTime createdAt;
 }

@@ -1,4 +1,4 @@
-package top.zhaizz.animetracker.user.entity;
+package top.zhaizz.animetracker.common.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;

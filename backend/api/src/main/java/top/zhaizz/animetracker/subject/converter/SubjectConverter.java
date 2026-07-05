@@ -1,14 +1,12 @@
 package top.zhaizz.animetracker.subject.converter;
 
-import top.zhaizz.animetracker.subject.dto.SubjectCreateRequest;
-import top.zhaizz.animetracker.subject.dto.SubjectUpdateRequest;
-import top.zhaizz.animetracker.subject.entity.Episode;
-import top.zhaizz.animetracker.subject.entity.Subject;
-import top.zhaizz.animetracker.subject.entity.SubjectTag;
-import top.zhaizz.animetracker.subject.vo.EpisodeVO;
-import top.zhaizz.animetracker.subject.vo.SubjectDetailVO;
-import top.zhaizz.animetracker.subject.vo.SubjectListVO;
-import top.zhaizz.animetracker.subject.vo.TagVO;
+import top.zhaizz.animetracker.common.dto.SubjectCreateDTO;
+import top.zhaizz.animetracker.common.dto.SubjectUpdateDTO;
+import top.zhaizz.animetracker.common.entity.Episode;
+import top.zhaizz.animetracker.common.entity.ImportRecord;
+import top.zhaizz.animetracker.common.entity.Subject;
+import top.zhaizz.animetracker.common.entity.SubjectTag;
+import top.zhaizz.animetracker.common.vo.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -98,10 +96,30 @@ public class SubjectConverter {
                 .collect(Collectors.toList());
     }
 
+    public static ImportRecordVO toImportRecordVO(ImportRecord entity) {
+        if (entity == null) return null;
+        ImportRecordVO vo = new ImportRecordVO();
+        vo.setId(entity.getId());
+        vo.setSeason(entity.getSeasonKey());
+        vo.setStartedAt(entity.getStartedAt());
+        vo.setCompletedAt(entity.getCompletedAt());
+        vo.setStatus(entity.getStatus());
+        vo.setSubjectCount(entity.getSubjectCount());
+        vo.setErrorMessage(entity.getErrorMessage());
+        return vo;
+    }
+
+    public static List<ImportRecordVO> toImportRecordVOList(List<ImportRecord> entities) {
+        if (entities == null) return List.of();
+        return entities.stream()
+                .map(SubjectConverter::toImportRecordVO)
+                .collect(Collectors.toList());
+    }
+
     /**
-     * 将 SubjectCreateRequest 的非空字段映射到实体
+     * 将 SubjectCreateDTO 的非空字段映射到实体
      */
-    public static Subject toEntityFromCreate(SubjectCreateRequest request) {
+    public static Subject toEntityFromCreate(SubjectCreateDTO request) {
         if (request == null) return null;
         Subject entity = new Subject();
         entity.setBangumiId(request.getBangumiId());
@@ -116,9 +134,9 @@ public class SubjectConverter {
     }
 
     /**
-     * 将 SubjectUpdateRequest 的非空字段合并到已有实体
+     * 将 SubjectUpdateDTO 的非空字段合并到已有实体
      */
-    public static void updateFromRequest(Subject subject, SubjectUpdateRequest request) {
+    public static void updateFromRequest(Subject subject, SubjectUpdateDTO request) {
         if (request.getName() != null) subject.setName(request.getName());
         if (request.getNameCn() != null) subject.setNameCn(request.getNameCn());
         if (request.getSummary() != null) subject.setSummary(request.getSummary());

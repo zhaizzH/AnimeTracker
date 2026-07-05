@@ -11,13 +11,13 @@ import org.springframework.stereotype.Service;
 import top.zhaizz.animetracker.common.BizException;
 import top.zhaizz.animetracker.common.ErrorType;
 import top.zhaizz.animetracker.user.converter.UserConverter;
-import top.zhaizz.animetracker.user.dto.LoginRequest;
-import top.zhaizz.animetracker.user.dto.RegisterRequest;
-import top.zhaizz.animetracker.user.entity.User;
+import top.zhaizz.animetracker.common.dto.LoginDTO;
+import top.zhaizz.animetracker.common.dto.RegisterDTO;
+import top.zhaizz.animetracker.common.entity.User;
 import top.zhaizz.animetracker.user.mapper.UserMapper;
 import top.zhaizz.animetracker.user.service.AuthService;
-import top.zhaizz.animetracker.user.vo.LoginResult;
-import top.zhaizz.animetracker.user.vo.UserVO;
+import top.zhaizz.animetracker.common.vo.LoginVO;
+import top.zhaizz.animetracker.common.vo.UserVO;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -41,7 +41,7 @@ public class AuthServiceImpl implements AuthService {
     private long jwtExpiration; // 过期时间，单位毫秒
 
     @Override
-    public UserVO register(RegisterRequest request) {
+    public UserVO register(RegisterDTO request) {
         // 1. 检查用户名唯一性
         if (userMapper.existsByUsername(request.getUsername())) {
             throw new BizException(ErrorType.CONFLICT, "用户名已存在");
@@ -64,7 +64,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public LoginResult login(LoginRequest request) {
+    public LoginVO login(LoginDTO request) {
         // 1. 查找用户
         User user = userMapper.selectOne(
                 new LambdaQueryWrapper<User>()
@@ -79,7 +79,7 @@ public class AuthServiceImpl implements AuthService {
         String token = generateToken(user.getId(), user.getRole());
 
         // 3. 返回 Token + 用户信息
-        return new LoginResult(token, UserConverter.toUserVO(user));
+        return new LoginVO(token, UserConverter.toUserVO(user));
     }
 
     @Override

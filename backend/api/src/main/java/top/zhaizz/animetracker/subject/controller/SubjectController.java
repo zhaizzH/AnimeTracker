@@ -12,14 +12,14 @@ import top.zhaizz.animetracker.common.ErrorType;
 import top.zhaizz.animetracker.common.PageResult;
 import top.zhaizz.animetracker.subject.service.EpisodeService;
 import top.zhaizz.animetracker.subject.service.SubjectService;
-import top.zhaizz.animetracker.subject.vo.EpisodeVO;
-import top.zhaizz.animetracker.subject.vo.SubjectDetailVO;
-import top.zhaizz.animetracker.subject.vo.SubjectListVO;
+import top.zhaizz.animetracker.common.vo.EpisodeVO;
+import top.zhaizz.animetracker.common.vo.SubjectDetailVO;
+import top.zhaizz.animetracker.common.vo.SubjectListVO;
 
 import java.util.List;
 
 /**
- * 用户番剧控制器
+ * 番剧控制器
  */
 @RestController
 @RequestMapping("/api/user/subjects")

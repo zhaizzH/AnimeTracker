@@ -1,4 +1,4 @@
-package top.zhaizz.animetracker.user.dto;
+package top.zhaizz.animetracker.common.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
@@ -8,7 +8,7 @@ import lombok.Data;
  * 修改个人信息请求 DTO
  */
 @Data
-public class UpdateUserRequest {
+public class UpdateUserDTO {
 
     @Size(max = 64, message = "昵称长度不能超过64")
     private String nickname;

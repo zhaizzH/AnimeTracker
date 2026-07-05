@@ -1,8 +1,8 @@
 package top.zhaizz.animetracker.subject.service;
 
 import top.zhaizz.animetracker.common.PageResult;
-import top.zhaizz.animetracker.subject.vo.SubjectListVO;
-import top.zhaizz.animetracker.subject.vo.TagVO;
+import top.zhaizz.animetracker.common.vo.SubjectListVO;
+import top.zhaizz.animetracker.common.vo.TagVO;
 
 import java.util.List;
 

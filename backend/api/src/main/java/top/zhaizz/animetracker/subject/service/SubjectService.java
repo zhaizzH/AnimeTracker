@@ -1,11 +1,11 @@
 package top.zhaizz.animetracker.subject.service;
 
 import top.zhaizz.animetracker.common.PageResult;
-import top.zhaizz.animetracker.subject.dto.SubjectCreateRequest;
-import top.zhaizz.animetracker.subject.dto.SubjectUpdateRequest;
-import top.zhaizz.animetracker.subject.vo.EpisodeVO;
-import top.zhaizz.animetracker.subject.vo.SubjectDetailVO;
-import top.zhaizz.animetracker.subject.vo.SubjectListVO;
+import top.zhaizz.animetracker.common.dto.SubjectCreateDTO;
+import top.zhaizz.animetracker.common.dto.SubjectUpdateDTO;
+import top.zhaizz.animetracker.common.vo.EpisodeVO;
+import top.zhaizz.animetracker.common.vo.SubjectDetailVO;
+import top.zhaizz.animetracker.common.vo.SubjectListVO;
 
 import java.util.List;
 
@@ -27,10 +27,10 @@ public interface SubjectService {
     PageResult<SubjectListVO> listBySeason(int year, String quarter, int page, int size);
 
     /** 管理员 — 新增条目 */
-    SubjectDetailVO createSubject(SubjectCreateRequest request);
+    SubjectDetailVO createSubject(SubjectCreateDTO request);
 
     /** 管理员 — 编辑条目 */
-    SubjectDetailVO updateSubject(Long id, SubjectUpdateRequest request);
+    SubjectDetailVO updateSubject(Long id, SubjectUpdateDTO request);
 
     /** 管理员 — 删除条目 */
     void deleteSubject(Long id);

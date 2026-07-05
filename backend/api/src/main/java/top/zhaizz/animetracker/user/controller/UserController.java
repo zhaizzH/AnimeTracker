@@ -6,9 +6,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.animetracker.common.ApiResponse;
-import top.zhaizz.animetracker.user.dto.UpdateUserRequest;
+import top.zhaizz.animetracker.common.dto.UpdateUserDTO;
 import top.zhaizz.animetracker.user.service.UserService;
-import top.zhaizz.animetracker.user.vo.UserVO;
+import top.zhaizz.animetracker.common.vo.UserVO;
 
 /**
  * 个人信息控制器：查看 / 修改个人信息
@@ -33,7 +33,7 @@ public class UserController {
      * 修改当前登录用户信息
      */
     @PutMapping("/me")
-    public ApiResponse<UserVO> updateMyProfile(@Valid @RequestBody UpdateUserRequest request) {
+    public ApiResponse<UserVO> updateMyProfile(@Valid @RequestBody UpdateUserDTO request) {
         Long userId = getCurrentUserId();
         return ApiResponse.success(userService.updateUser(userId, request));
     }

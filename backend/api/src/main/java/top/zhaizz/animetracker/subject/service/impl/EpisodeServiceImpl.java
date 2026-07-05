@@ -5,11 +5,11 @@ import org.springframework.stereotype.Service;
 import top.zhaizz.animetracker.common.BizException;
 import top.zhaizz.animetracker.common.ErrorType;
 import top.zhaizz.animetracker.subject.converter.SubjectConverter;
-import top.zhaizz.animetracker.subject.entity.Episode;
+import top.zhaizz.animetracker.common.entity.Episode;
 import top.zhaizz.animetracker.subject.mapper.EpisodeMapper;
 import top.zhaizz.animetracker.subject.mapper.SubjectMapper;
 import top.zhaizz.animetracker.subject.service.EpisodeService;
-import top.zhaizz.animetracker.subject.vo.EpisodeVO;
+import top.zhaizz.animetracker.common.vo.EpisodeVO;
 
 import java.util.List;
 

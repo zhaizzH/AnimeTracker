@@ -3,7 +3,7 @@
 <mapper namespace="top.zhaizz.animetracker.subject.mapper.SubjectTagMapper">
 
     <!-- 查询所有标签及其使用次数（按 count 降序） -->
-    <select id="selectTagCountList" resultType="top.zhaizz.animetracker.subject.entity.SubjectTag">
+    <select id="selectTagCountList" resultType="top.zhaizz.animetracker.common.entity.SubjectTag">
         SELECT NULL AS id, name, COUNT(*) AS count
         FROM subject_tag
         GROUP BY name

@@ -1,4 +1,4 @@
-package top.zhaizz.animetracker.user.vo;
+package top.zhaizz.animetracker.common.vo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,7 +11,7 @@ import lombok.Data;
  */
 @Data
 @AllArgsConstructor
-public class LoginResult {
+public class LoginVO {
 
     private String token;
     private UserVO user;

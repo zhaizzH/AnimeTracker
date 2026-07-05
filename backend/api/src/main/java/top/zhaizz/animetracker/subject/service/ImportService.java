@@ -1,6 +1,6 @@
 package top.zhaizz.animetracker.subject.service;
 
-import top.zhaizz.animetracker.subject.vo.ImportStatusVO;
+import top.zhaizz.animetracker.common.vo.ImportStatusVO;
 
 public interface ImportService {
 

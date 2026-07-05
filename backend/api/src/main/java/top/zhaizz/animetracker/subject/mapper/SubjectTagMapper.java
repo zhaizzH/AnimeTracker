@@ -2,7 +2,7 @@ package top.zhaizz.animetracker.subject.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
-import top.zhaizz.animetracker.subject.entity.SubjectTag;
+import top.zhaizz.animetracker.common.entity.SubjectTag;
 
 import java.util.List;
 

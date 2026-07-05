@@ -1,4 +1,4 @@
-package top.zhaizz.animetracker.subject.vo;
+package top.zhaizz.animetracker.common.vo;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;

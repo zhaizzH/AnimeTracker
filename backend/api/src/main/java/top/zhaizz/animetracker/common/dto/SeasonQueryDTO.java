@@ -1,4 +1,4 @@
-package top.zhaizz.animetracker.subject.dto;
+package top.zhaizz.animetracker.common.dto;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -9,7 +9,7 @@ import lombok.Data;
  * 季度查询参数
  */
 @Data
-public class SeasonQuery {
+public class SeasonQueryDTO {
 
     @Min(value = 1970, message = "年份不能早于1970")
     @Max(value = 2100, message = "年份不能晚于2100")

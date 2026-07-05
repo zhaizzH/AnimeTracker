@@ -3,7 +3,7 @@ package top.zhaizz.animetracker.user.mapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
-import top.zhaizz.animetracker.user.entity.User;
+import top.zhaizz.animetracker.common.entity.User;
 
 /**
  * 用户 Mapper

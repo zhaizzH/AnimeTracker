@@ -10,20 +10,20 @@ import top.zhaizz.animetracker.common.BizException;
 import top.zhaizz.animetracker.common.ErrorType;
 import top.zhaizz.animetracker.common.PageResult;
 import top.zhaizz.animetracker.subject.converter.SubjectConverter;
-import top.zhaizz.animetracker.subject.dto.SubjectCreateRequest;
-import top.zhaizz.animetracker.subject.dto.SubjectUpdateRequest;
-import top.zhaizz.animetracker.subject.entity.Episode;
-import top.zhaizz.animetracker.subject.entity.Subject;
-import top.zhaizz.animetracker.subject.entity.SubjectTag;
+import top.zhaizz.animetracker.common.dto.SubjectCreateDTO;
+import top.zhaizz.animetracker.common.dto.SubjectUpdateDTO;
+import top.zhaizz.animetracker.common.entity.Episode;
+import top.zhaizz.animetracker.common.entity.Subject;
+import top.zhaizz.animetracker.common.entity.SubjectTag;
 import top.zhaizz.animetracker.subject.mapper.EpisodeMapper;
 import top.zhaizz.animetracker.subject.mapper.SubjectMapper;
 import top.zhaizz.animetracker.subject.mapper.SubjectTagMapper;
 import top.zhaizz.animetracker.subject.service.SubjectService;
 import top.zhaizz.animetracker.subject.util.SeasonUtil;
-import top.zhaizz.animetracker.subject.vo.EpisodeVO;
-import top.zhaizz.animetracker.subject.vo.SubjectDetailVO;
-import top.zhaizz.animetracker.subject.vo.SubjectListVO;
-import top.zhaizz.animetracker.subject.vo.TagVO;
+import top.zhaizz.animetracker.common.vo.EpisodeVO;
+import top.zhaizz.animetracker.common.vo.SubjectDetailVO;
+import top.zhaizz.animetracker.common.vo.SubjectListVO;
+import top.zhaizz.animetracker.common.vo.TagVO;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -126,7 +126,7 @@ public class SubjectServiceImpl implements SubjectService {
 
     @Override
     @Transactional
-    public SubjectDetailVO createSubject(SubjectCreateRequest request) {
+    public SubjectDetailVO createSubject(SubjectCreateDTO request) {
         if (request.getBangumiId() != null) {
             Long count = subjectMapper.selectCount(
                     new LambdaQueryWrapper<Subject>().eq(Subject::getBangumiId, request.getBangumiId())
@@ -148,7 +148,7 @@ public class SubjectServiceImpl implements SubjectService {
 
     @Override
     @Transactional
-    public SubjectDetailVO updateSubject(Long id, SubjectUpdateRequest request) {
+    public SubjectDetailVO updateSubject(Long id, SubjectUpdateDTO request) {
         Subject subject = subjectMapper.selectById(id);
         if (subject == null) {
             throw new BizException(ErrorType.NOT_FOUND, "条目不存在");

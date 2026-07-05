@@ -1,4 +1,4 @@
-package top.zhaizz.animetracker.subject.entity;
+package top.zhaizz.animetracker.common.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;

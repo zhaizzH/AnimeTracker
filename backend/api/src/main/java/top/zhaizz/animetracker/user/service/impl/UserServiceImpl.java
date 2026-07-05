@@ -8,11 +8,11 @@ import top.zhaizz.animetracker.common.BizException;
 import top.zhaizz.animetracker.common.ErrorType;
 import top.zhaizz.animetracker.common.PageResult;
 import top.zhaizz.animetracker.user.converter.UserConverter;
-import top.zhaizz.animetracker.user.dto.UpdateUserRequest;
-import top.zhaizz.animetracker.user.entity.User;
+import top.zhaizz.animetracker.common.dto.UpdateUserDTO;
+import top.zhaizz.animetracker.common.entity.User;
 import top.zhaizz.animetracker.user.mapper.UserMapper;
 import top.zhaizz.animetracker.user.service.UserService;
-import top.zhaizz.animetracker.user.vo.UserVO;
+import top.zhaizz.animetracker.common.vo.UserVO;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
@@ -36,7 +36,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserVO updateUser(Long userId, UpdateUserRequest request) {
+    public UserVO updateUser(Long userId, UpdateUserDTO request) {
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new BizException(ErrorType.NOT_FOUND, "用户不存在");

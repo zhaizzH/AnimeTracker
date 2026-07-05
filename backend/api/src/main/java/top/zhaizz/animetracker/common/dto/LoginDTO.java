@@ -1,4 +1,4 @@
-package top.zhaizz.animetracker.user.dto;
+package top.zhaizz.animetracker.common.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class LoginRequest {
+public class LoginDTO {
 
     @NotBlank(message = "用户名不能为空")
     private String username;

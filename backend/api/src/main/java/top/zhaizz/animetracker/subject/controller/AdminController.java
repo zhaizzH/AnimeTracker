@@ -5,13 +5,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.animetracker.common.ApiResponse;
-import top.zhaizz.animetracker.subject.dto.SubjectCreateRequest;
-import top.zhaizz.animetracker.subject.dto.SubjectUpdateRequest;
+import top.zhaizz.animetracker.common.dto.SubjectCreateDTO;
+import top.zhaizz.animetracker.common.dto.SubjectUpdateDTO;
 import top.zhaizz.animetracker.subject.service.SubjectService;
-import top.zhaizz.animetracker.subject.vo.SubjectDetailVO;
+import top.zhaizz.animetracker.common.vo.SubjectDetailVO;
 
 /**
- * 管理员番剧管理控制器
+ * 番剧管理控制器
  */
 @RestController
 @RequestMapping("/api/admin/subjects")
@@ -25,7 +25,7 @@ public class AdminController {
      * 创建新番剧
      */
     @PostMapping
-    public ApiResponse<SubjectDetailVO> createSubject(@Valid @RequestBody SubjectCreateRequest request) {
+    public ApiResponse<SubjectDetailVO> createSubject(@Valid @RequestBody SubjectCreateDTO request) {
         return ApiResponse.success(subjectService.createSubject(request));
     }
 
@@ -35,7 +35,7 @@ public class AdminController {
     @PutMapping("/{id}")
     public ApiResponse<SubjectDetailVO> updateSubject(
             @PathVariable Long id,
-            @Valid @RequestBody SubjectUpdateRequest request) {
+            @Valid @RequestBody SubjectUpdateDTO request) {
         return ApiResponse.success(subjectService.updateSubject(id, request));
     }
 

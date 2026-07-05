@@ -1,6 +1,6 @@
 package top.zhaizz.animetracker.subject.service;
 
-import top.zhaizz.animetracker.subject.vo.EpisodeVO;
+import top.zhaizz.animetracker.common.vo.EpisodeVO;
 
 import java.util.List;
 

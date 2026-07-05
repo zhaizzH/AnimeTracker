@@ -3,8 +3,11 @@ package top.zhaizz.animetracker.subject.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import top.zhaizz.animetracker.common.entity.ImportRecord;
+import top.zhaizz.animetracker.subject.converter.SubjectConverter;
+import top.zhaizz.animetracker.subject.mapper.ImportRecordMapper;
 import top.zhaizz.animetracker.subject.service.ImportService;
-import top.zhaizz.animetracker.subject.vo.ImportStatusVO;
+import top.zhaizz.animetracker.common.vo.ImportStatusVO;
 
 import java.util.List;
 
@@ -23,6 +26,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ImportServiceImpl implements ImportService {
+    private final ImportRecordMapper importRecordMapper;
 
     @Override
     public void runImport() {
@@ -31,10 +35,11 @@ public class ImportServiceImpl implements ImportService {
 
     @Override
     public ImportStatusVO getImportStatus() {
+        List<ImportRecord> records = importRecordMapper.selectList(null);
         ImportStatusVO vo = new ImportStatusVO();
-        vo.setLastImportedAt(null);
-        vo.setTotalSubjects(0);
-        vo.setRecentRecords(List.of());
+        vo.setLastImportedAt(records.isEmpty() ? null : records.getFirst().getCompletedAt());
+        vo.setTotalSubjects(records.size());
+        vo.setRecentRecords(SubjectConverter.toImportRecordVOList(records));
         return vo;
     }
 }

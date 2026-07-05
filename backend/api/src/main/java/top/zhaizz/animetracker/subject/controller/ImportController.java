@@ -4,10 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.animetracker.common.ApiResponse;
 import top.zhaizz.animetracker.subject.service.ImportService;
-import top.zhaizz.animetracker.subject.vo.ImportStatusVO;
+import top.zhaizz.animetracker.common.vo.ImportStatusVO;
 
 /**
- * 管理员番剧导入控制器
+ * 番剧导入控制器
  */
 @RestController
 @RequestMapping("/api/admin/import")
@@ -29,7 +29,7 @@ public class ImportController {
      * 获取番剧导入状态
      */
     @GetMapping("/status")
-    public ApiResponse<ImportStatusVO> getImportStatus() {  // TODO 待接入python功能
+    public ApiResponse<ImportStatusVO> getImportStatus() {
         return ApiResponse.success(importService.getImportStatus());
     }
 }

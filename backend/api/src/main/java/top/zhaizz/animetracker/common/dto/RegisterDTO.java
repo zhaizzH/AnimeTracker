@@ -1,4 +1,4 @@
-package top.zhaizz.animetracker.user.dto;
+package top.zhaizz.animetracker.common.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -9,7 +9,7 @@ import lombok.Data;
  * 注册请求 DTO
  */
 @Data
-public class RegisterRequest {
+public class RegisterDTO {
 
     @NotBlank(message = "用户名不能为空")
     @Size(min = 1, max = 32, message = "用户名长度需在1~32之间")

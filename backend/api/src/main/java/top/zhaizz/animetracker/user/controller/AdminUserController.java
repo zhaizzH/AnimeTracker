@@ -5,9 +5,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.animetracker.common.ApiResponse;
 import top.zhaizz.animetracker.common.PageResult;
-import top.zhaizz.animetracker.user.dto.UpdateRoleRequest;
+import top.zhaizz.animetracker.common.dto.UpdateRoleDTO;
 import top.zhaizz.animetracker.user.service.UserService;
-import top.zhaizz.animetracker.user.vo.UserVO;
+import top.zhaizz.animetracker.common.vo.UserVO;
 
 /**
  * 管理员用户管理控制器
@@ -37,7 +37,7 @@ public class AdminUserController {
     @PutMapping("/{id}/role")
     public ApiResponse<UserVO> updateUserRole(
             @PathVariable Long id,
-            @Valid @RequestBody UpdateRoleRequest request) {
+            @Valid @RequestBody UpdateRoleDTO request) {
         return ApiResponse.success(userService.updateUserRole(id, request.getRole()));
     }
 }
