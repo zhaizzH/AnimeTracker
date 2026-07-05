@@ -18,6 +18,9 @@ import top.zhaizz.animetracker.subject.vo.SubjectListVO;
 
 import java.util.List;
 
+/**
+ * 用户番剧控制器
+ */
 @RestController
 @RequestMapping("/api/user/subjects")
 @RequiredArgsConstructor
@@ -27,6 +30,9 @@ public class SubjectController {
     private final SubjectService subjectService;
     private final EpisodeService episodeService;
 
+    /**
+     * 获取用户番剧列表
+     */
     @GetMapping
     public ApiResponse<PageResult<SubjectListVO>> listSubjects(
             @RequestParam(defaultValue = "1") @Min(1) int page,
@@ -36,6 +42,9 @@ public class SubjectController {
         return ApiResponse.success(subjectService.listSubjects(page, size, sort, order));
     }
 
+    /**
+     * 搜索用户番剧
+     */
     @GetMapping("/search")
     public ApiResponse<PageResult<SubjectListVO>> searchSubjects(
             @RequestParam String q,
@@ -47,6 +56,9 @@ public class SubjectController {
         return ApiResponse.success(subjectService.searchSubjects(q.trim(), page, size));
     }
 
+    /**
+     * 按季度筛选用户番剧
+     */
     @GetMapping("/season")
     public ApiResponse<PageResult<SubjectListVO>> listBySeason(
             @RequestParam @Min(1970) @Max(2100) int year,
@@ -57,11 +69,17 @@ public class SubjectController {
         return ApiResponse.success(subjectService.listBySeason(year, quarter, page, size));
     }
 
+    /**
+     * 获取用户番剧详情
+     */
     @GetMapping("/{id}")
     public ApiResponse<SubjectDetailVO> getSubjectDetail(@PathVariable Long id) {
         return ApiResponse.success(subjectService.getSubjectDetail(id));
     }
 
+    /**
+     * 获取用户番剧剧剧集列表
+     */
     @GetMapping("/{id}/episodes")
     public ApiResponse<List<EpisodeVO>> getEpisodes(@PathVariable Long id) {
         return ApiResponse.success(episodeService.getEpisodesBySubjectId(id));

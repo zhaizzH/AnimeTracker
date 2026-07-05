@@ -13,6 +13,9 @@ import top.zhaizz.animetracker.subject.vo.TagVO;
 
 import java.util.List;
 
+/**
+ * 用户标签控制器
+ */
 @RestController
 @RequestMapping("/api/user/tags")
 @RequiredArgsConstructor
@@ -21,11 +24,17 @@ public class TagController {
 
     private final TagService tagService;
 
+    /**
+     * 获取标签列表
+     */
     @GetMapping
     public ApiResponse<List<TagVO>> listTags() {
         return ApiResponse.success(tagService.listTags());
     }
 
+    /**
+     * 获取标签下的番剧列表
+     */
     @GetMapping("/{tag}/subjects")
     public ApiResponse<PageResult<SubjectListVO>> listSubjectsByTag(
             @PathVariable String tag,
