@@ -21,6 +21,17 @@ public class RedisClient {
     }
 
     /**
+     * 保存数据（带过期时间）
+     * @param key   键
+     * @param value 值
+     * @param ttl   过期时间长度
+     * @param unit  过期时间单位
+     */
+    public void set(String key, String value, long ttl, TimeUnit unit) {
+        stringRedisTemplate.opsForValue().set(key, value, ttl, unit);
+    }
+
+    /**
      * 通过键获取对应的值
      * @param key 键
      * @return    值
