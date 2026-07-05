@@ -8,37 +8,37 @@ import lombok.Getter;
  */
 @Getter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ApiResponse<T> {
+public class Result<T> {
 
     private int code;
     private String message;
     private T data;
 
-    public ApiResponse() {}
+    public Result() {}
 
-    public ApiResponse(int code, String message, T data) {
+    public Result(int code, String message, T data) {
         this.code = code;
         this.message = message;
         this.data = data;
     }
 
-    public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(200, "success", data);
+    public static <T> Result<T> success(T data) {
+        return new Result<>(200, "success", data);
     }
 
-    public static <T> ApiResponse<T> success() {
-        return new ApiResponse<>(200, "success", null);
+    public static <T> Result<T> success() {
+        return new Result<>(200, "success", null);
     }
 
-    public static <T> ApiResponse<T> error(int code, String message) {
-        return new ApiResponse<>(code, message, null);
+    public static <T> Result<T> error(int code, String message) {
+        return new Result<>(code, message, null);
     }
 
-    public static <T> ApiResponse<T> error(int code, String message, T data) {
-        return new ApiResponse<>(code, message, data);
+    public static <T> Result<T> error(int code, String message, T data) {
+        return new Result<>(code, message, data);
     }
 
-    public static <T> ApiResponse<T> fail(String message) {
-        return new ApiResponse<>(400, message, null);
+    public static <T> Result<T> fail(String message) {
+        return new Result<>(400, message, null);
     }
 }

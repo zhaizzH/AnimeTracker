@@ -1,4 +1,4 @@
-package top.zhaizz.animetracker.common;
+package top.zhaizz.animetracker.common.result;
 
 import lombok.Getter;
 import lombok.Setter;

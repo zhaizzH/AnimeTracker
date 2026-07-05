@@ -5,8 +5,8 @@ import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import top.zhaizz.animetracker.common.ApiResponse;
-import top.zhaizz.animetracker.common.PageResult;
+import top.zhaizz.animetracker.common.result.Result;
+import top.zhaizz.animetracker.common.result.PageResult;
 import top.zhaizz.animetracker.subject.service.TagService;
 import top.zhaizz.animetracker.common.vo.SubjectListVO;
 import top.zhaizz.animetracker.common.vo.TagVO;
@@ -28,18 +28,18 @@ public class TagController {
      * 获取标签列表
      */
     @GetMapping
-    public ApiResponse<List<TagVO>> listTags() {
-        return ApiResponse.success(tagService.listTags());
+    public Result<List<TagVO>> listTags() {
+        return Result.success(tagService.listTags());
     }
 
     /**
      * 获取标签下的番剧列表
      */
     @GetMapping("/{tag}/subjects")
-    public ApiResponse<PageResult<SubjectListVO>> listSubjectsByTag(
+    public Result<PageResult<SubjectListVO>> listSubjectsByTag(
             @PathVariable String tag,
             @RequestParam(defaultValue = "1") @Min(1) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-        return ApiResponse.success(tagService.listSubjectsByTag(tag, page, size));
+        return Result.success(tagService.listSubjectsByTag(tag, page, size));
     }
 }

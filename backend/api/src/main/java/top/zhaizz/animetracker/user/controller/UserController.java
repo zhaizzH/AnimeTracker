@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import top.zhaizz.animetracker.common.ApiResponse;
+import top.zhaizz.animetracker.common.result.Result;
 import top.zhaizz.animetracker.common.dto.UpdateUserDTO;
 import top.zhaizz.animetracker.user.service.UserService;
 import top.zhaizz.animetracker.common.vo.UserVO;
@@ -24,18 +24,18 @@ public class UserController {
      * 获取当前登录用户信息
      */
     @GetMapping("/me")
-    public ApiResponse<UserVO> getMyProfile() {
+    public Result<UserVO> getMyProfile() {
         Long userId = getCurrentUserId();
-        return ApiResponse.success(userService.getUserById(userId));
+        return Result.success(userService.getUserById(userId));
     }
 
     /**
      * 修改当前登录用户信息
      */
     @PutMapping("/me")
-    public ApiResponse<UserVO> updateMyProfile(@Valid @RequestBody UpdateUserDTO request) {
+    public Result<UserVO> updateMyProfile(@Valid @RequestBody UpdateUserDTO request) {
         Long userId = getCurrentUserId();
-        return ApiResponse.success(userService.updateUser(userId, request));
+        return Result.success(userService.updateUser(userId, request));
     }
 
     /**

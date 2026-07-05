@@ -1,6 +1,6 @@
 package top.zhaizz.animetracker.user.service;
 
-import top.zhaizz.animetracker.common.PageResult;
+import top.zhaizz.animetracker.common.result.PageResult;
 import top.zhaizz.animetracker.common.dto.UpdateUserDTO;
 import top.zhaizz.animetracker.common.vo.UserVO;
 

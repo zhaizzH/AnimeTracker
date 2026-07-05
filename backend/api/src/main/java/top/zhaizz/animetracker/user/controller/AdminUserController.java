@@ -3,8 +3,8 @@ package top.zhaizz.animetracker.user.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import top.zhaizz.animetracker.common.ApiResponse;
-import top.zhaizz.animetracker.common.PageResult;
+import top.zhaizz.animetracker.common.result.Result;
+import top.zhaizz.animetracker.common.result.PageResult;
 import top.zhaizz.animetracker.common.dto.UpdateRoleDTO;
 import top.zhaizz.animetracker.user.service.UserService;
 import top.zhaizz.animetracker.common.vo.UserVO;
@@ -23,10 +23,10 @@ public class AdminUserController {
      * 分页查看所有注册用户（不返回密码字段）
      */
     @GetMapping
-    public ApiResponse<PageResult<UserVO>> listUsers(
+    public Result<PageResult<UserVO>> listUsers(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.success(userService.listUsers(page, size));
+        return Result.success(userService.listUsers(page, size));
     }
 
     /**
@@ -35,9 +35,9 @@ public class AdminUserController {
      * `@Valid` 定义校验规则,在 UpdateRoleRequest 类中使用 @NotBlank、@NotNull、@Size 等注解定义校验规则
      */
     @PutMapping("/{id}/role")
-    public ApiResponse<UserVO> updateUserRole(
+    public Result<UserVO> updateUserRole(
             @PathVariable Long id,
             @Valid @RequestBody UpdateRoleDTO request) {
-        return ApiResponse.success(userService.updateUserRole(id, request.getRole()));
+        return Result.success(userService.updateUserRole(id, request.getRole()));
     }
 }

@@ -1,5 +1,6 @@
 package top.zhaizz.animetracker.user.service;
 
+import jakarta.validation.Valid;
 import top.zhaizz.animetracker.common.dto.LoginDTO;
 import top.zhaizz.animetracker.common.dto.RegisterDTO;
 import top.zhaizz.animetracker.common.vo.LoginVO;
@@ -21,6 +22,11 @@ public interface AuthService {
      * @return LoginResult（含 JWT Token 和用户信息）
      */
     LoginVO login(LoginDTO request);
+
+    /**
+     * 用户注销
+     */
+    Void logout();
 
     /**
      * 生成 JWT Token

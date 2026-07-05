@@ -2,7 +2,7 @@ package top.zhaizz.animetracker.subject.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import top.zhaizz.animetracker.common.BizException;
+import top.zhaizz.animetracker.common.exception.BizException;
 import top.zhaizz.animetracker.common.ErrorType;
 import top.zhaizz.animetracker.subject.converter.SubjectConverter;
 import top.zhaizz.animetracker.common.entity.Episode;

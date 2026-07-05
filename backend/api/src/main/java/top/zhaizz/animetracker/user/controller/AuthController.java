@@ -3,7 +3,7 @@ package top.zhaizz.animetracker.user.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import top.zhaizz.animetracker.common.ApiResponse;
+import top.zhaizz.animetracker.common.result.Result;
 import top.zhaizz.animetracker.common.dto.LoginDTO;
 import top.zhaizz.animetracker.common.dto.RegisterDTO;
 import top.zhaizz.animetracker.user.service.AuthService;
@@ -25,12 +25,12 @@ public class AuthController {
      * <p>注册成功后自动登录，返回 JWT Token 和用户信息</p>
      */
     @PostMapping("/register")
-    public ApiResponse<LoginVO> register(@Valid @RequestBody RegisterDTO request) {
+    public Result<LoginVO> register(@Valid @RequestBody RegisterDTO request) {
         UserVO userVO = authService.register(request);
         // 注册成功后自动登录，返回 Token + 用户信息
         LoginVO loginVO = authService.login(
                 new LoginDTO(request.getUsername(), request.getPassword()));
-        return ApiResponse.success(loginVO);
+        return Result.success(loginVO);
     }
 
     /**
@@ -38,8 +38,16 @@ public class AuthController {
      * <p>登录成功返回 JWT Token 和用户信息</p>
      */
     @PostMapping("/login")
-    public ApiResponse<LoginVO> login(@Valid @RequestBody LoginDTO request) {
+    public Result<LoginVO> login(@Valid @RequestBody LoginDTO request) {
         LoginVO loginVO = authService.login(request);
-        return ApiResponse.success(loginVO);
+        return Result.success(loginVO);
+    }
+
+    /**
+     * 用户注销
+     */
+    @GetMapping("/logout")
+    public Result<Void> logout() {
+        return Result.success(authService.logout());
     }
 }

@@ -2,7 +2,7 @@ package top.zhaizz.animetracker.subject.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import top.zhaizz.animetracker.common.PageResult;
+import top.zhaizz.animetracker.common.result.PageResult;
 import top.zhaizz.animetracker.subject.converter.SubjectConverter;
 import top.zhaizz.animetracker.common.entity.Subject;
 import top.zhaizz.animetracker.subject.mapper.SubjectMapper;

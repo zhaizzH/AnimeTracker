@@ -1,6 +1,7 @@
-package top.zhaizz.animetracker.common;
+package top.zhaizz.animetracker.common.exception;
 
 import lombok.Getter;
+import top.zhaizz.animetracker.common.ErrorType;
 
 /**
  * 业务异常基类，包含 code 和 message

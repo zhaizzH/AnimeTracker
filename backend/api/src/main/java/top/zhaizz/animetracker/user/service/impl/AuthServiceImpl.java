@@ -8,8 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import top.zhaizz.animetracker.common.BizException;
+import top.zhaizz.animetracker.common.exception.BizException;
 import top.zhaizz.animetracker.common.ErrorType;
+import top.zhaizz.animetracker.common.util.RedisClient;
 import top.zhaizz.animetracker.user.converter.UserConverter;
 import top.zhaizz.animetracker.common.dto.LoginDTO;
 import top.zhaizz.animetracker.common.dto.RegisterDTO;
@@ -33,6 +34,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final RedisClient redisClient;
 
     @Value("${jwt.secret}")
     private String jwtSecret;   // JWT 密钥
@@ -78,8 +80,24 @@ public class AuthServiceImpl implements AuthService {
         // 2. 生成 JWT
         String token = generateToken(user.getId(), user.getRole());
 
-        // 3. 返回 Token + 用户信息
+        // 3. 保存信息到 Redis
+        redisClient.set("Authorization:Bearer " + token, user.getId().toString());
+
+        // 4. 返回 Token + 用户信息
         return new LoginVO(token, UserConverter.toUserVO(user));
+    }
+
+    @Override
+    public Void logout() {
+        // 1. 查找用户
+
+        // TODO 实现redis功能
+        // 2.从请求头获取 token
+
+        // 3. 从 Redis 中删除
+
+        // 4. 返回成功
+        return null;
     }
 
     @Override

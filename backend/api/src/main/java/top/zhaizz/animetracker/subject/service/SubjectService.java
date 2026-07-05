@@ -1,6 +1,6 @@
 package top.zhaizz.animetracker.subject.service;
 
-import top.zhaizz.animetracker.common.PageResult;
+import top.zhaizz.animetracker.common.result.PageResult;
 import top.zhaizz.animetracker.common.dto.SubjectCreateDTO;
 import top.zhaizz.animetracker.common.dto.SubjectUpdateDTO;
 import top.zhaizz.animetracker.common.vo.EpisodeVO;
