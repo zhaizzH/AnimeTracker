@@ -1,5 +1,6 @@
 package top.zhaizz.animetracker.user.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -47,7 +48,12 @@ public class AuthController {
      * 用户注销
      */
     @GetMapping("/logout")
-    public Result<Void> logout() {
-        return Result.success(authService.logout());
+    public Result<Void> logout(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            authService.logout(token);
+        }
+        return Result.success(null);
     }
 }
