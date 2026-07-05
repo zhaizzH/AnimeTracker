@@ -802,7 +802,7 @@ paths:
             text/event-stream:
               schema:
                 type: string
-                description: SSE 格式的流式 token（event: data\ndata: ...\n\n）
+                description: SSE 格式的流式 token
 
   /api/chat/{session_id}/messages:
     get:
