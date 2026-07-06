@@ -1,0 +1,1631 @@
+openapi: "3.0.1"
+info:
+  title: "API Documentation"
+  version: "1.0"
+paths:
+  /api/user/tags:
+    get:
+      summary: "获取标签列表"
+      description: "获取标签列表"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "array"
+                    description: ""
+                    items:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "integer"
+                          description: ""
+                          format: "int64"
+                        name:
+                          type: "string"
+                          description: ""
+                        count:
+                          type: "integer"
+                          description: ""
+                      description: "标签信息 VO"
+  /api/user/tags/{tag}/subjects:
+    get:
+      summary: "获取标签下的番剧列表"
+      description: "获取标签下的番剧列表"
+      parameters:
+      - name: "tag"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      - name: "page"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "1"
+      - name: "size"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "20"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      content:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "object"
+                          properties:
+                            id:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            name:
+                              type: "string"
+                              description: ""
+                            nameCn:
+                              type: "string"
+                              description: ""
+                            image:
+                              type: "string"
+                              description: ""
+                            score:
+                              type: "number"
+                              description: ""
+                            rank:
+                              type: "integer"
+                              description: ""
+                            eps:
+                              type: "integer"
+                              description: ""
+                            airDate:
+                              type: "string"
+                              description: ""
+                            type:
+                              type: "integer"
+                              description: ""
+                          description: "条目列表视图（摘要信息）"
+                      total:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      page:
+                        type: "integer"
+                        description: ""
+                      size:
+                        type: "integer"
+                        description: ""
+                    description: ""
+  /api/admin/subjects:
+    post:
+      summary: "创建新番剧"
+      description: "创建新番剧"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "name"
+              type: "object"
+              properties:
+                bangumiId:
+                  type: "integer"
+                  description: ""
+                name:
+                  type: "string"
+                  description: ""
+                nameCn:
+                  type: "string"
+                  description: ""
+                summary:
+                  type: "string"
+                  description: ""
+                type:
+                  type: "integer"
+                  description: ""
+                eps:
+                  type: "integer"
+                  description: ""
+                airDate:
+                  type: "string"
+                  description: ""
+                image:
+                  type: "string"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      name:
+                        type: "string"
+                        description: ""
+                      nameCn:
+                        type: "string"
+                        description: ""
+                      image:
+                        type: "string"
+                        description: ""
+                      score:
+                        type: "number"
+                        description: ""
+                      rank:
+                        type: "integer"
+                        description: ""
+                      eps:
+                        type: "integer"
+                        description: ""
+                      airDate:
+                        type: "string"
+                        description: ""
+                      type:
+                        type: "integer"
+                        description: ""
+                      bangumiId:
+                        type: "integer"
+                        description: ""
+                      summary:
+                        type: "string"
+                        description: ""
+                      volumes:
+                        type: "integer"
+                        description: ""
+                      airWeekday:
+                        type: "integer"
+                        description: ""
+                      collectionTotal:
+                        type: "integer"
+                        description: ""
+                      nsfw:
+                        type: "boolean"
+                        description: ""
+                      tags:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "object"
+                          properties:
+                            id:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            name:
+                              type: "string"
+                              description: ""
+                            count:
+                              type: "integer"
+                              description: ""
+                          description: "标签信息 VO"
+                      createdAt:
+                        type: "string"
+                        description: ""
+                      updatedAt:
+                        type: "string"
+                        description: ""
+                    description: ""
+  /api/admin/subjects/{id}:
+    put:
+      summary: "更新指定番剧的信息"
+      description: "更新指定番剧的信息"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                name:
+                  type: "string"
+                  description: ""
+                nameCn:
+                  type: "string"
+                  description: ""
+                summary:
+                  type: "string"
+                  description: ""
+                type:
+                  type: "integer"
+                  description: ""
+                eps:
+                  type: "integer"
+                  description: ""
+                airDate:
+                  type: "string"
+                  description: ""
+                image:
+                  type: "string"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      name:
+                        type: "string"
+                        description: ""
+                      nameCn:
+                        type: "string"
+                        description: ""
+                      image:
+                        type: "string"
+                        description: ""
+                      score:
+                        type: "number"
+                        description: ""
+                      rank:
+                        type: "integer"
+                        description: ""
+                      eps:
+                        type: "integer"
+                        description: ""
+                      airDate:
+                        type: "string"
+                        description: ""
+                      type:
+                        type: "integer"
+                        description: ""
+                      bangumiId:
+                        type: "integer"
+                        description: ""
+                      summary:
+                        type: "string"
+                        description: ""
+                      volumes:
+                        type: "integer"
+                        description: ""
+                      airWeekday:
+                        type: "integer"
+                        description: ""
+                      collectionTotal:
+                        type: "integer"
+                        description: ""
+                      nsfw:
+                        type: "boolean"
+                        description: ""
+                      tags:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "object"
+                          properties:
+                            id:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            name:
+                              type: "string"
+                              description: ""
+                            count:
+                              type: "integer"
+                              description: ""
+                          description: "标签信息 VO"
+                      createdAt:
+                        type: "string"
+                        description: ""
+                      updatedAt:
+                        type: "string"
+                        description: ""
+                    description: ""
+    delete:
+      summary: "删除指定番剧"
+      description: "删除指定番剧"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
+  /api/admin/import/run:
+    post:
+      summary: "运行番剧导入"
+      description: "运行番剧导入"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
+  /api/admin/import/status:
+    get:
+      summary: "获取番剧导入状态"
+      description: "获取番剧导入状态"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      lastImportedAt:
+                        type: "string"
+                        description: "最近导入时间（从未导入=null）"
+                      totalSubjects:
+                        type: "integer"
+                        description: "当前 subject 表总条目数"
+                      recentRecords:
+                        type: "array"
+                        description: "最近导入记录"
+                        items:
+                          type: "object"
+                          properties:
+                            id:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            season:
+                              type: "string"
+                              description: "如 \"2026-spring\""
+                            startedAt:
+                              type: "string"
+                              description: ""
+                            completedAt:
+                              type: "string"
+                              description: "可空"
+                            status:
+                              type: "string"
+                              description: "RUNNING / COMPLETED / FAILED"
+                            subjectCount:
+                              type: "integer"
+                              description: ""
+                            errorMessage:
+                              type: "string"
+                              description: "可空"
+                          description: "导入记录 VO"
+                    description: ""
+  /api/user/subjects:
+    get:
+      summary: "获取用户番剧列表"
+      description: "获取用户番剧列表"
+      parameters:
+      - name: "page"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "1"
+      - name: "size"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "20"
+      - name: "sort"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+          default: "score"
+      - name: "order"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+          default: "desc"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      content:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "object"
+                          properties:
+                            id:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            name:
+                              type: "string"
+                              description: ""
+                            nameCn:
+                              type: "string"
+                              description: ""
+                            image:
+                              type: "string"
+                              description: ""
+                            score:
+                              type: "number"
+                              description: ""
+                            rank:
+                              type: "integer"
+                              description: ""
+                            eps:
+                              type: "integer"
+                              description: ""
+                            airDate:
+                              type: "string"
+                              description: ""
+                            type:
+                              type: "integer"
+                              description: ""
+                          description: "条目列表视图（摘要信息）"
+                      total:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      page:
+                        type: "integer"
+                        description: ""
+                      size:
+                        type: "integer"
+                        description: ""
+                    description: ""
+  /api/user/subjects/search:
+    get:
+      summary: "用户搜索番剧"
+      description: "用户搜索番剧"
+      parameters:
+      - name: "q"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "page"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "1"
+      - name: "size"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "20"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      content:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "object"
+                          properties:
+                            id:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            name:
+                              type: "string"
+                              description: ""
+                            nameCn:
+                              type: "string"
+                              description: ""
+                            image:
+                              type: "string"
+                              description: ""
+                            score:
+                              type: "number"
+                              description: ""
+                            rank:
+                              type: "integer"
+                              description: ""
+                            eps:
+                              type: "integer"
+                              description: ""
+                            airDate:
+                              type: "string"
+                              description: ""
+                            type:
+                              type: "integer"
+                              description: ""
+                          description: "条目列表视图（摘要信息）"
+                      total:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      page:
+                        type: "integer"
+                        description: ""
+                      size:
+                        type: "integer"
+                        description: ""
+                    description: ""
+  /api/user/subjects/season:
+    get:
+      summary: "按季度筛选用户番剧"
+      description: "按季度筛选用户番剧"
+      parameters:
+      - name: "year"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+      - name: "quarter"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "page"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "1"
+      - name: "size"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "20"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      content:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "object"
+                          properties:
+                            id:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            name:
+                              type: "string"
+                              description: ""
+                            nameCn:
+                              type: "string"
+                              description: ""
+                            image:
+                              type: "string"
+                              description: ""
+                            score:
+                              type: "number"
+                              description: ""
+                            rank:
+                              type: "integer"
+                              description: ""
+                            eps:
+                              type: "integer"
+                              description: ""
+                            airDate:
+                              type: "string"
+                              description: ""
+                            type:
+                              type: "integer"
+                              description: ""
+                          description: "条目列表视图（摘要信息）"
+                      total:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      page:
+                        type: "integer"
+                        description: ""
+                      size:
+                        type: "integer"
+                        description: ""
+                    description: ""
+  /api/user/subjects/{id}:
+    get:
+      summary: "获取用户番剧详情"
+      description: "获取用户番剧详情"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      name:
+                        type: "string"
+                        description: ""
+                      nameCn:
+                        type: "string"
+                        description: ""
+                      image:
+                        type: "string"
+                        description: ""
+                      score:
+                        type: "number"
+                        description: ""
+                      rank:
+                        type: "integer"
+                        description: ""
+                      eps:
+                        type: "integer"
+                        description: ""
+                      airDate:
+                        type: "string"
+                        description: ""
+                      type:
+                        type: "integer"
+                        description: ""
+                      bangumiId:
+                        type: "integer"
+                        description: ""
+                      summary:
+                        type: "string"
+                        description: ""
+                      volumes:
+                        type: "integer"
+                        description: ""
+                      airWeekday:
+                        type: "integer"
+                        description: ""
+                      collectionTotal:
+                        type: "integer"
+                        description: ""
+                      nsfw:
+                        type: "boolean"
+                        description: ""
+                      tags:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "object"
+                          properties:
+                            id:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            name:
+                              type: "string"
+                              description: ""
+                            count:
+                              type: "integer"
+                              description: ""
+                          description: "标签信息 VO"
+                      createdAt:
+                        type: "string"
+                        description: ""
+                      updatedAt:
+                        type: "string"
+                        description: ""
+                    description: ""
+  /api/user/subjects/{id}/episodes:
+    get:
+      summary: "获取用户番剧剧剧集列表"
+      description: "获取用户番剧剧剧集列表"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "array"
+                    description: ""
+                    items:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "integer"
+                          description: ""
+                          format: "int64"
+                        subjectId:
+                          type: "integer"
+                          description: ""
+                          format: "int64"
+                        type:
+                          type: "integer"
+                          description: "0=本篇 1=SP 2=OP 3=ED 4=预告"
+                        sort:
+                          type: "number"
+                          description: ""
+                        name:
+                          type: "string"
+                          description: ""
+                        nameCn:
+                          type: "string"
+                          description: ""
+                        duration:
+                          type: "string"
+                          description: ""
+                        airdate:
+                          type: "string"
+                          description: ""
+                        description:
+                          type: "string"
+                          description: ""
+                        status:
+                          type: "string"
+                          description: "Air / Today / NA"
+                      description: "剧集信息 VO"
+  /api/user/auth/register:
+    post:
+      summary: "用户注册"
+      description: "用户注册"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "password"
+              - "username"
+              type: "object"
+              properties:
+                username:
+                  maxLength: 32
+                  minLength: 1
+                  type: "string"
+                  description: ""
+                password:
+                  maxLength: 128
+                  minLength: 6
+                  type: "string"
+                  description: ""
+                email:
+                  maxLength: 128
+                  type: "string"
+                  description: ""
+                  format: "email"
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      token:
+                        type: "string"
+                        description: ""
+                      user:
+                        type: "object"
+                        properties:
+                          id:
+                            type: "integer"
+                            description: ""
+                            format: "int64"
+                          username:
+                            type: "string"
+                            description: ""
+                          email:
+                            type: "string"
+                            description: ""
+                          nickname:
+                            type: "string"
+                            description: ""
+                          avatar:
+                            type: "string"
+                            description: ""
+                          role:
+                            type: "string"
+                            description: "USER / ADMIN"
+                          createdAt:
+                            type: "string"
+                            description: ""
+                        description: ""
+                    description: ""
+  /api/user/auth/login:
+    post:
+      summary: "用户登录"
+      description: "用户登录"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "password"
+              - "username"
+              type: "object"
+              properties:
+                username:
+                  type: "string"
+                  description: ""
+                password:
+                  type: "string"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      token:
+                        type: "string"
+                        description: ""
+                      user:
+                        type: "object"
+                        properties:
+                          id:
+                            type: "integer"
+                            description: ""
+                            format: "int64"
+                          username:
+                            type: "string"
+                            description: ""
+                          email:
+                            type: "string"
+                            description: ""
+                          nickname:
+                            type: "string"
+                            description: ""
+                          avatar:
+                            type: "string"
+                            description: ""
+                          role:
+                            type: "string"
+                            description: "USER / ADMIN"
+                          createdAt:
+                            type: "string"
+                            description: ""
+                        description: ""
+                    description: ""
+  /api/user/auth/logout:
+    get:
+      summary: "用户注销"
+      description: "用户注销"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
+  /api/user/me:
+    get:
+      summary: "获取当前登录用户信息"
+      description: "获取当前登录用户信息"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      username:
+                        type: "string"
+                        description: ""
+                      email:
+                        type: "string"
+                        description: ""
+                      nickname:
+                        type: "string"
+                        description: ""
+                      avatar:
+                        type: "string"
+                        description: ""
+                      role:
+                        type: "string"
+                        description: "USER / ADMIN"
+                      createdAt:
+                        type: "string"
+                        description: ""
+                    description: ""
+    put:
+      summary: "修改当前登录用户信息"
+      description: "修改当前登录用户信息"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                nickname:
+                  maxLength: 64
+                  type: "string"
+                  description: ""
+                avatar:
+                  maxLength: 512
+                  type: "string"
+                  description: ""
+                email:
+                  maxLength: 128
+                  type: "string"
+                  description: ""
+                  format: "email"
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      username:
+                        type: "string"
+                        description: ""
+                      email:
+                        type: "string"
+                        description: ""
+                      nickname:
+                        type: "string"
+                        description: ""
+                      avatar:
+                        type: "string"
+                        description: ""
+                      role:
+                        type: "string"
+                        description: "USER / ADMIN"
+                      createdAt:
+                        type: "string"
+                        description: ""
+                    description: ""
+  /api/admin/users:
+    get:
+      summary: "分页查看所有注册用户（不返回密码字段）"
+      description: "分页查看所有注册用户（不返回密码字段）"
+      parameters:
+      - name: "page"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "1"
+      - name: "size"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "20"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      content:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "object"
+                          properties:
+                            id:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            username:
+                              type: "string"
+                              description: ""
+                            email:
+                              type: "string"
+                              description: ""
+                            nickname:
+                              type: "string"
+                              description: ""
+                            avatar:
+                              type: "string"
+                              description: ""
+                            role:
+                              type: "string"
+                              description: "USER / ADMIN"
+                            createdAt:
+                              type: "string"
+                              description: ""
+                          description: "用户信息 VO（不含密码）"
+                      total:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      page:
+                        type: "integer"
+                        description: ""
+                      size:
+                        type: "integer"
+                        description: ""
+                    description: ""
+  /api/admin/users/{id}/role:
+    put:
+      summary: "修改指定用户的角色"
+      description: "修改指定用户的角色"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "role"
+              type: "object"
+              properties:
+                role:
+                  pattern: "USER|ADMIN"
+                  type: "string"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      username:
+                        type: "string"
+                        description: ""
+                      email:
+                        type: "string"
+                        description: ""
+                      nickname:
+                        type: "string"
+                        description: ""
+                      avatar:
+                        type: "string"
+                        description: ""
+                      role:
+                        type: "string"
+                        description: "USER / ADMIN"
+                      createdAt:
+                        type: "string"
+                        description: ""
+                    description: ""
+components:
+  schemas:
+    标签信息 VO:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          description: ""
+          format: "int64"
+        name:
+          type: "string"
+          description: ""
+        count:
+          type: "integer"
+          description: ""
+      description: "标签信息 VO"
+    条目列表视图（摘要信息）:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          description: ""
+          format: "int64"
+        name:
+          type: "string"
+          description: ""
+        nameCn:
+          type: "string"
+          description: ""
+        image:
+          type: "string"
+          description: ""
+        score:
+          type: "number"
+          description: ""
+        rank:
+          type: "integer"
+          description: ""
+        eps:
+          type: "integer"
+          description: ""
+        airDate:
+          type: "string"
+          description: ""
+        type:
+          type: "integer"
+          description: ""
+      description: "条目列表视图（摘要信息）"
+    条目详情视图（含标签）:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          description: ""
+          format: "int64"
+        name:
+          type: "string"
+          description: ""
+        nameCn:
+          type: "string"
+          description: ""
+        image:
+          type: "string"
+          description: ""
+        score:
+          type: "number"
+          description: ""
+        rank:
+          type: "integer"
+          description: ""
+        eps:
+          type: "integer"
+          description: ""
+        airDate:
+          type: "string"
+          description: ""
+        type:
+          type: "integer"
+          description: ""
+        bangumiId:
+          type: "integer"
+          description: ""
+        summary:
+          type: "string"
+          description: ""
+        volumes:
+          type: "integer"
+          description: ""
+        airWeekday:
+          type: "integer"
+          description: ""
+        collectionTotal:
+          type: "integer"
+          description: ""
+        nsfw:
+          type: "boolean"
+          description: ""
+        tags:
+          type: "array"
+          description: ""
+          items:
+            type: "object"
+            properties:
+              id:
+                type: "integer"
+                description: ""
+                format: "int64"
+              name:
+                type: "string"
+                description: ""
+              count:
+                type: "integer"
+                description: ""
+            description: "标签信息 VO"
+        createdAt:
+          type: "string"
+          description: ""
+        updatedAt:
+          type: "string"
+          description: ""
+      description: ""
+    导入记录 VO:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          description: ""
+          format: "int64"
+        season:
+          type: "string"
+          description: "如 \"2026-spring\""
+        startedAt:
+          type: "string"
+          description: ""
+        completedAt:
+          type: "string"
+          description: "可空"
+        status:
+          type: "string"
+          description: "RUNNING / COMPLETED / FAILED"
+        subjectCount:
+          type: "integer"
+          description: ""
+        errorMessage:
+          type: "string"
+          description: "可空"
+      description: "导入记录 VO"
+    导入状态信息 VO:
+      type: "object"
+      properties:
+        lastImportedAt:
+          type: "string"
+          description: "最近导入时间（从未导入=null）"
+        totalSubjects:
+          type: "integer"
+          description: "当前 subject 表总条目数"
+        recentRecords:
+          type: "array"
+          description: "最近导入记录"
+          items:
+            type: "object"
+            properties:
+              id:
+                type: "integer"
+                description: ""
+                format: "int64"
+              season:
+                type: "string"
+                description: "如 \"2026-spring\""
+              startedAt:
+                type: "string"
+                description: ""
+              completedAt:
+                type: "string"
+                description: "可空"
+              status:
+                type: "string"
+                description: "RUNNING / COMPLETED / FAILED"
+              subjectCount:
+                type: "integer"
+                description: ""
+              errorMessage:
+                type: "string"
+                description: "可空"
+            description: "导入记录 VO"
+      description: ""
+    剧集信息 VO:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          description: ""
+          format: "int64"
+        subjectId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        type:
+          type: "integer"
+          description: "0=本篇 1=SP 2=OP 3=ED 4=预告"
+        sort:
+          type: "number"
+          description: ""
+        name:
+          type: "string"
+          description: ""
+        nameCn:
+          type: "string"
+          description: ""
+        duration:
+          type: "string"
+          description: ""
+        airdate:
+          type: "string"
+          description: ""
+        description:
+          type: "string"
+          description: ""
+        status:
+          type: "string"
+          description: "Air / Today / NA"
+      description: "剧集信息 VO"
+    用户信息 VO（不含密码）:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          description: ""
+          format: "int64"
+        username:
+          type: "string"
+          description: ""
+        email:
+          type: "string"
+          description: ""
+        nickname:
+          type: "string"
+          description: ""
+        avatar:
+          type: "string"
+          description: ""
+        role:
+          type: "string"
+          description: "USER / ADMIN"
+        createdAt:
+          type: "string"
+          description: ""
+      description: ""
+    ? "登录/注册结果 VO（token + 用户信息）\n<p>\n注册和登录统一返回此结构，前端一次拿到 Token 和用户信息，\n无需额外调用{@code\
+      \ GET /api/user/me}。"
+    : type: "object"
+      properties:
+        token:
+          type: "string"
+          description: ""
+        user:
+          type: "object"
+          properties:
+            id:
+              type: "integer"
+              description: ""
+              format: "int64"
+            username:
+              type: "string"
+              description: ""
+            email:
+              type: "string"
+              description: ""
+            nickname:
+              type: "string"
+              description: ""
+            avatar:
+              type: "string"
+              description: ""
+            role:
+              type: "string"
+              description: "USER / ADMIN"
+            createdAt:
+              type: "string"
+              description: ""
+          description: ""
+      description: ""
