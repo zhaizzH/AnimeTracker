@@ -94,7 +94,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public String generateToken(Long userId, String role) {
-        // 委派给 JwtTokenProvider（兼容旧调用者）
+        // 委派给 JwtTokenProvider
         return jwtTokenProvider.generateToken(userId, role);
     }
 }

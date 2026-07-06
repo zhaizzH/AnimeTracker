@@ -18,14 +18,12 @@ public interface AuthService {
 
     /**
      * 用户登录
-     *
      * @return LoginResult（含 JWT Token 和用户信息）
      */
     LoginVO login(LoginDTO request);
 
     /**
      * 用户注销
-     * @param token 原始 JWT Token 字符串（从请求头提取）
      */
     void logout(String token);
 
