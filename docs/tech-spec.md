@@ -104,7 +104,7 @@
 | **后端框架** | Spring Boot | 3.2.0 | 应用框架 |
 | **ORM** | MyBatis-Plus | 3.5.5 | 数据库访问 |
 | **安全** | Spring Security + JWT (jjwt) | 0.12.3 | 认证授权 |
-| **API 文档** | Knife4j + SpringDoc | 4.5.0 | OpenAPI 文档 UI |
+| **API 文档** | Knife4j | 4.5.0 | API 文档 UI |
 | **数据库** | MySQL | 8.0 | 关系数据库 |
 | **缓存/存储** | Redis | 7-alpine | 认证令牌白名单 / 数据缓存 / AI 会话 |
 | **构建** | Maven | 3.9+ | Java 构建 |
@@ -127,9 +127,7 @@
 | Spring Cloud / Nacos | 个人项目无需服务发现 |
 | JPA / Hibernate | 保持 MyBatis-Plus 现有选型 |
 | React / 其他前端框架 | 保持 Vue 3 |
-| RabbitMQ / Kafka | 无异步消息需求 |
 | Docker / Kubernetes | 开发阶段 JAR 直接运行 |
-| Refresh Token | JWT 24h 过期 + Redis 白名单支持登出，无需刷新机制 |
 
 ---
 
@@ -232,7 +230,7 @@ AnimeTracker/
 │   │           ├── EpisodeMapper.xml
 │   │           └── SubjectTagMapper.xml
 │   │
-│   ├── ai/                           #   AI Agent (FastAPI)
+│   ├── agent/                           #   AI Agent (FastAPI)
 │   │   ├── main.py                   #     应用入口
 │   │   ├── config.py                 #     配置管理（Pydantic Settings）
 │   │   ├── requirements.txt
@@ -287,11 +285,6 @@ AnimeTracker/
 │   │   └── db-schema.sql             #   数据库建表脚本
 │   ├── Scope.md                      #   项目范围说明书
 │   └── db-schema.sql                 #   数据库建表脚本（源）
-│
-├── scripts/                          # 部署脚本
-│   ├── build.sh
-│   ├── start-prod.sh
-│   └── seed-db.sh
 │
 └── README.md                         # 项目总 README
 ```
