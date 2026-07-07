@@ -34,9 +34,9 @@ bash scripts/seed-db.sh
 ### 2. 后端 API
 
 ```bash
-cd backend/api
+cd backend/business
 mvn clean package -DskipTests
-java -jar target/animetracker-api-*.jar
+java -jar app/target/animetracker-app-*.jar
 ```
 
 ### 3. 前端
@@ -68,7 +68,7 @@ python main.py
 
 | 服务 | 端口 |
 |------|------|
-| Spring Boot API | 8080 |
+| Spring Boot API (business) | 8080 |
 | Vue 3 Frontend | 5173 |
 | FastAPI Agent | 8090 |
 | MySQL | 3306 |

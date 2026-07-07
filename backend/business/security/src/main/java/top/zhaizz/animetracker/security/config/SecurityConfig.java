@@ -1,4 +1,4 @@
-package top.zhaizz.animetracker.config;
+package top.zhaizz.animetracker.security.config;
 
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import top.zhaizz.animetracker.security.JwtAuthenticationFilter;

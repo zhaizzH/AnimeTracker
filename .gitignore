@@ -121,7 +121,7 @@ docker-compose.override.yml
 # === Project specific ===
 .claude/
 # Java local config
-backend/api/src/main/resources/application-local.yml
+backend/business/app/src/main/resources/application-local.yml
 # AI Agent local env
 backend/ai/.env
 # Python data-importer local env

@@ -6,7 +6,12 @@
 
 ```
 backend/
-├── api/          # Spring Boot REST API (Java 21, 端口 8080)
+├── business/     # Spring Boot 多模块工程 (Java 21, 端口 8080)
+│   ├── common/   # 共享模块
+│   ├── security/ # 安全模块
+│   ├── user/     # 用户模块
+│   ├── subject/  # 条目模块
+│   └── app/      # 启动器
 ├── ai/           # AI Agent (FastAPI + LangChain, 端口 8090)
 └── data/         # 数据层
     ├── importer/ # 数据导入器 (Python CLI)
@@ -26,9 +31,9 @@ bash scripts/seed-db.sh
 ### 2. Java API
 
 ```bash
-cd backend/api
+cd backend/business
 mvn clean package -DskipTests
-java -jar target/animetracker-api-*.jar
+java -jar app/target/animetracker-app-*.jar
 ```
 
 API 文档: http://localhost:8080/doc.html
@@ -54,7 +59,7 @@ python main.py
 
 | 模块 | 技术 | 版本 |
 |------|------|------|
-| API | Spring Boot | 3.2.0 |
+| API (business/app) | Spring Boot | 3.2.0 |
 | API | Java | 21 LTS |
 | API | MyBatis-Plus | 3.5.5 |
 | AI | FastAPI | 0.110+ |
