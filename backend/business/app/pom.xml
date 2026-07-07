@@ -52,6 +52,12 @@
             <artifactId>lombok</artifactId>
         </dependency>
 
+        <!-- mybatis-plus 依赖 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -76,7 +82,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>top.zhaizz.animetracker.AppApplication</mainClass>
+                    <mainClass>top.zhaizz.app.AppApplication</mainClass>
                 </configuration>
             </plugin>
         </plugins>

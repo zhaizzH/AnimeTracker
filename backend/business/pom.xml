@@ -20,9 +20,9 @@
 
     <modules>
         <module>common</module>
-        <module>security</module>
         <module>user</module>
         <module>subject</module>
+        <module>pojo</module>
         <module>app</module>
     </modules>
 
@@ -48,17 +48,22 @@
             </dependency>
             <dependency>
                 <groupId>top.zhaizz</groupId>
-                <artifactId>animetracker-security</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.zhaizz</groupId>
                 <artifactId>animetracker-user</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>top.zhaizz</groupId>
                 <artifactId>animetracker-subject</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.zhaizz</groupId>
+                <artifactId>animetracker-pojo</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.zhaizz</groupId>
+                <artifactId>animetracker-app</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

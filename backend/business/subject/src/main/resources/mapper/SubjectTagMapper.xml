@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.zhaizz.subject.mapper.SubjectTagMapper">
+
+    <!-- 查询所有标签及其使用次数（按 count 降序） -->
+    <select id="selectTagCountList" resultType="top.zhaizz.pojo.entity.SubjectTag">
+        SELECT NULL AS id, name, COUNT(*) AS count
+        FROM subject_tag
+        GROUP BY name
+        ORDER BY count DESC
+    </select>
+
+</mapper>

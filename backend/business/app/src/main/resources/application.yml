@@ -42,7 +42,7 @@ spring:
 # MyBatis-Plus 配置
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
-  type-aliases-package: top.zhaizz.animetracker.**.entity
+  type-aliases-package: top.zhaizz.pojo.entity
   configuration:
     map-underscore-to-camel-case: true
     log-impl: ${mybatis-plus.configuration.log-impl:org.apache.ibatis.logging.stdout.StdOutImpl}
