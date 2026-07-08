@@ -37,7 +37,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/user/subjects/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/user/tags/**").permitAll()
                 // Swagger
-                .requestMatchers("/doc.html**", "/v3/api-docs/**","/swagger-ui/**").permitAll()
+                .requestMatchers("/doc.html/**", "/v3/api-docs/**","/swagger-ui/**").permitAll()
                 // 管理接口：需 ADMIN 角色
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // 用户接口：需认证
