@@ -28,4 +28,13 @@ public interface SubjectMapper extends BaseMapper<Subject> {
      * 按标签名查询条目 ID 列表
      */
     List<Long> findSubjectIdsByTag(@Param("tagName") String tagName);
+
+    /**
+     * 按播出日期范围 + 星期几查询
+     *
+     * @param weekday 星期几 (0=周日, 1=周一...6=周六), 传 null 则不过滤
+     */
+    List<Subject> findByAirDateRangeAndWeekday(@Param("startDate") LocalDate startDate,
+                                               @Param("endDate") LocalDate endDate,
+                                               @Param("weekday") Integer weekday);
 }

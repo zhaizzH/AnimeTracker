@@ -28,4 +28,15 @@
         ORDER BY id
     </select>
 
+    <!-- 按播出日期范围 + 星期几查询 -->
+    <select id="findByAirDateRangeAndWeekday" resultType="top.zhaizz.pojo.entity.Subject">
+        SELECT *
+        FROM subject
+        WHERE air_date BETWEEN #{startDate} AND #{endDate}
+        <if test="weekday != null">
+            AND air_weekday = #{weekday}
+        </if>
+        ORDER BY air_weekday, score DESC
+    </select>
+
 </mapper>
