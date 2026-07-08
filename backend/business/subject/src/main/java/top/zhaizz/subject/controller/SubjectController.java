@@ -71,7 +71,7 @@ public class SubjectController {
     }
 
     /**
-     * 每周追番列表（按季度筛选 + 可选星期过滤）
+     * 每周追番列表
      */
     @GetMapping("/schedule")
     public Result<PageResult<SubjectListVO>> listSchedule(

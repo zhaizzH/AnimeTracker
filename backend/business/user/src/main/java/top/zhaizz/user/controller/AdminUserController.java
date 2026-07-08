@@ -10,7 +10,7 @@ import top.zhaizz.user.service.UserService;
 import top.zhaizz.pojo.vo.UserVO;
 
 /**
- * 管理员用户管理控制器
+ * 用户管理控制器
  */
 @RestController
 @RequestMapping("/api/admin/users")

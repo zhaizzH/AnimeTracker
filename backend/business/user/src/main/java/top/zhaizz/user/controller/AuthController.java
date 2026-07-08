@@ -12,7 +12,7 @@ import top.zhaizz.pojo.vo.LoginVO;
 import top.zhaizz.pojo.vo.UserVO;
 
 /**
- * 认证控制器：注册 / 登录
+ * 认证控制器
  */
 @RestController
 @RequestMapping("/api/user/auth")

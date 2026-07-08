@@ -11,7 +11,7 @@ import top.zhaizz.user.service.UserService;
 import top.zhaizz.pojo.vo.UserVO;
 
 /**
- * 个人信息控制器：查看 / 修改个人信息
+ * 个人信息控制器
  */
 @RestController
 @RequestMapping("/api/user")
