@@ -14,6 +14,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
+
+import static org.springframework.security.config.Customizer.withDefaults;
 
 /**
  * 安全配置类
@@ -23,12 +26,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-
+    // JWT 认证过滤器
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    // CORS 配置源
+    private final CorsConfigurationSource corsConfigurationSource;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+            .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
@@ -36,8 +42,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/user/auth/register", "/api/user/auth/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/user/subjects/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/user/tags/**").permitAll()
-                // Swagger
-                .requestMatchers("/doc.html/**", "/v3/api-docs/**","/swagger-ui/**").permitAll()
+
                 // 管理接口：需 ADMIN 角色
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // 用户接口：需认证

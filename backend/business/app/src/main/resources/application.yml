@@ -6,15 +6,19 @@ server:
 
 spring:
   application:
-    name: animetracker-api
+    name: animetracker-business
 
   profiles:
     active: local
 
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
   datasource:
-    driver-class-name: ${zzz.datasource.driver-class-name}
+    driver-class-name: ${zzz.datasource.driver-class-name:com.mysql.cj.jdbc.Driver}
     url: jdbc:mysql://${zzz.datasource.host}:${zzz.datasource.port}/${zzz.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
-    username: ${zzz.datasource.username}
+    username: ${zzz.datasource.username:root}
     password: ${zzz.datasource.password}
     hikari:
       maximum-pool-size: 10
@@ -45,23 +49,8 @@ mybatis-plus:
   type-aliases-package: top.zhaizz.pojo.entity
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: ${mybatis-plus.configuration.log-impl:org.apache.ibatis.logging.stdout.StdOutImpl}
+    log-impl: ${mybatis-plus.configuration.log-impl}
 
-# Knife4j API文档配置
-knife4j:
-  enable: true # 是否启用Knife4j（必填，默认false）
-  setting:
-    language: zh-CN # 界面语言（中文）
-    swagger-model-name: 实体列表
-  production: false # 是否为生产环境（生产环境建议设为true，关闭文档访问）
-  basic:
-    enable: false # 是否开启基础认证（如需权限控制可设为true）
-    username: admin # 认证用户名
-    password: 123456 # 认证密码
-
-springdoc:
-  api-docs:
-    path: /v3/api-docs
 
 # JWT 配置
 jwt:
@@ -71,5 +60,5 @@ jwt:
 # 日志
 logging:
   level:
-    top.zhaizz.animetracker: INFO
+    top.zhaizz: INFO
     com.baomidou.mybatisplus: INFO
