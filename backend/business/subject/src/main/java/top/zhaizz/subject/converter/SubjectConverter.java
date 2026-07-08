@@ -30,6 +30,8 @@ public class SubjectConverter {
         vo.setEps(entity.getEps());
         vo.setAirDate(entity.getAirDate());
         vo.setType(entity.getType());
+        vo.setAirWeekday(entity.getAirWeekday());
+        vo.setCollectionTotal(entity.getCollectionTotal());
         return vo;
     }
 

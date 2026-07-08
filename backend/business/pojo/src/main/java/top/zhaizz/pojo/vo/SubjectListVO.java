@@ -20,4 +20,6 @@ public class SubjectListVO {
     private Integer eps;
     private LocalDate airDate;
     private Integer type;
+    private Integer airWeekday;
+    private Integer collectionTotal;
 }
