@@ -25,4 +25,23 @@ public class SeasonUtil {
             default -> throw new IllegalArgumentException("Invalid quarter: " + quarter);
         };
     }
+
+    /**
+     * 获取当前季度字符串
+     */
+    public static String getCurrentQuarter() {
+        return switch (LocalDate.now().getMonth()) {
+            case JANUARY, FEBRUARY, MARCH -> "winter";
+            case APRIL, MAY, JUNE -> "spring";
+            case JULY, AUGUST, SEPTEMBER -> "summer";
+            case OCTOBER, NOVEMBER, DECEMBER -> "autumn";
+        };
+    }
+
+    /**
+     * 获取当前年份
+     */
+    public static int getCurrentYear() {
+        return LocalDate.now().getYear();
+    }
 }
