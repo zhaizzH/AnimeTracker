@@ -125,6 +125,30 @@ public class SubjectServiceImpl implements SubjectService {
     }
 
     @Override
+    public PageResult<SubjectListVO> listSchedule(int year, String quarter, Integer weekday, int page, int size) {
+        LocalDate[] range = SeasonUtil.getSeasonRange(year, quarter);
+        LambdaQueryWrapper<Subject> wrapper = new LambdaQueryWrapper<Subject>()
+                .between(Subject::getAirDate, range[0], range[1])
+                .orderByAsc(Subject::getAirWeekday)
+                .orderByDesc(Subject::getScore);
+
+        if (weekday != null && weekday >= 0 && weekday <= 6) {
+            wrapper.eq(Subject::getAirWeekday, weekday);
+        }
+
+        Page<Subject> mpPage = subjectMapper.selectPage(new Page<>(page, size), wrapper);
+
+        return PageResult.of(
+                mpPage.getRecords().stream()
+                        .map(SubjectConverter::toSubjectListVO)
+                        .collect(Collectors.toList()),
+                mpPage.getTotal(),
+                (int) mpPage.getCurrent(),
+                (int) mpPage.getSize()
+        );
+    }
+
+    @Override
     @Transactional
     public SubjectDetailVO createSubject(SubjectCreateDTO request) {
         if (request.getBangumiId() != null) {

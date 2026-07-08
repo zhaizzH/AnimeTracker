@@ -26,6 +26,9 @@ public interface SubjectService {
     /** 按季度筛选（分页） */
     PageResult<SubjectListVO> listBySeason(int year, String quarter, int page, int size);
 
+    /** 每周追番列表（按季度筛选 + 可选星期过滤） */
+    PageResult<SubjectListVO> listSchedule(int year, String quarter, Integer weekday, int page, int size);
+
     /** 管理员 — 新增条目 */
     SubjectDetailVO createSubject(SubjectCreateDTO request);
 
