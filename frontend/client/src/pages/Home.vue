@@ -7,11 +7,13 @@ import {
 } from '@lucide/vue'
 import { subjectsApi } from '@/api/subjects'
 import { tagsApi } from '@/api/tags'
-import type { SubjectListItem, SubjectDetail } from '@/types'
+import { useSubjectsStore } from '@/stores/subjects'
+import type { SubjectListItem } from '@/types'
 import SubjectCard from '@/components/SubjectCard.vue'
 import SubjectCardSkeleton from '@/components/SubjectCardSkeleton.vue'
 
 const router = useRouter()
+const subjectsStore = useSubjectsStore()
 
 const searchQuery = ref('')
 
@@ -19,7 +21,6 @@ const searchQuery = ref('')
 const popularItems = ref<SubjectListItem[]>([])
 const latestItems = ref<SubjectListItem[]>([])
 const seasonalItems = ref<SubjectListItem[]>([])
-const scheduleItems = ref<SubjectDetail[]>([])
 const totalSubjects = ref(0)
 const totalTags = ref(0)
 const seasonTotal = ref(0)
@@ -28,7 +29,6 @@ const seasonTotal = ref(0)
 const loadingPopular = ref(true)
 const loadingLatest = ref(true)
 const loadingSeasonal = ref(true)
-const loadingSchedule = ref(true)
 
 // Current season computation
 const currentYear = new Date().getFullYear()
@@ -53,8 +53,8 @@ const todayWeekday = new Date().getDay()
 const activeWeekday = ref(-1) // default: show all
 
 const scheduleByWeekday = computed(() => {
-  const groups: Record<number, SubjectDetail[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
-  for (const item of scheduleItems.value) {
+  const groups: Record<number, SubjectListItem[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
+  for (const item of subjectsStore.scheduleList) {
     if (item.airWeekday != null && item.airWeekday >= 0 && item.airWeekday <= 6) {
       groups[item.airWeekday].push(item)
     }
@@ -68,7 +68,7 @@ const scheduleByWeekday = computed(() => {
 const currentDaySchedule = computed(() => {
   if (activeWeekday.value === -1) {
     // "全部" - return all schedule items sorted by score
-    return [...scheduleItems.value].sort((a, b) => (b.score || 0) - (a.score || 0))
+    return [...subjectsStore.scheduleList].sort((a, b) => (b.score || 0) - (a.score || 0))
   }
   return scheduleByWeekday.value[activeWeekday.value] || []
 })
@@ -132,26 +132,7 @@ async function fetchSeasonal() {
 }
 
 async function fetchSchedule() {
-  loadingSchedule.value = true
-  try {
-    // Fetch seasonal anime list to get IDs
-    const res = await subjectsApi.getBySeason({
-      year: currentYear,
-      quarter: currentQuarter.value,
-      page: 1,
-      size: 60,
-    })
-    // Fetch details in parallel to get airWeekday
-    const details = await Promise.all(
-      res.data.data.content.map(item =>
-        subjectsApi.getDetail(item.id).then(r => r.data.data).catch(() => null)
-      )
-    )
-    scheduleItems.value = details.filter((d): d is SubjectDetail => d !== null)
-  } catch { /* silently fail */ }
-  finally {
-    loadingSchedule.value = false
-  }
+  await subjectsStore.fetchSchedule(currentYear, currentQuarter.value)
 }
 
 async function fetchTags() {
@@ -258,7 +239,7 @@ onMounted(() => {
       </div>
 
       <!-- Schedule list -->
-      <div v-if="loadingSchedule" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div v-if="subjectsStore.scheduleLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         <div v-for="i in 9" :key="i" class="app-skeleton h-[72px] rounded-xl" />
       </div>
       <div v-else-if="currentDaySchedule.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
