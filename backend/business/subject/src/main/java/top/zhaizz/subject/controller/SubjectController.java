@@ -12,6 +12,7 @@ import top.zhaizz.common.ErrorType;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.subject.service.EpisodeService;
 import top.zhaizz.subject.service.SubjectService;
+import top.zhaizz.subject.util.SeasonUtil;
 import top.zhaizz.pojo.vo.EpisodeVO;
 import top.zhaizz.pojo.vo.SubjectDetailVO;
 import top.zhaizz.pojo.vo.SubjectListVO;
@@ -31,7 +32,7 @@ public class SubjectController {
     private final EpisodeService episodeService;
 
     /**
-     * 获取用户番剧列表
+     * 获取番剧列表
      */
     @GetMapping
     public Result<PageResult<SubjectListVO>> listSubjects(
@@ -43,7 +44,7 @@ public class SubjectController {
     }
 
     /**
-     * 用户搜索番剧
+     * 搜索番剧
      */
     @GetMapping("/search")
     public Result<PageResult<SubjectListVO>> searchSubjects(
@@ -70,7 +71,23 @@ public class SubjectController {
     }
 
     /**
-     * 获取用户番剧详情
+     * 每周追番列表（按季度筛选 + 可选星期过滤）
+     */
+    @GetMapping("/schedule")
+    public Result<PageResult<SubjectListVO>> listSchedule(
+            @RequestParam(defaultValue = "-1") @Min(-1) @Max(6) int weekday,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) String quarter,
+            @RequestParam(defaultValue = "1") @Min(1) int page,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size) {
+        int y = year != null ? year : SeasonUtil.getCurrentYear();
+        String q = quarter != null ? quarter : SeasonUtil.getCurrentQuarter();
+        Integer wd = weekday == -1 ? null : weekday;
+        return Result.success(subjectService.listSchedule(y, q, wd, page, size));
+    }
+
+    /**
+     * 获取番剧详情
      */
     @GetMapping("/{id}")
     public Result<SubjectDetailVO> getSubjectDetail(@PathVariable Long id) {
@@ -78,7 +95,7 @@ public class SubjectController {
     }
 
     /**
-     * 获取用户番剧剧剧集列表
+     * 获取番剧剧集列表
      */
     @GetMapping("/{id}/episodes")
     public Result<List<EpisodeVO>> getEpisodes(@PathVariable Long id) {

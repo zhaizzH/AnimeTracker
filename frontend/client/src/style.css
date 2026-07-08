@@ -1,0 +1,190 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #f17992;
+    --color-primary-light: #f8a7b6;
+    --color-primary-dark: #d44463;
+    --color-bg: #f5f6f8;
+    --color-card: #ffffff;
+    --color-text: #232833;
+    --color-text-secondary: #6b7a8d;
+    --color-border: #d8dce4;
+    --color-border-solid: #d8dce4;
+    --color-hover: #eceef2;
+    --color-skeleton: #d8dce4;
+    --color-input-bg: var(--color-bg);
+    --color-input-border: var(--color-border);
+  }
+
+  .dark {
+    --color-bg: #1a1a1e;
+    --color-card: #252529;
+    --color-text: #e4e4e4;
+    --color-text-secondary: #9b9b9b;
+    --color-border: rgba(82,82,90,0.22);
+    --color-border-solid: #52525a;
+    --color-hover: #333338;
+    --color-skeleton: #333338;
+    --color-input-bg: rgba(82,82,90,0.17);
+    --color-input-border: rgba(82,82,90,0.29);
+  }
+
+  body {
+    @apply antialiased transition-colors duration-300;
+    font-family: 'Noto Sans SC', 'Inter', system-ui, -apple-system, sans-serif;
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-text);
+  }
+}
+
+@layer components {
+  .app-container {
+    @apply max-w-7xl mx-auto px-4 md:px-6;
+  }
+
+  .app-skeleton {
+    @apply rounded-lg animate-skeleton;
+    background: var(--color-skeleton);
+  }
+
+  .app-card {
+    @apply rounded-2xl transition-all duration-300 ease-out;
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+  }
+  .app-card:hover {
+    border-color: var(--color-border-solid);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           px-5 py-2.5 rounded-full
+           bg-primary-500 hover:bg-primary-600
+           text-white font-medium text-sm
+           transition-all duration-200
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2
+           active:scale-[0.98]
+           disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           px-5 py-2.5 rounded-full
+           font-medium text-sm
+           transition-all duration-200
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400
+           active:scale-[0.98];
+    background: var(--color-hover);
+    color: var(--color-text);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2
+           px-3 py-2 rounded-lg
+           font-medium text-sm
+           transition-all duration-200;
+    color: var(--color-text-secondary);
+  }
+  .btn-ghost:hover {
+    background: var(--color-hover);
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2
+           px-5 py-2.5 rounded-full
+           bg-red-500 hover:bg-red-600
+           text-white font-medium text-sm
+           transition-all duration-200
+           active:scale-[0.98];
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-xl
+           text-sm
+           transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500
+           disabled:opacity-50;
+    background: var(--color-input-bg);
+    border: 1px solid var(--color-input-border);
+    color: var(--color-text);
+  }
+  .input-field::placeholder {
+    color: var(--color-text-secondary);
+    opacity: 0.6;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full
+           text-xs font-medium;
+    background: rgba(241,121,146,0.1);
+    color: var(--color-primary);
+  }
+  .dark .badge {
+    background: rgba(241,121,146,0.15);
+    color: #f8a7b6;
+  }
+
+  .badge-score {
+    @apply inline-flex items-center px-2 py-0.5 rounded-md
+           text-xs font-bold;
+    background: rgba(255,185,0,0.15);
+    color: #b38600;
+  }
+  .dark .badge-score {
+    color: #ffb900;
+  }
+
+  .badge-rank {
+    @apply inline-flex items-center px-2 py-0.5 rounded-md
+           text-xs font-bold;
+    background: rgba(0,161,214,0.12);
+    color: #007aa3;
+  }
+  .dark .badge-rank {
+    color: #22b8e8;
+  }
+
+  .section-title {
+    @apply text-xl md:text-2xl font-bold;
+    color: var(--color-text);
+  }
+
+  .page-title {
+    @apply text-3xl md:text-4xl font-bold;
+    color: var(--color-text);
+  }
+
+  .page-subtitle {
+    @apply text-base;
+    color: var(--color-text-secondary);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .glass {
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    background: rgba(255,255,255,0.72);
+  }
+  .dark .glass {
+    background: rgba(37,37,41,0.82);
+  }
+}
