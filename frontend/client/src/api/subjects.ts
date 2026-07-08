@@ -11,6 +11,9 @@ export const subjectsApi = {
   getBySeason(params: { year: number; quarter: string; page?: number; size?: number }) {
     return http.get<ApiResponse<PageResult<SubjectListItem>>>('/api/user/subjects/season', { params })
   },
+  getSchedule(params: { weekday?: number; year?: number; quarter?: string; page?: number; size?: number }) {
+    return http.get<ApiResponse<PageResult<SubjectListItem>>>('/api/user/subjects/schedule', { params })
+  },
   getDetail(id: number) {
     return http.get<ApiResponse<SubjectDetail>>(`/api/user/subjects/${id}`)
   },

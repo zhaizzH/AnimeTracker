@@ -12,6 +12,8 @@ export const useSubjectsStore = defineStore('subjects', () => {
   const size = ref(20)
   const loading = ref(false)
   const keyword = ref('')
+  const scheduleList = ref<SubjectListItem[]>([])
+  const scheduleLoading = ref(false)
 
   async function fetchList(params: {
     page?: number
@@ -79,8 +81,21 @@ export const useSubjectsStore = defineStore('subjects', () => {
     }
   }
 
+  async function fetchSchedule(year: number, quarter: string, weekday = -1) {
+    scheduleLoading.value = true
+    try {
+      const res = await subjectsApi.getSchedule({ year, quarter, weekday, page: 1, size: 60 })
+      scheduleList.value = res.data.data.content
+    } catch {
+      scheduleList.value = []
+    } finally {
+      scheduleLoading.value = false
+    }
+  }
+
   return {
     list, detail, episodes, total, page, size, loading, keyword,
     fetchList, search, fetchBySeason, fetchDetail, fetchEpisodes,
+    scheduleList, scheduleLoading, fetchSchedule,
   }
 })

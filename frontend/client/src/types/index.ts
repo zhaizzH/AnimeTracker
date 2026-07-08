@@ -27,6 +27,8 @@ export interface SubjectListItem {
   eps: number
   airDate: string
   type: number
+  airWeekday: number
+  collectionTotal: number
 }
 
 export interface SubjectDetail extends SubjectListItem {
