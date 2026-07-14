@@ -63,13 +63,13 @@ function formatDate(dateStr: string): string {
             {{ s.message_count }} 条消息 · {{ formatDate(s.updated_at || s.created_at) }}
           </div>
         </div>
-        <button
-          class="shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-xs opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-500 transition-all"
+        <span
+          class="shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-xs cursor-pointer opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-500 transition-all"
           style="color: var(--color-text-secondary);"
-          @click="confirmDelete(s.session_id, $event)"
+          @click.stop="confirmDelete(s.session_id, $event)"
         >
           ✕
-        </button>
+        </span>
       </button>
     </div>
   </div>
