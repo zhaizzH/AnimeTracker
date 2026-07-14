@@ -157,3 +157,22 @@ export const QUARTERS: Record<string, string> = {
   summer: '夏季 (7月)',
   fall: '秋季 (10月)',
 }
+
+// --- Chat / Agent ---
+export interface ChatSession {
+  session_id: string
+  title: string
+  message_count: number
+  created_at: string
+  updated_at?: string
+}
+
+export interface ChatMessage {
+  id?: number
+  role: 'user' | 'assistant'
+  content: string
+  tool_calls?: string
+  created_at?: string
+}
+
+export type WsConnectionState = 'connecting' | 'connected' | 'disconnected' | 'error'
