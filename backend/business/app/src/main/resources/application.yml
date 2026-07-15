@@ -49,16 +49,16 @@ mybatis-plus:
   type-aliases-package: top.zhaizz.pojo.entity
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: ${mybatis-plus.configuration.log-impl}
+    log-impl: ${mybatis-plus.configuration.log-impl:org.apache.ibatis.logging.stdout.StdOutImpl}
 
 
 # JWT 配置
 jwt:
-  secret: ${jwt.secret:your-256-bit-secret-for-animetracker-jwt-token-signing}
-  expiration: ${jwt.expiration:86400000}  # 24 小时（毫秒）
+  secret: ${jwt.secret}
+  expiration: ${jwt.expiration}
 
 # 日志
 logging:
   level:
-    top.zhaizz: INFO
-    com.baomidou.mybatisplus: INFO
+    top.zhaizz: warn
+    com.baomidou.mybatisplus: warn

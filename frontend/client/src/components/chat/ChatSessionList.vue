@@ -16,7 +16,7 @@ function confirmDelete(sessionId: string, event: MouseEvent) {
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return ''
-  const d = new Date(dateStr.replace(' ', 'T'))
+  const d = new Date(dateStr.replace(' ', 'T') + 'Z')
   const now = new Date()
   const diff = now.getTime() - d.getTime()
   if (diff < 86400000) return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })

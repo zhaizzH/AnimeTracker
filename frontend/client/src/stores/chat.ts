@@ -17,12 +17,9 @@ export const useChatStore = defineStore('chat', () => {
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 
   const currentMessages = computed(() => {
-    if (streamingContent.value && messages.value.length > 0) {
-      const msgs = [...messages.value]
-      const last = { ...msgs[msgs.length - 1] }
-      last.content = streamingContent.value
-      msgs[msgs.length - 1] = last
-      return msgs
+    if (streamingContent.value) {
+      // 追加一条临时的 assistant 消息展示流式内容，不覆盖用户消息
+      return [...messages.value, { role: 'assistant' as const, content: streamingContent.value }]
     }
     return messages.value
   })
