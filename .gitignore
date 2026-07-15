@@ -124,5 +124,6 @@ docker-compose.override.yml
 backend/business/app/src/main/resources/application-local.yml
 # AI Agent local env
 backend/agent/.env
+backend/agent/agent.db
 # Python data-importer local env
 backend/data/importer/.env

@@ -14,5 +14,5 @@ onMounted(() => {
 
 <template>
   <router-view />
-  <ChatWidget />
+  <ChatWidget v-if="auth.token" />
 </template>

@@ -41,6 +41,13 @@ watch(
   }
 )
 
+function confirmDelete() {
+  if (!store.currentSessionId) return
+  if (confirm('确定删除当前对话？')) {
+    store.deleteSession(store.currentSessionId)
+  }
+}
+
 onUnmounted(() => {
   store.disconnect()
 })
@@ -103,6 +110,15 @@ onUnmounted(() => {
           <span class="text-[11px]" style="color: var(--color-text-secondary);">
             {{ store.connectionState === 'connected' ? '已连接' : store.connectionState === 'connecting' ? '连接中...' : '已断开' }}
           </span>
+          <button
+            v-if="store.currentSessionId"
+            class="text-xs px-2 py-1 rounded-md transition-colors hover:bg-red-100 hover:text-red-500"
+            style="color: var(--color-text-secondary);"
+            title="删除当前对话"
+            @click="confirmDelete()"
+          >
+            🗑
+          </button>
         </div>
 
         <!-- Messages -->
