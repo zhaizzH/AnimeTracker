@@ -12,6 +12,7 @@ public interface AuthService {
 
     /**
      * 用户注册
+     * @return 注册后的用户信息
      */
     UserVO register(RegisterDTO request);
 

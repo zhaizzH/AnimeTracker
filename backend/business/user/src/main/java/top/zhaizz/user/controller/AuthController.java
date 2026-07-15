@@ -9,7 +9,6 @@ import top.zhaizz.pojo.dto.LoginDTO;
 import top.zhaizz.pojo.dto.RegisterDTO;
 import top.zhaizz.user.service.AuthService;
 import top.zhaizz.pojo.vo.LoginVO;
-import top.zhaizz.pojo.vo.UserVO;
 
 /**
  * 认证控制器
@@ -27,7 +26,7 @@ public class AuthController {
      */
     @PostMapping("/register")
     public Result<LoginVO> register(@Valid @RequestBody RegisterDTO request) {
-        UserVO userVO = authService.register(request);
+        authService.register(request);
         // 注册成功后自动登录，返回 Token + 用户信息
         LoginVO loginVO = authService.login(
                 new LoginDTO(request.getUsername(), request.getPassword()));

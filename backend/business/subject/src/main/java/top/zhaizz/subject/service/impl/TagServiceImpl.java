@@ -52,7 +52,7 @@ public class TagServiceImpl implements TagService {
         List<Subject> sorted = pageIds.stream()
                 .map(id -> subjects.stream().filter(s -> s.getId().equals(id)).findFirst().orElse(null))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
 
         return PageResult.of(
                 sorted.stream()

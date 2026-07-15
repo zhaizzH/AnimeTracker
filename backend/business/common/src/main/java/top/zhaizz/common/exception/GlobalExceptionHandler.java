@@ -46,7 +46,7 @@ public class GlobalExceptionHandler {
         for (FieldError fieldError : e.getBindingResult().getFieldErrors()) {
             errors.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
-        log.warn("参数校验失败: {}", errors);
+        log.warn("Valid 参数校验失败: {}", errors);
         return Result.error(400, "请求参数错误", errors);
     }
 
@@ -59,7 +59,7 @@ public class GlobalExceptionHandler {
         String message = e.getConstraintViolations().stream()
                 .map(ConstraintViolation::getMessage)
                 .collect(Collectors.joining(", "));
-        log.warn("参数校验失败: {}", message);
+        log.warn("Validated 参数校验失败: {}", message);
         return Result.error(400, message);
     }
 

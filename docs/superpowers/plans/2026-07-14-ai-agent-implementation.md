@@ -11,7 +11,8 @@
 ## Global Constraints
 
 - `backend/agent/` 目录已存在但为空——在此目录下创建全部文件
-- LLM 使用 DashScope qwen3.7-max，通过 `langchain_community.chat_models.ChatDashScope` 集成
+- LLM 使用 DashScope qwen3.7-max，通过 `langch
+ain_community.chat_models.ChatDashScope` 集成
 - WebSocket 连接时通过 URL query 传 JWT Token，Agent 调 Spring Boot `/api/user/me` 校验获取 userId（仅连接时一次）
 - 前端 ChatWidget 放在 `App.vue`，所有页面全局可用
 - 聊天记录存 SQLite（`sessions` + `messages` 两张表）
