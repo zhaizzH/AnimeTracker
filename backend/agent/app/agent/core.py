@@ -5,9 +5,9 @@ from app.config import settings
 from app.agent.tools import tools
 from app.agent.prompt import SYSTEM_PROMPT
 
-# ponytail: monkey-patch ChatTongyi.subtract_client_response to handle
-# streaming deltas where prev_function lacks "name" key.
-# Bug in langchain-community 0.4.2, can remove when upstream fixes it.
+# 马尾辫: monkey-patch ChatTongyi.subtract_client_response处理
+# 流deltas，其中prev_function缺少 “name” 键。
+# langchain中的Bug-社区0.4.2，可以在上游修复时删除。
 _orig_subtract = ChatTongyi.subtract_client_response
 
 

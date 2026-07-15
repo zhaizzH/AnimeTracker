@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 async def verify_token(token: str) -> int | None:
-    """Call Spring Boot /api/user/me to validate JWT, return userId or None."""
+    """调用Spring Boot /api/user/me来验证JWT，返回userId或None。"""
     try:
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.get(
@@ -31,13 +31,15 @@ async def verify_token(token: str) -> int | None:
 
 
 class ConnectionManager:
-    """Manages WebSocket connections, authentication, heartbeat, and message dispatch."""
+    """管理WebSocket连接、身份验证、心跳和消息分派。"""
 
     def __init__(self, agent_executor):
+        """ 初始化连接管理器。 """
         self.agent_executor = agent_executor
         self._heartbeat_tasks: dict[str, asyncio.Task] = {}
 
     async def handle(self, ws: WebSocket):
+        """ 处理WebSocket连接。 """
         token = ws.query_params.get("token", "")
         user_id = await verify_token(token)
         if user_id is None:
@@ -62,6 +64,7 @@ class ConnectionManager:
             logger.info("User %s disconnected", user_id)
 
     async def _heartbeat(self, ws: WebSocket):
+        """ 处理心跳。 """
         interval = settings.ws_heartbeat_interval
         try:
             while True:
@@ -73,6 +76,7 @@ class ConnectionManager:
             pass
 
     async def _message_loop(self, ws: WebSocket, user_id: int):
+        """ 处理消息循环。 """
         while True:
             raw = await ws.receive_json()
             msg = ClientMessage(**raw)
@@ -106,10 +110,10 @@ class ConnectionManager:
                 await self._handle_message(ws, user_id, msg.session_id, msg.content)
 
     async def _handle_message(self, ws: WebSocket, user_id: int, session_id: str, content: str):
-        # Save user message first so it's persisted even if streaming fails
+        # 首先保存用户消息，以便即使流式传输失败也会保留
         db.save_message(session_id, "user", content)
 
-        # Auto-title for new sessions
+        # 新会话的自动标题
         messages = db.get_session_messages(session_id)
         if len(messages) == 1:
             title = content[:20]
@@ -117,7 +121,7 @@ class ConnectionManager:
 
         db.update_session_time(session_id)
 
-        # Build message list for langgraph (agent expects {"messages": [...]})
+        # 生成langgraph的消息列表 (代理需要 {"messages": [...]})
         agent_messages = [{"role": m["role"], "content": m["content"]} for m in messages]
 
         used_tools: list[str] = []
@@ -150,7 +154,7 @@ class ConnectionManager:
             ).to_dict())
             return
 
-        # Save assistant response
+        # 保存助理响应
         db.save_message(
             session_id, "assistant", full_content,
             json.dumps(used_tools) if used_tools else None,
