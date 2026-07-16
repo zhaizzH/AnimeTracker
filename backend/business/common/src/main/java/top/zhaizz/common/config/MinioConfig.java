@@ -34,29 +34,30 @@ public class MinioConfig {
             if (!exists) {
                 minioClient.makeBucket(
                         MakeBucketArgs.builder().bucket(properties.getBucket()).build());
-                log.info("MinIO bucket '{}' created", properties.getBucket());
+
+                // 设置公开读策略
+                String policy = """
+                {
+                  "Version": "2012-10-17",
+                  "Statement": [{
+                    "Effect": "Allow",
+                    "Principal": {"AWS": ["*"]},
+                    "Action": ["s3:GetObject"],
+                    "Resource": ["arn:aws:s3:::%s/*"]
+                  }]
+                }
+                """.formatted(properties.getBucket());
+
+                minioClient.setBucketPolicy(
+                        SetBucketPolicyArgs.builder()
+                                .bucket(properties.getBucket())
+                                .config(policy)
+                                .build());
+
+                log.info("MinIO bucket '{}' created with public-read policy", properties.getBucket());
+            } else {
+                log.info("MinIO bucket '{}' already exists", properties.getBucket());
             }
-
-            // 始终确保公开读策略
-            String policy = """
-            {
-              "Version": "2012-10-17",
-              "Statement": [{
-                "Effect": "Allow",
-                "Principal": {"AWS": ["*"]},
-                "Action": ["s3:GetObject"],
-                "Resource": ["arn:aws:s3:::%s/*"]
-              }]
-            }
-            """.formatted(properties.getBucket());
-
-            minioClient.setBucketPolicy(
-                    SetBucketPolicyArgs.builder()
-                            .bucket(properties.getBucket())
-                            .config(policy)
-                            .build());
-
-            log.info("MinIO bucket '{}' public-read policy set", properties.getBucket());
             return true;
         } catch (Exception e) {
             log.warn("MinIO bucket init skipped (MinIO may not be running yet): {}", e.getMessage());
