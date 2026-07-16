@@ -306,7 +306,8 @@ def run_import():
         try:
             count = await runner.run(args)
             logger.info("成功导入 %d 个条目", count)
-        except Exception:
+        except Exception as e:
+            logger.critical("导入异常: %s", e, exc_info=True)
             sys.exit(1)
         finally:
             await runner.close()

@@ -53,9 +53,10 @@ class DatabaseManager:
         nsfw: bool = False,
     ) -> Subject:
         """插入或更新条目。返回 Subject 实例。"""
+        now = datetime.now()
         subject = self.session.query(Subject).filter_by(bangumi_id=bangumi_id).first()
         if subject is None:
-            subject = Subject(bangumi_id=bangumi_id)
+            subject = Subject(bangumi_id=bangumi_id, created_at=now, updated_at=now)
             self.session.add(subject)
 
         subject.name = name
@@ -72,7 +73,7 @@ class DatabaseManager:
         subject.collection_total = collection_total
         subject.nsfw = nsfw
         subject.import_status = 1  # 标记为已导入
-        subject.last_imported_at = datetime.now()
+        subject.last_imported_at = now
 
         self.session.flush()
         return subject
@@ -92,7 +93,7 @@ class DatabaseManager:
                 bangumi_ep_id=bangumi_ep_id,
             ).first()
             if episode is None:
-                episode = Episode(subject_id=local_subject_id, bangumi_ep_id=bangumi_ep_id)
+                episode = Episode(subject_id=local_subject_id, bangumi_ep_id=bangumi_ep_id, created_at=datetime.now())
                 self.session.add(episode)
 
             episode.type = ep_data.get("type", 0)
@@ -139,7 +140,10 @@ class DatabaseManager:
         season_key: str | None = None,
     ) -> ImportRecord:
         """创建导入记录。"""
-        record = ImportRecord(mode=mode, season_key=season_key, status="RUNNING")
+        record = ImportRecord(
+            mode=mode, season_key=season_key, status="RUNNING",
+            started_at=datetime.now(), created_at=datetime.now(),
+        )
         self.session.add(record)
         self.session.flush()
         return record

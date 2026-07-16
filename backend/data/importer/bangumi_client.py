@@ -35,6 +35,7 @@ class BangumiClient:
             self._client = httpx.AsyncClient(
                 headers={"User-Agent": USER_AGENT},
                 timeout=30.0,
+                trust_env=False,
             )
         return self._client
 
