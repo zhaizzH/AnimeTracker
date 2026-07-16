@@ -70,6 +70,10 @@ minio:
   secret-key: ${minio.secret-key}
   bucket: ${minio.bucket:anime-tracker}
 
+# Resend 邮件服务
+resend:
+  api-key: ${resend.api-key}
+
 # 日志
 logging:
   level:
