@@ -63,6 +63,19 @@ def main():
         minio_client.make_bucket(MINIO_BUCKET)
         log.info("Bucket '%s' created", MINIO_BUCKET)
 
+    # 设置公开读策略
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Effect": "Allow",
+            "Principal": {"AWS": ["*"]},
+            "Action": ["s3:GetObject"],
+            "Resource": [f"arn:aws:s3:::{MINIO_BUCKET}/*"]
+        }]
+    }
+    minio_client.set_bucket_policy(MINIO_BUCKET, policy)
+    log.info("Bucket '%s' public-read policy set", MINIO_BUCKET)
+
     # 连接 MySQL
     engine = create_engine(DB_URL, pool_pre_ping=True)
     minio_prefix = MINIO_PUBLIC_URL.rstrip("/")
