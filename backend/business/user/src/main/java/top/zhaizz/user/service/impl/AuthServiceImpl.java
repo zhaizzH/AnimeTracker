@@ -16,8 +16,8 @@ import top.zhaizz.pojo.dto.RegisterDTO;
 import top.zhaizz.pojo.entity.User;
 import top.zhaizz.user.mapper.UserMapper;
 import top.zhaizz.user.service.AuthService;
+import top.zhaizz.user.service.VerificationService;
 import top.zhaizz.pojo.vo.LoginVO;
-import top.zhaizz.pojo.vo.UserVO;
 
 import java.time.LocalDateTime;
 import java.util.concurrent.TimeUnit;
@@ -33,6 +33,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final RedisClient redisClient;
     private final JwtTokenProvider jwtTokenProvider;
+    private final VerificationService verificationService;
 
     @Value("${jwt.expiration}")
     private long jwtExpiration; // 过期时间，单位毫秒
@@ -40,7 +41,7 @@ public class AuthServiceImpl implements AuthService {
     private static final String REDIS_TOKEN_PREFIX = "auth:token:";
 
     @Override
-    public UserVO register(RegisterDTO request) {
+    public void register(RegisterDTO request) {
         // 1. 检查用户名唯一性
         if (userMapper.existsByUsername(request.getUsername())) {
             throw new BizException(ErrorType.CONFLICT, "用户名已存在");
@@ -53,13 +54,37 @@ public class AuthServiceImpl implements AuthService {
         user.setEmail(request.getEmail());
         user.setNickname(request.getUsername()); // 默认昵称为用户名
         user.setRole("USER");
+        user.setEmailVerified(false);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
 
         // 3. 保存
         userMapper.insert(user);
 
-        return UserConverter.toUserVO(user);
+        // 4. 发送验证码邮件
+        verificationService.sendVerificationCode(request.getEmail());
+    }
+
+    @Override
+    public LoginVO verifyEmail(String email, String code) {
+        // 1. 校验验证码（内部会更新 email_verified = true）
+        verificationService.verifyEmail(email, code);
+
+        // 2. 查找用户
+        User user = userMapper.selectOne(
+                new LambdaQueryWrapper<User>()
+                        .eq(User::getEmail, email)
+        );
+
+        // 3. 生成 JWT
+        String token = jwtTokenProvider.generateToken(user.getId(), user.getRole());
+
+        // 4. Token 摘要存入 Redis 白名单
+        String tokenHash = DigestUtils.sha256Hex(token);
+        redisClient.set(REDIS_TOKEN_PREFIX + tokenHash, user.getId().toString(), jwtExpiration, TimeUnit.MILLISECONDS);
+
+        // 5. 返回 Token + 用户信息
+        return new LoginVO(token, UserConverter.toUserVO(user));
     }
 
     @Override
