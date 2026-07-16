@@ -7,7 +7,7 @@ from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import (
-    Integer, String, Text, Date, DateTime,
+    BigInteger, Integer, String, Text, Date, DateTime,
     SmallInteger, DECIMAL, Boolean, ForeignKey, UniqueConstraint, func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -21,7 +21,7 @@ class Subject(Base):
     __tablename__ = "subject"
     __table_args__ = {"comment": "条目表（动漫）"}
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     bangumi_id: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     name_cn: Mapped[Optional[str]] = mapped_column(String(255))
@@ -54,9 +54,9 @@ class Episode(Base):
     __tablename__ = "episode"
     __table_args__ = {"comment": "剧集表"}
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     subject_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("subject.id", ondelete="CASCADE"), nullable=False
+        BigInteger, ForeignKey("subject.id", ondelete="CASCADE"), nullable=False
     )
     bangumi_ep_id: Mapped[Optional[int]] = mapped_column(Integer)
     type: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
@@ -81,9 +81,9 @@ class SubjectTag(Base):
         {"comment": "条目-标签关联表"},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     subject_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("subject.id", ondelete="CASCADE"), nullable=False
+        BigInteger, ForeignKey("subject.id", ondelete="CASCADE"), nullable=False
     )
     name: Mapped[str] = mapped_column(String(32), nullable=False)
     count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -95,7 +95,7 @@ class ImportRecord(Base):
     __tablename__ = "import_record"
     __table_args__ = {"comment": "导入记录表"}
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     mode: Mapped[str] = mapped_column(String(16), nullable=False)
     season_key: Mapped[Optional[str]] = mapped_column(String(32))
     started_at: Mapped[datetime] = mapped_column(
