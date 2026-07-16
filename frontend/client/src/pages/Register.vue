@@ -7,10 +7,12 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const authStore = useAuthStore()
 
+const step = ref<'form' | 'verify'>('form')
 const username = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+const code = ref('')
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const error = ref('')
@@ -21,6 +23,10 @@ async function handleRegister() {
 
   if (!username.value.trim()) {
     error.value = '请填写用户名'
+    return
+  }
+  if (!email.value.trim()) {
+    error.value = '请填写邮箱'
     return
   }
   if (!password.value) {
@@ -41,11 +47,33 @@ async function handleRegister() {
     await authStore.register({
       username: username.value.trim(),
       password: password.value,
-      email: email.value.trim() || undefined,
+      email: email.value.trim(),
+    })
+    step.value = 'verify'
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || '注册失败，请稍后重试'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleVerify() {
+  error.value = ''
+
+  if (!code.value.trim() || code.value.length !== 6) {
+    error.value = '请输入6位验证码'
+    return
+  }
+
+  loading.value = true
+  try {
+    await authStore.verifyEmail({
+      email: email.value.trim(),
+      code: code.value.trim(),
     })
     router.push('/')
   } catch (e: any) {
-    error.value = e?.response?.data?.message || '注册失败，请稍后重试'
+    error.value = e?.response?.data?.message || '验证失败，请重试'
   } finally {
     loading.value = false
   }
@@ -56,127 +84,170 @@ async function handleRegister() {
   <div class="min-h-[80vh] flex items-center justify-center app-container">
     <div class="w-full max-w-md">
       <div class="app-card p-5 sm:p-8">
-        <!-- Header -->
-        <div class="text-center mb-6 sm:mb-8">
-          <h1 class="page-title mb-2">创建账户</h1>
-          <p class="page-subtitle">加入我们</p>
-        </div>
-
-        <!-- Error -->
-        <Transition name="fade">
-          <div
-            v-if="error"
-            class="mb-6 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-600 dark:text-red-400 text-center"
-          >
-            {{ error }}
+        <!-- Form Step -->
+        <template v-if="step === 'form'">
+          <div class="text-center mb-6 sm:mb-8">
+            <h1 class="page-title mb-2">创建账户</h1>
+            <p class="page-subtitle">加入我们</p>
           </div>
-        </Transition>
 
-        <!-- Form -->
-        <form @submit.prevent="handleRegister" class="space-y-5">
-          <!-- Username -->
-          <div>
-            <label class="block text-sm font-medium mb-1.5" style="color: var(--color-text)">用户名</label>
-            <div class="relative">
-              <User class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4" style="color: var(--color-text-secondary)" />
+          <!-- Error -->
+          <Transition name="fade">
+            <div
+              v-if="error"
+              class="mb-6 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-600 dark:text-red-400 text-center"
+            >
+              {{ error }}
+            </div>
+          </Transition>
+
+          <!-- Form -->
+          <form @submit.prevent="handleRegister" class="space-y-5">
+            <!-- Username -->
+            <div>
+              <label class="block text-sm font-medium mb-1.5" style="color: var(--color-text)">用户名</label>
+              <div class="relative">
+                <User class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4" style="color: var(--color-text-secondary)" />
+                <input
+                  v-model="username"
+                  type="text"
+                  placeholder="输入用户名"
+                  class="input-field pl-10"
+                  autocomplete="username"
+                />
+              </div>
+            </div>
+
+            <!-- Email (now required) -->
+            <div>
+              <label class="block text-sm font-medium mb-1.5" style="color: var(--color-text)">邮箱</label>
+              <div class="relative">
+                <Mail class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4" style="color: var(--color-text-secondary)" />
+                <input
+                  v-model="email"
+                  type="email"
+                  placeholder="输入邮箱地址"
+                  class="input-field pl-10"
+                  autocomplete="email"
+                />
+              </div>
+            </div>
+
+            <!-- Password -->
+            <div>
+              <label class="block text-sm font-medium mb-1.5" style="color: var(--color-text)">密码</label>
+              <div class="relative">
+                <Lock class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4" style="color: var(--color-text-secondary)" />
+                <input
+                  v-model="password"
+                  :type="showPassword ? 'text' : 'password'"
+                  placeholder="至少6位密码"
+                  class="input-field pl-10 pr-10"
+                  autocomplete="new-password"
+                />
+                <button
+                  type="button"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                  style="color: var(--color-text-secondary)"
+                  @click="showPassword = !showPassword"
+                  tabindex="-1"
+                >
+                  <EyeOff v-if="showPassword" class="h-4 w-4" />
+                  <Eye v-else class="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <!-- Confirm Password -->
+            <div>
+              <label class="block text-sm font-medium mb-1.5" style="color: var(--color-text)">确认密码</label>
+              <div class="relative">
+                <Lock class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4" style="color: var(--color-text-secondary)" />
+                <input
+                  v-model="confirmPassword"
+                  :type="showConfirmPassword ? 'text' : 'password'"
+                  placeholder="再次输入密码"
+                  class="input-field pl-10 pr-10"
+                  autocomplete="new-password"
+                />
+                <button
+                  type="button"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                  style="color: var(--color-text-secondary)"
+                  @click="showConfirmPassword = !showConfirmPassword"
+                  tabindex="-1"
+                >
+                  <EyeOff v-if="showConfirmPassword" class="h-4 w-4" />
+                  <Eye v-else class="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" class="btn-primary w-full py-3" :disabled="loading">
+              <svg v-if="loading" class="animate-spin h-4 w-4 inline mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              {{ loading ? '注册中...' : '注册' }}
+            </button>
+          </form>
+
+          <div class="mt-6 text-center text-sm" style="color: var(--color-text-secondary)">
+            已有账户？
+            <router-link to="/login" class="text-primary-500 hover:text-primary-600 font-medium transition-colors">
+              登录
+            </router-link>
+          </div>
+        </template>
+
+        <!-- Verify Step -->
+        <template v-else>
+          <div class="text-center mb-6 sm:mb-8">
+            <h1 class="page-title mb-2">验证邮箱</h1>
+            <p class="page-subtitle">验证码已发送到 <strong class="text-primary-500">{{ email }}</strong></p>
+          </div>
+
+          <Transition name="fade">
+            <div
+              v-if="error"
+              class="mb-6 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-600 dark:text-red-400 text-center"
+            >
+              {{ error }}
+            </div>
+          </Transition>
+
+          <form @submit.prevent="handleVerify" class="space-y-6">
+            <!-- Code Input -->
+            <div>
+              <label class="block text-sm font-medium mb-2 text-center" style="color: var(--color-text)">输入验证码</label>
               <input
-                v-model="username"
+                v-model="code"
                 type="text"
-                placeholder="输入用户名"
-                class="input-field pl-10"
-                autocomplete="username"
+                maxlength="6"
+                placeholder="输入6位验证码"
+                class="input-field text-center text-2xl tracking-[0.5em] font-mono"
+                autocomplete="one-time-code"
               />
             </div>
+
+            <!-- Submit -->
+            <button type="submit" class="btn-primary w-full py-3" :disabled="loading">
+              <svg v-if="loading" class="animate-spin h-4 w-4 inline mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              {{ loading ? '验证中...' : '验证' }}
+            </button>
+          </form>
+
+          <div class="mt-6 text-center text-sm" style="color: var(--color-text-secondary)">
+            未收到验证码？
+            <button class="text-primary-500 hover:text-primary-600 font-medium transition-colors bg-transparent border-none cursor-pointer">
+              重新发送
+            </button>
           </div>
-
-          <!-- Email -->
-          <div>
-            <label class="block text-sm font-medium mb-1.5" style="color: var(--color-text)">
-              邮箱 <span class="text-xs font-normal" style="color: var(--color-text-secondary)">(选填)</span>
-            </label>
-            <div class="relative">
-              <Mail class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4" style="color: var(--color-text-secondary)" />
-              <input
-                v-model="email"
-                type="email"
-                placeholder="输入邮箱地址"
-                class="input-field pl-10"
-                autocomplete="email"
-              />
-            </div>
-          </div>
-
-          <!-- Password -->
-          <div>
-            <label class="block text-sm font-medium mb-1.5" style="color: var(--color-text)">密码</label>
-            <div class="relative">
-              <Lock class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4" style="color: var(--color-text-secondary)" />
-              <input
-                v-model="password"
-                :type="showPassword ? 'text' : 'password'"
-                placeholder="至少6位密码"
-                class="input-field pl-10 pr-10"
-                autocomplete="new-password"
-              />
-              <button
-                type="button"
-                class="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                style="color: var(--color-text-secondary)"
-                @click="showPassword = !showPassword"
-                tabindex="-1"
-              >
-                <EyeOff v-if="showPassword" class="h-4 w-4" />
-                <Eye v-else class="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          <!-- Confirm Password -->
-          <div>
-            <label class="block text-sm font-medium mb-1.5" style="color: var(--color-text)">确认密码</label>
-            <div class="relative">
-              <Lock class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4" style="color: var(--color-text-secondary)" />
-              <input
-                v-model="confirmPassword"
-                :type="showConfirmPassword ? 'text' : 'password'"
-                placeholder="再次输入密码"
-                class="input-field pl-10 pr-10"
-                autocomplete="new-password"
-              />
-              <button
-                type="button"
-                class="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                style="color: var(--color-text-secondary)"
-                @click="showConfirmPassword = !showConfirmPassword"
-                tabindex="-1"
-              >
-                <EyeOff v-if="showConfirmPassword" class="h-4 w-4" />
-                <Eye v-else class="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          <!-- Submit -->
-          <button
-            type="submit"
-            class="btn-primary w-full py-3"
-            :disabled="loading"
-          >
-            <svg v-if="loading" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            {{ loading ? '注册中...' : '注册' }}
-          </button>
-        </form>
-
-        <!-- Footer -->
-        <div class="mt-6 text-center text-sm" style="color: var(--color-text-secondary)">
-          已有账户？
-          <router-link to="/login" class="text-primary-500 hover:text-primary-600 font-medium transition-colors">
-            登录
-          </router-link>
-        </div>
+        </template>
       </div>
     </div>
   </div>

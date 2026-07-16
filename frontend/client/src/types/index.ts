@@ -122,7 +122,12 @@ export interface LoginRequest {
 export interface RegisterRequest {
   username: string
   password: string
-  email?: string
+  email: string
+}
+
+export interface VerifyEmailRequest {
+  email: string
+  code: string
 }
 
 /** MinIO 上传返回结果 */

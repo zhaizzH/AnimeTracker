@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi } from '@/api/auth'
-import type { UserVO, LoginRequest, RegisterRequest, UpdateProfileRequest } from '@/types'
+import type { UserVO, LoginRequest, RegisterRequest, UpdateProfileRequest, VerifyEmailRequest } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token'))
@@ -26,7 +26,17 @@ export const useAuthStore = defineStore('auth', () => {
   async function register(data: RegisterRequest) {
     loading.value = true
     try {
-      const res = await authApi.register(data)
+      await authApi.register(data)
+      // register no longer returns token; user must verify email
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function verifyEmail(data: VerifyEmailRequest) {
+    loading.value = true
+    try {
+      const res = await authApi.verifyEmail(data)
       token.value = res.data.data.token
       user.value = res.data.data.user
       localStorage.setItem('token', res.data.data.token)
@@ -65,6 +75,6 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     token, user, loading,
     isAuthenticated, isAdmin,
-    login, register, logout, fetchMe, updateProfile,
+    login, register, verifyEmail, logout, fetchMe, updateProfile,
   }
 })
