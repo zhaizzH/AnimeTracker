@@ -17,6 +17,17 @@ def get_engine(host: str, port: int, user: str, password: str, db: str):
     return create_engine(url, pool_pre_ping=True, pool_recycle=3600)
 
 
+def _infer_weekday(air_date: str | None) -> int | None:
+    """从 YYYY-MM-DD 推出星期（0=周日, 1=周一 … 6=周六）。"""
+    if not air_date:
+        return None
+    try:
+        dt = datetime.strptime(air_date, "%Y-%m-%d")
+        return (dt.weekday() + 1) % 7
+    except (ValueError, TypeError):
+        return None
+
+
 def upsert_subject(session: Session, data: dict) -> int:
     """INSERT … ON DUPLICATE KEY UPDATE subject，返回 subject.id。"""
     bangumi_id = data["id"]
@@ -26,13 +37,17 @@ def upsert_subject(session: Session, data: dict) -> int:
     ).scalar()
 
     now = datetime.now()
+    air_date = data.get("date")
+    air_weekday = _infer_weekday(air_date)
+
     if existing:
         session.execute(
             text("""
                 UPDATE subject SET
                     name = :name, name_cn = :name_cn, summary = :summary,
                     type = :type, eps = :eps, air_date = :air_date,
-                    image = :image, score = :score, rank = :rank,
+                    air_weekday = :air_weekday,
+                    image = :image, score = :score, `rank` = :rank,
                     collection_total = :collection_total, nsfw = :nsfw,
                     import_status = 1, last_imported_at = :now,
                     updated_at = :now
@@ -45,7 +60,8 @@ def upsert_subject(session: Session, data: dict) -> int:
                 "summary": data.get("summary", ""),
                 "type": data.get("type", 2),
                 "eps": max(data.get("eps") or 0, data.get("total_episodes") or 0) or None,
-                "air_date": data.get("date"),
+                "air_date": air_date,
+                "air_weekday": air_weekday,
                 "image": (data.get("images") or {}).get("large"),
                 "score": (data.get("rating") or {}).get("score"),
                 "rank": (data.get("rating") or {}).get("rank"),
@@ -59,11 +75,11 @@ def upsert_subject(session: Session, data: dict) -> int:
         result = session.execute(
             text("""
                 INSERT INTO subject
-                    (bangumi_id, name, name_cn, summary, type, eps, air_date,
-                     image, score, rank, collection_total, nsfw,
+                    (bangumi_id, name, name_cn, summary, type, eps, air_date, air_weekday,
+                     image, score, `rank`, collection_total, nsfw,
                      import_status, last_imported_at, created_at, updated_at)
                 VALUES
-                    (:bangumi_id, :name, :name_cn, :summary, :type, :eps, :air_date,
+                    (:bangumi_id, :name, :name_cn, :summary, :type, :eps, :air_date, :air_weekday,
                      :image, :score, :rank, :collection_total, :nsfw,
                      1, :now, :now, :now)
             """),
@@ -74,7 +90,8 @@ def upsert_subject(session: Session, data: dict) -> int:
                 "summary": data.get("summary", ""),
                 "type": data.get("type", 2),
                 "eps": max(data.get("eps") or 0, data.get("total_episodes") or 0) or None,
-                "air_date": data.get("date"),
+                "air_date": air_date,
+                "air_weekday": air_weekday,
                 "image": (data.get("images") or {}).get("large"),
                 "score": (data.get("rating") or {}).get("score"),
                 "rank": (data.get("rating") or {}).get("rank"),
@@ -83,7 +100,7 @@ def upsert_subject(session: Session, data: dict) -> int:
                 "now": now,
             },
         )
-        subject_id = result.inserted_primary_key[0]
+        subject_id = result.lastrowid
 
     return subject_id
 
@@ -169,7 +186,7 @@ def create_import_record(session: Session, mode: str, season_key: Optional[str] 
         """),
         {"mode": mode, "season_key": season_key, "now": datetime.now()},
     )
-    return result.inserted_primary_key[0]
+    return result.lastrowid
 
 
 def complete_import_record(session: Session, record_id: int, subject_count: int,

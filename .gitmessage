@@ -1,0 +1,10 @@
+已完成：简短描述（50字以内）
+
+# 类型：feat | fix | docs | style | refactor | perf | test | chore | ci
+#
+# 详细说明（可选，72字换行）
+#
+# 示例：
+# feat(数据): 添加 Bangumi 数据导入器
+# fix(认证): 修复登录页面未捕获空值异常
+# docs: 更新 API 使用说明
