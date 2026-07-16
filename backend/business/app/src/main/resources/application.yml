@@ -43,6 +43,11 @@ spring:
     time-zone: Asia/Shanghai
     default-property-inclusion: ${zzz.jackson.default-property-inclusion:non_null}
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+
 # MyBatis-Plus 配置
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
@@ -56,6 +61,13 @@ mybatis-plus:
 jwt:
   secret: ${jwt.secret}
   expiration: ${jwt.expiration}
+
+# MinIO 对象存储
+minio:
+  endpoint: ${minio.endpoint:http://localhost:9000}
+  access-key: ${minio.access-key}
+  secret-key: ${minio.secret-key}
+  bucket: ${minio.bucket:anime-tracker}
 
 # 日志
 logging:

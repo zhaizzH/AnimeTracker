@@ -45,6 +45,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // 用户接口：需认证
                 .requestMatchers("/api/user/**").authenticated()
+                // 文件上传：需认证
+                .requestMatchers("/api/common/files/**").authenticated()
                 .anyRequest().permitAll()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
