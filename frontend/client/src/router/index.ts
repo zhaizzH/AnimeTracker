@@ -7,14 +7,20 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/layouts/MainLayout.vue'),
     children: [
       { path: '', name: 'Home', component: () => import('@/pages/Home.vue') },
-      { path: 'login', name: 'Login', component: () => import('@/pages/Login.vue'), meta: { guest: true } },
-      { path: 'register', name: 'Register', component: () => import('@/pages/Register.vue'), meta: { guest: true } },
       { path: 'search', name: 'Search', component: () => import('@/pages/Search.vue') },
       { path: 'season/:year?/:quarter?', name: 'Season', component: () => import('@/pages/Season.vue') },
       { path: 'subject/:id', name: 'SubjectDetail', component: () => import('@/pages/SubjectDetail.vue') },
       { path: 'tags', name: 'Tags', component: () => import('@/pages/Tags.vue') },
       { path: 'tags/:tag', name: 'TagSubjects', component: () => import('@/pages/TagSubjects.vue') },
       { path: 'profile', name: 'Profile', component: () => import('@/pages/Profile.vue'), meta: { requiresAuth: true } },
+    ],
+  },
+  {
+    path: '/',
+    component: () => import('@/layouts/AuthLayout.vue'),
+    children: [
+      { path: 'login', name: 'Login', component: () => import('@/pages/Login.vue'), meta: { guest: true } },
+      { path: 'register', name: 'Register', component: () => import('@/pages/Register.vue'), meta: { guest: true } },
     ],
   },
   {

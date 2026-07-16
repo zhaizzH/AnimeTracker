@@ -7,7 +7,6 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const authStore = useAuthStore()
 
-const step = ref<'form' | 'verify'>('form')
 const username = ref('')
 const email = ref('')
 const password = ref('')
@@ -17,249 +16,215 @@ const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const error = ref('')
 const loading = ref(false)
+const registered = ref(false)
+const resending = ref(false)
+const cooldown = ref(0)
+let timer: ReturnType<typeof setInterval> | null = null
+
+function startCooldown() {
+  cooldown.value = 60
+  timer = setInterval(() => {
+    cooldown.value--
+    if (cooldown.value <= 0) { if (timer) clearInterval(timer); timer = null }
+  }, 1000)
+}
 
 async function handleRegister() {
   error.value = ''
-
-  if (!username.value.trim()) {
-    error.value = '请填写用户名'
-    return
-  }
-  if (!email.value.trim()) {
-    error.value = '请填写邮箱'
-    return
-  }
-  if (!password.value) {
-    error.value = '请填写密码'
-    return
-  }
-  if (password.value.length < 6) {
-    error.value = '密码长度不能少于6位'
-    return
-  }
-  if (password.value !== confirmPassword.value) {
-    error.value = '两次输入的密码不一致'
-    return
-  }
-
+  if (!username.value.trim()) { error.value = '请填写用户名'; return }
+  if (!email.value.trim()) { error.value = '请填写邮箱'; return }
+  if (!password.value) { error.value = '请填写密码'; return }
+  if (password.value.length < 6) { error.value = '密码长度不能少于6位'; return }
+  if (password.value !== confirmPassword.value) { error.value = '两次输入的密码不一致'; return }
   loading.value = true
   try {
-    await authStore.register({
-      username: username.value.trim(),
-      password: password.value,
-      email: email.value.trim(),
-    })
-    step.value = 'verify'
+    await authStore.register({ username: username.value.trim(), password: password.value, email: email.value.trim() })
+    registered.value = true
+    startCooldown()
   } catch (e: any) {
     error.value = e?.response?.data?.message || '注册失败，请稍后重试'
-  } finally {
-    loading.value = false
-  }
+  } finally { loading.value = false }
 }
 
 async function handleVerify() {
   error.value = ''
-
-  if (!code.value.trim() || code.value.length !== 6) {
-    error.value = '请输入6位验证码'
-    return
-  }
-
+  if (!code.value.trim() || code.value.length !== 6) { error.value = '请输入6位验证码'; return }
   loading.value = true
   try {
-    await authStore.verifyEmail({
-      email: email.value.trim(),
-      code: code.value.trim(),
-    })
+    await authStore.verifyEmail({ email: email.value.trim(), code: code.value.trim() })
     router.push('/')
   } catch (e: any) {
     error.value = e?.response?.data?.message || '验证失败，请重试'
-  } finally {
-    loading.value = false
-  }
+  } finally { loading.value = false }
+}
+
+async function handleResend() {
+  if (cooldown.value > 0) return
+  error.value = ''
+  resending.value = true
+  try {
+    await authStore.resendCode(email.value.trim())
+    startCooldown()
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || '发送失败，请稍后重试'
+  } finally { resending.value = false }
 }
 </script>
 
 <template>
-  <div class="min-h-[80vh] flex items-center justify-center app-container">
+  <div class="flex min-h-[calc(100vh-64px)] items-center justify-center px-4">
     <div class="w-full max-w-md">
-      <div class="app-card p-5 sm:p-8">
-        <!-- Form Step -->
-        <template v-if="step === 'form'">
-          <div class="text-center mb-6 sm:mb-8">
-            <h1 class="page-title mb-2">创建账户</h1>
-            <p class="page-subtitle">加入我们</p>
-          </div>
-
-          <!-- Error -->
-          <Transition name="fade">
-            <div
-              v-if="error"
-              class="mb-6 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-600 dark:text-red-400 text-center"
-            >
-              {{ error }}
-            </div>
-          </Transition>
-
-          <!-- Form -->
-          <form @submit.prevent="handleRegister" class="space-y-5">
-            <!-- Username -->
-            <div>
-              <label class="block text-sm font-medium mb-1.5" style="color: var(--color-text)">用户名</label>
-              <div class="relative">
-                <User class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4" style="color: var(--color-text-secondary)" />
-                <input
-                  v-model="username"
-                  type="text"
-                  placeholder="输入用户名"
-                  class="input-field pl-10"
-                  autocomplete="username"
-                />
-              </div>
-            </div>
-
-            <!-- Email (now required) -->
-            <div>
-              <label class="block text-sm font-medium mb-1.5" style="color: var(--color-text)">邮箱</label>
-              <div class="relative">
-                <Mail class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4" style="color: var(--color-text-secondary)" />
-                <input
-                  v-model="email"
-                  type="email"
-                  placeholder="输入邮箱地址"
-                  class="input-field pl-10"
-                  autocomplete="email"
-                />
-              </div>
-            </div>
-
-            <!-- Password -->
-            <div>
-              <label class="block text-sm font-medium mb-1.5" style="color: var(--color-text)">密码</label>
-              <div class="relative">
-                <Lock class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4" style="color: var(--color-text-secondary)" />
-                <input
-                  v-model="password"
-                  :type="showPassword ? 'text' : 'password'"
-                  placeholder="至少6位密码"
-                  class="input-field pl-10 pr-10"
-                  autocomplete="new-password"
-                />
-                <button
-                  type="button"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                  style="color: var(--color-text-secondary)"
-                  @click="showPassword = !showPassword"
-                  tabindex="-1"
-                >
-                  <EyeOff v-if="showPassword" class="h-4 w-4" />
-                  <Eye v-else class="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            <!-- Confirm Password -->
-            <div>
-              <label class="block text-sm font-medium mb-1.5" style="color: var(--color-text)">确认密码</label>
-              <div class="relative">
-                <Lock class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4" style="color: var(--color-text-secondary)" />
-                <input
-                  v-model="confirmPassword"
-                  :type="showConfirmPassword ? 'text' : 'password'"
-                  placeholder="再次输入密码"
-                  class="input-field pl-10 pr-10"
-                  autocomplete="new-password"
-                />
-                <button
-                  type="button"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                  style="color: var(--color-text-secondary)"
-                  @click="showConfirmPassword = !showConfirmPassword"
-                  tabindex="-1"
-                >
-                  <EyeOff v-if="showConfirmPassword" class="h-4 w-4" />
-                  <Eye v-else class="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            <!-- Submit -->
-            <button type="submit" class="btn-primary w-full py-3" :disabled="loading">
-              <svg v-if="loading" class="animate-spin h-4 w-4 inline mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              {{ loading ? '注册中...' : '注册' }}
-            </button>
-          </form>
-
-          <div class="mt-6 text-center text-sm" style="color: var(--color-text-secondary)">
-            已有账户？
-            <router-link to="/login" class="text-primary-500 hover:text-primary-600 font-medium transition-colors">
-              登录
-            </router-link>
-          </div>
-        </template>
-
-        <!-- Verify Step -->
-        <template v-else>
-          <div class="text-center mb-6 sm:mb-8">
-            <h1 class="page-title mb-2">验证邮箱</h1>
-            <p class="page-subtitle">验证码已发送到 <strong class="text-primary-500">{{ email }}</strong></p>
-          </div>
-
-          <Transition name="fade">
-            <div
-              v-if="error"
-              class="mb-6 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-600 dark:text-red-400 text-center"
-            >
-              {{ error }}
-            </div>
-          </Transition>
-
-          <form @submit.prevent="handleVerify" class="space-y-6">
-            <!-- Code Input -->
-            <div>
-              <label class="block text-sm font-medium mb-2 text-center" style="color: var(--color-text)">输入验证码</label>
-              <input
-                v-model="code"
-                type="text"
-                maxlength="6"
-                placeholder="输入6位验证码"
-                class="input-field text-center text-2xl tracking-[0.5em] font-mono"
-                autocomplete="one-time-code"
-              />
-            </div>
-
-            <!-- Submit -->
-            <button type="submit" class="btn-primary w-full py-3" :disabled="loading">
-              <svg v-if="loading" class="animate-spin h-4 w-4 inline mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              {{ loading ? '验证中...' : '验证' }}
-            </button>
-          </form>
-
-          <div class="mt-6 text-center text-sm" style="color: var(--color-text-secondary)">
-            未收到验证码？
-            <button class="text-primary-500 hover:text-primary-600 font-medium transition-colors bg-transparent border-none cursor-pointer">
-              重新发送
-            </button>
-          </div>
-        </template>
+      <!-- Tab switcher (pill style) -->
+      <div class="auth-tabs">
+        <router-link to="/login" class="auth-tab">
+          登录
+        </router-link>
+        <router-link to="/register" class="auth-tab auth-tab--active">
+          注册
+        </router-link>
       </div>
+
+      <!-- Title -->
+      <h1 class="text-[24px] font-bold mt-6 mb-6" style="color: var(--color-text)">
+        注册 AnimeTracker
+      </h1>
+
+      <!-- Error -->
+      <Transition name="fade">
+        <div v-if="error" class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-500 text-center">
+          {{ error }}
+        </div>
+      </Transition>
+
+      <!-- Registration Form -->
+      <form v-if="!registered" @submit.prevent="handleRegister" class="space-y-4">
+        <div class="relative">
+          <User class="absolute left-3.5 top-1/2 -translate-y-1/2 h-[18px] w-[18px]" style="color: var(--color-text-secondary)" />
+          <input v-model="username" type="text" placeholder="用户名" class="auth-input" autocomplete="username" />
+        </div>
+        <div class="relative">
+          <Mail class="absolute left-3.5 top-1/2 -translate-y-1/2 h-[18px] w-[18px]" style="color: var(--color-text-secondary)" />
+          <input v-model="email" type="email" placeholder="邮箱" class="auth-input" autocomplete="email" />
+        </div>
+        <div class="relative">
+          <Lock class="absolute left-3.5 top-1/2 -translate-y-1/2 h-[18px] w-[18px]" style="color: var(--color-text-secondary)" />
+          <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="密码" class="auth-input pr-11" autocomplete="new-password" />
+          <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 p-0.5" style="color: var(--color-text-secondary)" @click="showPassword = !showPassword" tabindex="-1">
+            <EyeOff v-if="showPassword" class="h-4 w-4" /><Eye v-else class="h-4 w-4" />
+          </button>
+        </div>
+        <div class="relative">
+          <Lock class="absolute left-3.5 top-1/2 -translate-y-1/2 h-[18px] w-[18px]" style="color: var(--color-text-secondary)" />
+          <input v-model="confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" placeholder="确认密码" class="auth-input pr-11" autocomplete="new-password" />
+          <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 p-0.5" style="color: var(--color-text-secondary)" @click="showConfirmPassword = !showConfirmPassword" tabindex="-1">
+            <EyeOff v-if="showConfirmPassword" class="h-4 w-4" /><Eye v-else class="h-4 w-4" />
+          </button>
+        </div>
+        <button type="submit" class="auth-submit" :disabled="loading">
+          <svg v-if="loading" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          {{ loading ? '注册中...' : '注册' }}
+        </button>
+      </form>
+
+      <!-- Verification -->
+      <Transition name="fade">
+        <div v-if="registered" class="space-y-4">
+          <p class="text-sm text-center" style="color: var(--color-text-secondary)">
+            验证码已发送到 <strong class="text-primary-500">{{ email }}</strong>
+          </p>
+          <input v-model="code" type="text" maxlength="6" placeholder="输入6位验证码"
+            class="auth-input text-center text-xl tracking-[0.5em] font-mono" style="padding-left:12px"
+            autocomplete="one-time-code" />
+          <button class="auth-submit" :disabled="loading" @click="handleVerify">
+            <svg v-if="loading" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            {{ loading ? '验证中...' : '完成注册' }}
+          </button>
+          <div class="text-center text-sm" style="color: var(--color-text-secondary)">
+            未收到验证码？
+            <button class="text-primary-500 hover:text-primary-600 font-medium bg-transparent border-none cursor-pointer disabled:opacity-50"
+              :disabled="cooldown > 0 || resending" @click="handleResend">
+              {{ resending ? '发送中...' : cooldown > 0 ? `${cooldown}s` : '重新发送' }}
+            </button>
+          </div>
+        </div>
+      </Transition>
     </div>
   </div>
 </template>
 
 <style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--color-border);
+  box-shadow: inset 0 0 0 1px rgba(241,121,146,0.15);
 }
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+:root:not(.dark) .auth-tabs {
+  background: rgba(0,0,0,0.05);
 }
+.auth-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  font-size: 14px;
+  font-weight: 400;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+  color: var(--color-text-secondary);
+  background: transparent;
+}
+.auth-tab--active {
+  background: var(--color-card);
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.auth-input {
+  width: 100%;
+  height: 45px;
+  padding: 0 12px 0 41px;
+  font-size: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--color-input-border);
+  background: var(--color-input-bg);
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.auth-input::placeholder { color: var(--color-text-secondary); opacity: 0.6; }
+.auth-input:focus { border-color: var(--color-primary); }
+
+.auth-submit {
+  width: 100%;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  border-radius: 12px;
+  border: 1px solid var(--color-primary);
+  cursor: pointer;
+  transition: opacity 0.2s;
+  background: var(--color-primary);
+  color: #fff;
+}
+.auth-submit:hover { opacity: 0.9; }
+.auth-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

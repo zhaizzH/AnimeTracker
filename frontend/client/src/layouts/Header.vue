@@ -218,122 +218,124 @@ function navigateTo(path: string) {
       </div>
     </div>
 
-    <!-- Mobile drawer -->
-    <Transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition duration-150 ease-in"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
-      <div
-        v-if="mobileMenuOpen"
-        class="md:hidden fixed inset-0 top-16 z-40"
-        style="background: rgba(0,0,0,0.4);"
-        @click.self="closeMobile"
+    <!-- Mobile drawer (teleported to body to escape sticky header stacking context) -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
       >
-        <Transition
-          enter-active-class="transition duration-250 ease-out"
-          enter-from-class="translate-x-full"
-          enter-to-class="translate-x-0"
-          leave-active-class="transition duration-200 ease-in"
-          leave-from-class="translate-x-0"
-          leave-to-class="translate-x-full"
+        <div
+          v-if="mobileMenuOpen"
+          class="md:hidden fixed inset-0 top-16 z-[60]"
+          style="background: rgba(0,0,0,0.5);"
+          @click.self="closeMobile"
         >
-          <div
-            v-if="mobileMenuOpen"
-            class="absolute right-0 top-0 bottom-0 w-72 flex flex-col border-l shadow-2xl"
-            style="background: var(--color-card); border-color: var(--color-border);"
+          <Transition
+            enter-active-class="transition duration-250 ease-out"
+            enter-from-class="translate-x-full"
+            enter-to-class="translate-x-0"
+            leave-active-class="transition duration-200 ease-in"
+            leave-from-class="translate-x-0"
+            leave-to-class="translate-x-full"
           >
-            <!-- Mobile user info -->
             <div
-              v-if="auth.isAuthenticated && auth.user"
-              class="flex items-center gap-3 px-5 py-4 border-b"
-              style="border-color: var(--color-border);"
+              v-if="mobileMenuOpen"
+              class="absolute right-0 top-0 bottom-0 w-72 flex flex-col border-l shadow-2xl"
+              style="background: var(--color-card); border-color: var(--color-border);"
             >
-              <img
-                v-if="auth.user.avatar"
-                :src="auth.user.avatar"
-                :alt="auth.user.nickname"
-                class="w-10 h-10 rounded-full object-cover bg-surface-200"
-              />
+              <!-- Mobile user info -->
               <div
-                v-else
-                class="w-10 h-10 rounded-full bg-primary-500/15 text-primary-500 flex items-center justify-center"
+                v-if="auth.isAuthenticated && auth.user"
+                class="flex items-center gap-3 px-5 py-4 border-b"
+                style="border-color: var(--color-border);"
               >
-                <User :size="18" />
-              </div>
-              <div class="min-w-0">
-                <div class="text-sm font-semibold truncate" style="color: var(--color-text);">
-                  {{ auth.user.nickname || auth.user.username }}
+                <img
+                  v-if="auth.user.avatar"
+                  :src="auth.user.avatar"
+                  :alt="auth.user.nickname"
+                  class="w-10 h-10 rounded-full object-cover bg-surface-200"
+                />
+                <div
+                  v-else
+                  class="w-10 h-10 rounded-full bg-primary-500/15 text-primary-500 flex items-center justify-center"
+                >
+                  <User :size="18" />
                 </div>
-                <div class="text-xs truncate" style="color: var(--color-text-secondary);">
-                  {{ auth.user.email }}
+                <div class="min-w-0">
+                  <div class="text-sm font-semibold truncate" style="color: var(--color-text);">
+                    {{ auth.user.nickname || auth.user.username }}
+                  </div>
+                  <div class="text-xs truncate" style="color: var(--color-text-secondary);">
+                    {{ auth.user.email }}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Mobile nav links -->
-            <nav class="flex-1 py-3 px-3 space-y-1 overflow-y-auto scrollbar-hide">
-              <router-link
-                v-for="link in navLinks"
-                :key="link.name"
-                :to="link.to"
-                @click="closeMobile"
-                class="flex items-center px-4 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200"
-                :class="isActive(link)
-                  ? 'bg-primary-500/10 text-primary-500'
-                  : 'hover:bg-[var(--color-hover)]'"
-                :style="!isActive(link) ? 'color: var(--color-text)' : ''"
-              >
-                {{ link.label }}
-              </router-link>
-
-              <div class="border-t my-3" style="border-color: var(--color-border);"></div>
-
-              <template v-if="auth.isAuthenticated && auth.user">
+              <!-- Mobile nav links -->
+              <nav class="flex-1 py-3 px-3 space-y-1 overflow-y-auto scrollbar-hide">
                 <router-link
-                  to="/profile"
+                  v-for="link in navLinks"
+                  :key="link.name"
+                  :to="link.to"
                   @click="closeMobile"
-                  class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-colors duration-200 hover:bg-[var(--color-hover)]"
-                  style="color: var(--color-text);"
+                  class="flex items-center px-4 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200"
+                  :class="isActive(link)
+                    ? 'bg-primary-500/10 text-primary-500'
+                    : 'hover:bg-[var(--color-hover)]'"
+                  :style="!isActive(link) ? 'color: var(--color-text)' : ''"
                 >
-                  <User :size="16" style="color: var(--color-text-secondary);" />
-                  个人中心
+                  {{ link.label }}
                 </router-link>
-                <button
-                  @click="handleLogout(); closeMobile()"
-                  class="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm text-red-500 transition-colors duration-200 hover:bg-red-50 dark:hover:bg-red-500/10"
-                >
-                  <LogOut :size="16" />
-                  退出登录
-                </button>
-              </template>
 
-              <template v-else>
-                <router-link
-                  to="/login"
-                  @click="closeMobile"
-                  class="flex items-center px-4 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200 hover:bg-[var(--color-hover)]"
-                  style="color: var(--color-text);"
-                >
-                  登录
-                </router-link>
-                <div class="px-3 pt-1">
+                <div class="border-t my-3" style="border-color: var(--color-border);"></div>
+
+                <template v-if="auth.isAuthenticated && auth.user">
                   <router-link
-                    to="/register"
+                    to="/profile"
                     @click="closeMobile"
-                    class="btn-primary w-full text-sm !py-2.5"
+                    class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-colors duration-200 hover:bg-[var(--color-hover)]"
+                    style="color: var(--color-text);"
                   >
-                    注册
+                    <User :size="16" style="color: var(--color-text-secondary);" />
+                    个人中心
                   </router-link>
-                </div>
-              </template>
-            </nav>
-          </div>
-        </Transition>
-      </div>
-    </Transition>
+                  <button
+                    @click="handleLogout(); closeMobile()"
+                    class="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm text-red-500 transition-colors duration-200 hover:bg-red-50 dark:hover:bg-red-500/10"
+                  >
+                    <LogOut :size="16" />
+                    退出登录
+                  </button>
+                </template>
+
+                <template v-else>
+                  <router-link
+                    to="/login"
+                    @click="closeMobile"
+                    class="flex items-center px-4 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200 hover:bg-[var(--color-hover)]"
+                    style="color: var(--color-text);"
+                  >
+                    登录
+                  </router-link>
+                  <div class="px-3 pt-1">
+                    <router-link
+                      to="/register"
+                      @click="closeMobile"
+                      class="btn-primary w-full text-sm !py-2.5"
+                    >
+                      注册
+                    </router-link>
+                  </div>
+                </template>
+              </nav>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
   </header>
 </template>

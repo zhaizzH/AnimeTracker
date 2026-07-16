@@ -11,6 +11,9 @@ export const authApi = {
   verifyEmail(data: VerifyEmailRequest) {
     return http.post<ApiResponse<AuthResult>>('/api/user/auth/verify-email', data)
   },
+  resendCode(email: string) {
+    return http.post<ApiResponse<null>>('/api/user/auth/resend-code', { email })
+  },
   logout() {
     return http.get<ApiResponse<string>>('/api/user/auth/logout')
   },

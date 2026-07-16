@@ -45,6 +45,15 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function resendCode(email: string) {
+    loading.value = true
+    try {
+      await authApi.resendCode(email)
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function logout() {
     try {
       await authApi.logout()
@@ -75,6 +84,6 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     token, user, loading,
     isAuthenticated, isAdmin,
-    login, register, verifyEmail, logout, fetchMe, updateProfile,
+    login, register, resendCode, verifyEmail, logout, fetchMe, updateProfile,
   }
 })
