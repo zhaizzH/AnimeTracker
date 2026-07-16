@@ -3,7 +3,6 @@ package top.zhaizz.user.service;
 import top.zhaizz.pojo.dto.LoginDTO;
 import top.zhaizz.pojo.dto.RegisterDTO;
 import top.zhaizz.pojo.vo.LoginVO;
-import top.zhaizz.pojo.vo.UserVO;
 
 /**
  * 认证服务接口
@@ -12,13 +11,23 @@ public interface AuthService {
 
     /**
      * 用户注册
-     * @return 注册后的用户信息
+     * <p>创建用户（email_verified=false）并发送验证码邮件</p>
      */
-    UserVO register(RegisterDTO request);
+    void register(RegisterDTO request);
+
+    /**
+     * 验证邮箱
+     * <p>校验验证码通过后标记邮箱已验证并返回 JWT</p>
+     *
+     * @param email 邮箱地址
+     * @param code  验证码
+     * @return LoginVO（含 JWT Token 和用户信息）
+     */
+    LoginVO verifyEmail(String email, String code);
 
     /**
      * 用户登录
-     * @return LoginResult（含 JWT Token 和用户信息）
+     * @return LoginVO（含 JWT Token 和用户信息）
      */
     LoginVO login(LoginDTO request);
 
