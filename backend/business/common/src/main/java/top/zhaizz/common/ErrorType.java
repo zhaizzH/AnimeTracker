@@ -14,6 +14,8 @@ public enum ErrorType {
     NOT_FOUND(404, "资源不存在"),
     CONFLICT(409, "资源冲突"),
     TOO_MANY_REQUESTS(429, "请求太频繁"),
+    VERIFICATION_FAILED(400, "验证失败"),
+    EMAIL_NOT_VERIFIED(403, "邮箱未验证"),
     INTERNAL_ERROR(500, "服务器内部错误");
 
     private final int code;
