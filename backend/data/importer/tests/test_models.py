@@ -59,10 +59,11 @@ def test_import_record_table(engine):
 
 
 def test_subject_crud(engine):
-    """CURD 基本操作"""
+    """CURD 基本操作 — SQLite 测试需显式设置 BigInteger PK"""
     from datetime import date
     with Session(engine) as session:
         s = Subject(
+            id=1,  # SQLite: BigInteger PK needs explicit id
             bangumi_id=1,
             name="Test Anime",
             name_cn="测试动画",
