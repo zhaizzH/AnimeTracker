@@ -125,6 +125,11 @@ export interface RegisterRequest {
   email?: string
 }
 
+/** MinIO 上传返回结果 */
+export interface UploadResult {
+  url: string
+}
+
 export const EPISODE_TYPES: Record<number, string> = {
   0: '本篇',
   1: 'SP',
