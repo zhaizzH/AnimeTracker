@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { User, Mail, Image, Save, Shield, Calendar, CheckCircle, XCircle } from '@lucide/vue'
+import { User, Mail, Save, Shield, Calendar, CheckCircle, XCircle, Upload } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
+import { uploadFile } from '@/api/upload'
 
 const authStore = useAuthStore()
 
@@ -9,6 +10,7 @@ const nickname = ref('')
 const email = ref('')
 const avatar = ref('')
 const loading = ref(false)
+const uploading = ref(false)
 const success = ref('')
 const error = ref('')
 
@@ -17,6 +19,38 @@ function initForm() {
     nickname.value = authStore.user.nickname || ''
     email.value = authStore.user.email || ''
     avatar.value = authStore.user.avatar || ''
+  }
+}
+
+async function handleFileSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  const allowed = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowed.includes(file.type)) {
+    error.value = '仅支持 JPG、PNG、WebP 格式'
+    setTimeout(() => { error.value = '' }, 5000)
+    return
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    error.value = '图片大小不能超过 5MB'
+    setTimeout(() => { error.value = '' }, 5000)
+    return
+  }
+
+  uploading.value = true
+  error.value = ''
+  try {
+    const url = await uploadFile(file, 'avatar')
+    avatar.value = url
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || '上传失败，请重试'
+    setTimeout(() => { error.value = '' }, 5000)
+  } finally {
+    uploading.value = false
+    input.value = ''
   }
 }
 
@@ -152,24 +186,39 @@ const memberSince = computed(() => {
           </div>
         </div>
 
-        <!-- Avatar URL -->
+        <!-- 头像上传 -->
         <div>
-          <label class="block text-sm font-medium mb-1.5" style="color: var(--color-text)">头像 URL</label>
-          <div class="relative">
-            <Image class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4" style="color: var(--color-text-secondary)" />
-            <input
-              v-model="avatar"
-              type="url"
-              placeholder="输入头像图片链接"
-              class="input-field pl-10"
-            />
-          </div>
-          <!-- Avatar Preview -->
-          <div v-if="avatar" class="mt-3 flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl overflow-hidden" style="background: var(--color-hover)">
-              <img :src="avatar" alt="Preview" class="w-full h-full object-cover" />
+          <label class="block text-sm font-medium mb-1.5" style="color: var(--color-text)">头像</label>
+          <div class="flex items-center gap-4">
+            <div
+              class="w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 border-2 border-dashed"
+              :style="{ borderColor: 'var(--color-border)', background: 'var(--color-hover)' }"
+            >
+              <img
+                v-if="avatar"
+                :src="avatar"
+                alt="Avatar Preview"
+                class="w-full h-full object-cover"
+              />
+              <User v-else class="h-6 w-6 opacity-30" style="color: var(--color-text-secondary)" />
             </div>
-            <span class="text-xs" style="color: var(--color-text-secondary)">头像预览</span>
+            <div class="flex-1">
+              <label class="btn-secondary cursor-pointer inline-flex items-center gap-2" :class="{ 'opacity-50 pointer-events-none': uploading }">
+                <Upload v-if="!uploading" class="h-4 w-4" />
+                <svg v-else class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                {{ uploading ? '上传中...' : '选择图片' }}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  class="hidden"
+                  @change="handleFileSelected"
+                />
+              </label>
+              <p class="text-xs mt-1.5" style="color: var(--color-text-secondary)">支持 JPG/PNG/WebP，最大 5MB</p>
+            </div>
           </div>
         </div>
 
