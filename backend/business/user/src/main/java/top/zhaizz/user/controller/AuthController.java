@@ -2,6 +2,10 @@ package top.zhaizz.user.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.common.result.Result;
@@ -22,20 +26,26 @@ public class AuthController {
 
     /**
      * 用户注册
-     * <p>注册成功后自动登录，返回 JWT Token 和用户信息</p>
+     * <p>创建用户并发送验证码邮件，注册成功后需调用 verify-email 完成验证</p>
      */
     @PostMapping("/register")
-    public Result<LoginVO> register(@Valid @RequestBody RegisterDTO request) {
+    public Result<Void> register(@Valid @RequestBody RegisterDTO request) {
         authService.register(request);
-        // 注册成功后自动登录，返回 Token + 用户信息
-        LoginVO loginVO = authService.login(
-                new LoginDTO(request.getUsername(), request.getPassword()));
+        return Result.success(null);
+    }
+
+    /**
+     * 验证邮箱
+     * <p>校验验证码，通过后标记邮箱已验证并返回 JWT Token 和用户信息</p>
+     */
+    @PostMapping("/verify-email")
+    public Result<LoginVO> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        LoginVO loginVO = authService.verifyEmail(request.getEmail(), request.getCode());
         return Result.success(loginVO);
     }
 
     /**
      * 用户登录
-     * <p>登录成功返回 JWT Token 和用户信息</p>
      */
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO request) {
@@ -54,5 +64,19 @@ public class AuthController {
             authService.logout(token);
         }
         return Result.success(null);
+    }
+
+    /**
+     * 验证邮箱请求体
+     */
+    @Data
+    public static class VerifyEmailRequest {
+        @NotBlank(message = "邮箱不能为空")
+        @Email(message = "邮箱格式不正确")
+        private String email;
+
+        @NotBlank(message = "验证码不能为空")
+        @Size(min = 6, max = 6, message = "验证码为6位")
+        private String code;
     }
 }
