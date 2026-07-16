@@ -299,16 +299,16 @@ class ImportRunner:
 def run_import():
     """主导入流程（同步入口，由 main.py 调用）。"""
     import asyncio
-    args = parse_args()
-    runner = ImportRunner()
-    try:
-        count = asyncio.run(runner.run(args))
-        logger.info("成功导入 %d 个条目", count)
-    except Exception:
-        sys.exit(1)
-    finally:
-        import asyncio
+
+    async def _main():
+        args = parse_args()
+        runner = ImportRunner()
         try:
-            asyncio.run(runner.close())
-        except RuntimeError:
-            pass
+            count = await runner.run(args)
+            logger.info("成功导入 %d 个条目", count)
+        except Exception:
+            sys.exit(1)
+        finally:
+            await runner.close()
+
+    asyncio.run(_main())
