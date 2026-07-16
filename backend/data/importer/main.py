@@ -14,8 +14,11 @@ import logging
 import os
 import sys
 from datetime import datetime
+from urllib.parse import urlparse
 
+import requests
 from dotenv import load_dotenv
+from minio import Minio
 from sqlalchemy.orm import Session
 
 from client import BangumiClient
@@ -37,6 +40,60 @@ SEASON_MONTHS = {
 }
 
 COMMIT_EVERY = 50
+
+# ponytail: 模块级单例，避免层层传递
+_minio_client = None
+
+EXT_MAP = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+}
+
+
+def _get_minio_client():
+    global _minio_client
+    if _minio_client is None:
+        _minio_client = Minio(
+            os.getenv("MINIO_ENDPOINT", "localhost:9000"),
+            access_key=os.getenv("MINIO_ACCESS_KEY", "minioadmin"),
+            secret_key=os.getenv("MINIO_SECRET_KEY", "minioadmin"),
+            secure=False,
+        )
+    return _minio_client
+
+
+def _get_ext_from_url(url: str) -> str | None:
+    path = urlparse(url).path.lower()
+    for ext in [".jpg", ".jpeg", ".png", ".webp"]:
+        if path.endswith(ext):
+            return ext.lstrip(".")
+    return None
+
+
+def upload_cover(subject_id: int, image_url: str) -> str:
+    """下载封面 → 上传 MinIO → 返回 MinIO 公开 URL；失败则返回原 URL。"""
+    if not image_url:
+        return image_url
+    try:
+        resp = requests.get(image_url, timeout=15, stream=True)
+        resp.raise_for_status()
+        content_type = resp.headers.get("Content-Type", "")
+        ext = EXT_MAP.get(content_type) or _get_ext_from_url(image_url) or "jpg"
+        object_name = f"covers/{subject_id}.{ext}"
+
+        mc = _get_minio_client()
+        bucket = os.getenv("MINIO_BUCKET", "anime-tracker")
+        if not mc.bucket_exists(bucket):
+            mc.make_bucket(bucket)
+
+        mc.put_object(bucket, object_name, resp.raw, length=-1, part_size=10 * 1024 * 1024,
+                      content_type=content_type or "image/jpeg")
+        public_url = os.getenv("MINIO_PUBLIC_URL", "http://localhost:9000").rstrip("/")
+        return f"{public_url}/{bucket}/{object_name}"
+    except Exception as e:
+        logger.warning("Cover upload failed for subject %d: %s, fallback to original URL", subject_id, e)
+        return image_url
 
 
 def parse_args(argv=None):
@@ -77,6 +134,13 @@ def import_single_subject(client, db, bangumi_id, resume):
         logger.info("  -> fetch subject %d", bangumi_id)
         data = client.get_subject(bangumi_id)
         client.rate_limit()
+
+        # 封面下载 → MinIO 转存 → 替换 URL 让 upsert_subject 直接写入 MinIO 路径
+        raw_image = (data.get("images") or {}).get("large")
+        if raw_image:
+            minio_url = upload_cover(data["id"], raw_image)
+            if minio_url != raw_image:
+                data.setdefault("images", {})["large"] = minio_url
 
         subject_id = upsert_subject(db, data)
 
