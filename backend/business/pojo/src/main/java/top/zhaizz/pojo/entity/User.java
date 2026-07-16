@@ -19,6 +19,7 @@ public class User {
     private String nickname;
     private String avatar;
     private String role;            // USER / ADMIN
+    private Boolean emailVerified;  // 邮箱是否已验证
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
