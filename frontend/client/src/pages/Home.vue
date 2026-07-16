@@ -175,14 +175,15 @@ onMounted(() => {
               v-model="searchQuery"
               type="text"
               placeholder="搜索动画作品..."
-              class="input-field pl-12 pr-28 py-4 text-base rounded-full"
+              class="input-field pl-12 pr-14 sm:pr-28 py-4 text-sm sm:text-base rounded-full"
               @keyup.enter="handleSearch"
             />
             <button
-              class="btn-primary absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2"
+              class="btn-primary absolute right-2 top-1/2 -translate-y-1/2 px-3 sm:px-5 py-2"
               @click="handleSearch"
             >
-              搜索
+              <Search class="sm:hidden h-4 w-4" />
+              <span class="hidden sm:inline">搜索</span>
             </button>
           </div>
         </div>
@@ -192,20 +193,20 @@ onMounted(() => {
     <!-- Stats Row -->
     <section class="app-container -mt-4 mb-12 relative z-20">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 max-w-3xl mx-auto">
-        <div class="app-card p-4 text-center" style="background: var(--color-card); border: 1px solid var(--color-border)">
-          <div class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ formatCount(totalSubjects) }}</div>
+        <div class="app-card p-3 sm:p-4 text-center">
+          <div class="text-xl sm:text-2xl font-bold text-primary-600 dark:text-primary-400">{{ formatCount(totalSubjects) }}</div>
           <div class="text-xs mt-1" style="color: var(--color-text-secondary)">番剧条目</div>
         </div>
-        <div class="app-card p-4 text-center" style="background: var(--color-card); border: 1px solid var(--color-border)">
-          <div class="text-2xl font-bold" style="color: var(--color-text)">{{ seasonTotal }}</div>
+        <div class="app-card p-3 sm:p-4 text-center">
+          <div class="text-xl sm:text-2xl font-bold" style="color: var(--color-text)">{{ seasonTotal }}</div>
           <div class="text-xs mt-1" style="color: var(--color-text-secondary)">本季新番</div>
         </div>
-        <div class="app-card p-4 text-center" style="background: var(--color-card); border: 1px solid var(--color-border)">
-          <div class="text-2xl font-bold" style="color: var(--color-text)">{{ totalTags.toLocaleString() }}</div>
+        <div class="app-card p-3 sm:p-4 text-center">
+          <div class="text-xl sm:text-2xl font-bold" style="color: var(--color-text)">{{ totalTags.toLocaleString() }}</div>
           <div class="text-xs mt-1" style="color: var(--color-text-secondary)">标签分类</div>
         </div>
-        <div class="app-card p-4 text-center" style="background: var(--color-card); border: 1px solid var(--color-border)">
-          <div class="text-2xl font-bold" style="color: var(--color-text)">1+</div>
+        <div class="app-card p-3 sm:p-4 text-center">
+          <div class="text-xl sm:text-2xl font-bold" style="color: var(--color-text)">1+</div>
           <div class="text-xs mt-1" style="color: var(--color-text-secondary)">数据来源</div>
         </div>
       </div>
@@ -248,7 +249,7 @@ onMounted(() => {
       <div v-if="loadingSchedule" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         <div v-for="i in 9" :key="i" class="app-skeleton h-[72px] rounded-xl" />
       </div>
-      <div v-else-if="currentDaySchedule.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div v-else-if="currentDaySchedule.length" class="card-grid-responsive grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         <router-link
           v-for="item in currentDaySchedule"
           :key="item.id"
@@ -315,7 +316,7 @@ onMounted(() => {
       <div v-if="loadingSeasonal" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
         <SubjectCardSkeleton v-for="i in 12" :key="i" />
       </div>
-      <div v-else-if="seasonalItems.length" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+      <div v-else-if="seasonalItems.length" class="card-grid-responsive grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
         <SubjectCard v-for="item in seasonalItems" :key="item.id" :subject="item" />
       </div>
       <div v-else class="app-card p-8 text-center" style="background: var(--color-card); border: 1px solid var(--color-border)">

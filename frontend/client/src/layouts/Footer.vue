@@ -5,14 +5,14 @@ const year = new Date().getFullYear()
 <template>
   <footer class="border-t mt-auto" style="border-color: var(--color-border);">
     <div class="app-container py-8">
-      <div class="flex flex-col items-center gap-4 text-center">
+      <div class="flex flex-col items-center gap-3 sm:gap-4 text-center">
         <!-- Branding -->
         <div class="text-base font-bold select-none">
           <span class="text-primary-500">Anime</span><span style="color: var(--color-text);">Tracker</span>
         </div>
 
         <!-- Links -->
-        <div class="flex items-center gap-6 text-sm" style="color: var(--color-text-secondary);">
+        <div class="flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-sm" style="color: var(--color-text-secondary);">
           <a
             href="https://github.com"
             target="_blank"

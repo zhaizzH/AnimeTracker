@@ -118,8 +118,8 @@ const memberSince = computed(() => {
     </Transition>
 
     <!-- User Info Card -->
-    <div class="app-card p-6 mb-6">
-      <div class="flex items-center gap-5">
+    <div class="app-card p-5 sm:p-6 mb-6">
+      <div class="flex flex-col sm:flex-row items-center sm:items-center gap-4 sm:gap-5">
         <!-- Avatar -->
         <div class="shrink-0">
           <div class="w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center" style="background: var(--color-hover)">
@@ -155,7 +155,7 @@ const memberSince = computed(() => {
     </div>
 
     <!-- Edit Form -->
-    <div class="app-card p-6">
+    <div class="app-card p-5 sm:p-6">
       <h3 class="text-base font-semibold mb-5" style="color: var(--color-text)">编辑资料</h3>
       <form @submit.prevent="handleSave" class="space-y-5">
         <!-- Nickname -->

@@ -45,7 +45,7 @@
 
 @layer components {
   .app-container {
-    @apply max-w-7xl mx-auto px-4 md:px-6;
+    @apply max-w-7xl mx-auto px-3 sm:px-4 md:px-6;
   }
 
   .app-skeleton {
@@ -156,13 +156,20 @@
   }
 
   .page-title {
-    @apply text-3xl md:text-4xl font-bold;
+    @apply text-2xl sm:text-3xl md:text-4xl font-bold;
     color: var(--color-text);
   }
 
   .page-subtitle {
-    @apply text-base;
+    @apply text-sm sm:text-base;
     color: var(--color-text-secondary);
+  }
+}
+
+/* Ultra-small screen fallback: single-column card grids */
+@media (max-width: 374px) {
+  .card-grid-responsive {
+    grid-template-columns: 1fr !important;
   }
 }
 

@@ -55,9 +55,9 @@ async function handleRegister() {
 <template>
   <div class="min-h-[80vh] flex items-center justify-center app-container">
     <div class="w-full max-w-md">
-      <div class="app-card p-8">
+      <div class="app-card p-5 sm:p-8">
         <!-- Header -->
-        <div class="text-center mb-8">
+        <div class="text-center mb-6 sm:mb-8">
           <h1 class="page-title mb-2">创建账户</h1>
           <p class="page-subtitle">加入我们</p>
         </div>

@@ -32,7 +32,7 @@ function selectQuarter(key: string) {
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+  <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
     <!-- Year selector -->
     <div class="flex items-center gap-1">
       <button

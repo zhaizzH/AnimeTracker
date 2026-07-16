@@ -75,13 +75,13 @@ onMounted(fetchSubjects)
     </div>
 
     <!-- Loading State -->
-    <div v-if="loading" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+    <div v-if="loading" class="card-grid-responsive grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
       <SubjectCardSkeleton v-for="i in pageSize" :key="i" />
     </div>
 
     <!-- Results Grid -->
     <div v-else-if="results.length > 0">
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+      <div class="card-grid-responsive grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 mb-8">
         <SubjectCard v-for="item in results" :key="item.id" :subject="item" />
       </div>
       <Pagination
