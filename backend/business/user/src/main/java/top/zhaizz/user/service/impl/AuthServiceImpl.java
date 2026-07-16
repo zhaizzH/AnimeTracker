@@ -66,6 +66,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    public void resendCode(String email) {
+        verificationService.sendVerificationCode(email);
+    }
+
+    @Override
     public LoginVO verifyEmail(String email, String code) {
         // 1. 校验验证码（内部会更新 email_verified = true）
         verificationService.verifyEmail(email, code);

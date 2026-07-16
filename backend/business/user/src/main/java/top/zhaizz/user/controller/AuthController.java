@@ -45,6 +45,15 @@ public class AuthController {
     }
 
     /**
+     * 重新发送验证码
+     */
+    @PostMapping("/resend-code")
+    public Result<Void> resendCode(@Valid @RequestBody ResendCodeRequest request) {
+        authService.resendCode(request.getEmail());
+        return Result.success(null);
+    }
+
+    /**
      * 用户登录
      */
     @PostMapping("/login")
@@ -78,5 +87,12 @@ public class AuthController {
         @NotBlank(message = "验证码不能为空")
         @Size(min = 6, max = 6, message = "验证码为6位")
         private String code;
+    }
+
+    @Data
+    public static class ResendCodeRequest {
+        @NotBlank(message = "邮箱不能为空")
+        @Email(message = "邮箱格式不正确")
+        private String email;
     }
 }

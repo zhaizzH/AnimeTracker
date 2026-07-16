@@ -16,6 +16,11 @@ public interface AuthService {
     void register(RegisterDTO request);
 
     /**
+     * 重新发送验证码
+     */
+    void resendCode(String email);
+
+    /**
      * 验证邮箱
      * <p>校验验证码通过后标记邮箱已验证并返回 JWT</p>
      *

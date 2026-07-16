@@ -3,7 +3,6 @@ package top.zhaizz.user.service.impl;
 import com.resend.Resend;
 import com.resend.core.exception.ResendException;
 import com.resend.services.emails.model.CreateEmailOptions;
-import com.resend.services.emails.model.CreateEmailResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -51,14 +50,14 @@ public class VerificationServiceImpl implements VerificationService {
         // 3. 通过 Resend 发送邮件
         Resend resend = new Resend(resendApiKey);
         CreateEmailOptions params = CreateEmailOptions.builder()
-                .from("noreply@animetracker.top")
+                .from("admin@zhaizz.top")
                 .to(email)
                 .subject("[AnimeTracker] 邮箱验证码")
                 .text("你的验证码是：" + code + "\n\n此验证码5分钟内有效，请勿泄露给他人。")
                 .build();
 
         try {
-            CreateEmailResponse response = resend.emails().send(params);
+            resend.emails().send(params);
         } catch (ResendException e) {
             // 发送失败时清理 Redis 中的验证码
             redisClient.del(REDIS_KEY_PREFIX + email);
