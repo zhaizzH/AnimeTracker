@@ -4,7 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import {
   Search, Sun, Moon, Menu, X, User, LogOut,
-  LayoutDashboard, ChevronDown,
+  ChevronDown,
 } from '@lucide/vue'
 
 const router = useRouter()
@@ -184,15 +184,6 @@ function navigateTo(path: string) {
                     <User :size="16" style="color: var(--color-text-secondary);" />
                     个人中心
                   </button>
-                  <button
-                    v-if="auth.isAdmin"
-                    @click="navigateTo('/admin')"
-                    class="flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-colors duration-150 hover:bg-[var(--color-hover)]"
-                    style="color: var(--color-text);"
-                  >
-                    <LayoutDashboard :size="16" style="color: var(--color-text-secondary);" />
-                    管理后台
-                  </button>
                   <div class="border-t" style="border-color: var(--color-border);"></div>
                   <button
                     @click="handleLogout"
@@ -310,16 +301,6 @@ function navigateTo(path: string) {
                 >
                   <User :size="16" style="color: var(--color-text-secondary);" />
                   个人中心
-                </router-link>
-                <router-link
-                  v-if="auth.isAdmin"
-                  to="/admin"
-                  @click="closeMobile"
-                  class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-colors duration-200 hover:bg-[var(--color-hover)]"
-                  style="color: var(--color-text);"
-                >
-                  <LayoutDashboard :size="16" style="color: var(--color-text-secondary);" />
-                  管理后台
                 </router-link>
                 <button
                   @click="handleLogout(); closeMobile()"

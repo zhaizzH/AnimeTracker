@@ -18,17 +18,6 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
-    path: '/admin',
-    component: () => import('@/layouts/AdminLayout.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true },
-    children: [
-      { path: '', name: 'AdminDashboard', component: () => import('@/pages/admin/Dashboard.vue') },
-      { path: 'subjects', name: 'AdminSubjects', component: () => import('@/pages/admin/SubjectManage.vue') },
-      { path: 'users', name: 'AdminUsers', component: () => import('@/pages/admin/Users.vue') },
-      { path: 'import', name: 'AdminImport', component: () => import('@/pages/admin/ImportStatus.vue') },
-    ],
-  },
-  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/pages/Home.vue'),
@@ -52,16 +41,6 @@ router.beforeEach(async (to, _from, next) => {
 
   if (to.meta.guest && token) {
     return next({ name: 'Home' })
-  }
-
-  if (to.meta.requiresAdmin && token) {
-    const authStore = useAuthStore()
-    if (!authStore.user) {
-      await authStore.fetchMe()
-    }
-    if (!authStore.isAdmin) {
-      return next({ name: 'Home' })
-    }
   }
 
   if (token && to.matched.length > 0) {
