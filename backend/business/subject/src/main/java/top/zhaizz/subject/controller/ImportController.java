@@ -15,16 +15,16 @@ import top.zhaizz.pojo.vo.ImportStatusVO;
 public class ImportController {
 
     private final ImportService importService;
-
+// TODO 待接入python功能
     /**
      * 运行番剧导入
      */
     @PostMapping("/run")
-    public Result<Void> runImport() {  // TODO 待接入python功能
+    public Result<Void> runImport() {
         importService.runImport();
         return Result.success();
     }
-
+// TODO 待接入python功能
     /**
      * 获取番剧导入状态
      */

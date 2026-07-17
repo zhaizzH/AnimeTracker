@@ -12,6 +12,9 @@ import top.zhaizz.common.result.Result;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * 文件控制器
+ */
 @Slf4j
 @RestController
 @RequestMapping("/api/common/files")
@@ -24,6 +27,9 @@ public class FileController {
     private static final List<String> ALLOWED_CONTENT_TYPES = List.of("image/jpeg", "image/png", "image/webp");
     private static final List<String> ALLOWED_CATEGORIES = List.of("avatar", "cover");
 
+    /**
+     * 上传文件
+     */
     @PostMapping("/upload")
     public Result<String> upload(
             @RequestParam("file") MultipartFile file,
