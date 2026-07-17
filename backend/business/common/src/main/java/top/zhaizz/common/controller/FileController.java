@@ -15,7 +15,6 @@ import java.util.UUID;
 /**
  * 文件控制器
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/common/files")
 @RequiredArgsConstructor
@@ -70,10 +69,8 @@ public class FileController {
                     + minioProperties.getBucket() + "/"
                     + objectName;
 
-            log.info("File uploaded: {}", url);
             return Result.success(url);
         } catch (Exception e) {
-            log.error("MinIO upload failed", e);
             return Result.error(500, "文件上传失败: " + e.getMessage());
         }
     }
