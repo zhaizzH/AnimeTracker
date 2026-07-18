@@ -21,6 +21,7 @@ import top.zhaizz.pojo.vo.LoginVO;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -101,6 +102,13 @@ public class AuthServiceImpl implements AuthService {
 
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new BizException(ErrorType.UNAUTHORIZED, "用户名或密码错误");
+        }
+
+        // 2. 检查邮箱是否已验证
+        if (Boolean.FALSE.equals(user.getEmailVerified())) {
+            throw new BizException(ErrorType.EMAIL_NOT_VERIFIED,
+                    "邮箱未验证，请先验证邮箱",
+                    Map.of("email", user.getEmail()));
         }
 
         return generateLoginVO(user);
