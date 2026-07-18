@@ -15,7 +15,7 @@ export const authApi = {
     return http.post<ApiResponse<null>>('/api/user/auth/resend-code', { email })
   },
   logout() {
-    return http.get<ApiResponse<string>>('/api/user/auth/logout')
+    return http.post<ApiResponse<string>>('/api/user/auth/logout')
   },
   getMe() {
     return http.get<ApiResponse<UserVO>>('/api/user/me')

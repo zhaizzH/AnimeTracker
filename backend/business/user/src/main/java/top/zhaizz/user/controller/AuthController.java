@@ -65,7 +65,7 @@ public class AuthController {
     /**
      * 用户注销
      */
-    @GetMapping("/logout")
+    @PostMapping("/logout")
     public Result<Void> logout(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {

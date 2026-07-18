@@ -81,7 +81,7 @@ public class AuthServiceImpl implements AuthService {
                         .eq(User::getEmail, email)
         );
 
-        return login(new LoginDTO(user.getUsername(), user.getPassword()));
+        return generateLoginVO(user);
     }
 
     @Override
@@ -96,15 +96,7 @@ public class AuthServiceImpl implements AuthService {
             throw new BizException(ErrorType.UNAUTHORIZED, "用户名或密码错误");
         }
 
-        // 2. 生成 JWT（统一使用 JwtTokenProvider）
-        String token = jwtTokenProvider.generateToken(user.getId(), user.getRole());
-
-        // 3. 计算 SHA256 摘要，存入 Redis（带 TTL）
-        String tokenHash = DigestUtils.sha256Hex(token);
-        redisClient.set(REDIS_TOKEN_PREFIX + tokenHash, user.getId().toString(), jwtExpiration, TimeUnit.MILLISECONDS);
-
-        // 4. 返回 Token + 用户信息
-        return new LoginVO(token, UserConverter.toUserVO(user));
+        return generateLoginVO(user);
     }
 
     @Override
@@ -114,9 +106,13 @@ public class AuthServiceImpl implements AuthService {
         redisClient.del(REDIS_TOKEN_PREFIX + tokenHash);
     }
 
-    @Override
-    public String generateToken(Long userId, String role) {
-        // 委派给 JwtTokenProvider
-        return jwtTokenProvider.generateToken(userId, role);
+    /**
+     * 生成 JWT Token 并存入 Redis 白名单，返回 LoginVO
+     */
+    private LoginVO generateLoginVO(User user) {
+        String token = jwtTokenProvider.generateToken(user.getId(), user.getRole());
+        String tokenHash = DigestUtils.sha256Hex(token);
+        redisClient.set(REDIS_TOKEN_PREFIX + tokenHash, user.getId().toString(), jwtExpiration, TimeUnit.MILLISECONDS);
+        return new LoginVO(token, UserConverter.toUserVO(user));
     }
 }

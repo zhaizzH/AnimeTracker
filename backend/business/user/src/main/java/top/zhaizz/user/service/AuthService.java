@@ -41,8 +41,4 @@ public interface AuthService {
      */
     void logout(String token);
 
-    /**
-     * 生成 JWT Token
-     */
-    String generateToken(Long userId, String role);
 }
