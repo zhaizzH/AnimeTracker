@@ -19,6 +19,7 @@ import top.zhaizz.user.service.AuthService;
 import top.zhaizz.user.service.VerificationService;
 import top.zhaizz.pojo.vo.LoginVO;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.concurrent.TimeUnit;
 
@@ -38,7 +39,13 @@ public class AuthServiceImpl implements AuthService {
     @Value("${jwt.expiration}")
     private long jwtExpiration; // 过期时间，单位毫秒
 
+    @Value("${jwt.refresh-expiration}")
+    private long jwtRefreshExpiration; // Refresh Token 过期时间，单位毫秒
+
     private static final String REDIS_TOKEN_PREFIX = "auth:token:";
+    private static final String REDIS_REFRESH_PREFIX = "auth:refresh:";
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     @Override
     public void register(RegisterDTO request) {
@@ -104,15 +111,63 @@ public class AuthServiceImpl implements AuthService {
         // 计算 SHA256 摘要，从 Redis 删除
         String tokenHash = DigestUtils.sha256Hex(token);
         redisClient.del(REDIS_TOKEN_PREFIX + tokenHash);
+
+        // 同时清理 refresh token
+        // 注意：当前 logout 方法只有 token 参数，没有 refreshToken
+        // 这里清理 access token，refresh token 由前端自行清除或自然过期
     }
 
     /**
-     * 生成 JWT Token 并存入 Redis 白名单，返回 LoginVO
+     * 刷新 Token
+     * <p>校验 refresh token 有效性，轮换（删除旧 token），签发新的 access + refresh 对</p>
+     * <p>ponytail: 并发 refresh 竞态——两线程同时用同一 refresh token refresh 都会成功。
+     * 如需重用检测，升级为 Redis GETDEL 或 Lua 脚本原子操作。</p>
+     */
+    @Override
+    public LoginVO refresh(String refreshToken) {
+        String refreshTokenHash = DigestUtils.sha256Hex(refreshToken);
+        String userIdStr = redisClient.get(REDIS_REFRESH_PREFIX + refreshTokenHash);
+        if (userIdStr == null) {
+            throw new BizException(ErrorType.UNAUTHORIZED, "refresh token 无效或已过期");
+        }
+
+        // 查询用户
+        User user = userMapper.selectById(Long.valueOf(userIdStr));
+        if (user == null) {
+            throw new BizException(ErrorType.UNAUTHORIZED, "用户不存在");
+        }
+
+        // 先生成新 token 对，再删除旧的（防止生成过程中异常导致旧 token 已删、用户被锁定）
+        LoginVO loginVO = generateLoginVO(user);
+        redisClient.del(REDIS_REFRESH_PREFIX + refreshTokenHash);
+        return loginVO;
+    }
+
+    /**
+     * 生成 JWT Token 与 Refresh Token，存入 Redis 白名单，返回 LoginVO
      */
     private LoginVO generateLoginVO(User user) {
-        String token = jwtTokenProvider.generateToken(user.getId(), user.getRole());
-        String tokenHash = DigestUtils.sha256Hex(token);
-        redisClient.set(REDIS_TOKEN_PREFIX + tokenHash, user.getId().toString(), jwtExpiration, TimeUnit.MILLISECONDS);
-        return new LoginVO(token, UserConverter.toUserVO(user));
+        String accessToken = jwtTokenProvider.generateToken(user.getId(), user.getRole());
+        String accessTokenHash = DigestUtils.sha256Hex(accessToken);
+        redisClient.set(REDIS_TOKEN_PREFIX + accessTokenHash, user.getId().toString(), jwtExpiration, TimeUnit.MILLISECONDS);
+
+        String refreshToken = generateRefreshToken();
+        String refreshTokenHash = DigestUtils.sha256Hex(refreshToken);
+        redisClient.set(REDIS_REFRESH_PREFIX + refreshTokenHash, user.getId().toString(), jwtRefreshExpiration, TimeUnit.MILLISECONDS);
+
+        return new LoginVO(accessToken, refreshToken, UserConverter.toUserVO(user));
+    }
+
+    /**
+     * 生成 64 位十六进制随机 Refresh Token
+     */
+    private String generateRefreshToken() {
+        byte[] bytes = new byte[32];
+        SECURE_RANDOM.nextBytes(bytes);
+        StringBuilder sb = new StringBuilder(64);
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b & 0xFF));
+        }
+        return sb.toString();
     }
 }

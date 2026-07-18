@@ -41,4 +41,11 @@ public interface AuthService {
      */
     void logout(String token);
 
+    /**
+     * 刷新 Token
+     * @param refreshToken 刷新令牌
+     * @return LoginVO（含新的 accessToken + refreshToken）
+     */
+    LoginVO refresh(String refreshToken);
+
 }
