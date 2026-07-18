@@ -4,6 +4,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -28,12 +29,13 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     /**
-     * 处理业务异常
+     * 处理业务异常 — 将 BizException.code 映射为 HTTP 状态码
      */
     @ExceptionHandler(BizException.class)
-    public Result<Object> handleBizException(BizException e) {
+    public ResponseEntity<Result<Object>> handleBizException(BizException e) {
         log.warn("业务异常: code={}, message={}", e.getCode(), e.getMessage());
-        return Result.error(e.getCode(), e.getMessage(), e.getData());
+        return ResponseEntity.status(e.getCode())
+                .body(Result.error(e.getCode(), e.getMessage(), e.getData()));
     }
 
     /**
