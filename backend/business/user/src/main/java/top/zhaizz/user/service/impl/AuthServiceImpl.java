@@ -81,15 +81,7 @@ public class AuthServiceImpl implements AuthService {
                         .eq(User::getEmail, email)
         );
 
-        // 3. 生成 JWT
-        String token = jwtTokenProvider.generateToken(user.getId(), user.getRole());
-
-        // 4. Token 摘要存入 Redis 白名单
-        String tokenHash = DigestUtils.sha256Hex(token);
-        redisClient.set(REDIS_TOKEN_PREFIX + tokenHash, user.getId().toString(), jwtExpiration, TimeUnit.MILLISECONDS);
-
-        // 5. 返回 Token + 用户信息
-        return new LoginVO(token, UserConverter.toUserVO(user));
+        return login(new LoginDTO(user.getUsername(), user.getPassword()));
     }
 
     @Override
