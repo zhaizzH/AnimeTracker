@@ -31,9 +31,9 @@ public class GlobalExceptionHandler {
      * 处理业务异常
      */
     @ExceptionHandler(BizException.class)
-    public Result<Void> handleBizException(BizException e) {
+    public Result<Object> handleBizException(BizException e) {
         log.warn("业务异常: code={}, message={}", e.getCode(), e.getMessage());
-        return Result.error(e.getCode(), e.getMessage());
+        return Result.error(e.getCode(), e.getMessage(), e.getData());
     }
 
     /**

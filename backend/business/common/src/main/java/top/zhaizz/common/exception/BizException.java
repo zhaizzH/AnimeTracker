@@ -10,19 +10,30 @@ import top.zhaizz.common.ErrorType;
 public class BizException extends RuntimeException {
 
     private final int code;
+    private final Object data;  // 新增
 
     public BizException(ErrorType errorType) {
         super(errorType.getMessage());
         this.code = errorType.getCode();
+        this.data = null;
     }
 
     public BizException(ErrorType errorType, String message) {
         super(message);
         this.code = errorType.getCode();
+        this.data = null;
+    }
+
+    // 新增构造器
+    public BizException(ErrorType errorType, String message, Object data) {
+        super(message);
+        this.code = errorType.getCode();
+        this.data = data;
     }
 
     public BizException(int code, String message) {
         super(message);
         this.code = code;
+        this.data = null;
     }
 }
