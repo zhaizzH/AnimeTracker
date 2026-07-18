@@ -26,7 +26,8 @@ async function handleRegister() {
   loading.value = true
   try {
     await authStore.register({ username: username.value.trim(), password: password.value, email: email.value.trim() })
-    router.push({ name: 'VerifyEmail', query: { email: email.value.trim() } })
+    sessionStorage.setItem('verifyEmail', email.value.trim())
+    router.push({ name: 'VerifyEmail' })
   } catch (e: any) {
     error.value = e?.response?.data?.message || '注册失败，请稍后重试'
   } finally { loading.value = false }
