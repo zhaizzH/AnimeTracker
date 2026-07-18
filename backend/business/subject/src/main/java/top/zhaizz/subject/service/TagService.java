@@ -6,6 +6,9 @@ import top.zhaizz.pojo.vo.TagVO;
 
 import java.util.List;
 
+/**
+ * 标签服务接口
+ */
 public interface TagService {
 
     /** 返回所有标签（按 count 降序） */

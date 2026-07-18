@@ -9,6 +9,9 @@ import top.zhaizz.pojo.vo.SubjectListVO;
 
 import java.util.List;
 
+/**
+ * 番剧服务接口
+ */
 public interface SubjectService {
 
     /** 分页条目列表（支持排序） */

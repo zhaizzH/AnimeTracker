@@ -10,6 +10,10 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * MinIO 客户端配置与桶自动初始化
+ * <p>启动时自动检查并创建 Bucket，设置公开读策略</p>
+ */
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
