@@ -134,6 +134,8 @@ public class AuthServiceImpl implements AuthService {
         // 查询用户
         User user = userMapper.selectById(Long.valueOf(userIdStr));
         if (user == null) {
+            // 用户已被删除，清理孤儿 refresh token
+            redisClient.del(REDIS_REFRESH_PREFIX + refreshTokenHash);
             throw new BizException(ErrorType.UNAUTHORIZED, "用户不存在");
         }
 

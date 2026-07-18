@@ -35,7 +35,7 @@ http.interceptors.response.use(
 
     // 正在刷新中，将请求加入队列等待
     if (isRefreshing) {
-      return new Promise((resolve, reject) => {
+      return new Promise<string>((resolve, reject) => {
         pendingRequests.push({ resolve, reject })
       }).then((token) => {
         originalRequest.headers.Authorization = `Bearer ${token}`
@@ -54,10 +54,12 @@ http.interceptors.response.use(
       originalRequest.headers.Authorization = `Bearer ${newToken}`
       return http(originalRequest)
     } catch (refreshError) {
-      // 刷新失败，拒绝所有等待的请求
+      // 刷新失败：先清理本地状态，再跳转登录页
       pendingRequests.forEach(({ reject }) => reject(refreshError))
       pendingRequests = []
-      authStore.logout()
+      localStorage.removeItem('token')
+      localStorage.removeItem('refreshToken')
+      authStore.logout() // 异步调用后端使 access token 失效，不 await（页面即将跳转）
       window.location.href = '/login'
       return Promise.reject(refreshError)
     } finally {

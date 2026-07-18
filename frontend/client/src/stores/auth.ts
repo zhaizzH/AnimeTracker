@@ -93,6 +93,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function refresh() {
     if (!refreshToken.value) throw new Error('no refresh token')
     const res = await authApi.refresh(refreshToken.value)
+    if (res.data.code !== 200) throw new Error(res.data.message || 'refresh failed')
     token.value = res.data.data.token
     refreshToken.value = res.data.data.refreshToken
     localStorage.setItem('token', res.data.data.token)
