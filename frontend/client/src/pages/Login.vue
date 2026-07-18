@@ -28,7 +28,8 @@ async function handleLogin() {
   } catch (e: any) {
     const data = e?.response?.data
     if (data?.code === 403 && data?.data?.email) {
-      router.push({ name: 'VerifyEmail', query: { email: data.data.email } })
+      sessionStorage.setItem('verifyEmail', data.data.email)
+      router.push({ name: 'VerifyEmail' })
       return
     }
     error.value = data?.message || '登录失败，请检查用户名和密码'
