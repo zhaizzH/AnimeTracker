@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Mail } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
@@ -19,6 +19,8 @@ let timer: ReturnType<typeof setInterval> | null = null
 
 if (!email.value) {
   router.replace('/login')
+} else {
+  startCooldown()
 }
 
 function startCooldown() {
