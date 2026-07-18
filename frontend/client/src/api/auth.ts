@@ -17,6 +17,9 @@ export const authApi = {
   logout() {
     return http.post<ApiResponse<string>>('/api/user/auth/logout')
   },
+  refresh(refreshToken: string) {
+    return http.post<ApiResponse<AuthResult>>('/api/user/auth/refresh', { refreshToken })
+  },
   getMe() {
     return http.get<ApiResponse<UserVO>>('/api/user/me')
   },

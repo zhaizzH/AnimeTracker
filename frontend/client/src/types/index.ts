@@ -68,6 +68,7 @@ export interface UserVO {
 
 export interface AuthResult {
   token: string
+  refreshToken: string
   user: UserVO
 }
 
