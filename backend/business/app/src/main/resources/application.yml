@@ -60,8 +60,9 @@ mybatis-plus:
 
 # JWT 配置
 jwt:
-  secret: ${jwt.secret}
-  expiration: ${jwt.expiration}
+  secret: ${jwt.secret:dev-secret-key-not-for-production-use-change-it}
+  expiration: ${jwt.expiration:1800000}
+  refresh-expiration: ${jwt.refresh-expiration:604800000}
 
 # MinIO 对象存储
 minio:
