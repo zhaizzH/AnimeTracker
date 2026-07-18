@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Mail } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -71,13 +70,6 @@ async function handleResend() {
       </Transition>
 
       <div class="space-y-4">
-        <div class="relative">
-          <Mail class="absolute left-3.5 top-1/2 -translate-y-1/2 h-[18px] w-[18px]"
-            style="color: var(--color-text-secondary)" />
-          <input :value="email" type="email" readonly
-            class="auth-input opacity-60 cursor-not-allowed" />
-        </div>
-
         <p class="text-sm text-center" style="color: var(--color-text-secondary)">
           验证码已发送到 <strong class="text-primary-500">{{ email }}</strong>
         </p>
