@@ -11,23 +11,10 @@ const username = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
-const code = ref('')
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const error = ref('')
 const loading = ref(false)
-const registered = ref(false)
-const resending = ref(false)
-const cooldown = ref(0)
-let timer: ReturnType<typeof setInterval> | null = null
-
-function startCooldown() {
-  cooldown.value = 60
-  timer = setInterval(() => {
-    cooldown.value--
-    if (cooldown.value <= 0) { if (timer) clearInterval(timer); timer = null }
-  }, 1000)
-}
 
 async function handleRegister() {
   error.value = ''
@@ -39,35 +26,10 @@ async function handleRegister() {
   loading.value = true
   try {
     await authStore.register({ username: username.value.trim(), password: password.value, email: email.value.trim() })
-    registered.value = true
-    startCooldown()
+    router.push({ name: 'VerifyEmail', query: { email: email.value.trim() } })
   } catch (e: any) {
     error.value = e?.response?.data?.message || '注册失败，请稍后重试'
   } finally { loading.value = false }
-}
-
-async function handleVerify() {
-  error.value = ''
-  if (!code.value.trim() || code.value.length !== 6) { error.value = '请输入6位验证码'; return }
-  loading.value = true
-  try {
-    await authStore.verifyEmail({ email: email.value.trim(), code: code.value.trim() })
-    router.push('/')
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || '验证失败，请重试'
-  } finally { loading.value = false }
-}
-
-async function handleResend() {
-  if (cooldown.value > 0) return
-  error.value = ''
-  resending.value = true
-  try {
-    await authStore.resendCode(email.value.trim())
-    startCooldown()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || '发送失败，请稍后重试'
-  } finally { resending.value = false }
 }
 </script>
 
@@ -97,7 +59,7 @@ async function handleResend() {
       </Transition>
 
       <!-- Registration Form -->
-      <form v-if="!registered" @submit.prevent="handleRegister" class="space-y-4">
+      <form @submit.prevent="handleRegister" class="space-y-4">
         <div class="relative">
           <User class="absolute left-3.5 top-1/2 -translate-y-1/2 h-[18px] w-[18px]" style="color: var(--color-text-secondary)" />
           <input v-model="username" type="text" placeholder="用户名" class="auth-input" autocomplete="username" />
@@ -128,32 +90,6 @@ async function handleResend() {
           {{ loading ? '注册中...' : '注册' }}
         </button>
       </form>
-
-      <!-- Verification -->
-      <Transition name="fade">
-        <div v-if="registered" class="space-y-4">
-          <p class="text-sm text-center" style="color: var(--color-text-secondary)">
-            验证码已发送到 <strong class="text-primary-500">{{ email }}</strong>
-          </p>
-          <input v-model="code" type="text" maxlength="6" placeholder="输入6位验证码"
-            class="auth-input text-center text-xl tracking-[0.5em] font-mono" style="padding-left:12px"
-            autocomplete="one-time-code" />
-          <button class="auth-submit" :disabled="loading" @click="handleVerify">
-            <svg v-if="loading" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            {{ loading ? '验证中...' : '完成注册' }}
-          </button>
-          <div class="text-center text-sm" style="color: var(--color-text-secondary)">
-            未收到验证码？
-            <button class="text-primary-500 hover:text-primary-600 font-medium bg-transparent border-none cursor-pointer disabled:opacity-50"
-              :disabled="cooldown > 0 || resending" @click="handleResend">
-              {{ resending ? '发送中...' : cooldown > 0 ? `${cooldown}s` : '重新发送' }}
-            </button>
-          </div>
-        </div>
-      </Transition>
     </div>
   </div>
 </template>
