@@ -5,6 +5,7 @@ import type { UserVO, LoginRequest, RegisterRequest, UpdateProfileRequest, Verif
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token'))
+  const refreshToken = ref<string | null>(localStorage.getItem('refreshToken'))
   const user = ref<UserVO | null>(null)
   const loading = ref(false)
 
@@ -16,8 +17,10 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const res = await authApi.login(data)
       token.value = res.data.data.token
+      refreshToken.value = res.data.data.refreshToken
       user.value = res.data.data.user
       localStorage.setItem('token', res.data.data.token)
+      localStorage.setItem('refreshToken', res.data.data.refreshToken)
     } finally {
       loading.value = false
     }
@@ -38,8 +41,10 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const res = await authApi.verifyEmail(data)
       token.value = res.data.data.token
+      refreshToken.value = res.data.data.refreshToken
       user.value = res.data.data.user
       localStorage.setItem('token', res.data.data.token)
+      localStorage.setItem('refreshToken', res.data.data.refreshToken)
     } finally {
       loading.value = false
     }
@@ -59,8 +64,10 @@ export const useAuthStore = defineStore('auth', () => {
       await authApi.logout()
     } finally {
       token.value = null
+      refreshToken.value = null
       user.value = null
       localStorage.removeItem('token')
+      localStorage.removeItem('refreshToken')
     }
   }
 
@@ -71,8 +78,10 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = res.data.data
     } catch {
       token.value = null
+      refreshToken.value = null
       user.value = null
       localStorage.removeItem('token')
+      localStorage.removeItem('refreshToken')
     }
   }
 
@@ -81,9 +90,19 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = res.data.data
   }
 
+  async function refresh() {
+    if (!refreshToken.value) throw new Error('no refresh token')
+    const res = await authApi.refresh(refreshToken.value)
+    token.value = res.data.data.token
+    refreshToken.value = res.data.data.refreshToken
+    localStorage.setItem('token', res.data.data.token)
+    localStorage.setItem('refreshToken', res.data.data.refreshToken)
+    return res.data.data.token
+  }
+
   return {
-    token, user, loading,
+    token, refreshToken, user, loading,
     isAuthenticated, isAdmin,
-    login, register, resendCode, verifyEmail, logout, fetchMe, updateProfile,
+    login, register, resendCode, verifyEmail, logout, fetchMe, updateProfile, refresh,
   }
 })
