@@ -56,6 +56,21 @@ function statusLabel(status: string) {
     default: return '未放送'
   }
 }
+
+// Compute actual status based on airdate vs today
+function computeStatus(ep: EpisodeVO): string {
+  if (!ep.airdate) return ep.status || 'NA'
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const air = new Date(ep.airdate)
+  if (isNaN(air.getTime())) return ep.status || 'NA'
+  air.setHours(0, 0, 0, 0)
+  const diff = air.getTime() - today.getTime()
+  const dayDiff = diff / (1000 * 60 * 60 * 24)
+  if (dayDiff < 0) return 'Air'
+  if (dayDiff === 0) return 'Today'
+  return 'NA'
+}
 </script>
 
 <template>
@@ -83,6 +98,7 @@ function statusLabel(status: string) {
         v-for="ep in visibleEpisodes"
         :key="ep.id"
         class="flex items-center gap-3 sm:gap-4 px-4 py-3 transition-colors duration-150"
+        :class="computeStatus(ep) === 'NA' ? 'opacity-60' : ''"
         style="background: var(--color-card)"
         @mouseenter="($event.currentTarget as HTMLElement).style.background = 'var(--color-hover)'"
         @mouseleave="($event.currentTarget as HTMLElement).style.background = 'var(--color-card)'"
@@ -90,7 +106,8 @@ function statusLabel(status: string) {
         <!-- Episode sort number -->
         <div
           class="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 text-sm font-bold tabular-nums"
-          style="background: var(--color-hover); color: var(--color-text)"
+          :class="computeStatus(ep) === 'Air' ? 'bg-primary-500/15 text-primary-500' : ''"
+          :style="computeStatus(ep) !== 'Air' ? 'background: var(--color-hover); color: var(--color-text)' : ''"
         >
           {{ ep.sort }}
         </div>
@@ -114,9 +131,9 @@ function statusLabel(status: string) {
 
         <!-- Status badge -->
         <div class="flex items-center gap-1.5 shrink-0">
-          <span class="w-2 h-2 rounded-full" :class="statusColor(ep.status)" />
+          <span class="w-2 h-2 rounded-full" :class="statusColor(computeStatus(ep))" />
           <span class="text-xs font-medium" style="color: var(--color-text-secondary)">
-            {{ statusLabel(ep.status) }}
+            {{ statusLabel(computeStatus(ep)) }}
           </span>
         </div>
       </div>
