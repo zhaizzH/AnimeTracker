@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { Mail } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
-const route = useRoute()
 const authStore = useAuthStore()
 
-const email = ref(route.query.email as string || '')
+const storedEmail = sessionStorage.getItem('verifyEmail')
+sessionStorage.removeItem('verifyEmail')
+const email = ref(storedEmail || '')
 const code = ref('')
 const error = ref('')
 const loading = ref(false)
@@ -56,12 +57,7 @@ async function handleResend() {
 <template>
   <div class="flex min-h-[calc(100vh-64px)] items-center justify-center px-4">
     <div class="w-full max-w-md">
-      <div class="auth-tabs">
-        <router-link to="/login" class="auth-tab">登录</router-link>
-        <router-link to="/register" class="auth-tab">注册</router-link>
-      </div>
-
-      <h1 class="text-[24px] font-bold mt-6 mb-6" style="color: var(--color-text)">
+      <h1 class="text-[24px] font-bold mb-6" style="color: var(--color-text)">
         验证邮箱
       </h1>
 
@@ -117,38 +113,6 @@ async function handleResend() {
 </template>
 
 <style scoped>
-.auth-tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  padding: 3px;
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--color-border);
-  box-shadow: inset 0 0 0 1px rgba(241, 121, 146, 0.15);
-}
-:root:not(.dark) .auth-tabs {
-  background: rgba(0, 0, 0, 0.05);
-}
-.auth-tab {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 38px;
-  font-size: 14px;
-  font-weight: 400;
-  border-radius: 10px;
-  text-decoration: none;
-  transition: background 0.2s, color 0.2s;
-  color: var(--color-text-secondary);
-  background: transparent;
-}
-.auth-tab--active {
-  background: var(--color-card);
-  color: var(--color-text);
-  font-weight: 500;
-}
-
 .auth-input {
   width: 100%;
   height: 45px;
