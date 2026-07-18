@@ -21,6 +21,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: 'login', name: 'Login', component: () => import('@/pages/Login.vue'), meta: { guest: true } },
       { path: 'register', name: 'Register', component: () => import('@/pages/Register.vue'), meta: { guest: true } },
+      { path: 'verify-email', name: 'VerifyEmail', component: () => import('@/pages/VerifyEmail.vue'), meta: { guest: true } },
     ],
   },
   {

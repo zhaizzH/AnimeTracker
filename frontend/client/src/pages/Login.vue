@@ -26,7 +26,12 @@ async function handleLogin() {
     const redirect = (route.query.redirect as string) || '/'
     router.push(redirect)
   } catch (e: any) {
-    error.value = e?.response?.data?.message || '登录失败，请检查用户名和密码'
+    const data = e?.response?.data
+    if (data?.code === 403 && data?.data?.email) {
+      router.push({ name: 'VerifyEmail', query: { email: data.data.email } })
+      return
+    }
+    error.value = data?.message || '登录失败，请检查用户名和密码'
   } finally {
     loading.value = false
   }
