@@ -63,6 +63,16 @@ public class AuthController {
     }
 
     /**
+     * 刷新 Token
+     * <p>使用 Refresh Token 换取新的 Access Token + Refresh Token（轮换）</p>
+     */
+    @PostMapping("/refresh")
+    public Result<LoginVO> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        LoginVO loginVO = authService.refresh(request.getRefreshToken());
+        return Result.success(loginVO);
+    }
+
+    /**
      * 用户注销
      */
     @PostMapping("/logout")
@@ -94,5 +104,11 @@ public class AuthController {
         @NotBlank(message = "邮箱不能为空")
         @Email(message = "邮箱格式不正确")
         private String email;
+    }
+
+    @Data
+    public static class RefreshTokenRequest {
+        @NotBlank(message = "refreshToken 不能为空")
+        private String refreshToken;
     }
 }
