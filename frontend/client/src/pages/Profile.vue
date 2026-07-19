@@ -13,12 +13,59 @@ const loading = ref(false)
 const uploading = ref(false)
 const success = ref('')
 const error = ref('')
+const emailDirty = ref(false)
+const emailCode = ref('')
+const codeSent = ref(false)
+const codeVerified = ref(false)
+const countdown = ref(0)
+let countdownTimer: ReturnType<typeof setInterval> | null = null
 
 function initForm() {
   if (authStore.user) {
     nickname.value = authStore.user.nickname || ''
     email.value = authStore.user.email || ''
     avatar.value = authStore.user.avatar || ''
+  }
+}
+
+function onEmailInput() {
+  const currentEmail = authStore.user?.email || ''
+  const newEmail = email.value.trim()
+  if (newEmail !== currentEmail) {
+    emailDirty.value = true
+    codeVerified.value = false
+  } else {
+    emailDirty.value = false
+    codeVerified.value = false
+    emailCode.value = ''
+  }
+}
+
+function startCountdown() {
+  countdown.value = 60
+  countdownTimer = setInterval(() => {
+    countdown.value--
+    if (countdown.value <= 0) {
+      if (countdownTimer) clearInterval(countdownTimer)
+      countdownTimer = null
+    }
+  }, 1000)
+}
+
+async function handleSendCode() {
+  const newEmail = email.value.trim()
+  if (!newEmail) {
+    error.value = '请先输入新邮箱'
+    setTimeout(() => { error.value = '' }, 3000)
+    return
+  }
+  try {
+    await authStore.sendEmailCode(newEmail)
+    codeSent.value = true
+    startCountdown()
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || '验证码发送失败'
+    setTimeout(() => { error.value = '' }, 5000)
   }
 }
 
@@ -58,16 +105,38 @@ async function handleSave() {
   success.value = ''
   error.value = ''
   loading.value = true
+
   try {
+    let emailChanged = false
+
+    if (emailDirty.value && !codeVerified.value) {
+      throw new Error('请先点击"发送验证码"验证新邮箱')
+    }
+
+    if (emailDirty.value && codeVerified.value) {
+      await authStore.verifyEmailCode(email.value.trim(), emailCode.value.trim())
+      emailChanged = true
+    }
+
     await authStore.updateProfile({
       nickname: nickname.value.trim() || undefined,
-      email: email.value.trim() || undefined,
       avatar: avatar.value.trim() || undefined,
     })
+
     success.value = '个人资料已更新'
     setTimeout(() => { success.value = '' }, 3000)
+
+    emailDirty.value = false
+    codeVerified.value = false
+    emailCode.value = ''
+    codeSent.value = false
+    email.value = authStore.user?.email || ''
   } catch (e: any) {
-    error.value = e?.response?.data?.message || '更新失败，请稍后重试'
+    if (emailChanged) {
+      error.value = '邮箱已更新，但其他资料保存失败，请重试'
+    } else {
+      error.value = e?.response?.data?.message || e.message || '更新失败，请稍后重试'
+    }
     setTimeout(() => { error.value = '' }, 5000)
   } finally {
     loading.value = false
@@ -79,6 +148,10 @@ onMounted(async () => {
     await authStore.fetchMe()
   }
   initForm()
+  emailDirty.value = false
+  codeVerified.value = false
+  codeSent.value = false
+  emailCode.value = ''
 })
 
 const memberSince = computed(() => {
@@ -182,8 +255,38 @@ const memberSince = computed(() => {
               type="email"
               placeholder="设置邮箱"
               class="input-field pl-10"
+              :class="{ 'pr-28': true }"
+              @input="onEmailInput"
             />
+            <button
+              v-if="emailDirty && !codeVerified"
+              type="button"
+              class="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+              :class="countdown > 0 ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-primary/10 text-primary hover:bg-primary/20'"
+              :disabled="countdown > 0 || loading"
+              @click="handleSendCode"
+            >
+              {{ countdown > 0 ? `${countdown}s` : '发送验证码' }}
+            </button>
           </div>
+          <!-- 验证码输入框（邮箱变更时显示） -->
+          <Transition name="slide-fade">
+            <div v-if="codeSent && !codeVerified" class="mt-3">
+              <div class="relative">
+                <input
+                  v-model="emailCode"
+                  type="text"
+                  maxlength="6"
+                  placeholder="输入验证码"
+                  class="input-field pl-3 pr-20"
+                  @input="e => emailCode = (e.target as HTMLInputElement).value.toUpperCase()"
+                />
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs opacity-40">6位码</span>
+              </div>
+            </div>
+          </Transition>
+          <!-- 已验证提示 -->
+          <p v-if="codeVerified" class="text-xs mt-1.5 text-green-600 dark:text-green-400">✓ 新邮箱已验证</p>
         </div>
 
         <!-- 头像上传 -->
