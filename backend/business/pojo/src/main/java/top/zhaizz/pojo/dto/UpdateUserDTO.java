@@ -1,6 +1,5 @@
 package top.zhaizz.pojo.dto;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -16,7 +15,4 @@ public class UpdateUserDTO {
     @Size(max = 512, message = "头像URL长度不能超过512")
     private String avatar;
 
-    @Email(message = "邮箱格式不正确")
-    @Size(max = 128, message = "邮箱长度不能超过128")
-    private String email;
 }

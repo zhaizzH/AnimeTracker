@@ -1,6 +1,10 @@
 package top.zhaizz.user.controller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -8,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.pojo.dto.UpdateUserDTO;
 import top.zhaizz.user.service.UserService;
+import top.zhaizz.user.service.VerificationService;
 import top.zhaizz.pojo.vo.UserVO;
 
 /**
@@ -19,6 +24,7 @@ import top.zhaizz.pojo.vo.UserVO;
 public class UserController {
 
     private final UserService userService;
+    private final VerificationService verificationService;
 
     /**
      * 获取当前登录用户信息
@@ -39,6 +45,26 @@ public class UserController {
     }
 
     /**
+     * 发送邮箱修改验证码
+     */
+    @PostMapping("/me/send-email-code")
+    public Result<Void> sendEmailCode(@Valid @RequestBody SendEmailCodeRequest request) {
+        Long userId = getCurrentUserId();
+        verificationService.sendEmailChangeCode(userId, request.getNewEmail());
+        return Result.success(null);
+    }
+
+    /**
+     * 校验邮箱修改验证码 -> 更新邮箱
+     */
+    @PostMapping("/me/verify-email-code")
+    public Result<Void> verifyEmailCode(@Valid @RequestBody VerifyEmailCodeRequest request) {
+        Long userId = getCurrentUserId();
+        verificationService.verifyEmailChangeCode(userId, request.getNewEmail(), request.getCode());
+        return Result.success(null);
+    }
+
+    /**
      * 从 SecurityContext 获取当前用户 ID
      * <p>
      * JwtAuthenticationFilter 在认证时将 userId 设置到 Authentication.principal 中。
@@ -46,5 +72,23 @@ public class UserController {
     private Long getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return (Long) auth.getPrincipal();
+    }
+
+    @Data
+    public static class SendEmailCodeRequest {
+        @NotBlank(message = "新邮箱不能为空")
+        @Email(message = "邮箱格式不正确")
+        private String newEmail;
+    }
+
+    @Data
+    public static class VerifyEmailCodeRequest {
+        @NotBlank(message = "新邮箱不能为空")
+        @Email(message = "邮箱格式不正确")
+        private String newEmail;
+
+        @NotBlank(message = "验证码不能为空")
+        @Size(min = 6, max = 6, message = "验证码为6位")
+        private String code;
     }
 }

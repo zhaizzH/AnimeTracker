@@ -43,8 +43,5 @@ public class UserConverter {
         if (request.getAvatar() != null) {
             user.setAvatar(request.getAvatar());
         }
-        if (request.getEmail() != null) {
-            user.setEmail(request.getEmail());
-        }
     }
 }
