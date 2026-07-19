@@ -1,5 +1,5 @@
 # 邮箱修改验证 + 邮箱唯一性 Implementation Plan
-
+# 使用中文commit message
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 为 Profile 页邮箱修改添加验证流程，补充注册时的邮箱唯一性检查和 DB 唯一约束。
