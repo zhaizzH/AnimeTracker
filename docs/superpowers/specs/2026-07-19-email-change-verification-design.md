@@ -14,20 +14,18 @@ ALTER TABLE `user` ADD UNIQUE INDEX `uk_email`(`email`);
 
 ## 2. Redis Key 规范
 
-统一使用 `userId` 隔离：
-
 | 场景 | Redis Key |
 |------|-----------|
-| 注册验证 | `auth:email:<userId>:<email>` |
+| 注册验证 | `auth:email:<email>`（不变） |
 | 邮箱修改验证 | `auth:email-change:<userId>:<email>` |
+
+注册 key 不改动，`sendVerificationCode(email)` 只有 email 参数拿不到 userId。邮箱修改新增独立前缀 `auth:email-change:`。
 
 ---
 
 ## 3. 后端改动
 
 ### 3.1 VerificationService
-
-现有 `sendVerificationCode(email)` 签名不变，内部新增查 userId 逻辑，key 从 `auth:email:<email>` 改为 `auth:email:<userId>:<email>`。
 
 新增方法：
 
@@ -38,6 +36,11 @@ void sendEmailChangeCode(Long userId, String newEmail);
 /** 校验邮箱修改验证码 → 更新 email + email_verified + 通知旧邮箱 */
 void verifyEmailChangeCode(Long userId, String newEmail, String code);
 ```
+
+`verifyEmailChangeCode` 实现要点：
+- 用 `@Transactional` 保证验证码校验 + email 更新原子性
+- 旧邮箱为 null 时跳过通知
+- 旧邮箱通知用 try-catch 包裹，失败不回滚 email 更新（通知是附加行为）
 
 ### 3.2 AuthService / AuthServiceImpl
 
@@ -109,12 +112,17 @@ verifyEmailCode(data: VerifyEmailCodeRequest)
 保存逻辑：
 ```
 email 值变化 → emailDirty = true
-点"发送验证码" → 调 sendEmailCode(newEmail)
+  - 新旧邮箱相同 → emailDirty = false（跳过验证）
+点"发送验证码" → 调 sendEmailCode(newEmail) → 按钮 60s 倒计时
 点"保存":
   - emailDirty && !codeVerified → 提示"请先验证新邮箱"
-  - emailDirty && codeVerified → 调 verifyEmailCode(newEmail, code)
+  - emailDirty && codeVerified → 调 verifyEmailCode(newEmail, code) → 更新 store.user
+      - 后端一次性完成：校验 code → 更新 email + email_verified → 通知旧邮箱
+      - 如果第二步 updateProfile({nickname, avatar}) 失败，邮箱已成功变更，前端提示"邮箱已更新，昵称/头像保存失败请重试"
   - 调 updateProfile({ nickname, avatar }) 更新非邮箱字段
 ```
+
+> `verifyEmailCode` 在服务端直接更新 email，所以即使后续 `updateProfile` 因网络波动失败，用户邮箱已成功修改。昵称/头像可单独重试保存。
 
 验证码输入框和按钮只在 emailDirty 时显示。
 
@@ -130,7 +138,7 @@ email 值变化 → emailDirty = true
 | 2 | `backend/.../entity/User.java` | 可能无需改动 |
 | 3 | `backend/.../mapper/UserMapper.java` | 加 `existsByEmail()` |
 | 4 | `backend/.../service/VerificationService.java` | 加 `sendEmailChangeCode()` / `verifyEmailChangeCode()` |
-| 5 | `backend/.../service/impl/VerificationServiceImpl.java` | 实现新方法，改注册 key 格式 |
+| 5 | `backend/.../service/impl/VerificationServiceImpl.java` | 实现新方法，注册 key 不动 |
 | 6 | `backend/.../service/AuthService.java` | 无需改动（register 签名不变） |
 | 7 | `backend/.../service/impl/AuthServiceImpl.java` | register 加邮箱唯一性检查 |
 | 8 | `backend/.../controller/UserController.java` | 新增两个端点 |
