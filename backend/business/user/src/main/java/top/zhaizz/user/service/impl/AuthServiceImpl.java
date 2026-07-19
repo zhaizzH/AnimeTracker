@@ -55,6 +55,11 @@ public class AuthServiceImpl implements AuthService {
             throw new BizException(ErrorType.CONFLICT, "用户名已存在");
         }
 
+        // 1.5 检查邮箱唯一性
+        if (userMapper.existsByEmail(request.getEmail())) {
+            throw new BizException(ErrorType.CONFLICT, "邮箱已被注册");
+        }
+
         // 2. 创建用户实体
         User user = new User();
         user.setUsername(request.getUsername());
