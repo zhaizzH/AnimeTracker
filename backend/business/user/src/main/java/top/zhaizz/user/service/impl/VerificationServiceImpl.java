@@ -54,7 +54,7 @@ public class VerificationServiceImpl implements VerificationService {
         String code = generateCode();
 
         // 2. 存入 Redis（5分钟 TTL）
-        redisClient.set(REDIS_KEY_PREFIX + email, code.toString(), CODE_TTL_MINUTES, TimeUnit.MINUTES);
+        redisClient.set(REDIS_KEY_PREFIX + email, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
 
         // 3. 通过 Resend 发送邮件
         Resend resend = new Resend(resendApiKey);
@@ -116,7 +116,7 @@ public class VerificationServiceImpl implements VerificationService {
         String code = generateCode();
 
         // 3. 存入 Redis（不同 key 前缀）
-        redisClient.set(REDIS_EMAIL_CHANGE_PREFIX + userId + ":" + newEmail, code.toString(), CODE_TTL_MINUTES, TimeUnit.MINUTES);
+        redisClient.set(REDIS_EMAIL_CHANGE_PREFIX + userId + ":" + newEmail, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
 
         // 4. 通过 Resend 发送邮件
         Resend resend = new Resend(resendApiKey);
