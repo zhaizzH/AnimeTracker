@@ -115,6 +115,7 @@ export interface UpdateProfileRequest {
   email?: string
 }
 
+/** 登录：username 字段支持用户名或邮箱 */
 export interface LoginRequest {
   username: string
   password: string

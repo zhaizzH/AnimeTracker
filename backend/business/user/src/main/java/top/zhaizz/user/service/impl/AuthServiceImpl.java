@@ -94,10 +94,12 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginVO login(LoginDTO request) {
-        // 1. 查找用户
+        // 1. 查找用户（支持用户名或邮箱登录）
         User user = userMapper.selectOne(
                 new LambdaQueryWrapper<User>()
                         .eq(User::getUsername, request.getUsername())
+                        .or()
+                        .eq(User::getEmail, request.getUsername())
         );
 
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {

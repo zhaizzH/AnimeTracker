@@ -17,7 +17,7 @@ const loading = ref(false)
 async function handleLogin() {
   error.value = ''
   if (!username.value.trim() || !password.value) {
-    error.value = '请填写用户名和密码'
+    error.value = '请填写用户名/邮箱和密码'
     return
   }
   loading.value = true
@@ -32,7 +32,7 @@ async function handleLogin() {
       router.push({ name: 'VerifyEmail' })
       return
     }
-    error.value = data?.message || '登录失败，请检查用户名和密码'
+    error.value = data?.message || '登录失败，请检查用户名/邮箱和密码'
   } finally {
     loading.value = false
   }
@@ -74,7 +74,7 @@ async function handleLogin() {
           <input
             v-model="username"
             type="text"
-            placeholder="用户名"
+            placeholder="用户名或邮箱"
             class="auth-input"
             autocomplete="username"
           />
