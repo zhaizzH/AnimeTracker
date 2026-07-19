@@ -40,13 +40,18 @@ public class VerificationServiceImpl implements VerificationService {
     private static final String ALPHANUMERIC = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    @Override
-    public void sendVerificationCode(String email) {
-        // 1. 生成6位字母数字验证码（排除易混淆字符 0/O/1/l/I）
+    private String generateCode() {
         StringBuilder code = new StringBuilder(CODE_LENGTH);
         for (int i = 0; i < CODE_LENGTH; i++) {
             code.append(ALPHANUMERIC.charAt(RANDOM.nextInt(ALPHANUMERIC.length())));
         }
+        return code.toString();
+    }
+
+    @Override
+    public void sendVerificationCode(String email) {
+        // 1. 生成6位字母数字验证码（排除易混淆字符 0/O/1/l/I）
+        String code = generateCode();
 
         // 2. 存入 Redis（5分钟 TTL）
         redisClient.set(REDIS_KEY_PREFIX + email, code.toString(), CODE_TTL_MINUTES, TimeUnit.MINUTES);
@@ -100,16 +105,15 @@ public class VerificationServiceImpl implements VerificationService {
 
     @Override
     public void sendEmailChangeCode(Long userId, String newEmail) {
+        newEmail = newEmail.toLowerCase();
+
         // 1. 检查新邮箱唯一性
         if (userMapper.existsByEmail(newEmail)) {
             throw new BizException(ErrorType.CONFLICT, "该邮箱已被其他账号使用");
         }
 
-        // 2. 生成验证码（复用相同生成逻辑）
-        StringBuilder code = new StringBuilder(CODE_LENGTH);
-        for (int i = 0; i < CODE_LENGTH; i++) {
-            code.append(ALPHANUMERIC.charAt(RANDOM.nextInt(ALPHANUMERIC.length())));
-        }
+        // 2. 生成验证码
+        String code = generateCode();
 
         // 3. 存入 Redis（不同 key 前缀）
         redisClient.set(REDIS_EMAIL_CHANGE_PREFIX + userId + ":" + newEmail, code.toString(), CODE_TTL_MINUTES, TimeUnit.MINUTES);
@@ -134,6 +138,8 @@ public class VerificationServiceImpl implements VerificationService {
     @Override
     @Transactional
     public void verifyEmailChangeCode(Long userId, String newEmail, String code) {
+        newEmail = newEmail.toLowerCase();
+
         // 1. 从 Redis 获取存储的验证码
         String storedCode = redisClient.get(REDIS_EMAIL_CHANGE_PREFIX + userId + ":" + newEmail);
         if (storedCode == null) {
@@ -143,13 +149,13 @@ public class VerificationServiceImpl implements VerificationService {
             throw new BizException(ErrorType.VERIFICATION_FAILED, "验证码不正确");
         }
 
-        // 2. 校验通过，删除 Redis key
-        redisClient.del(REDIS_EMAIL_CHANGE_PREFIX + userId + ":" + newEmail);
-
-        // 3. 再次检查新邮箱唯一性（防并发注册占用）
+        // 2. 再次检查新邮箱唯一性（防并发注册占用）
         if (userMapper.existsByEmail(newEmail)) {
             throw new BizException(ErrorType.CONFLICT, "该邮箱已被其他账号使用");
         }
+
+        // 3. 校验通过，删除 Redis key
+        redisClient.del(REDIS_EMAIL_CHANGE_PREFIX + userId + ":" + newEmail);
 
         // 4. 查询当前用户，获取旧邮箱
         User user = userMapper.selectById(userId);
