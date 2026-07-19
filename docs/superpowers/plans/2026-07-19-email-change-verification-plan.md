@@ -185,7 +185,17 @@ public void verifyEmailChangeCode(Long userId, String newEmail, String code) {
 }
 ```
 
-注意需要在类上加 `@Transactional` 或引入 `import org.springframework.transaction.annotation.Transactional;`，并在类中加 logger。
+类级别加注解和导入：
+
+```java
+import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class VerificationServiceImpl implements VerificationService {
+```
 
 - [ ] **Step 4: Commit**
 
@@ -324,7 +334,7 @@ git commit -m "feat: 新增邮箱修改验证端点，UpdateUserDTO 移除 email
   - `authApi.sendEmailCode()`, `authApi.verifyEmailCode()` API 方法
   - `authStore.sendEmailCode()`, `authStore.verifyEmailCode()` store actions
 
-- [ ] **Step 1: types/index.ts 加新类型**
+- [ ] **Step 1: types/index.ts 加新类型，UpdateProfileRequest 移除 email**
 
 ```ts
 export interface SendEmailCodeRequest {
@@ -334,6 +344,16 @@ export interface SendEmailCodeRequest {
 export interface VerifyEmailCodeRequest {
   newEmail: string
   code: string
+}
+```
+
+同时从 `UpdateProfileRequest` 中移除 `email?` 字段（邮箱改由验证端点处理）：
+
+```ts
+export interface UpdateProfileRequest {
+  nickname?: string
+  avatar?: string
+  // email 已移除，邮箱修改走 /api/user/me/verify-email-code
 }
 ```
 
@@ -457,6 +477,8 @@ async function handleSave() {
   loading.value = true
 
   try {
+    let emailChanged = false
+
     // 1. 如果邮箱有变更但未验证 → 报错
     if (emailDirty.value && !codeVerified.value) {
       throw new Error('请先点击"发送验证码"验证新邮箱')
@@ -465,6 +487,7 @@ async function handleSave() {
     // 2. 如果邮箱已验证 → 执行邮箱变更
     if (emailDirty.value && codeVerified.value) {
       await authStore.verifyEmailCode(email.value.trim(), emailCode.value.trim())
+      emailChanged = true
     }
 
     // 3. 保存非邮箱字段（昵称、头像）
@@ -481,11 +504,14 @@ async function handleSave() {
     codeVerified.value = false
     emailCode.value = ''
     codeSent.value = false
-    if (!authStore.user?.email) {
-      email.value = authStore.user?.email || ''
-    }
+    email.value = authStore.user?.email || ''
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e.message || '更新失败，请稍后重试'
+    if (emailChanged) {
+      // 邮箱已变更成功，但昵称/头像保存失败
+      error.value = '邮箱已更新，但其他资料保存失败，请重试'
+    } else {
+      error.value = e?.response?.data?.message || e.message || '更新失败，请稍后重试'
+    }
     setTimeout(() => { error.value = '' }, 5000)
   } finally {
     loading.value = false
