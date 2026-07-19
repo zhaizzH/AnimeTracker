@@ -1,5 +1,5 @@
 import http from './http'
-import type { ApiResponse, AuthResult, LoginRequest, RegisterRequest, UserVO, UpdateProfileRequest, VerifyEmailRequest } from '@/types'
+import type { ApiResponse, AuthResult, LoginRequest, RegisterRequest, UserVO, UpdateProfileRequest, VerifyEmailRequest, SendEmailCodeRequest, VerifyEmailCodeRequest } from '@/types'
 
 export const authApi = {
   login(data: LoginRequest) {
@@ -25,5 +25,11 @@ export const authApi = {
   },
   updateProfile(data: UpdateProfileRequest) {
     return http.put<ApiResponse<UserVO>>('/api/user/me', data)
+  },
+  sendEmailCode(data: SendEmailCodeRequest) {
+    return http.post<ApiResponse<null>>('/api/user/me/send-email-code', data)
+  },
+  verifyEmailCode(data: VerifyEmailCodeRequest) {
+    return http.post<ApiResponse<null>>('/api/user/me/verify-email-code', data)
   },
 }

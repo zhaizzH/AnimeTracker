@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi } from '@/api/auth'
-import type { UserVO, LoginRequest, RegisterRequest, UpdateProfileRequest, VerifyEmailRequest } from '@/types'
+import type { UserVO, LoginRequest, RegisterRequest, UpdateProfileRequest, VerifyEmailRequest, SendEmailCodeRequest, VerifyEmailCodeRequest } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token'))
@@ -90,6 +90,28 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = res.data.data
   }
 
+  async function sendEmailCode(newEmail: string) {
+    loading.value = true
+    try {
+      await authApi.sendEmailCode({ newEmail })
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function verifyEmailCode(newEmail: string, code: string) {
+    loading.value = true
+    try {
+      await authApi.verifyEmailCode({ newEmail, code })
+      // 更新本地 user.email，保持 UI 同步
+      if (user.value) {
+        user.value.email = newEmail
+      }
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function refresh() {
     if (!refreshToken.value) throw new Error('no refresh token')
     const res = await authApi.refresh(refreshToken.value)
@@ -104,6 +126,6 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     token, refreshToken, user, loading,
     isAuthenticated, isAdmin,
-    login, register, resendCode, verifyEmail, logout, fetchMe, updateProfile, refresh,
+    login, register, resendCode, verifyEmail, logout, fetchMe, updateProfile, sendEmailCode, verifyEmailCode, refresh,
   }
 })

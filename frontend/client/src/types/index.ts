@@ -112,7 +112,7 @@ export interface UpdateSubjectRequest {
 export interface UpdateProfileRequest {
   nickname?: string
   avatar?: string
-  email?: string
+  // email 已移除，邮箱修改走 /api/user/me/verify-email-code
 }
 
 /** 登录：username 字段支持用户名或邮箱 */
@@ -129,6 +129,15 @@ export interface RegisterRequest {
 
 export interface VerifyEmailRequest {
   email: string
+  code: string
+}
+
+export interface SendEmailCodeRequest {
+  newEmail: string
+}
+
+export interface VerifyEmailCodeRequest {
+  newEmail: string
   code: string
 }
 
