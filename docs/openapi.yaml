@@ -1203,6 +1203,9 @@ paths:
                       token:
                         type: "string"
                         description: ""
+                      refreshToken:
+                        type: "string"
+                        description: ""
                       user:
                         type: "object"
                         properties:
@@ -1304,6 +1307,75 @@ paths:
                       token:
                         type: "string"
                         description: ""
+                      refreshToken:
+                        type: "string"
+                        description: ""
+                      user:
+                        type: "object"
+                        properties:
+                          id:
+                            type: "integer"
+                            description: ""
+                            format: "int64"
+                          username:
+                            type: "string"
+                            description: ""
+                          email:
+                            type: "string"
+                            description: ""
+                          nickname:
+                            type: "string"
+                            description: ""
+                          avatar:
+                            type: "string"
+                            description: ""
+                          role:
+                            type: "string"
+                            description: "USER / ADMIN"
+                          createdAt:
+                            type: "string"
+                            description: ""
+                        description: ""
+                    description: ""
+  /api/user/auth/refresh:
+    post:
+      summary: "刷新 Token"
+      description: "刷新 Token"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "refreshToken"
+              type: "object"
+              properties:
+                refreshToken:
+                  type: "string"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      token:
+                        type: "string"
+                        description: ""
+                      refreshToken:
+                        type: "string"
+                        description: ""
                       user:
                         type: "object"
                         properties:
@@ -1332,7 +1404,7 @@ paths:
                         description: ""
                     description: ""
   /api/user/auth/logout:
-    get:
+    post:
       summary: "用户注销"
       description: "用户注销"
       responses:
@@ -1413,11 +1485,6 @@ paths:
                   maxLength: 512
                   type: "string"
                   description: ""
-                email:
-                  maxLength: 128
-                  type: "string"
-                  description: ""
-                  format: "email"
               description: ""
       responses:
         "200":
@@ -1458,6 +1525,82 @@ paths:
                       createdAt:
                         type: "string"
                         description: ""
+                    description: ""
+  /api/user/me/send-email-code:
+    post:
+      summary: "发送邮箱修改验证码"
+      description: "发送邮箱修改验证码"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "newEmail"
+              type: "object"
+              properties:
+                newEmail:
+                  maxLength: 128
+                  type: "string"
+                  description: ""
+                  format: "email"
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
+  /api/user/me/verify-email-code:
+    post:
+      summary: "校验邮箱修改验证码 -> 更新邮箱"
+      description: "校验邮箱修改验证码 -> 更新邮箱"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "code"
+              - "newEmail"
+              type: "object"
+              properties:
+                newEmail:
+                  maxLength: 128
+                  type: "string"
+                  description: ""
+                  format: "email"
+                code:
+                  maxLength: 6
+                  minLength: 6
+                  type: "string"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
                     description: ""
   /api/admin/users:
     get:
@@ -1860,6 +2003,9 @@ components:
     : type: "object"
       properties:
         token:
+          type: "string"
+          description: ""
+        refreshToken:
           type: "string"
           description: ""
         user:

@@ -39,6 +39,8 @@ public class VerificationServiceImpl implements VerificationService {
     private static final int CODE_LENGTH = 6;
     private static final String ALPHANUMERIC = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
     private static final SecureRandom RANDOM = new SecureRandom();
+    @Value("${resend.send-email}")
+    private String resendSendEmail;
 
     private String generateCode() {
         StringBuilder code = new StringBuilder(CODE_LENGTH);
@@ -59,7 +61,7 @@ public class VerificationServiceImpl implements VerificationService {
         // 3. 通过 Resend 发送邮件
         Resend resend = new Resend(resendApiKey);
         CreateEmailOptions params = CreateEmailOptions.builder()
-                .from("admin@zhaizz.top")
+                .from(resendSendEmail)
                 .to(email)
                 .subject("[AnimeTracker] 邮箱验证码")
                 .text("你的验证码是：" + code + "\n\n此验证码5分钟内有效，请勿泄露给他人。")

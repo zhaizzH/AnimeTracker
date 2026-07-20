@@ -2,15 +2,10 @@ package top.zhaizz.user.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.common.result.Result;
-import top.zhaizz.pojo.dto.LoginDTO;
-import top.zhaizz.pojo.dto.RegisterDTO;
+import top.zhaizz.pojo.dto.*;
 import top.zhaizz.user.service.AuthService;
 import top.zhaizz.pojo.vo.LoginVO;
 
@@ -39,7 +34,7 @@ public class AuthController {
      * <p>校验验证码，通过后标记邮箱已验证并返回 JWT Token 和用户信息</p>
      */
     @PostMapping("/verify-email")
-    public Result<LoginVO> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+    public Result<LoginVO> verifyEmail(@Valid @RequestBody VerifyEmailDTO request) {
         LoginVO loginVO = authService.verifyEmail(request.getEmail(), request.getCode());
         return Result.success(loginVO);
     }
@@ -48,7 +43,7 @@ public class AuthController {
      * 重新发送验证码
      */
     @PostMapping("/resend-code")
-    public Result<Void> resendCode(@Valid @RequestBody ResendCodeRequest request) {
+    public Result<Void> resendCode(@Valid @RequestBody ResendCodeDTO request) {
         authService.resendCode(request.getEmail());
         return Result.success(null);
     }
@@ -67,7 +62,7 @@ public class AuthController {
      * <p>使用 Refresh Token 换取新的 Access Token + Refresh Token（轮换）</p>
      */
     @PostMapping("/refresh")
-    public Result<LoginVO> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+    public Result<LoginVO> refresh(@Valid @RequestBody RefreshTokenDTO request) {
         LoginVO loginVO = authService.refresh(request.getRefreshToken());
         return Result.success(loginVO);
     }
@@ -83,32 +78,5 @@ public class AuthController {
             authService.logout(token);
         }
         return Result.success(null);
-    }
-
-    /**
-     * 验证邮箱请求体
-     */
-    @Data
-    public static class VerifyEmailRequest {
-        @NotBlank(message = "邮箱不能为空")
-        @Email(message = "邮箱格式不正确")
-        private String email;
-
-        @NotBlank(message = "验证码不能为空")
-        @Size(min = 6, max = 6, message = "验证码为6位")
-        private String code;
-    }
-
-    @Data
-    public static class ResendCodeRequest {
-        @NotBlank(message = "邮箱不能为空")
-        @Email(message = "邮箱格式不正确")
-        private String email;
-    }
-
-    @Data
-    public static class RefreshTokenRequest {
-        @NotBlank(message = "refreshToken 不能为空")
-        private String refreshToken;
     }
 }

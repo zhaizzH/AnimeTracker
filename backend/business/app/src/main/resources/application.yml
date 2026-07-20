@@ -55,7 +55,7 @@ mybatis-plus:
   type-aliases-package: top.zhaizz.pojo.entity
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: ${mybatis-plus.configuration.log-impl:org.apache.ibatis.logging.stdout.StdOutImpl}
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
 
 
 # JWT 配置

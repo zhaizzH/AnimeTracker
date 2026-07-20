@@ -19,7 +19,7 @@ import top.zhaizz.pojo.vo.UserVO;
  * 个人信息控制器
  */
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api/user/me")
 @RequiredArgsConstructor
 public class UserController {
 
@@ -29,7 +29,7 @@ public class UserController {
     /**
      * 获取当前登录用户信息
      */
-    @GetMapping("/me")
+    @GetMapping
     public Result<UserVO> getMyProfile() {
         Long userId = getCurrentUserId();
         return Result.success(userService.getUserById(userId));
@@ -38,7 +38,7 @@ public class UserController {
     /**
      * 修改当前登录用户信息
      */
-    @PutMapping("/me")
+    @PutMapping
     public Result<UserVO> updateMyProfile(@Valid @RequestBody UpdateUserDTO request) {
         Long userId = getCurrentUserId();
         return Result.success(userService.updateUser(userId, request));
@@ -47,7 +47,7 @@ public class UserController {
     /**
      * 发送邮箱修改验证码
      */
-    @PostMapping("/me/send-email-code")
+    @PostMapping("/send-email-code")
     public Result<Void> sendEmailCode(@Valid @RequestBody SendEmailCodeRequest request) {
         Long userId = getCurrentUserId();
         verificationService.sendEmailChangeCode(userId, request.getNewEmail());
@@ -57,7 +57,7 @@ public class UserController {
     /**
      * 校验邮箱修改验证码 -> 更新邮箱
      */
-    @PostMapping("/me/verify-email-code")
+    @PostMapping("/verify-email-code")
     public Result<Void> verifyEmailCode(@Valid @RequestBody VerifyEmailCodeRequest request) {
         Long userId = getCurrentUserId();
         verificationService.verifyEmailChangeCode(userId, request.getNewEmail(), request.getCode());
