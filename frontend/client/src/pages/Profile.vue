@@ -105,15 +105,15 @@ async function handleSave() {
   success.value = ''
   error.value = ''
   loading.value = true
+  let emailChanged = false
 
   try {
-    let emailChanged = false
 
-    if (emailDirty.value && !codeVerified.value) {
-      throw new Error('请先点击"发送验证码"验证新邮箱')
+    if (emailDirty.value && codeSent.value && !emailCode.value.trim()) {
+      throw new Error('请先输入验证码')
     }
 
-    if (emailDirty.value && codeVerified.value) {
+    if (emailDirty.value && codeSent.value && emailCode.value.trim()) {
       await authStore.verifyEmailCode(email.value.trim(), emailCode.value.trim())
       emailChanged = true
     }

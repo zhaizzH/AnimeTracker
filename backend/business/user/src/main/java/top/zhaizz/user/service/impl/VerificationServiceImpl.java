@@ -85,7 +85,7 @@ public class VerificationServiceImpl implements VerificationService {
             throw new BizException(ErrorType.VERIFICATION_FAILED, "验证码已过期，请重新发送");
         }
 
-        if (!storedCode.equals(code)) {
+        if (!storedCode.equalsIgnoreCase(code)) {
             throw new BizException(ErrorType.VERIFICATION_FAILED, "验证码不正确");
         }
 
@@ -147,7 +147,7 @@ public class VerificationServiceImpl implements VerificationService {
         if (storedCode == null) {
             throw new BizException(ErrorType.VERIFICATION_FAILED, "验证码已过期，请重新发送");
         }
-        if (!storedCode.equals(code)) {
+        if (!storedCode.equalsIgnoreCase(code)) {
             throw new BizException(ErrorType.VERIFICATION_FAILED, "验证码不正确");
         }
 
