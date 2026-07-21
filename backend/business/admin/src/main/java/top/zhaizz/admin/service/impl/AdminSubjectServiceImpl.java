@@ -5,8 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.zhaizz.admin.converter.SubjectConverter;
-import top.zhaizz.admin.mapper.SubjectMapper;
-import top.zhaizz.admin.mapper.SubjectTagMapper;
+import top.zhaizz.admin.mapper.AdminSubjectMapper;
+import top.zhaizz.admin.mapper.AdminSubjectTagMapper;
 import top.zhaizz.admin.service.AdminSubjectService;
 import top.zhaizz.common.ErrorType;
 import top.zhaizz.common.exception.BizException;
@@ -24,8 +24,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminSubjectServiceImpl implements AdminSubjectService {
 
-    private final SubjectMapper subjectMapper;
-    private final SubjectTagMapper subjectTagMapper;
+    private final AdminSubjectMapper subjectMapper;
+    private final AdminSubjectTagMapper subjectTagMapper;
 
     @Override
     @Transactional

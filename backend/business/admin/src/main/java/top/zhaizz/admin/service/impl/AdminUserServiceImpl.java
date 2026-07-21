@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import top.zhaizz.admin.converter.UserConverter;
-import top.zhaizz.admin.mapper.UserMapper;
+import top.zhaizz.admin.mapper.AdminUserMapper;
 import top.zhaizz.admin.service.AdminUserService;
 import top.zhaizz.common.ErrorType;
 import top.zhaizz.common.exception.BizException;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AdminUserServiceImpl implements AdminUserService {
 
-    private final UserMapper userMapper;
+    private final AdminUserMapper userMapper;
 
     @Override
     public PageResult<UserVO> listUsers(int page, int size) {
