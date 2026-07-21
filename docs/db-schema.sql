@@ -133,4 +133,27 @@ CREATE TABLE `user`  (
   INDEX `idx_user_created_at`(`created_at` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户表' ROW_FORMAT = Dynamic;
 
+-- ----------------------------
+-- Table structure for user_collection
+-- ----------------------------
+DROP TABLE IF EXISTS `user_collection`;
+CREATE TABLE `user_collection`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '收藏ID',
+  `user_id` bigint NOT NULL COMMENT '用户ID',
+  `subject_id` bigint NOT NULL COMMENT '条目ID',
+  `type` tinyint NOT NULL COMMENT '收藏状态: 1=想看, 2=在看, 3=看过, 4=搁置, 5=抛弃',
+  `rate` tinyint NOT NULL DEFAULT 0 COMMENT '评分（0~10, 0 表示未评分）',
+  `ep_status` int NOT NULL DEFAULT 0 COMMENT '看到第几集',
+  `created_at` datetime NOT NULL COMMENT '创建时间',
+  `updated_at` datetime NOT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_user_subject`(`user_id` ASC, `subject_id` ASC) USING BTREE,
+  INDEX `idx_uc_user_id`(`user_id` ASC) USING BTREE,
+  INDEX `idx_uc_subject_id`(`subject_id` ASC) USING BTREE,
+  INDEX `idx_uc_type`(`type` ASC) USING BTREE,
+  INDEX `idx_uc_updated_at`(`updated_at` ASC) USING BTREE,
+  CONSTRAINT `fk_uc_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_uc_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户追番收藏表' ROW_FORMAT = Dynamic;
+
 SET FOREIGN_KEY_CHECKS = 1;
