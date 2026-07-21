@@ -20,9 +20,9 @@
 
     <modules>
         <module>common</module>
-        <module>user</module>
-        <module>subject</module>
         <module>pojo</module>
+        <module>admin</module>
+        <module>client</module>
         <module>app</module>
     </modules>
 
@@ -50,12 +50,12 @@
             </dependency>
             <dependency>
                 <groupId>top.zhaizz</groupId>
-                <artifactId>animetracker-user</artifactId>
+                <artifactId>animetracker-admin</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>top.zhaizz</groupId>
-                <artifactId>animetracker-subject</artifactId>
+                <artifactId>animetracker-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

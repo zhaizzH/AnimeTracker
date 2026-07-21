@@ -20,11 +20,11 @@
         <!-- 聚合业务模块 -->
         <dependency>
             <groupId>top.zhaizz</groupId>
-            <artifactId>animetracker-user</artifactId>
+            <artifactId>animetracker-admin</artifactId>
         </dependency>
         <dependency>
             <groupId>top.zhaizz</groupId>
-            <artifactId>animetracker-subject</artifactId>
+            <artifactId>animetracker-client</artifactId>
         </dependency>
 
         <!-- MySQL 驱动 -->
