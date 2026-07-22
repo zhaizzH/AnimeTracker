@@ -16,10 +16,10 @@ spring:
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
   datasource:
-    driver-class-name: ${zzz.datasource.driver-class-name:com.mysql.cj.jdbc.Driver}
-    url: jdbc:mysql://${zzz.datasource.host}:${zzz.datasource.port}/${zzz.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
-    username: ${zzz.datasource.username:root}
-    password: ${zzz.datasource.password}
+    driver-class-name: ${at.datasource.driver-class-name:com.mysql.cj.jdbc.Driver}
+    url: jdbc:mysql://${at.datasource.host}:${at.datasource.port}/${at.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${at.datasource.username:root}
+    password: ${at.datasource.password}
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
@@ -28,10 +28,10 @@ spring:
 
   data:
     redis:
-      host: ${zzz.data.redis.host:localhost}
-      port: ${zzz.data.redis.port:6379}
-      password: ${zzz.data.redis.password}
-      database: ${zzz.data.redis.database:1}
+      host: ${at.data.redis.host:localhost}
+      port: ${at.data.redis.port:6379}
+      password: ${at.data.redis.password}
+      database: ${at.data.redis.database:1}
       timeout: 2000ms
       lettuce:
         pool:
@@ -42,7 +42,7 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
-    default-property-inclusion: ${zzz.jackson.default-property-inclusion:non_null}
+    default-property-inclusion: ${at.jackson.default-property-inclusion:non_null}
 
   servlet:
     multipart:

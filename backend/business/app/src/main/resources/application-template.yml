@@ -1,0 +1,41 @@
+# ===================================================================
+# AnimeTracker API — 本地开发环境配置模板
+# 复制此文件为 application-local.yml 并填入实际值
+# 启动时: --spring.profiles.active=local
+# ===================================================================
+
+zzz:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    host: <mysql-host>
+    port: 3306
+    database: anime_tracker
+    username: <mysql-username>
+    password: <mysql-password>
+
+  data:
+    redis:
+      host: <redis-host>
+      port: 6379
+      password: <redis-password>
+      database: 1
+
+  jackson:
+    default-property-inclusion: non_null
+
+# JWT 配置
+jwt:
+  secret: dev-secret-key-not-for-production-use-change-it
+  expiration: 1800000    # 30 分钟
+  refresh-expiration: 604800000  # 7 天
+
+# MinIO 对象存储
+minio:
+  endpoint: http://<minio-host>:9000
+  access-key: <minio-access-key>
+  secret-key: <minio-secret-key>
+  bucket: anime-tracker
+
+# Resend 邮件服务
+resend:
+  api-key: <resend-api-key>
