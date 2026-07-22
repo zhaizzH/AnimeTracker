@@ -50,3 +50,31 @@ class TestSubAgentFactory:
         )
         assert graph is not None
         assert hasattr(graph, "ainvoke")
+
+
+@pytest.mark.asyncio
+async def test_router_graph_default():
+    from app.graph.graph import create_router_graph
+    from unittest.mock import MagicMock
+    from langchain_core.messages import AIMessage, HumanMessage
+    from app.schemas.auth import UserInfo
+
+    llm = MagicMock()
+    # Use a real AIMessage so Pydantic accepts it in sub-agent state,
+    # and tool_calls=[] (falsy) so the sub-agent finishes without calling tools.
+    llm.ainvoke = AsyncMock(return_value=AIMessage(content="search"))
+    llm.bind_tools = MagicMock(return_value=llm)
+
+    store = MagicMock()
+    store.get_messages = MagicMock(return_value=[])
+
+    graph = create_router_graph(llm, MagicMock(agent_max_iterations=5), store)
+    state = await graph.ainvoke({
+        "messages": [HumanMessage(content="查一下钢炼", additional_kwargs={"session_id": "s1"})],
+        "user": UserInfo(user_id=1, username="test", role="USER"),
+        "next_agent": None,
+        "final_output": "",
+        "used_tools": [],
+    })
+    # Should route to search agent (via user_router)
+    assert "final_output" in state
