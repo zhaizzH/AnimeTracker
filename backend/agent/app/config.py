@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     # LLM
     dashscope_api_key: str = ""
-    llm_model: str = "qwen3.7-max"
+    llm_model: str = "qwen3.7-plus"
     llm_temperature: float = 0.3
     llm_max_tokens: int = 4096
 
