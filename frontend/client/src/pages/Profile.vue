@@ -59,6 +59,11 @@ async function handleSendCode() {
     setTimeout(() => { error.value = '' }, 3000)
     return
   }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+    error.value = '邮箱格式不正确'
+    setTimeout(() => { error.value = '' }, 3000)
+    return
+  }
   try {
     await authStore.sendEmailCode(newEmail)
     codeSent.value = true

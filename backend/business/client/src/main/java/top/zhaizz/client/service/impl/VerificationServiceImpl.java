@@ -1,7 +1,6 @@
 package top.zhaizz.client.service.impl;
 
 import com.resend.Resend;
-import com.resend.core.exception.ResendException;
 import com.resend.services.emails.model.CreateEmailOptions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -69,8 +68,7 @@ public class VerificationServiceImpl implements VerificationService {
 
         try {
             resend.emails().send(params);
-        } catch (ResendException e) {
-            // 发送失败时清理 Redis 中的验证码
+        } catch (Exception e) {
             redisClient.del(REDIS_KEY_PREFIX + email);
             throw new BizException(ErrorType.INTERNAL_ERROR, "验证码发送失败，请稍后重试");
         }
@@ -131,7 +129,7 @@ public class VerificationServiceImpl implements VerificationService {
 
         try {
             resend.emails().send(params);
-        } catch (ResendException e) {
+        } catch (Exception e) {
             redisClient.del(REDIS_EMAIL_CHANGE_PREFIX + userId + ":" + newEmail);
             throw new BizException(ErrorType.INTERNAL_ERROR, "验证码发送失败，请稍后重试");
         }
@@ -183,7 +181,7 @@ public class VerificationServiceImpl implements VerificationService {
                         .text("你的 AnimeTracker 账号邮箱已变更为：" + newEmail + "\n\n如非本人操作，请立即联系管理员。")
                         .build();
                 resend.emails().send(params);
-            } catch (ResendException e) {
+            } catch (Exception e) {
                 // ponytail: 通知失败不干扰主流程，静默记日志
                 log.warn("旧邮箱通知发送失败: {}", oldEmail, e);
             }
