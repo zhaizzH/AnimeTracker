@@ -18,7 +18,7 @@ public class Episode {
     private Long subjectId;
     private Integer bangumiEpId;
     private Integer type;           // 0=本篇 1=SP 2=OP 3=ED 4=预告
-    private BigDecimal sort;
+    private BigDecimal sort;        // 排序序号
     private String name;
     private String nameCn;
     private String duration;

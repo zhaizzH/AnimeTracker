@@ -7,9 +7,13 @@ import top.zhaizz.pojo.vo.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * 条目转换器
+ */
 public class SubjectConverter {
     private SubjectConverter() {}
 
+    /** Subject 转列表 VO */
     public static SubjectListVO toSubjectListVO(Subject entity) {
         if (entity == null) return null;
         SubjectListVO vo = new SubjectListVO();
@@ -27,6 +31,7 @@ public class SubjectConverter {
         return vo;
     }
 
+    /** Subject 转详情 VO */
     public static SubjectDetailVO toSubjectDetailVO(Subject entity, List<TagVO> tags) {
         if (entity == null) return null;
         SubjectDetailVO vo = new SubjectDetailVO();
@@ -51,6 +56,7 @@ public class SubjectConverter {
         return vo;
     }
 
+    /** Episode 转 VO */
     public static EpisodeVO toEpisodeVO(Episode entity) {
         if (entity == null) return null;
         EpisodeVO vo = new EpisodeVO();
@@ -67,11 +73,13 @@ public class SubjectConverter {
         return vo;
     }
 
+    /** Episode 列表转 VO 列表 */
     public static List<EpisodeVO> toEpisodeVOList(List<Episode> episodes) {
         if (episodes == null) return List.of();
         return episodes.stream().map(SubjectConverter::toEpisodeVO).collect(Collectors.toList());
     }
 
+    /** SubjectTag 转 TagVO */
     public static TagVO toTagVO(SubjectTag entity) {
         if (entity == null) return null;
         TagVO vo = new TagVO();
@@ -81,6 +89,7 @@ public class SubjectConverter {
         return vo;
     }
 
+    /** SubjectTag 列表转 TagVO 列表 */
     public static List<TagVO> toTagVOList(List<SubjectTag> tags) {
         if (tags == null) return List.of();
         return tags.stream().map(SubjectConverter::toTagVO).collect(Collectors.toList());

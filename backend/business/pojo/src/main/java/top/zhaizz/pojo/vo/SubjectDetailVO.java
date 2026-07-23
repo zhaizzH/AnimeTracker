@@ -13,12 +13,12 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public class SubjectDetailVO extends SubjectListVO {
 
-    private Integer bangumiId;
+    private Integer bangumiId;      // Bangumi 外部 ID
     private String summary;
     private Integer volumes;
     private Integer airWeekday;
     private Integer collectionTotal;
-    private Boolean nsfw;
+    private Boolean nsfw;           // 是否 NSFW
     private List<TagVO> tags;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

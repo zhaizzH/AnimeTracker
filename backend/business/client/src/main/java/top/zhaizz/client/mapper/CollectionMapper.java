@@ -6,8 +6,10 @@ import org.apache.ibatis.annotations.Param;
 import top.zhaizz.pojo.entity.UserCollection;
 import top.zhaizz.pojo.vo.UserCollectionSubjectVO;
 
+/** 收藏 Mapper */
 public interface CollectionMapper extends BaseMapper<UserCollection> {
 
+    /** 分页查询用户收藏列表（含番剧信息） */
     Page<UserCollectionSubjectVO> selectCollectionPage(
             Page<?> page,
             @Param("userId") Long userId,

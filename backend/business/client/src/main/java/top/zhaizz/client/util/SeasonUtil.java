@@ -2,9 +2,13 @@ package top.zhaizz.client.util;
 
 import java.time.LocalDate;
 
+/**
+ * 季度工具类
+ */
 public class SeasonUtil {
     private SeasonUtil() {}
 
+    /** 获取指定年份季度的起止日期 */
     public static LocalDate[] getSeasonRange(int year, String quarter) {
         return switch (quarter.toLowerCase()) {
             case "winter" -> new LocalDate[]{ LocalDate.of(year, 1, 1),  LocalDate.of(year, 3, 31) };
@@ -15,6 +19,7 @@ public class SeasonUtil {
         };
     }
 
+    /** 获取当前季度 */
     public static String getCurrentQuarter() {
         return switch (LocalDate.now().getMonth()) {
             case JANUARY, FEBRUARY, MARCH -> "winter";
@@ -24,5 +29,6 @@ public class SeasonUtil {
         };
     }
 
+    /** 获取当前年份 */
     public static int getCurrentYear() { return LocalDate.now().getYear(); }
 }

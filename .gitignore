@@ -134,3 +134,4 @@ backend/data/importer/.env
 frontend\client\.workbuddy
 
 docs/superpowers
+.superpowers

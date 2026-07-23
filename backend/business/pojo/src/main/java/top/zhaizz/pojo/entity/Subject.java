@@ -21,16 +21,16 @@ public class Subject {
     private String nameCn;
     private String summary;
     private Integer type;           // 默认 2=动画
-    private Integer eps;
+    private Integer eps;            // 总集数
     private Integer volumes;
     private LocalDate airDate;
-    private Integer airWeekday;
+    private Integer airWeekday;     // 播出星期几
     private String image;
     private BigDecimal score;
     @TableField("`rank`")
     private Integer rank;
     private Integer collectionTotal;
-    private Boolean nsfw;
+    private Boolean nsfw;           // 是否 NSFW
     private Integer importStatus;   // 0=待导入 1=已导入
     private LocalDateTime lastImportedAt;
     private LocalDateTime createdAt;

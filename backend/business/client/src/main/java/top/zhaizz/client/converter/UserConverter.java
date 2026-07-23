@@ -4,9 +4,13 @@ import top.zhaizz.pojo.dto.UpdateUserDTO;
 import top.zhaizz.pojo.entity.User;
 import top.zhaizz.pojo.vo.UserVO;
 
+/**
+ * 用户转换器
+ */
 public class UserConverter {
     private UserConverter() {}
 
+    /** User 转 UserVO */
     public static UserVO toUserVO(User entity) {
         if (entity == null) return null;
         UserVO vo = new UserVO();
@@ -20,6 +24,7 @@ public class UserConverter {
         return vo;
     }
 
+    /** 用请求对象更新用户 */
     public static void updateFromRequest(User user, UpdateUserDTO request) {
         if (request.getNickname() != null) user.setNickname(request.getNickname());
         if (request.getAvatar() != null) user.setAvatar(request.getAvatar());

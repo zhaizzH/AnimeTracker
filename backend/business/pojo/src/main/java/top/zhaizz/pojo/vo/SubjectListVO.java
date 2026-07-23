@@ -19,7 +19,7 @@ public class SubjectListVO {
     private Integer rank;
     private Integer eps;
     private LocalDate airDate;
-    private Integer type;
+    private Integer type;       // 条目类型
     private Integer airWeekday;
     private Integer collectionTotal;
 }

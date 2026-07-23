@@ -11,11 +11,11 @@ import java.time.LocalDateTime;
 @TableName("import_record")
 public class ImportRecord {
     private Long id;
-    private String mode;
-    private String seasonKey;
+    private String mode;            // 导入模式（BANGUMI）
+    private String seasonKey;       // 季度标识，如 "2026-spring"
     private LocalDateTime startedAt;
     private LocalDateTime completedAt;
-    private String status;
+    private String status;          // RUNNING / COMPLETED / FAILED
     private int subjectCount;
     private String errorMessage;
     private LocalDateTime createdAt;

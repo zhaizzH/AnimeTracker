@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 /**
- * 条目-标签关联实体
+ * 条目标签关联实体
  */
 @Data
 @TableName("subject_tag")

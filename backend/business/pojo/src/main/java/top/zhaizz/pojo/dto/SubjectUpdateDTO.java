@@ -13,8 +13,8 @@ public class SubjectUpdateDTO {
     private String name;
     private String nameCn;
     private String summary;
-    private Integer type;
-    private Integer eps;
+    private Integer type;           // 条目类型（2=动画）
+    private Integer eps;            // 总集数
     private LocalDate airDate;
     private String image;
 }
