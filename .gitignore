@@ -130,3 +130,5 @@ backend/agent/agent.db*
 
 # Python data-importer local env
 backend/data/importer/.env
+
+frontend\client\.workbuddy
