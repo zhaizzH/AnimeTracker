@@ -35,10 +35,16 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(401);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"code\":401,\"message\":\"unauthorized\"}");
+                }))
                 .authorizeHttpRequests(auth -> auth
                         // 公开接口：无需认证（注册、登录、邮箱验证）
                         .requestMatchers("/api/user/auth/register", "/api/user/auth/login",
-                                "/api/user/auth/verify-email", "/api/user/auth/resend-code").permitAll()
+                                "/api/user/auth/verify-email", "/api/user/auth/resend-code",
+                                "/api/user/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/user/subjects/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/user/tags/**").permitAll()
 

@@ -60,7 +60,7 @@ http.interceptors.response.use(
       localStorage.removeItem('token')
       localStorage.removeItem('refreshToken')
       authStore.logout() // 异步调用后端使 access token 失效，不 await（页面即将跳转）
-      window.location.href = '/login'
+      window.location.href = '/login?expired=1'
       return Promise.reject(refreshError)
     } finally {
       isRefreshing = false

@@ -11,7 +11,7 @@ const authStore = useAuthStore()
 const username = ref('')
 const password = ref('')
 const showPassword = ref(false)
-const error = ref('')
+const error = ref(route.query.expired === '1' ? '登录已失效，请重新登录' : '')
 const loading = ref(false)
 
 async function handleLogin() {
