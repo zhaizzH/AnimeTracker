@@ -196,6 +196,3 @@ export interface ChatMessage {
   created_at?: string
 }
 
-/** @deprecated 将在 Chat Store 迁移到 SSE 后删除 */
-export type WsConnectionState = 'connecting' | 'connected' | 'disconnected' | 'error'
-
