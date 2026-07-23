@@ -31,7 +31,8 @@ jwt:
 
 # MinIO 对象存储
 minio:
-  endpoint: http://<minio-host>:9000
+  endpoint: <minio-host>
+  port: <minio-port>
   access-key: <minio-access-key>
   secret-key: <minio-secret-key>
   bucket: anime-tracker

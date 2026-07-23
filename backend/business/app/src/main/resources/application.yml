@@ -6,19 +6,19 @@ server:
 
 spring:
   application:
-    name: animetracker-business
+    name: animetracker-business # 应用名称
 
   profiles:
-    active: local
+    active: local # 激活的配置文件
 
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
   datasource:
-    driver-class-name: ${at.datasource.driver-class-name:com.mysql.cj.jdbc.Driver}
+    driver-class-name: ${at.datasource.driver-class-name} # 数据库驱动类名
     url: jdbc:mysql://${at.datasource.host}:${at.datasource.port}/${at.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
-    username: ${at.datasource.username:root}
+    username: ${at.datasource.username}
     password: ${at.datasource.password}
     hikari:
       maximum-pool-size: 10
@@ -27,9 +27,9 @@ spring:
       connection-timeout: 20000
 
   data:
-    redis:
-      host: ${at.data.redis.host:localhost}
-      port: ${at.data.redis.port:6379}
+    redis:  # redis 配置
+      host: ${at.data.redis.host}
+      port: ${at.data.redis.port}
       password: ${at.data.redis.password}
       database: ${at.data.redis.database:1}
       timeout: 2000ms
@@ -42,7 +42,7 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
-    default-property-inclusion: ${at.jackson.default-property-inclusion:non_null}
+    default-property-inclusion: ${at.jackson.default-property-inclusion}
 
   servlet:
     multipart:
@@ -60,16 +60,16 @@ mybatis-plus:
 
 # JWT 配置
 jwt:
-  secret: ${jwt.secret:dev-secret-key-not-for-production-use-change-it}
-  expiration: ${jwt.expiration:1800000}
-  refresh-expiration: ${jwt.refresh-expiration:604800000}
+  secret: ${jwt.secret}
+  expiration: ${jwt.expiration}
+  refresh-expiration: ${jwt.refresh-expiration}
 
 # MinIO 对象存储
 minio:
-  endpoint: ${minio.endpoint:http://localhost:9000}
+  endpoint: http://${minio.endpoint}:${minio.port}
   access-key: ${minio.access-key}
   secret-key: ${minio.secret-key}
-  bucket: ${minio.bucket:anime-tracker}
+  bucket: ${minio.bucket}
 
 # Resend 邮件服务
 resend:

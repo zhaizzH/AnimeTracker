@@ -9,8 +9,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Data
 @ConfigurationProperties(prefix = "minio")
 public class MinioProperties {
-    private String endpoint = "http://localhost:9000";
+    private String endpoint;
     private String accessKey;
     private String secretKey;
-    private String bucket = "anime-tracker";
+    private String bucket;
 }
