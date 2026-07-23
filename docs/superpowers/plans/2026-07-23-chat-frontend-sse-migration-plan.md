@@ -285,6 +285,13 @@ export const useChatStore = defineStore('chat', () => {
           }
         }
       }
+      // Guard: 流结束但没收到 done event
+      if (isStreaming.value) {
+        messages.value.push({ role: 'assistant', content: streamingContent.value })
+        streamingContent.value = ''
+        isStreaming.value = false
+        fetchSessions()
+      }
     } catch (e) {
       console.error('sendMessage error:', e)
       if (!isStreaming.value) {
