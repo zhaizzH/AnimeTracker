@@ -192,8 +192,7 @@ export interface ChatMessage {
   id?: number
   role: 'user' | 'assistant'
   content: string
-  tool_calls?: string
+  tool_calls?: string[] | null
   created_at?: string
 }
 
-export type WsConnectionState = 'connecting' | 'connected' | 'disconnected' | 'error'
