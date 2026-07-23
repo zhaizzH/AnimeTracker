@@ -68,6 +68,10 @@ class ChatService:
                     kind = event["event"]
 
                     if kind == "on_chat_model_stream":
+                        # 只推送 sub-agent 节点的 token，跳过 Router 等中间节点
+                        langgraph_node = event.get("metadata", {}).get("langgraph_node", "")
+                        if langgraph_node not in ("search", "discover", "recommend"):
+                            continue
                         chunk = event["data"]["chunk"]
                         if hasattr(chunk, "content") and chunk.content:
                             full_content += chunk.content
