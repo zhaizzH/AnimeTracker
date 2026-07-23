@@ -49,7 +49,7 @@ def create_user_router(llm):
         agent = resp.content.strip().lower()
         if agent not in ("search", "discover", "recommend"):
             agent = "search"
-        logger.info("Router: user=%s query=%s -> %s", state.user.user_id, query[:30], agent)
+        logger.info("路由: 用户:%s 提问:%s -> %s", state.user.user_id, query[:30], agent)
         return {"next_agent": agent}
     return user_router
 
@@ -72,7 +72,7 @@ def create_denied_node(llm):
 
 
 def create_sub_agent_node(name, tools, prompt, llm, max_iterations=5):
-    """创建 Sub-agent 节点工厂"""
+    """创建子代理节点工厂"""
     sub_graph = create_sub_agent(name, tools, prompt, llm, max_iterations)
 
     async def node_func(state: AgentState) -> dict:

@@ -61,7 +61,7 @@ def create_sub_agent(
             return "finish"
         steps = len([m for m in state.messages if isinstance(m, ToolMessage)])
         if steps >= max_iterations:
-            logger.warning("Sub-agent %s reached max iterations", name)
+            logger.warning("子代理 %s 已达到最大迭代次数", name)
             return "finish"
         return "continue"
 
