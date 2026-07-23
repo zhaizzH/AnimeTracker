@@ -31,8 +31,6 @@ public class AdminUserController {
 
     /**
      * 修改指定用户的角色
-     * <p>
-     * `@Valid` 定义校验规则,在 UpdateRoleRequest 类中使用 @NotBlank、@NotNull、@Size 等注解定义校验规则
      */
     @PutMapping("/{id}/role")
     public Result<UserVO> updateUserRole(

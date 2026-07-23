@@ -5,6 +5,9 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * 用户追番收藏实体
+ */
 @Data
 @TableName("user_collection")
 public class UserCollection {

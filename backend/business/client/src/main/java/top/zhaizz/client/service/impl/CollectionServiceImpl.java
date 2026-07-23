@@ -17,6 +17,9 @@ import top.zhaizz.pojo.entity.UserCollection;
 import top.zhaizz.pojo.vo.UserCollectionSubjectVO;
 import top.zhaizz.pojo.vo.UserCollectionVO;
 
+/**
+ * 收藏服务实现
+ */
 @Service
 @RequiredArgsConstructor
 public class CollectionServiceImpl implements CollectionService {

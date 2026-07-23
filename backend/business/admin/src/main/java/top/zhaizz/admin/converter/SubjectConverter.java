@@ -10,9 +10,15 @@ import top.zhaizz.pojo.vo.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * 番剧相关对象转换器
+ */
 public class SubjectConverter {
     private SubjectConverter() {}
 
+    /**
+     * Subject + 标签列表 转为详情 VO
+     */
     public static SubjectDetailVO toSubjectDetailVO(Subject entity, List<TagVO> tags) {
         if (entity == null) return null;
         SubjectDetailVO vo = new SubjectDetailVO();
@@ -37,6 +43,9 @@ public class SubjectConverter {
         return vo;
     }
 
+    /**
+     * SubjectTag 转为 TagVO
+     */
     public static TagVO toTagVO(SubjectTag entity) {
         if (entity == null) return null;
         TagVO vo = new TagVO();
@@ -46,6 +55,9 @@ public class SubjectConverter {
         return vo;
     }
 
+    /**
+     * SubjectTag 列表转为 TagVO 列表
+     */
     public static List<TagVO> toTagVOList(List<SubjectTag> tags) {
         if (tags == null) return List.of();
         return tags.stream()
@@ -53,6 +65,9 @@ public class SubjectConverter {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 创建 DTO 转为 Subject 实体
+     */
     public static Subject toEntityFromCreate(SubjectCreateDTO request) {
         if (request == null) return null;
         Subject entity = new Subject();
@@ -67,6 +82,9 @@ public class SubjectConverter {
         return entity;
     }
 
+    /**
+     * 用更新 DTO 的非空字段更新 Subject 实体
+     */
     public static void updateFromRequest(Subject subject, SubjectUpdateDTO request) {
         if (request.getName() != null) subject.setName(request.getName());
         if (request.getNameCn() != null) subject.setNameCn(request.getNameCn());
@@ -77,6 +95,9 @@ public class SubjectConverter {
         if (request.getImage() != null) subject.setImage(request.getImage());
     }
 
+    /**
+     * ImportRecord 转为导入记录 VO
+     */
     public static ImportRecordVO toImportRecordVO(ImportRecord entity) {
         if (entity == null) return null;
         ImportRecordVO vo = new ImportRecordVO();
@@ -90,6 +111,9 @@ public class SubjectConverter {
         return vo;
     }
 
+    /**
+     * ImportRecord 列表转为导入记录 VO 列表
+     */
     public static List<ImportRecordVO> toImportRecordVOList(List<ImportRecord> entities) {
         if (entities == null) return List.of();
         return entities.stream()

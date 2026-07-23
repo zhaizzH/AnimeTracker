@@ -25,6 +25,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * 番剧查询服务实现
+ */
 @Service
 @RequiredArgsConstructor
 public class ClientSubjectServiceImpl implements ClientSubjectService {

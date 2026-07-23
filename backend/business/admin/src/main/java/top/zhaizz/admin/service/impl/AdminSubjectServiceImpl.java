@@ -20,6 +20,9 @@ import top.zhaizz.pojo.vo.TagVO;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 番剧管理服务实现
+ */
 @Service
 @RequiredArgsConstructor
 public class AdminSubjectServiceImpl implements AdminSubjectService {

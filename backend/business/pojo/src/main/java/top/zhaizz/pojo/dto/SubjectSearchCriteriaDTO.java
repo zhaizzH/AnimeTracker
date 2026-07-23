@@ -10,7 +10,7 @@ import lombok.Data;
 public class SubjectSearchCriteriaDTO {
 
     @NotEmpty(message = "搜索关键词不能为空")
-    private String q;
+    private String q;   // 搜索关键词
 
     private int page = 1;
 

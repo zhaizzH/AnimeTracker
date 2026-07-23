@@ -16,5 +16,5 @@ public class SeasonQueryDTO {
     private int year;
 
     @Pattern(regexp = "spring|summer|autumn|winter", message = "季度仅允许: spring/summer/autumn/winter")
-    private String quarter;
+    private String quarter;     // 季度: spring/summer/autumn/winter
 }

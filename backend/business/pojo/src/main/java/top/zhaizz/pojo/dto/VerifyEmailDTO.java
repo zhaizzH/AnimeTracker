@@ -16,5 +16,5 @@ public class VerifyEmailDTO {
 
     @NotBlank(message = "验证码不能为空")
     @Size(min = 6, max = 6, message = "验证码为6位")
-    private String code;
+    private String code;    // 6位验证码
 }
