@@ -13,7 +13,7 @@ const quickQuestions = [
 
 function send() {
   const text = input.value.trim()
-  if (!text || store.isStreaming || store.connectionState !== 'connected') return
+  if (!text || store.isStreaming) return
   store.sendMessage(text)
   input.value = ''
 }
@@ -29,12 +29,10 @@ function sendQuick(q: string) {
     <!-- Quick questions -->
     <div v-if="store.messages.length === 0 && !store.isStreaming" class="flex flex-wrap gap-1.5 mb-3">
       <button
-        v-for="q in quickQuestions"
-        :key="q"
+        v-for="q in quickQuestions" :key="q"
         class="text-[11px] px-2.5 py-1.5 rounded-full transition-colors"
         style="background: var(--color-hover); color: var(--color-text-secondary);"
         @click="sendQuick(q)"
-        :disabled="store.connectionState !== 'connected'"
       >
         {{ q }}
       </button>
@@ -43,26 +41,17 @@ function sendQuick(q: string) {
     <!-- Input row -->
     <div class="flex items-center gap-2">
       <input
-        v-model="input"
-        type="text"
-        placeholder="输入你想问的..."
+        v-model="input" type="text" placeholder="输入你想问的..."
         class="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none transition-all"
-        :style="{
-          background: 'var(--color-bg)',
-          color: 'var(--color-text)',
-          border: '1px solid var(--color-border)',
-        }"
+        :style="{ background: 'var(--color-bg)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }"
         @keyup.enter="send"
-        :disabled="store.connectionState !== 'connected'"
+        :disabled="store.isStreaming"
       />
       <button
         class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-colors"
-        :style="{
-          background: store.isStreaming ? 'var(--color-hover)' : 'var(--color-primary)',
-          color: store.isStreaming ? 'var(--color-text-secondary)' : '#fff',
-        }"
+        :style="{ background: store.isStreaming ? 'var(--color-hover)' : 'var(--color-primary)', color: store.isStreaming ? 'var(--color-text-secondary)' : '#fff' }"
         @click="send"
-        :disabled="!input.trim() || store.connectionState !== 'connected'"
+        :disabled="!input.trim() || store.isStreaming"
       >
         <span class="text-sm">{{ store.isStreaming ? '···' : '➤' }}</span>
       </button>

@@ -34,7 +34,6 @@ function formatDate(dateStr: string): string {
         class="text-xs px-3 py-1.5 rounded-full font-medium transition-colors"
         style="background: var(--color-primary); color: #fff;"
         @click="store.newSession()"
-        :disabled="store.connectionState !== 'connected'"
       >
         + 新对话
       </button>
@@ -46,10 +45,8 @@ function formatDate(dateStr: string): string {
         暂无会话记录
       </div>
       <button
-        v-for="s in store.sessions"
-        :key="s.session_id"
+        v-for="s in store.sessions" :key="s.session_id"
         class="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-left text-sm transition-colors duration-150"
-        :class="s.session_id === store.currentSessionId ? '' : ''"
         :style="{
           background: s.session_id === store.currentSessionId ? 'var(--color-hover)' : 'transparent',
           color: 'var(--color-text)',
