@@ -5,6 +5,7 @@ from app.graph.state import AgentState
 from app.graph.nodes import (
     create_entry_node, create_user_router, create_admin_router,
     create_denied_node, create_sub_agent_node, create_role_router,
+    create_finalizer_node,
 )
 from app.graph.prompts import SEARCH_PROMPT, DISCOVER_PROMPT, RECOMMEND_PROMPT
 from app.tools.user_tools import tools as user_tools
@@ -28,6 +29,7 @@ def create_router_graph(llm, settings, store):
         "discover", user_tools, DISCOVER_PROMPT, llm, settings.agent_max_iterations))
     builder.add_node("recommend", create_sub_agent_node(
         "recommend", user_tools, RECOMMEND_PROMPT, llm, settings.agent_max_iterations))
+    builder.add_node("finalizer", create_finalizer_node(llm))
 
     builder.set_entry_point("entry")
 
@@ -47,8 +49,10 @@ def create_router_graph(llm, settings, store):
     # ADMIN 路径（当前拒绝）
     builder.add_edge("admin_router", "denied")
 
-    # 所有终点汇聚到 END
-    for agent in ("search", "discover", "recommend", "denied"):
-        builder.add_edge(agent, END)
+    # sub-agent → finalizer → END, denied 直接到 END
+    for agent in ("search", "discover", "recommend"):
+        builder.add_edge(agent, "finalizer")
+    builder.add_edge("finalizer", END)
+    builder.add_edge("denied", END)
 
     return builder.compile()

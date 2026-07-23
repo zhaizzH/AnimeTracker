@@ -68,8 +68,9 @@ class ChatService:
                     kind = event["event"]
 
                     if kind == "on_chat_model_stream":
-                        # 跳过 Router 节点的意图分类输出，只保留 sub-agent 的回复
-                        if event.get("metadata", {}).get("langgraph_node", "") == "user_router":
+                        # 只放行 finalizer 和 denied 节点的 token
+                        node = event.get("metadata", {}).get("langgraph_node", "")
+                        if node not in ("finalizer", "denied"):
                             continue
                         chunk = event["data"]["chunk"]
                         if hasattr(chunk, "content") and chunk.content:

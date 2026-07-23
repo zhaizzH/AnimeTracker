@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
-from app.graph.prompts import ROUTER_PROMPT, ADMIN_DENIED_PROMPT
+from app.graph.prompts import ROUTER_PROMPT, ADMIN_DENIED_PROMPT, FINALIZER_PROMPT
 from app.graph.state import AgentState
 from app.graph.sub_agent import create_sub_agent
 
@@ -97,3 +97,14 @@ def create_role_router():
             return "admin_router"
         return "user_router"
     return role_router
+
+
+def create_finalizer_node(llm):
+    """创建最终格式化节点：将 sub-agent 的输出重新组织为简洁列表"""
+    async def finalizer(state: AgentState) -> dict:
+        if not state.final_output.strip():
+            return {}
+        prompt = FINALIZER_PROMPT.format(content=state.final_output)
+        resp = await llm.ainvoke([SystemMessage(content=prompt)])
+        return {"final_output": resp.content}
+    return finalizer
