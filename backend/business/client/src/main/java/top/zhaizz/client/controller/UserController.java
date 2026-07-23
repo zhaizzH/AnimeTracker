@@ -6,12 +6,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.client.service.ClientUserService;
 import top.zhaizz.client.service.VerificationService;
 import top.zhaizz.common.result.Result;
+import top.zhaizz.common.util.SecurityUtil;
 import top.zhaizz.pojo.dto.UpdateUserDTO;
 import top.zhaizz.pojo.vo.UserVO;
 
@@ -31,7 +30,7 @@ public class UserController {
      */
     @GetMapping
     public Result<UserVO> getMyProfile() {
-        Long userId = getCurrentUserId();
+        Long userId = SecurityUtil.getCurrentUserId();
         return Result.success(clientUserService.getUserById(userId));
     }
 
@@ -40,7 +39,7 @@ public class UserController {
      */
     @PutMapping
     public Result<UserVO> updateMyProfile(@Valid @RequestBody UpdateUserDTO request) {
-        Long userId = getCurrentUserId();
+        Long userId = SecurityUtil.getCurrentUserId();
         return Result.success(clientUserService.updateUser(userId, request));
     }
 
@@ -49,29 +48,19 @@ public class UserController {
      */
     @PostMapping("/send-email-code")
     public Result<Void> sendEmailCode(@Valid @RequestBody SendEmailCodeRequest request) {
-        Long userId = getCurrentUserId();
+        Long userId = SecurityUtil.getCurrentUserId();
         verificationService.sendEmailChangeCode(userId, request.getNewEmail());
         return Result.success(null);
     }
 
     /**
-     * 校验邮箱修改验证码 -> 更新邮箱
+     * 校验邮箱修改验证码
      */
     @PostMapping("/verify-email-code")
     public Result<Void> verifyEmailCode(@Valid @RequestBody VerifyEmailCodeRequest request) {
-        Long userId = getCurrentUserId();
+        Long userId = SecurityUtil.getCurrentUserId();
         verificationService.verifyEmailChangeCode(userId, request.getNewEmail(), request.getCode());
         return Result.success(null);
-    }
-
-    /**
-     * 从 SecurityContext 获取当前用户 ID
-     * <p>
-     * JwtAuthenticationFilter 在认证时将 userId 设置到 Authentication.principal 中。
-     */
-    private Long getCurrentUserId() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return (Long) auth.getPrincipal();
     }
 
     @Data
