@@ -1,15 +1,14 @@
 import logging
 from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api import chat as chat_api
 from app.config import settings
-from app.llm.models import create_llm
 from app.db.sqlite_store import SQLiteStore
 from app.graph.graph import create_router_graph
+from app.llm.models import create_llm
 from app.service.chat import ChatService
-from app.api import chat as chat_api
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -17,22 +16,22 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Initializing database...")
+    logger.info("正在初始化数据库...")
     store = SQLiteStore(settings.database_url)
     store.init_db()
     chat_api.chat_store = store
 
-    logger.info("Creating LLM...")
+    logger.info("创建 LLM...")
     llm = create_llm(settings)
 
-    logger.info("Building Router Graph...")
+    logger.info("创建路由图...")
     graph = create_router_graph(llm, settings, store)
 
-    logger.info("Creating ChatService...")
+    logger.info("创建聊天服务...")
     chat_api.chat_service = ChatService(store=store, router_graph=graph, settings=settings)
 
     yield
-    logger.info("Shutting down...")
+    logger.info("正在关闭应用...")
 
 
 app = FastAPI(title="AnimeTracker Agent", version="2.0.0", lifespan=lifespan)

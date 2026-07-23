@@ -1,9 +1,9 @@
-import logging
 import httpx
+import logging
 from fastapi import Header, HTTPException
 
 from app.config import settings
-from app.schemas.auth import UserInfo, AuthResult
+from app.schemas.auth import UserInfo
 
 logger = logging.getLogger(__name__)
 

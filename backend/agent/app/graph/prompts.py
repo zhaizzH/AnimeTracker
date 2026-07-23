@@ -1,5 +1,3 @@
-from datetime import datetime
-
 ROUTER_PROMPT = """你是 AnimeTracker 的意图路由助手。根据用户的问题选择最合适的 Agent：
 
 - search: 精确查询 — 搜索番剧、查详情、查剧集、查标签、按标签筛选

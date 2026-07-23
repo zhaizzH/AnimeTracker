@@ -29,7 +29,7 @@ def _patch_chat_tongyi():
 
     _patched_subtract.__name__ = "patched_subtract_client_response"
     ChatTongyi.subtract_client_response = _patched_subtract
-    logger.info("Applied ChatTongyi monkey-patch for streaming delta merge")
+    logger.info("已应用chatongyi monkey-用于流式delta合并的补丁")
 
 
 def create_llm(settings):

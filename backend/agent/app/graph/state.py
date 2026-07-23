@@ -1,6 +1,7 @@
+from langchain_core.messages import BaseMessage
 from pydantic import BaseModel
-from langchain_core.messages import BaseMessage, AnyMessage
 from typing import Sequence
+
 from app.schemas.auth import UserInfo
 
 
