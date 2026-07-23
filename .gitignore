@@ -132,3 +132,5 @@ backend/agent/agent.db*
 backend/data/importer/.env
 
 frontend\client\.workbuddy
+
+docs/superpowers
