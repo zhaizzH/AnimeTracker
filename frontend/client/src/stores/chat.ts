@@ -1,176 +1,185 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { ChatSession, ChatMessage, WsConnectionState } from '@/types'
+import type { ChatSession, ChatMessage } from '@/types'
+import { chatApi } from '@/api/chat'
 import { useAuthStore } from '@/stores/auth'
 
-const WS_URL = 'ws://localhost:8090/ws/chat'
+const AGENT_BASE = 'http://localhost:8090'
 
 export const useChatStore = defineStore('chat', () => {
-  const connectionState = ref<WsConnectionState>('disconnected')
   const sessions = ref<ChatSession[]>([])
   const messages = ref<ChatMessage[]>([])
   const currentSessionId = ref<string | null>(null)
   const streamingContent = ref('')
   const isStreaming = ref(false)
-
-  let ws: WebSocket | null = null
-  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+  const initialized = ref(false)
 
   const currentMessages = computed(() => {
     if (streamingContent.value) {
-      // 追加一条临时的 assistant 消息展示流式内容，不覆盖用户消息
       return [...messages.value, { role: 'assistant' as const, content: streamingContent.value }]
     }
     return messages.value
   })
 
-  function connect() {
-    const auth = useAuthStore()
-    if (!auth.token) return
+  function init() {
+    if (initialized.value) return
+    initialized.value = true
+    fetchSessions()
+  }
 
-    connectionState.value = 'connecting'
-    const token = encodeURIComponent(auth.token)
-    ws = new WebSocket(`${WS_URL}?token=${token}`)
-
-    ws.onopen = () => {
-      connectionState.value = 'connected'
-      fetchSessions()
-    }
-
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      handleMessage(data)
-    }
-
-    ws.onclose = () => {
-      connectionState.value = 'disconnected'
-      scheduleReconnect()
-    }
-
-    ws.onerror = () => {
-      connectionState.value = 'error'
-      ws?.close()
+  async function fetchSessions() {
+    const result = await chatApi.getSessions()
+    if (result) {
+      sessions.value = result
     }
   }
 
-  function scheduleReconnect() {
-    if (reconnectTimer) clearTimeout(reconnectTimer)
-    reconnectTimer = setTimeout(() => {
-      if (connectionState.value === 'disconnected') {
-        connect()
-      }
-    }, 3000)
-  }
-
-  function disconnect() {
-    if (reconnectTimer) clearTimeout(reconnectTimer)
-    ws?.close()
-    ws = null
-    connectionState.value = 'disconnected'
-    sessions.value = []
+  async function newSession(): Promise<string | null> {
+    loading.value = true
+    const result = await chatApi.createSession()
+    loading.value = false
+    if (!result) {
+      error.value = '创建会话失败'
+      return null
+    }
+    currentSessionId.value = result.session_id
     messages.value = []
-    currentSessionId.value = null
     streamingContent.value = ''
-    isStreaming.value = false
+    await fetchSessions()
+    return result.session_id
   }
 
-  function handleMessage(data: any) {
-    switch (data.type) {
-      case 'token':
-        isStreaming.value = true
-        streamingContent.value += data.content || ''
-        break
-
-      case 'done':
-        if (isStreaming.value) {
-          // 流式完成，追加完整消息
-          messages.value.push({
-            role: 'assistant',
-            content: data.full_content || streamingContent.value,
-            tool_calls: data.tool_calls?.join(', '),
-          })
-          streamingContent.value = ''
-          isStreaming.value = false
-        }
-        // 如果是 new_session 或 delete_session 的响应，刷新列表
-        fetchSessions()
-        break
-
-      case 'error':
-        messages.value.push({
-          role: 'assistant',
-          content: `❌ ${data.message}`,
-        })
-        isStreaming.value = false
-        streamingContent.value = ''
-        break
-
-      case 'session_list':
-        sessions.value = data.sessions || []
-        break
-
-      case 'history':
-        messages.value = (data.messages || []).map((m: any) => ({
-          role: m.role,
-          content: m.content,
-          tool_calls: m.tool_calls,
-        }))
-        break
-
-      case 'ping':
-        send({ type: 'pong' })
-        break
-    }
-  }
-
-  function send(data: any) {
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(data))
-    }
-  }
-
-  function sendMessage(content: string) {
-    if (!currentSessionId.value) {
-      newSession()
-    }
-    messages.value.push({ role: 'user', content })
-    send({ type: 'message', session_id: currentSessionId.value, content })
-  }
-
-  function newSession() {
-    send({ type: 'new_session' })
-  }
-
-  function fetchSessions() {
-    send({ type: 'list_sessions' })
-  }
-
-  function loadHistory(sessionId: string) {
+  async function loadHistory(sessionId: string) {
     currentSessionId.value = sessionId
     messages.value = []
     streamingContent.value = ''
-    send({ type: 'load_history', session_id: sessionId })
+    loading.value = true
+    const result = await chatApi.getHistory(sessionId)
+    loading.value = false
+    if (result) {
+      messages.value = result
+    } else {
+      error.value = '加载历史消息失败'
+    }
   }
 
-  function deleteSession(sessionId: string) {
+  async function deleteSession(sessionId: string) {
+    loading.value = true
+    const ok = await chatApi.deleteSession(sessionId)
+    loading.value = false
+    if (!ok) {
+      error.value = '删除会话失败'
+      return
+    }
     if (currentSessionId.value === sessionId) {
       currentSessionId.value = null
       messages.value = []
+      streamingContent.value = ''
     }
-    send({ type: 'delete_session', session_id: sessionId })
+    await fetchSessions()
   }
 
-  // 处理 new_session 响应中的 session_id
-  function onSessionCreated(sessionId: string) {
-    currentSessionId.value = sessionId
-    messages.value = []
+  async function sendMessage(content: string) {
+    if (isStreaming.value) return
+
+    // Ensure session
+    if (!currentSessionId.value) {
+      const sid = await newSession()
+      if (!sid) return
+    }
+
+    const auth = useAuthStore()
+    if (!auth.token || !currentSessionId.value) return
+
+    messages.value.push({ role: 'user', content })
+    isStreaming.value = true
     streamingContent.value = ''
+    error.value = null
+
+    try {
+      const response = await fetch(`${AGENT_BASE}/api/chat/stream`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${auth.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session_id: currentSessionId.value,
+          content,
+        }),
+      })
+
+      if (!response.ok) {
+        const errMsg = response.status === 401 ? '登录已过期，请重新登录'
+          : response.status === 404 ? '会话不存在'
+          : '请求失败，请重试'
+        messages.value.push({ role: 'assistant', content: `❌ ${errMsg}` })
+        isStreaming.value = false
+        streamingContent.value = ''
+        return
+      }
+
+      const reader = response.body!.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        let eventType = ''
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            eventType = line.slice(7).trim()
+          } else if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6)
+            try {
+              if (eventType === 'token') {
+                const data = JSON.parse(dataStr)
+                streamingContent.value += data.content || ''
+              } else if (eventType === 'error') {
+                const data = JSON.parse(dataStr)
+                messages.value.push({ role: 'assistant', content: `❌ ${data.message}` })
+                isStreaming.value = false
+                streamingContent.value = ''
+              } else if (eventType === 'done') {
+                messages.value.push({ role: 'assistant', content: streamingContent.value })
+                streamingContent.value = ''
+                isStreaming.value = false
+                fetchSessions()
+              }
+              // event: metadata → ignored
+            } catch { /* skip malformed JSON */ }
+          }
+        }
+      }
+      // Guard: 流结束但没收到 done event
+      if (isStreaming.value) {
+        messages.value.push({ role: 'assistant', content: streamingContent.value })
+        streamingContent.value = ''
+        isStreaming.value = false
+        fetchSessions()
+      }
+    } catch (e) {
+      console.error('sendMessage error:', e)
+      if (!isStreaming.value) {
+        messages.value.push({ role: 'assistant', content: '❌ 网络错误，请检查连接后重试' })
+      } else {
+        isStreaming.value = false
+        streamingContent.value = ''
+      }
+    }
   }
 
   return {
-    connectionState, sessions, messages, currentSessionId,
-    streamingContent, isStreaming, currentMessages,
-    connect, disconnect, sendMessage, newSession,
-    fetchSessions, loadHistory, deleteSession, onSessionCreated,
+    sessions, messages, currentSessionId,
+    streamingContent, isStreaming, loading, error, currentMessages,
+    init, fetchSessions, newSession, loadHistory, deleteSession, sendMessage,
   }
 })
