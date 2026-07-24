@@ -158,7 +158,7 @@ paths:
                               description: ""
                             type:
                               type: "integer"
-                              description: ""
+                              description: "条目类型"
                             airWeekday:
                               type: "integer"
                               description: ""
@@ -245,7 +245,7 @@ paths:
                   maxLength: 6
                   minLength: 6
                   type: "string"
-                  description: ""
+                  description: "6位验证码"
               description: ""
       responses:
         "200":
@@ -627,8 +627,8 @@ paths:
                     description: ""
   /api/user/me/verify-email-code:
     post:
-      summary: "校验邮箱修改验证码 -> 更新邮箱"
-      description: "校验邮箱修改验证码 -> 更新邮箱"
+      summary: "校验邮箱修改验证码"
+      description: "校验邮箱修改验证码"
       requestBody:
         content:
           application/json:
@@ -753,7 +753,7 @@ paths:
                               description: ""
                             type:
                               type: "integer"
-                              description: ""
+                              description: "条目类型"
                             airWeekday:
                               type: "integer"
                               description: ""
@@ -850,7 +850,7 @@ paths:
                               description: ""
                             type:
                               type: "integer"
-                              description: ""
+                              description: "条目类型"
                             airWeekday:
                               type: "integer"
                               description: ""
@@ -954,7 +954,7 @@ paths:
                               description: ""
                             type:
                               type: "integer"
-                              description: ""
+                              description: "条目类型"
                             airWeekday:
                               type: "integer"
                               description: ""
@@ -1066,7 +1066,7 @@ paths:
                               description: ""
                             type:
                               type: "integer"
-                              description: ""
+                              description: "条目类型"
                             airWeekday:
                               type: "integer"
                               description: ""
@@ -1140,7 +1140,7 @@ paths:
                         description: ""
                       type:
                         type: "integer"
-                        description: ""
+                        description: "条目类型"
                       airWeekday:
                         type: "integer"
                         description: ""
@@ -1149,7 +1149,7 @@ paths:
                         description: ""
                       bangumiId:
                         type: "integer"
-                        description: ""
+                        description: "Bangumi 外部 ID"
                       summary:
                         type: "string"
                         description: ""
@@ -1158,7 +1158,7 @@ paths:
                         description: ""
                       nsfw:
                         type: "boolean"
-                        description: ""
+                        description: "是否 NSFW"
                       tags:
                         type: "array"
                         description: ""
@@ -1247,6 +1247,324 @@ paths:
                           type: "string"
                           description: "Air / Today / NA"
                       description: "剧集信息 VO"
+  /api/user/collections:
+    get:
+      summary: "获取当前登录用户收藏列表"
+      description: "获取当前登录用户收藏列表"
+      parameters:
+      - name: "type"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "integer"
+          nullable: false
+      - name: "page"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "1"
+      - name: "size"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "20"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      content:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "object"
+                          properties:
+                            id:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            subjectId:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            type:
+                              type: "integer"
+                              description: "收藏类型: 1=想看 2=看过 3=在看 4=搁置 5=抛弃"
+                            rate:
+                              type: "integer"
+                              description: ""
+                            epStatus:
+                              type: "integer"
+                              description: "剧集进度"
+                            subject:
+                              type: "object"
+                              properties:
+                                id:
+                                  type: "integer"
+                                  description: ""
+                                  format: "int64"
+                                name:
+                                  type: "string"
+                                  description: ""
+                                nameCn:
+                                  type: "string"
+                                  description: ""
+                                image:
+                                  type: "string"
+                                  description: ""
+                                score:
+                                  type: "number"
+                                  description: ""
+                                rank:
+                                  type: "integer"
+                                  description: ""
+                                eps:
+                                  type: "integer"
+                                  description: ""
+                                airDate:
+                                  type: "string"
+                                  description: ""
+                                type:
+                                  type: "integer"
+                                  description: "条目类型"
+                                airWeekday:
+                                  type: "integer"
+                                  description: ""
+                                collectionTotal:
+                                  type: "integer"
+                                  description: ""
+                              description: ""
+                          description: "用户收藏视图"
+                      total:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      page:
+                        type: "integer"
+                        description: ""
+                      size:
+                        type: "integer"
+                        description: ""
+                    description: ""
+  /api/user/collections/{subjectId}:
+    get:
+      summary: "获取当前登录用户收藏详情"
+      description: "获取当前登录用户收藏详情"
+      parameters:
+      - name: "subjectId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      subjectId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      type:
+                        type: "integer"
+                        description: "收藏类型: 1=想看 2=看过 3=在看 4=搁置 5=抛弃"
+                      rate:
+                        type: "integer"
+                        description: ""
+                      epStatus:
+                        type: "integer"
+                        description: "剧集进度"
+                      subject:
+                        type: "object"
+                        properties:
+                          id:
+                            type: "integer"
+                            description: ""
+                            format: "int64"
+                          name:
+                            type: "string"
+                            description: ""
+                          nameCn:
+                            type: "string"
+                            description: ""
+                          image:
+                            type: "string"
+                            description: ""
+                          score:
+                            type: "number"
+                            description: ""
+                          rank:
+                            type: "integer"
+                            description: ""
+                          eps:
+                            type: "integer"
+                            description: ""
+                          airDate:
+                            type: "string"
+                            description: ""
+                          type:
+                            type: "integer"
+                            description: "条目类型"
+                          airWeekday:
+                            type: "integer"
+                            description: ""
+                          collectionTotal:
+                            type: "integer"
+                            description: ""
+                        description: ""
+                    description: ""
+    put:
+      summary: "新增或修改收藏"
+      description: "新增或修改收藏"
+      parameters:
+      - name: "subjectId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "type"
+              type: "object"
+              properties:
+                type:
+                  maximum: 5
+                  minimum: 1
+                  type: "integer"
+                  description: "1=想看 2=看过 3=在看 4=搁置 5=抛弃"
+                rate:
+                  maximum: 10
+                  minimum: 0
+                  type: "integer"
+                  description: "0-10，0 未评分"
+                epStatus:
+                  minimum: 0
+                  type: "integer"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
+    delete:
+      summary: "删除收藏"
+      description: "删除收藏"
+      parameters:
+      - name: "subjectId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
+  /api/user/collections/{subjectId}/ep-status:
+    put:
+      summary: "更新剧集进度(单步长)"
+      description: "更新剧集进度(单步长)"
+      parameters:
+      - name: "subjectId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                epStatus:
+                  minimum: 0
+                  type: "integer"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
   /api/admin/subjects:
     post:
       summary: "创建新番剧"
@@ -1273,10 +1591,10 @@ paths:
                   description: ""
                 type:
                   type: "integer"
-                  description: ""
+                  description: "条目类型（2=动画）"
                 eps:
                   type: "integer"
-                  description: ""
+                  description: "总集数"
                 airDate:
                   type: "string"
                   description: ""
@@ -1328,7 +1646,7 @@ paths:
                         description: ""
                       type:
                         type: "integer"
-                        description: ""
+                        description: "条目类型"
                       airWeekday:
                         type: "integer"
                         description: ""
@@ -1337,7 +1655,7 @@ paths:
                         description: ""
                       bangumiId:
                         type: "integer"
-                        description: ""
+                        description: "Bangumi 外部 ID"
                       summary:
                         type: "string"
                         description: ""
@@ -1346,7 +1664,7 @@ paths:
                         description: ""
                       nsfw:
                         type: "boolean"
-                        description: ""
+                        description: "是否 NSFW"
                       tags:
                         type: "array"
                         description: ""
@@ -1399,10 +1717,10 @@ paths:
                   description: ""
                 type:
                   type: "integer"
-                  description: ""
+                  description: "条目类型（2=动画）"
                 eps:
                   type: "integer"
-                  description: ""
+                  description: "总集数"
                 airDate:
                   type: "string"
                   description: ""
@@ -1454,7 +1772,7 @@ paths:
                         description: ""
                       type:
                         type: "integer"
-                        description: ""
+                        description: "条目类型"
                       airWeekday:
                         type: "integer"
                         description: ""
@@ -1463,7 +1781,7 @@ paths:
                         description: ""
                       bangumiId:
                         type: "integer"
-                        description: ""
+                        description: "Bangumi 外部 ID"
                       summary:
                         type: "string"
                         description: ""
@@ -1472,7 +1790,7 @@ paths:
                         description: ""
                       nsfw:
                         type: "boolean"
-                        description: ""
+                        description: "是否 NSFW"
                       tags:
                         type: "array"
                         description: ""
@@ -1702,7 +2020,7 @@ paths:
                 role:
                   pattern: "USER|ADMIN"
                   type: "string"
-                  description: ""
+                  description: "USER / ADMIN"
               description: ""
       responses:
         "200":
@@ -1790,14 +2108,14 @@ components:
           description: ""
         type:
           type: "integer"
-          description: ""
+          description: "条目类型"
         airWeekday:
           type: "integer"
           description: ""
         collectionTotal:
           type: "integer"
           description: ""
-      description: "条目列表视图（摘要信息）"
+      description: ""
     用户信息 VO（不含密码）:
       type: "object"
       properties:
@@ -1891,7 +2209,7 @@ components:
           description: ""
         type:
           type: "integer"
-          description: ""
+          description: "条目类型"
         airWeekday:
           type: "integer"
           description: ""
@@ -1900,7 +2218,7 @@ components:
           description: ""
         bangumiId:
           type: "integer"
-          description: ""
+          description: "Bangumi 外部 ID"
         summary:
           type: "string"
           description: ""
@@ -1909,7 +2227,7 @@ components:
           description: ""
         nsfw:
           type: "boolean"
-          description: ""
+          description: "是否 NSFW"
         tags:
           type: "array"
           description: ""
@@ -1970,6 +2288,65 @@ components:
           type: "string"
           description: "Air / Today / NA"
       description: "剧集信息 VO"
+    用户收藏视图:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          description: ""
+          format: "int64"
+        subjectId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        type:
+          type: "integer"
+          description: "收藏类型: 1=想看 2=看过 3=在看 4=搁置 5=抛弃"
+        rate:
+          type: "integer"
+          description: ""
+        epStatus:
+          type: "integer"
+          description: "剧集进度"
+        subject:
+          type: "object"
+          properties:
+            id:
+              type: "integer"
+              description: ""
+              format: "int64"
+            name:
+              type: "string"
+              description: ""
+            nameCn:
+              type: "string"
+              description: ""
+            image:
+              type: "string"
+              description: ""
+            score:
+              type: "number"
+              description: ""
+            rank:
+              type: "integer"
+              description: ""
+            eps:
+              type: "integer"
+              description: ""
+            airDate:
+              type: "string"
+              description: ""
+            type:
+              type: "integer"
+              description: "条目类型"
+            airWeekday:
+              type: "integer"
+              description: ""
+            collectionTotal:
+              type: "integer"
+              description: ""
+          description: ""
+      description: ""
     导入记录 VO:
       type: "object"
       properties:

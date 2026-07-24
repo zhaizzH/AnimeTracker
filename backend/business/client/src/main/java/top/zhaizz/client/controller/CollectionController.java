@@ -70,9 +70,9 @@ public class CollectionController {
     }
 
     /**
-     * 更新剧集进度
+     * 更新剧集进度(单步长)
      */
-    @PatchMapping("/{subjectId}/ep-status")
+    @PutMapping("/{subjectId}/ep-status")
     public Result<Void> updateEpStatus(
             @PathVariable Long subjectId,
             @RequestBody @Valid EpStatusDTO request) {
