@@ -2,22 +2,26 @@
 import { computed } from 'vue'
 import { ChevronLeft, ChevronRight } from '@lucide/vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   currentPage: number
   totalPages: number
-}>()
+  variant?: 'solid' | 'bordered'
+  maxVisible?: number
+}>(), {
+  variant: 'solid',
+  maxVisible: 7,
+})
 
 const emit = defineEmits<{
   'update:page': [page: number]
 }>()
 
-const MAX_VISIBLE = 7
-
 const pages = computed(() => {
   const total = props.totalPages
   const current = props.currentPage
+  const maxVisible = props.maxVisible
 
-  if (total <= MAX_VISIBLE) {
+  if (total <= maxVisible) {
     return Array.from({ length: total }, (_, i) => ({ type: 'page' as const, value: i + 1 }))
   }
 
@@ -31,9 +35,9 @@ const pages = computed(() => {
 
   // Adjust range to keep consistent window size
   if (current <= 3) {
-    end = Math.min(total - 1, 5)
+    end = Math.min(total - 1, maxVisible - 2)
   } else if (current >= total - 2) {
-    start = Math.max(2, total - 4)
+    start = Math.max(2, total - (maxVisible - 3))
   }
 
   if (start > 2) {
@@ -89,16 +93,18 @@ function goTo(page: number) {
       <button
         v-else
         class="inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200"
-        :class="item.value === currentPage
-          ? 'bg-primary-600 text-white shadow-sm shadow-primary-600/25'
-          : ''"
-        :style="item.value !== currentPage ? 'color: var(--color-text)' : ''"
+        :class="{
+          'bg-primary-600 text-white shadow-sm shadow-primary-600/25': variant === 'solid' && item.value === currentPage,
+          'border-2 border-primary-500 text-primary-500 bg-[var(--color-card)]': variant === 'bordered' && item.value === currentPage,
+          'border border-[var(--color-border)] bg-[var(--color-card)] hover:border-primary-500/50 hover:text-primary-500': variant === 'bordered' && item.value !== currentPage,
+        }"
+        :style="variant === 'solid' && item.value !== currentPage ? 'color: var(--color-text)' : (variant === 'bordered' && item.value !== currentPage ? 'color: var(--color-text-secondary)' : '')"
         @click="goTo(item.value)"
         :aria-label="`第 ${item.value} 页`"
         :aria-current="item.value === currentPage ? 'page' : undefined"
       >
         <span
-          v-if="item.value !== currentPage"
+          v-if="variant === 'solid' && item.value !== currentPage"
           class="rounded-lg w-full h-full inline-flex items-center justify-center transition-colors duration-150"
           style="background: transparent"
           @mouseenter="($event.target as HTMLElement).style.background = 'var(--color-hover)'"

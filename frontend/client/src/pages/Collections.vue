@@ -121,6 +121,8 @@ onMounted(fetchCollections)
         v-if="totalPages > 1"
         :current-page="page"
         :total-pages="totalPages"
+        variant="bordered"
+        :max-visible="12"
         @update:page="onPageChange"
       />
     </template>
