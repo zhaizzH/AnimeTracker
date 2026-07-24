@@ -4,7 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import {
   Search, Sun, Moon, Menu, X, User, LogOut,
-  ChevronDown,
+  ChevronDown, Bookmark,
 } from '@lucide/vue'
 
 const router = useRouter()
@@ -177,6 +177,14 @@ function navigateTo(path: string) {
                   style="background: var(--color-card); border-color: var(--color-border);"
                 >
                   <button
+                    @click="navigateTo('/collections')"
+                    class="flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-colors duration-150 hover:bg-[var(--color-hover)]"
+                    style="color: var(--color-text);"
+                  >
+                    <Bookmark :size="16" style="color: var(--color-text-secondary);" />
+                    我的收藏
+                  </button>
+                  <button
                     @click="navigateTo('/profile')"
                     class="flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-colors duration-150 hover:bg-[var(--color-hover)]"
                     style="color: var(--color-text);"
@@ -294,6 +302,15 @@ function navigateTo(path: string) {
                 <div class="border-t my-3" style="border-color: var(--color-border);"></div>
 
                 <template v-if="auth.isAuthenticated && auth.user">
+                  <router-link
+                    to="/collections"
+                    @click="closeMobile"
+                    class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-colors duration-200 hover:bg-[var(--color-hover)]"
+                    style="color: var(--color-text);"
+                  >
+                    <Bookmark :size="16" style="color: var(--color-text-secondary);" />
+                    我的收藏
+                  </router-link>
                   <router-link
                     to="/profile"
                     @click="closeMobile"

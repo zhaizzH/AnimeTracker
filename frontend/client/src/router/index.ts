@@ -13,6 +13,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'tags', name: 'Tags', component: () => import('@/pages/Tags.vue') },
       { path: 'tags/:tag', name: 'TagSubjects', component: () => import('@/pages/TagSubjects.vue') },
       { path: 'profile', name: 'Profile', component: () => import('@/pages/Profile.vue'), meta: { requiresAuth: true } },
+      { path: 'collections', name: 'Collections', component: () => import('@/pages/Collections.vue'), meta: { requiresAuth: true } },
     ],
   },
   {
