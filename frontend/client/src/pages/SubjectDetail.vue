@@ -3,9 +3,11 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeft, Star, Trophy, Calendar, Tv, Hash, ExternalLink,
-  Heart, ChevronDown, ChevronUp,
+  Heart, ChevronDown, ChevronUp, Plus, Minus, Trash2, Bookmark, XCircle,
 } from '@lucide/vue'
 import { subjectsApi } from '@/api/subjects'
+import { collectionsApi, type UserCollectionVO, type UpsertCollectionRequest } from '@/api/collections'
+import { useAuthStore } from '@/stores/auth'
 import type { SubjectDetail, EpisodeVO } from '@/types'
 import { SUBJECT_TYPES, WEEKDAYS } from '@/types'
 import TagBadge from '@/components/TagBadge.vue'
@@ -74,7 +76,104 @@ function goBack() {
   }
 }
 
-onMounted(fetchDetail)
+// --- Collection ---
+const authStore = useAuthStore()
+
+const collection = ref<UserCollectionVO | null>(null)
+const collectionLoading = ref(false)
+const collectionError = ref('')
+const showDeleteConfirm = ref(false)
+
+const COLLECTION_ACTIONS = [
+  { type: 1, label: '想看' },
+  { type: 3, label: '在看' },
+  { type: 2, label: '看过' },
+  { type: 4, label: '搁置' },
+  { type: 5, label: '抛弃' },
+]
+
+async function fetchCollection() {
+  if (!authStore.isAuthenticated) return
+  try {
+    const res = await collectionsApi.getDetail(subjectId.value)
+    collection.value = res.data.data
+  } catch {
+    collection.value = null
+  }
+}
+
+async function handleUpsert(type: number) {
+  collectionLoading.value = true
+  collectionError.value = ''
+  try {
+    const data: UpsertCollectionRequest = { type }
+    if (collection.value) {
+      data.rate = collection.value.rate
+      data.epStatus = collection.value.epStatus
+    }
+    await collectionsApi.upsert(subjectId.value, data)
+    await fetchCollection()
+  } catch (e: any) {
+    collectionError.value = e?.response?.data?.message || '操作失败'
+    setTimeout(() => { collectionError.value = '' }, 3000)
+  } finally {
+    collectionLoading.value = false
+  }
+}
+
+async function handleRate(rate: number) {
+  if (!collection.value) return
+  const newRate = collection.value.rate === rate ? 0 : rate
+  collectionLoading.value = true
+  try {
+    await collectionsApi.upsert(subjectId.value, {
+      type: collection.value.type,
+      rate: newRate,
+      epStatus: collection.value.epStatus,
+    })
+    collection.value.rate = newRate
+  } catch (e: any) {
+    collectionError.value = e?.response?.data?.message || '评分失败'
+    setTimeout(() => { collectionError.value = '' }, 3000)
+  } finally {
+    collectionLoading.value = false
+  }
+}
+
+async function handleEpStatusChange(delta: number) {
+  if (!collection.value) return
+  const newStatus = Math.max(0, Math.min(subject.value?.eps || 999, collection.value.epStatus + delta))
+  if (newStatus === collection.value.epStatus) return
+  collectionLoading.value = true
+  try {
+    await collectionsApi.updateEpStatus(subjectId.value, newStatus)
+    collection.value.epStatus = newStatus
+  } catch (e: any) {
+    collectionError.value = e?.response?.data?.message || '更新失败'
+    setTimeout(() => { collectionError.value = '' }, 3000)
+  } finally {
+    collectionLoading.value = false
+  }
+}
+
+async function handleDelete() {
+  collectionLoading.value = true
+  try {
+    await collectionsApi.remove(subjectId.value)
+    collection.value = null
+    showDeleteConfirm.value = false
+  } catch (e: any) {
+    collectionError.value = e?.response?.data?.message || '删除失败'
+    setTimeout(() => { collectionError.value = '' }, 3000)
+  } finally {
+    collectionLoading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchDetail()
+  fetchCollection()
+})
 </script>
 
 <template>
@@ -158,6 +257,138 @@ onMounted(fetchDetail)
             </span>
           </div>
 
+          <!-- Collection Section -->
+          <div v-if="authStore.isAuthenticated" class="mb-6">
+            <!-- Error toast -->
+            <Transition name="slide-fade">
+              <div
+                v-if="collectionError"
+                class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-sm text-red-600 dark:text-red-400"
+              >
+                <XCircle class="h-4 w-4 shrink-0" />
+                {{ collectionError }}
+              </div>
+            </Transition>
+
+            <div class="app-card p-4 sm:p-5">
+              <div v-if="collectionLoading && !collection" class="app-skeleton h-12 rounded-lg" />
+              <!-- Not collected -->
+              <template v-else-if="!collection">
+                <h3 class="text-sm font-medium mb-3" style="color: var(--color-text)">追番</h3>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="action in COLLECTION_ACTIONS"
+                    :key="action.type"
+                    class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200"
+                    :class="'hover:bg-primary-500/10 hover:text-primary-500'"
+                    style="background: var(--color-hover); color: var(--color-text-secondary);"
+                    :disabled="collectionLoading"
+                    @click="handleUpsert(action.type)"
+                  >
+                    <Bookmark class="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
+                    {{ action.label }}
+                  </button>
+                </div>
+              </template>
+              <!-- Collected -->
+              <template v-else>
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+                  <!-- Type switcher -->
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium" style="color: var(--color-text)">状态：</span>
+                    <div class="flex flex-wrap gap-1">
+                      <button
+                        v-for="action in COLLECTION_ACTIONS"
+                        :key="action.type"
+                        class="px-3 py-1 rounded-full text-xs font-medium transition-all duration-200"
+                        :class="collection.type === action.type
+                          ? 'bg-primary-600 text-white shadow-sm'
+                          : ''"
+                        :style="collection.type !== action.type ? 'background: var(--color-hover); color: var(--color-text-secondary)' : ''"
+                        :disabled="collectionLoading"
+                        @click="handleUpsert(action.type)"
+                      >
+                        {{ action.label }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Rating -->
+                  <div class="flex items-center gap-1">
+                    <span class="text-sm font-medium mr-1" style="color: var(--color-text)">评分：</span>
+                    <button
+                      v-for="i in 10"
+                      :key="i"
+                      class="w-5 h-5 flex items-center justify-center transition-colors duration-150"
+                      :class="i <= (collection.rate || 0) ? 'text-yellow-500' : 'text-gray-300 dark:text-gray-600'"
+                      :disabled="collectionLoading"
+                      @click="handleRate(i)"
+                    >
+                      <Star :size="14" :fill="i <= (collection.rate || 0) ? 'currentColor' : 'none'" />
+                    </button>
+                    <span v-if="collection.rate > 0" class="text-xs ml-1" style="color: var(--color-text-secondary)">{{ collection.rate }}/10</span>
+                    <span v-else class="text-xs ml-1" style="color: var(--color-text-secondary)">未评分</span>
+                  </div>
+                </div>
+
+                <!-- Progress + Delete -->
+                <div class="flex items-center justify-between mt-4 pt-4 border-t" style="border-color: var(--color-border)">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium" style="color: var(--color-text)">进度：</span>
+                    <button
+                      class="btn-ghost !p-1.5"
+                      :disabled="collectionLoading || collection.epStatus <= 0"
+                      @click="handleEpStatusChange(-1)"
+                    >
+                      <Minus :size="14" />
+                    </button>
+                    <span class="text-sm tabular-nums min-w-[4rem] text-center" style="color: var(--color-text)">
+                      {{ collection.epStatus }} / {{ subject?.eps || '?' }} 话
+                    </span>
+                    <button
+                      class="btn-ghost !p-1.5"
+                      :disabled="collectionLoading || (!!subject?.eps && collection.epStatus >= subject.eps)"
+                      @click="handleEpStatusChange(1)"
+                    >
+                      <Plus :size="14" />
+                    </button>
+                  </div>
+                  <div class="relative">
+                    <button
+                      class="btn-ghost !p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
+                      :disabled="collectionLoading"
+                      @click="showDeleteConfirm = !showDeleteConfirm"
+                    >
+                      <Trash2 :size="14" />
+                    </button>
+                    <Transition name="slide-fade">
+                      <div
+                        v-if="showDeleteConfirm"
+                        class="absolute right-0 bottom-full mb-2 flex items-center gap-2 p-2 rounded-lg shadow-lg border z-10"
+                        style="background: var(--color-card); border-color: var(--color-border)"
+                      >
+                        <span class="text-xs whitespace-nowrap" style="color: var(--color-text-secondary)">确认删除？</span>
+                        <button
+                          class="px-2 py-1 rounded text-xs font-medium bg-red-500 text-white"
+                          @click="handleDelete"
+                        >
+                          确认
+                        </button>
+                        <button
+                          class="px-2 py-1 rounded text-xs font-medium"
+                          style="background: var(--color-hover); color: var(--color-text-secondary)"
+                          @click="showDeleteConfirm = false"
+                        >
+                          取消
+                        </button>
+                      </div>
+                    </Transition>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+
           <!-- Meta Info -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 text-sm">
             <div v-if="subject.airDate" class="flex items-center gap-2" style="color: var(--color-text-secondary)">
@@ -230,3 +461,19 @@ onMounted(fetchDetail)
     </div>
   </div>
 </template>
+
+<style scoped>
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+.slide-fade-leave-active {
+  transition: all 0.3s ease-in;
+}
+.slide-fade-enter-from {
+  transform: translateY(-10px);
+  opacity: 0;
+}
+.slide-fade-leave-to {
+  opacity: 0;
+}
+</style>
