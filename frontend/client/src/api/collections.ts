@@ -38,6 +38,6 @@ export const collectionsApi = {
     return http.delete<ApiResponse<string>>(`/api/user/collections/${subjectId}`)
   },
   updateEpStatus(subjectId: number, epStatus: number) {
-    return http.patch<ApiResponse<string>>(`/api/user/collections/${subjectId}/ep-status`, { epStatus })
+    return http.put<ApiResponse<string>>(`/api/user/collections/${subjectId}/ep-status`, { epStatus })
   },
 }
