@@ -243,50 +243,53 @@ onMounted(() => {
         </router-link>
       </div>
 
-      <!-- Weekday tabs -->
-      <div class="flex items-center gap-1 flex-wrap mb-5">
-        <button
-          v-for="(label, idx) in weekdayLabels"
-          :key="idx"
-          class="relative rounded-full px-2.5 py-1.5 text-sm font-medium transition-colors duration-150 sm:px-3"
-          :class="activeWeekday === weekdayValues[idx]
-            ? 'bg-primary-600 text-white shadow-sm'
-            : 'hover:text-[var(--color-primary)]'"
-          :style="activeWeekday !== weekdayValues[idx] ? 'background: var(--color-hover); color: var(--color-text-secondary)' : ''"
-          @click="activeWeekday = weekdayValues[idx]"
-        >
-          <span class="sm:hidden">{{ label }}</span>
-          <span class="hidden sm:inline">周{{ label }}</span>
-        </button>
-      </div>
+      <!-- Weekday tabs + filter tabs -->
+      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <!-- Filter tabs + count -->
+        <div class="flex items-center gap-2">
+          <div class="inline-flex items-center gap-1 rounded-full p-1" style="background: var(--color-hover)">
+            <button
+              class="rounded-full px-3 py-1 text-xs font-medium transition-colors duration-150 sm:px-4 sm:text-sm"
+              :class="scheduleFilter === 'all'
+                ? 'bg-primary-600 text-white shadow-sm'
+                : ''"
+              :style="scheduleFilter !== 'all' ? 'color: var(--color-text-secondary)' : ''"
+              @click="scheduleFilter = 'all'"
+            >
+              全部
+            </button>
+            <button
+              class="rounded-full px-3 py-1 text-xs font-medium transition-colors duration-150 sm:px-4 sm:text-sm"
+              :class="scheduleFilter === 'mine'
+                ? 'bg-primary-600 text-white shadow-sm'
+                : ''"
+              :style="scheduleFilter !== 'mine' ? 'color: var(--color-text-secondary)' : ''"
+              @click="scheduleFilter = 'mine'"
+            >
+              我的
+            </button>
+          </div>
+          <span class="text-xs font-medium sm:text-sm" style="color: var(--color-text-secondary)">
+            {{ filteredSchedule.length }} 部
+          </span>
+        </div>
 
-      <!-- Filter tabs + count -->
-      <div class="mb-4 flex items-center justify-between">
-        <div class="inline-flex items-center gap-1 rounded-full p-1" style="background: var(--color-hover)">
+        <!-- Weekday tabs -->
+        <div class="flex items-center gap-1 flex-wrap">
           <button
-            class="rounded-full px-3 py-1 text-xs font-medium transition-colors duration-150 sm:px-4 sm:text-sm"
-            :class="scheduleFilter === 'all'
+            v-for="(label, idx) in weekdayLabels"
+            :key="idx"
+            class="relative rounded-full px-2.5 py-1.5 text-sm font-medium transition-colors duration-150 sm:px-3"
+            :class="activeWeekday === weekdayValues[idx]
               ? 'bg-primary-600 text-white shadow-sm'
-              : ''"
-            :style="scheduleFilter !== 'all' ? 'color: var(--color-text-secondary)' : ''"
-            @click="scheduleFilter = 'all'"
+              : 'hover:text-[var(--color-primary)]'"
+            :style="activeWeekday !== weekdayValues[idx] ? 'background: var(--color-hover); color: var(--color-text-secondary)' : ''"
+            @click="activeWeekday = weekdayValues[idx]"
           >
-            全部
-          </button>
-          <button
-            class="rounded-full px-3 py-1 text-xs font-medium transition-colors duration-150 sm:px-4 sm:text-sm"
-            :class="scheduleFilter === 'mine'
-              ? 'bg-primary-600 text-white shadow-sm'
-              : ''"
-            :style="scheduleFilter !== 'mine' ? 'color: var(--color-text-secondary)' : ''"
-            @click="scheduleFilter = 'mine'"
-          >
-            我的
+            <span class="sm:hidden">{{ label }}</span>
+            <span class="hidden sm:inline">周{{ label }}</span>
           </button>
         </div>
-        <span class="text-xs font-medium sm:text-sm" style="color: var(--color-text-secondary)">
-          {{ filteredSchedule.length }} 部
-        </span>
       </div>
 
       <!-- Schedule poster grid -->
