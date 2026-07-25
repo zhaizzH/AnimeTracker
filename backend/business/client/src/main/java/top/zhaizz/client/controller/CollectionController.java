@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.client.service.CollectionService;
+import top.zhaizz.client.util.SeasonUtil;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.common.util.SecurityUtil;
@@ -15,7 +16,7 @@ import top.zhaizz.pojo.dto.EpStatusDTO;
 import top.zhaizz.pojo.vo.UserCollectionVO;
 
 /**
- * 收藏控制器
+ * 追番控制器
  */
 @RestController
 @RequestMapping("/api/user/collections")
@@ -70,7 +71,24 @@ public class CollectionController {
     }
 
     /**
-     * 更新剧集进度(单步长)
+     * 登录用户每周追番列表
+     */
+    @GetMapping("/schedule")
+    public Result<PageResult<UserCollectionVO>> listSchedule(
+            @RequestParam(defaultValue = "-1") @Min(-1) @Max(6) int weekday,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) String quarter,
+            @RequestParam(defaultValue = "1") @Min(1) int page,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        int y = year != null ? year : SeasonUtil.getCurrentYear();
+        String q = quarter != null ? quarter : SeasonUtil.getCurrentQuarter();
+        Integer wd = weekday == -1 ? null : weekday;
+        return Result.success(collectionService.listSchedule(userId, y, q, wd, page, size));
+    }
+
+    /**
+     * 更新剧集进度
      */
     @PutMapping("/{subjectId}/ep-status")
     public Result<Void> updateEpStatus(

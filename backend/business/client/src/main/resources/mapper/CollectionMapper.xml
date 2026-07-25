@@ -14,4 +14,17 @@
         ORDER BY c.updated_at DESC
     </select>
 
+    <select id="selectSchedulePage" resultType="top.zhaizz.pojo.vo.UserCollectionSubjectVO">
+        SELECT c.id, c.user_id, c.subject_id, c.type, c.rate, c.ep_status,
+               c.created_at, c.updated_at,
+               s.name, s.name_cn, s.image, s.score, s.eps, s.air_date, s.air_weekday,
+               s.type AS subject_type
+        FROM user_collection c
+        JOIN subject s ON s.id = c.subject_id
+        WHERE c.user_id = #{userId}
+          AND s.air_date BETWEEN #{startDate} AND #{endDate}
+        <if test="weekday != null"> AND s.air_weekday = #{weekday} </if>
+        ORDER BY s.air_weekday, s.score DESC
+    </select>
+
 </mapper>

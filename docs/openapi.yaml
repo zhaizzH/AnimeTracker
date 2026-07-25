@@ -1526,10 +1526,143 @@ paths:
                   data:
                     type: "string"
                     description: ""
+  /api/user/collections/schedule:
+    get:
+      summary: "登录用户每周追番列表"
+      description: "登录用户每周追番列表"
+      parameters:
+      - name: "weekday"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "-1"
+      - name: "year"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "integer"
+          nullable: false
+      - name: "quarter"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+          nullable: false
+      - name: "page"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "1"
+      - name: "size"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "50"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      content:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "object"
+                          properties:
+                            id:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            subjectId:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            type:
+                              type: "integer"
+                              description: "收藏类型: 1=想看 2=看过 3=在看 4=搁置 5=抛弃"
+                            rate:
+                              type: "integer"
+                              description: ""
+                            epStatus:
+                              type: "integer"
+                              description: "剧集进度"
+                            subject:
+                              type: "object"
+                              properties:
+                                id:
+                                  type: "integer"
+                                  description: ""
+                                  format: "int64"
+                                name:
+                                  type: "string"
+                                  description: ""
+                                nameCn:
+                                  type: "string"
+                                  description: ""
+                                image:
+                                  type: "string"
+                                  description: ""
+                                score:
+                                  type: "number"
+                                  description: ""
+                                rank:
+                                  type: "integer"
+                                  description: ""
+                                eps:
+                                  type: "integer"
+                                  description: ""
+                                airDate:
+                                  type: "string"
+                                  description: ""
+                                type:
+                                  type: "integer"
+                                  description: "条目类型"
+                                airWeekday:
+                                  type: "integer"
+                                  description: ""
+                                collectionTotal:
+                                  type: "integer"
+                                  description: ""
+                              description: ""
+                          description: "用户收藏视图"
+                      total:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      page:
+                        type: "integer"
+                        description: ""
+                      size:
+                        type: "integer"
+                        description: ""
+                    description: ""
   /api/user/collections/{subjectId}/ep-status:
     put:
-      summary: "更新剧集进度(单步长)"
-      description: "更新剧集进度(单步长)"
+      summary: "更新剧集进度"
+      description: "更新剧集进度"
       parameters:
       - name: "subjectId"
         in: "path"
@@ -2346,7 +2479,7 @@ components:
               type: "integer"
               description: ""
           description: ""
-      description: ""
+      description: "用户收藏视图"
     导入记录 VO:
       type: "object"
       properties:

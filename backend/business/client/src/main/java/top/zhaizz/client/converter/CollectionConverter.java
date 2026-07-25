@@ -31,6 +31,7 @@ public class CollectionConverter {
         subject.setScore(vo.getScore());
         subject.setEps(vo.getEps());
         subject.setAirDate(vo.getAirDate());
+        subject.setAirWeekday(vo.getAirWeekday());
         subject.setType(vo.getSubjectType());
         result.setSubject(subject);
 

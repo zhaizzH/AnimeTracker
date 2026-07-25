@@ -9,10 +9,12 @@ import top.zhaizz.client.converter.CollectionConverter;
 import top.zhaizz.client.mapper.CollectionMapper;
 import top.zhaizz.client.mapper.SubjectMapper;
 import top.zhaizz.client.service.CollectionService;
+import top.zhaizz.client.util.SeasonUtil;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.ErrorType;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.dto.CollectionUpdateDTO;
+import java.time.LocalDate;
 import top.zhaizz.pojo.entity.UserCollection;
 import top.zhaizz.pojo.vo.UserCollectionSubjectVO;
 import top.zhaizz.pojo.vo.UserCollectionVO;
@@ -105,6 +107,20 @@ public class CollectionServiceImpl implements CollectionService {
         collection.setEpStatus(epStatus);
         collection.setUpdatedAt(java.time.LocalDateTime.now());
         collectionMapper.updateById(collection);
+    }
+
+    @Override
+    public PageResult<UserCollectionVO> listSchedule(Long userId, int year, String quarter, Integer weekday, int page, int size) {
+        LocalDate[] range = SeasonUtil.getSeasonRange(year, quarter);
+        Page<UserCollectionSubjectVO> mpPage = collectionMapper.selectSchedulePage(
+                new Page<>(page, size), userId, range[0], range[1], weekday);
+
+        return PageResult.of(
+                CollectionConverter.toUserCollectionVOList(mpPage.getRecords()),
+                mpPage.getTotal(),
+                (int) mpPage.getCurrent(),
+                (int) mpPage.getSize()
+        );
     }
 
     private UserCollectionVO toSimpleVO(UserCollection entity) {

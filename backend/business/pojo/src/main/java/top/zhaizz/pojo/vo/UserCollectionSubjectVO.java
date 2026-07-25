@@ -27,5 +27,6 @@ public class UserCollectionSubjectVO {
     private BigDecimal score;
     private Integer eps;
     private LocalDate airDate;
+    private Integer airWeekday;
     private Integer subjectType;    // 条目类型
 }

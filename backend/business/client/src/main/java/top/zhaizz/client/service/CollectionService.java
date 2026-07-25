@@ -21,4 +21,7 @@ public interface CollectionService {
 
     /** 更新剧集进度 */
     void updateEpStatus(Long userId, Long subjectId, Integer epStatus);
+
+    /** 获取用户追番日程（分页，按季/周过滤） */
+    PageResult<UserCollectionVO> listSchedule(Long userId, int year, String quarter, Integer weekday, int page, int size);
 }
