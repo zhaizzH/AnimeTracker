@@ -39,7 +39,7 @@ CREATE TABLE `episode`  (
   INDEX `idx_ep_airdate`(`airdate` ASC) USING BTREE,
   INDEX `idx_ep_status`(`status` ASC) USING BTREE,
   CONSTRAINT `fk_ep_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE = InnoDB AUTO_INCREMENT = 7467 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '剧集表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '剧集表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for import_record
@@ -58,7 +58,7 @@ CREATE TABLE `import_record`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_import_status`(`status` ASC) USING BTREE,
   INDEX `idx_import_started_at`(`started_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 12 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '导入记录表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '导入记录表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for subject
@@ -93,7 +93,7 @@ CREATE TABLE `subject`  (
   INDEX `idx_subject_type`(`type` ASC) USING BTREE,
   INDEX `idx_subject_import_status`(`import_status` ASC) USING BTREE,
   INDEX `idx_subject_air_weekday`(`air_weekday` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1871 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '条目表（动漫）' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '条目表（动漫）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for subject_tag
@@ -109,7 +109,7 @@ CREATE TABLE `subject_tag`  (
   INDEX `idx_tag_name`(`name` ASC) USING BTREE,
   INDEX `idx_tag_subject_id`(`subject_id` ASC) USING BTREE,
   CONSTRAINT `fk_tag_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE = InnoDB AUTO_INCREMENT = 52899 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '条目-标签关联表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '条目-标签关联表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for user
