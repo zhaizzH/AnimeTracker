@@ -14,7 +14,7 @@ const year = new Date().getFullYear()
         <!-- Links -->
         <div class="flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-sm" style="color: var(--color-text-secondary);">
           <a
-            href="https://github.com"
+            href="https://github.com/zhaizzH/AnimeTracker"
             target="_blank"
             rel="noopener noreferrer"
             class="transition-colors duration-200 hover:text-primary-500"
@@ -23,15 +23,13 @@ const year = new Date().getFullYear()
           </a>
           <span class="w-px h-3" style="background: var(--color-border);"></span>
           <a
-            href="https://bgm.tv"
+            href="https://github.com/bangumi/api"
             target="_blank"
             rel="noopener noreferrer"
             class="transition-colors duration-200 hover:text-primary-500"
           >
             Bangumi API
           </a>
-          <span class="w-px h-3" style="background: var(--color-border);"></span>
-          <span class="transition-colors duration-200">About</span>
         </div>
 
         <!-- Copyright -->
