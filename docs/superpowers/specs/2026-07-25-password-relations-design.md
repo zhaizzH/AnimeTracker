@@ -63,7 +63,7 @@
 1. 从 Redis 取 `auth:password-reset:{email}` 验证码，校验
 2. 查用户
 3. BCrypt 加密新密码，更新 DB
-4. 删除 Redis 中该用户的所有 token 白名单（全部登出）
+4. 通过 Redis Set `auth:user-tokens:{userId}` 获取该用户所有活跃 token hash，逐个删除 `auth:token:{hash}`，最后删除 Set（全部登出）
 5. 删除验证码 key
 
 ### 1.4 代码变动
@@ -76,7 +76,7 @@
 | client | `AuthController.java` | 加 `forgotPassword`、`resetPassword` |
 | client | `UserController.java` | 加 `changePassword` |
 | client | `AuthService.java` | 加 `forgotPassword`、`resetPassword` |
-| client | `AuthServiceImpl.java` | 实现 |
+| client | `AuthServiceImpl.java` | 实现 `forgotPassword`、`resetPassword`；`login` 中新增维护 `auth:user-tokens:{userId}` Set；`logout` 中新增从 Set 移除 |
 | client | `ClientUserService.java` | 加 `changePassword` |
 | client | `ClientUserServiceImpl.java` | 实现 |
 | client | `VerificationService.java` | 加 `sendPasswordResetCode`、`verifyPasswordResetCode` |
@@ -89,6 +89,14 @@
 |------|----------|-----|
 | 重置密码验证码 | `auth:password-reset:{email}` | 5min |
 | 已有 token 白名单 | `auth:token:{sha256(token)}` | 沿用 jwt.expiration |
+| 用户活跃 token 索引 | `auth:user-tokens:{userId}` | 无（Set） |
+
+`auth:user-tokens:{userId}` 是一个 Redis Set，存该用户所有活跃 token 的 SHA256。
+- **登录时**：`sadd` + 写入 `auth:token:{hash}`
+- **注销时**：从 Set 移除 + 删除 `auth:token:{hash}`
+- **重置密码时**：`smembers` 遍历删除所有 `auth:token:{hash}` + 删除 Set
+
+现有 `AuthServiceImpl.login` 和 `logout` 需同步修改以维护此 Set。
 
 ## 2. 条目关联
 
@@ -115,11 +123,23 @@ CREATE TABLE `subject_relation` (
 |------|------|------|
 | pojo | `SubjectRelation.java` | 新建 Entity：id, subjectId, relatedSubjectId, relation |
 | pojo | `SubjectRelationVO.java` | 新建 VO：relation, relatedSubject (SubjectListVO) |
-| pojo | `SubjectDetailVO.java` | 加 `List<SubjectRelationVO> relations` |
+| pojo | `SubjectDetailVO.java` | 加 `List<SubjectRelationVO> relations`（默认为空列表） |
 | client | `SubjectRelationMapper.java` | 新建，`BaseMapper<SubjectRelation>` + `findBySubjectId` |
-| client | `SubjectConverter.java` | 加 `toSubjectRelationVO`、`toSubjectRelationVOList` 方法 |
-| client | `ClientSubjectServiceImpl.java` | `getSubjectDetail` 中查 relations 拼入 VO |
-| client | `SubjectRelationMapper.xml` | 新建，JOIN subject 查 related 条目标题 |
+| client | `SubjectConverter.java` | 加 `toSubjectRelationVO` 方法：接收 relation entity + relatedSubject entity → SubjectRelationVO |
+| client | `ClientSubjectServiceImpl.java` | `getSubjectDetail` 中先查 relation 列表，再逐个查 relatedSubject，最后拼入 VO |
+
+组装方式（Service 层）：
+
+```java
+List<SubjectRelation> relations = subjectRelationMapper.findBySubjectId(id);
+List<SubjectRelationVO> relationVOs = relations.stream().map(rel -> {
+    Subject related = subjectMapper.selectById(rel.getRelatedSubjectId());
+    return SubjectConverter.toSubjectRelationVO(rel, related);
+}).filter(Objects::nonNull).collect(Collectors.toList());
+detailVO.setRelations(relationVOs);
+```
+
+relations 数量很少（通常 <10），单个 selectById 即可，无需批量优化。
 
 ### 2.3 导入脚本变动
 
@@ -139,7 +159,9 @@ CREATE TABLE `subject_relation` (
 </select>
 ```
 
-只读不写，无管理端 API。关联数据随导入自动同步，详情页 GET 时一并返回。
+### 2.5 只读约定
+
+关联数据仅由导入同步写入，后端不暴露写 API（无管理端点）。详情页 GET 时自动返回 `relations` 字段。
 
 ## 3. 不包含范围
 
