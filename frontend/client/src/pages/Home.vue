@@ -3,15 +3,19 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Search, TrendingUp, Flame, CalendarDays,
-  ChevronRight, Radio, Users,
+  ChevronRight, Heart, XCircle,
+  Hash, Calendar,
 } from '@lucide/vue'
 import { subjectsApi } from '@/api/subjects'
 import { tagsApi } from '@/api/tags'
+import { collectionsApi } from '@/api/collections'
+import { useAuthStore } from '@/stores/auth'
 import type { SubjectListItem } from '@/types'
 import SubjectCard from '@/components/SubjectCard.vue'
 import SubjectCardSkeleton from '@/components/SubjectCardSkeleton.vue'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const searchQuery = ref('')
 
@@ -48,38 +52,126 @@ const seasonLabel = computed(() => {
 const weekdayLabels = ['一', '二', '三', '四', '五', '六', '日']
 const weekdayValues  = [1, 2, 3, 4, 5, 6, 0] // Mon-Sun
 const todayWeekday = new Date().getDay()
-const activeWeekday = ref(todayWeekday) // default: today
+
+type ScheduleTab = 'today' | 'all' | 'my' | `${number}`
+const scheduleTabs: Array<{ key: ScheduleTab; label: string }> = [
+  { key: 'today', label: '今日放送' },
+  { key: 'all', label: '全部' },
+  { key: 'my', label: '我的' },
+  ...weekdayValues.map((wd, idx) => ({ key: String(wd) as ScheduleTab, label: `周${weekdayLabels[idx]}` })),
+]
+const activeScheduleTab = ref<ScheduleTab>('today')
 const scheduleItems = ref<SubjectListItem[]>([])
 const loadingSchedule = ref(true)
 const scheduleCache = new Map<number, SubjectListItem[]>()
 
-async function fetchSchedule(weekday: number) {
+const collectedSubjectIds = ref<Set<number>>(new Set())
+const userCollectionsLoaded = ref(false)
+const collectionError = ref('')
+
+const allScheduleItems = computed(() => {
+  const map = new Map<number, SubjectListItem>()
+  for (const wd of weekdayValues) {
+    const items = scheduleCache.get(wd) || []
+    for (const item of items) map.set(item.id, item)
+  }
+  // 全部缓存(-1)已经包含去重后的数据，优先使用
+  const allCached = scheduleCache.get(-1)
+  if (allCached?.length) return allCached
+  return Array.from(map.values())
+})
+
+const myScheduleItems = computed(() => {
+  return allScheduleItems.value.filter(item => collectedSubjectIds.value.has(item.id))
+})
+
+const currentScheduleItems = computed(() => {
+  if (activeScheduleTab.value === 'all') return allScheduleItems.value
+  if (activeScheduleTab.value === 'my') return myScheduleItems.value
+  if (activeScheduleTab.value === 'today') return scheduleCache.get(todayWeekday) || []
+  const wd = parseInt(activeScheduleTab.value, 10)
+  return scheduleCache.get(wd) || []
+})
+
+const currentScheduleCount = computed(() => currentScheduleItems.value.length)
+
+async function fetchSchedule(weekday: number = -1) {
   if (scheduleCache.has(weekday)) {
-    scheduleItems.value = scheduleCache.get(weekday)!
+    if (
+      activeScheduleTab.value === (weekday === -1 ? 'all' : String(weekday)) ||
+      (weekday === todayWeekday && activeScheduleTab.value === 'today') ||
+      (activeScheduleTab.value === 'my' && weekday === -1)
+    ) {
+      scheduleItems.value = scheduleCache.get(weekday)!
+    }
     return
   }
   loadingSchedule.value = true
   try {
-    const res = await subjectsApi.getSchedule({
-      weekday,
+    const params: Record<string, any> = {
       year: currentYear,
       quarter: currentQuarter.value,
       page: 1,
-      size: 50,
-    })
+      size: 200,
+    }
+    if (weekday !== -1) params.weekday = weekday
+    const res = await subjectsApi.getSchedule(params)
     const items = res.data.data.content || []
     scheduleCache.set(weekday, items)
-    if (activeWeekday.value === weekday) {
+    if (
+      activeScheduleTab.value === (weekday === -1 ? 'all' : String(weekday)) ||
+      (weekday === todayWeekday && activeScheduleTab.value === 'today') ||
+      (activeScheduleTab.value === 'my' && weekday === -1)
+    ) {
       scheduleItems.value = items
     }
   } catch {
-    scheduleItems.value = []
+    if (activeScheduleTab.value === (weekday === -1 ? 'all' : String(weekday))) {
+      scheduleItems.value = []
+    }
   } finally {
     loadingSchedule.value = false
   }
 }
 
-const currentDaySchedule = computed(() => scheduleItems.value)
+async function fetchUserCollections() {
+  if (!authStore.isAuthenticated) return
+  try {
+    const res = await collectionsApi.getList({ page: 1, size: 1000 })
+    const ids = new Set<number>()
+    for (const c of res.data.data.content || []) {
+      ids.add(c.subjectId)
+    }
+    collectedSubjectIds.value = ids
+    userCollectionsLoaded.value = true
+  } catch { /* silently fail */ }
+}
+
+async function toggleCollection(item: SubjectListItem, event: MouseEvent) {
+  event.preventDefault()
+  event.stopPropagation()
+  if (!authStore.isAuthenticated) {
+    router.push('/login')
+    return
+  }
+  collectionError.value = ''
+  try {
+    if (collectedSubjectIds.value.has(item.id)) {
+      await collectionsApi.remove(item.id)
+      collectedSubjectIds.value.delete(item.id)
+    } else {
+      await collectionsApi.upsert(item.id, { type: 3 })
+      collectedSubjectIds.value.add(item.id)
+    }
+  } catch (e: any) {
+    collectionError.value = e?.response?.data?.message || '操作失败'
+    setTimeout(() => { collectionError.value = '' }, 3000)
+  }
+}
+
+function isTabActive(tab: { key: ScheduleTab }) {
+  return activeScheduleTab.value === tab.key
+}
 
 function handleSearch() {
   const q = searchQuery.value.trim()
@@ -139,7 +231,15 @@ async function fetchSeasonal() {
   }
 }
 
-watch(activeWeekday, (wd) => fetchSchedule(wd))
+watch(activeScheduleTab, (tab) => {
+  if (tab === 'all') fetchSchedule(-1)
+  else if (tab === 'today') fetchSchedule(todayWeekday)
+  else if (tab === 'my') {
+    if (!userCollectionsLoaded.value) fetchUserCollections()
+    fetchSchedule(-1)
+  }
+  else fetchSchedule(parseInt(tab, 10))
+})
 
 async function fetchTags() {
   try {
@@ -153,6 +253,7 @@ onMounted(() => {
   fetchLatest()
   fetchSeasonal()
   fetchSchedule(todayWeekday)
+  fetchUserCollections()
   fetchTags()
 })
 </script>
@@ -214,82 +315,96 @@ onMounted(() => {
 
     <!-- 每周追番 -->
     <section class="app-container mb-14">
-      <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center gap-3">
-          <Radio class="h-5 w-5 text-accent-pink" />
-          <h2 class="section-title">每周追番</h2>
-          <span class="badge" style="background: rgba(241,121,146,0.1); color: #f17992">{{ seasonLabel }}</span>
+      <!-- Collection error toast -->
+      <Transition name="slide-fade">
+        <div
+          v-if="collectionError"
+          class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-sm text-red-600 dark:text-red-400"
+        >
+          <XCircle class="h-4 w-4 shrink-0" />
+          {{ collectionError }}
+        </div>
+      </Transition>
+
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-4 gap-4">
+        <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1">
+          <button
+            v-for="tab in scheduleTabs"
+            :key="tab.key"
+            class="schedule-tab"
+            :class="{
+              active: isTabActive(tab),
+              today: tab.key !== 'today' && tab.key !== 'all' && tab.key !== 'my' && parseInt(tab.key, 10) === todayWeekday,
+            }"
+            @click="activeScheduleTab = tab.key"
+          >
+            {{ tab.label }}
+          </button>
+          <span class="schedule-count">{{ currentScheduleCount }}部</span>
+        </div>
+        <router-link
+          :to="`/season/${currentYear}/${currentQuarter}`"
+          class="hidden sm:inline-flex items-center gap-0.5 text-sm shrink-0 transition-colors hover:text-primary-500"
+          style="color: var(--color-text-secondary)"
+        >
+          查看全部
+          <ChevronRight class="h-4 w-4" />
+        </router-link>
+      </div>
+
+      <!-- Schedule grid -->
+      <div v-if="loadingSchedule" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div v-for="i in 10" :key="i" class="schedule-card-skeleton">
+          <div class="app-skeleton aspect-poster rounded-xl" />
+          <div class="app-skeleton h-4 w-3/4 rounded mt-2" />
+          <div class="app-skeleton h-3 w-1/2 rounded mt-1" />
         </div>
       </div>
-
-      <!-- Weekday tabs -->
-      <div class="flex items-center gap-1.5 mb-5 overflow-x-auto scrollbar-hide">
-        <button
-          v-for="(label, idx) in weekdayLabels"
-          :key="idx"
-          class="relative shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200"
-          :class="activeWeekday === weekdayValues[idx]
-            ? 'bg-primary-600 text-white shadow-sm'
-            : ''"
-          :style="activeWeekday !== weekdayValues[idx] ? 'background: var(--color-hover); color: var(--color-text-secondary)' : ''"
-          @click="activeWeekday = weekdayValues[idx]"
-        >
-          {{ label }}
-          <span
-            v-if="weekdayValues[idx] === todayWeekday"
-            class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-accent-pink"
-          />
-        </button>
-        <span class="ml-2 text-xs" style="color: var(--color-text-secondary)">
-          {{ currentDaySchedule.length }} 部
-        </span>
-      </div>
-
-      <!-- Schedule list -->
-      <div v-if="loadingSchedule" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        <div v-for="i in 9" :key="i" class="app-skeleton h-[72px] rounded-xl" />
-      </div>
-      <div v-else-if="currentDaySchedule.length" class="card-grid-responsive grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div v-else-if="currentScheduleItems.length" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         <router-link
-          v-for="item in currentDaySchedule"
+          v-for="item in currentScheduleItems"
           :key="item.id"
           :to="`/subject/${item.id}`"
-          class="group app-card flex items-center gap-3 p-3 rounded-xl transition-all duration-200"
+          class="schedule-card group"
         >
-          <!-- Thumbnail -->
-          <div class="shrink-0 w-12 h-16 rounded-lg overflow-hidden">
+          <!-- Poster -->
+          <div class="relative aspect-poster rounded-xl overflow-hidden mb-2">
             <img
               v-if="item.image"
               :src="item.image"
               :alt="item.nameCn || item.name"
-              class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+              class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
             <div
               v-else
-              class="h-full w-full flex items-center justify-center text-xs font-bold opacity-20"
-              style="background: var(--color-hover); color: var(--color-text)"
+              class="absolute inset-0 flex items-center justify-center"
+              style="background: var(--color-hover)"
             >
-              {{ (item.nameCn || item.name)?.charAt(0) || '?' }}
+              <span class="text-3xl font-bold opacity-20" style="color: var(--color-text)">{{ (item.nameCn || item.name)?.charAt(0) || '?' }}</span>
             </div>
+            <!-- Favorite button -->
+            <button
+              class="favorite-btn"
+              :class="{ active: collectedSubjectIds.has(item.id) }"
+              @click="toggleCollection(item, $event)"
+            >
+              <Heart class="h-4 w-4" :class="collectedSubjectIds.has(item.id) ? 'fill-current' : ''" />
+            </button>
           </div>
           <!-- Info -->
-          <div class="flex-1 min-w-0">
-            <h4
-              class="text-sm font-medium truncate group-hover:text-primary-600 transition-colors"
-              style="color: var(--color-text)"
-              :title="item.nameCn || item.name"
-            >
-              {{ item.nameCn || item.name }}
-            </h4>
-            <div class="flex items-center gap-3 mt-1.5">
-              <span v-if="item.collectionTotal" class="inline-flex items-center gap-1 text-[11px]" style="color: var(--color-text-secondary)">
-                <Users class="h-3 w-3" />
-                {{ formatCount(item.collectionTotal) }}
-              </span>
-              <span v-if="item.score > 0" class="badge-score text-[11px]">
-                {{ item.score.toFixed(1) }}分
-              </span>
-            </div>
+          <h3 class="schedule-title" :title="item.nameCn || item.name">
+            {{ item.nameCn || item.name }}
+          </h3>
+          <div class="schedule-meta">
+            <span v-if="item.eps" class="inline-flex items-center gap-1">
+              <Hash class="h-3 w-3" />
+              第 {{ item.eps }} 话
+            </span>
+            <span v-else-if="item.airDate" class="inline-flex items-center gap-1">
+              <Calendar class="h-3 w-3" />
+              {{ item.airDate }}
+            </span>
           </div>
         </router-link>
       </div>
@@ -429,3 +544,85 @@ onMounted(() => {
     </section>
   </div>
 </template>
+
+<style scoped>
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+.slide-fade-leave-active {
+  transition: all 0.3s ease-in;
+}
+.slide-fade-enter-from {
+  transform: translateY(-10px);
+  opacity: 0;
+}
+.slide-fade-leave-to {
+  opacity: 0;
+}
+
+.schedule-tab {
+  @apply shrink-0 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-200;
+  background: var(--color-hover);
+  color: var(--color-text-secondary);
+}
+.schedule-tab:hover {
+  color: var(--color-text);
+}
+.schedule-tab.active {
+  background: rgba(241, 121, 146, 0.9);
+  color: white;
+}
+.schedule-tab.today:not(.active) {
+  color: #f17992;
+}
+
+.schedule-count {
+  @apply shrink-0 text-xs font-medium px-2 py-1 rounded-full;
+  background: rgba(241, 121, 146, 0.1);
+  color: #f17992;
+}
+
+.schedule-card {
+  @apply block transition-transform duration-200;
+}
+.schedule-card:hover {
+  transform: translateY(-2px);
+}
+
+.schedule-title {
+  @apply text-sm font-medium leading-snug line-clamp-2;
+  color: var(--color-text);
+}
+
+.schedule-meta {
+  @apply flex items-center gap-2 mt-1 text-xs;
+  color: var(--color-text-secondary);
+}
+
+.favorite-btn {
+  @apply absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200;
+  background: rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(2px);
+}
+.favorite-btn:hover {
+  background: rgba(0, 0, 0, 0.5);
+  transform: scale(1.1);
+}
+.favorite-btn.active {
+  background: rgba(241, 121, 146, 0.9);
+  color: white;
+}
+
+.schedule-card-skeleton {
+  @apply flex flex-col;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+</style>
