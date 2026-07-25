@@ -34,6 +34,7 @@ public class VerificationServiceImpl implements VerificationService {
 
     private static final String REDIS_KEY_PREFIX = "auth:email:";
     private static final String REDIS_EMAIL_CHANGE_PREFIX = "auth:email-change:";
+    private static final String REDIS_PASSWORD_RESET_PREFIX = "auth:password-reset:";
     private static final long CODE_TTL_MINUTES = 5;
     private static final int CODE_LENGTH = 6;
     private static final String ALPHANUMERIC = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -185,6 +186,40 @@ public class VerificationServiceImpl implements VerificationService {
                 // ponytail: 通知失败不干扰主流程，静默记日志
                 log.warn("旧邮箱通知发送失败: {}", oldEmail, e);
             }
+        }
+    }
+
+    @Override
+    public void sendPasswordResetCode(String email) {
+        String code = generateCode();
+        redisClient.set(REDIS_PASSWORD_RESET_PREFIX + email, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
+
+        Resend resend = new Resend(resendApiKey);
+        CreateEmailOptions params = CreateEmailOptions.builder()
+                .from(resendSendEmail)
+                .to(email)
+                .subject("[AnimeTracker] 密码重置验证码")
+                .text("你的密码重置验证码是：" + code + "\n\n此验证码5分钟内有效，请勿泄露给他人。")
+                .build();
+
+        try {
+            resend.emails().send(params);
+        } catch (Exception e) {
+            redisClient.del(REDIS_PASSWORD_RESET_PREFIX + email);
+            throw new BizException(ErrorType.INTERNAL_ERROR, "验证码发送失败，请稍后重试");
+        }
+    }
+
+    @Override
+    public void verifyPasswordResetCode(String email, String code) {
+        String storedCode = redisClient.get(REDIS_PASSWORD_RESET_PREFIX + email);
+
+        if (storedCode == null) {
+            throw new BizException(ErrorType.VERIFICATION_FAILED, "验证码已过期，请重新发送");
+        }
+
+        if (!storedCode.equalsIgnoreCase(code)) {
+            throw new BizException(ErrorType.VERIFICATION_FAILED, "验证码不正确");
         }
     }
 }

@@ -11,6 +11,7 @@ import top.zhaizz.client.service.ClientUserService;
 import top.zhaizz.client.service.VerificationService;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.common.util.SecurityUtil;
+import top.zhaizz.pojo.dto.ChangePasswordDTO;
 import top.zhaizz.pojo.dto.UpdateUserDTO;
 import top.zhaizz.pojo.vo.UserVO;
 
@@ -41,6 +42,16 @@ public class UserController {
     public Result<UserVO> updateMyProfile(@Valid @RequestBody UpdateUserDTO request) {
         Long userId = SecurityUtil.getCurrentUserId();
         return Result.success(clientUserService.updateUser(userId, request));
+    }
+
+    /**
+     * 修改当前登录用户密码
+     */
+    @PutMapping("/password")
+    public Result<Void> changePassword(@Valid @RequestBody ChangePasswordDTO request) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        clientUserService.changePassword(userId, request);
+        return Result.success(null);
     }
 
     /**

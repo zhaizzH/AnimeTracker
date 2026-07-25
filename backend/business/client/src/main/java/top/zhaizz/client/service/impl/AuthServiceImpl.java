@@ -16,12 +16,14 @@ import top.zhaizz.common.util.RedisClient;
 import top.zhaizz.common.security.JwtTokenProvider;
 import top.zhaizz.pojo.dto.LoginDTO;
 import top.zhaizz.pojo.dto.RegisterDTO;
+import top.zhaizz.pojo.dto.ResetPasswordDTO;
 import top.zhaizz.pojo.entity.User;
 import top.zhaizz.pojo.vo.LoginVO;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -45,6 +47,7 @@ public class AuthServiceImpl implements AuthService {
 
     private static final String REDIS_TOKEN_PREFIX = "auth:token:";
     private static final String REDIS_REFRESH_PREFIX = "auth:refresh:";
+    private static final String REDIS_USER_TOKENS_PREFIX = "auth:active-tokens:";
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -127,9 +130,14 @@ public class AuthServiceImpl implements AuthService {
         String tokenHash = DigestUtils.sha256Hex(token);
         redisClient.del(REDIS_TOKEN_PREFIX + tokenHash);
 
-        // 同时清理 refresh token
-        // 注意：当前 logout 方法只有 token 参数，没有 refreshToken
-        // 这里清理 access token，refresh token 由前端自行清除或自然过期
+        // 从用户活跃 token Set 中移除
+        // 通过 jwtTokenProvider.getUserIdFromToken(token) 获取 userId
+        try {
+            Long userId = jwtTokenProvider.getUserIdFromToken(token);
+            redisClient.srem(REDIS_USER_TOKENS_PREFIX + userId, tokenHash);
+        } catch (Exception e) {
+            // token 已过期或无效，忽略
+        }
     }
 
     /**
@@ -167,6 +175,7 @@ public class AuthServiceImpl implements AuthService {
         String accessToken = jwtTokenProvider.generateToken(user.getId(), user.getRole());
         String accessTokenHash = DigestUtils.sha256Hex(accessToken);
         redisClient.set(REDIS_TOKEN_PREFIX + accessTokenHash, user.getId().toString(), jwtExpiration, TimeUnit.MILLISECONDS);
+        redisClient.sadd(REDIS_USER_TOKENS_PREFIX + user.getId(), accessTokenHash);
 
         String refreshToken = generateRefreshToken();
         String refreshTokenHash = DigestUtils.sha256Hex(refreshToken);
@@ -186,5 +195,49 @@ public class AuthServiceImpl implements AuthService {
             sb.append(String.format("%02x", b & 0xFF));
         }
         return sb.toString();
+    }
+
+    @Override
+    public void forgotPassword(String email) {
+        User user = userMapper.selectOne(
+                new LambdaQueryWrapper<User>().eq(User::getEmail, email)
+        );
+        if (user == null) {
+            // 静默返回，防止邮箱枚举
+            return;
+        }
+        verificationService.sendPasswordResetCode(email);
+    }
+
+    @Override
+    public void resetPassword(ResetPasswordDTO request) {
+        // 1. 校验验证码
+        verificationService.verifyPasswordResetCode(request.getEmail(), request.getCode());
+
+        // 2. 查用户
+        User user = userMapper.selectOne(
+                new LambdaQueryWrapper<User>().eq(User::getEmail, request.getEmail())
+        );
+        if (user == null) {
+            throw new BizException(ErrorType.NOT_FOUND, "用户不存在");
+        }
+
+        // 3. 更新密码
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(LocalDateTime.now());
+        userMapper.updateById(user);
+
+        // 4. 踢出所有设备
+        String userTokensKey = REDIS_USER_TOKENS_PREFIX + user.getId();
+        Set<String> tokenHashes = redisClient.smembers(userTokensKey);
+        if (tokenHashes != null) {
+            for (String hash : tokenHashes) {
+                redisClient.del(REDIS_TOKEN_PREFIX + hash);
+            }
+        }
+        redisClient.del(userTokensKey);
+
+        // 5. 删除验证码
+        redisClient.del("auth:password-reset:" + request.getEmail());
     }
 }

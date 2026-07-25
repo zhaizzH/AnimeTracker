@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import top.zhaizz.client.converter.SubjectConverter;
 import top.zhaizz.client.mapper.EpisodeMapper;
 import top.zhaizz.client.mapper.SubjectMapper;
+import top.zhaizz.client.mapper.SubjectRelationMapper;
 import top.zhaizz.client.mapper.SubjectTagMapper;
 import top.zhaizz.client.service.ClientSubjectService;
 import top.zhaizz.client.util.SeasonUtil;
@@ -16,13 +17,16 @@ import top.zhaizz.common.ErrorType;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.entity.Episode;
 import top.zhaizz.pojo.entity.Subject;
+import top.zhaizz.pojo.entity.SubjectRelation;
 import top.zhaizz.pojo.entity.SubjectTag;
 import top.zhaizz.pojo.vo.EpisodeVO;
 import top.zhaizz.pojo.vo.SubjectDetailVO;
 import top.zhaizz.pojo.vo.SubjectListVO;
+import top.zhaizz.pojo.vo.SubjectRelationVO;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -35,6 +39,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
     private final SubjectMapper subjectMapper;
     private final EpisodeMapper episodeMapper;
     private final SubjectTagMapper subjectTagMapper;
+    private final SubjectRelationMapper subjectRelationMapper;
 
     @Override
     public PageResult<SubjectListVO> listSubjects(int page, int size, String sort, String order) {
@@ -64,7 +69,17 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
                 new LambdaQueryWrapper<SubjectTag>().eq(SubjectTag::getSubjectId, id)
         );
 
-        return SubjectConverter.toSubjectDetailVO(subject, SubjectConverter.toTagVOList(tags));
+        SubjectDetailVO detailVO = SubjectConverter.toSubjectDetailVO(subject, SubjectConverter.toTagVOList(tags));
+
+        // 组装关联条目
+        List<SubjectRelation> relations = subjectRelationMapper.findBySubjectId(id);
+        List<SubjectRelationVO> relationVOs = relations.stream().map(rel -> {
+            Subject related = subjectMapper.selectById(rel.getRelatedSubjectId());
+            return SubjectConverter.toSubjectRelationVO(rel, related);
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+        detailVO.setRelations(relationVOs);
+
+        return detailVO;
     }
 
     @Override

@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -20,6 +21,7 @@ public class SubjectDetailVO extends SubjectListVO {
     private Integer collectionTotal;
     private Boolean nsfw;           // 是否 NSFW
     private List<TagVO> tags;
+    private List<SubjectRelationVO> relations = new ArrayList<>();
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

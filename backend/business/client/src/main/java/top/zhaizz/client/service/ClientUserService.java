@@ -1,5 +1,6 @@
 package top.zhaizz.client.service;
 
+import top.zhaizz.pojo.dto.ChangePasswordDTO;
 import top.zhaizz.pojo.dto.UpdateUserDTO;
 import top.zhaizz.pojo.vo.UserVO;
 
@@ -11,4 +12,9 @@ public interface ClientUserService {
 
     /** 更新用户信息 */
     UserVO updateUser(Long userId, UpdateUserDTO request);
+
+    /**
+     * 修改密码
+     */
+    void changePassword(Long userId, ChangePasswordDTO request);
 }

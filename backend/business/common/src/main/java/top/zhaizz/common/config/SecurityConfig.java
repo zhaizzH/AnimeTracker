@@ -44,7 +44,8 @@ public class SecurityConfig {
                         // 公开接口：无需认证（注册、登录、邮箱验证）
                         .requestMatchers("/api/user/auth/register", "/api/user/auth/login",
                                 "/api/user/auth/verify-email", "/api/user/auth/resend-code",
-                                "/api/user/auth/refresh").permitAll()
+                                "/api/user/auth/refresh",
+                                "/api/user/auth/forgot-password", "/api/user/auth/reset-password").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/user/subjects/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/user/tags/**").permitAll()
 

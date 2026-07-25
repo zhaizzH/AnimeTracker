@@ -40,4 +40,18 @@ public interface VerificationService {
      * @param code     用户输入的验证码
      */
     void verifyEmailChangeCode(Long userId, String newEmail, String code);
+
+    /**
+     * 发送密码重置验证码
+     * <p>生成6位验证码存入 Redis key `auth:password-reset:{email}`，TTL 5分钟</p>
+     */
+    void sendPasswordResetCode(String email);
+
+    /**
+     * 校验密码重置验证码
+     * <p>只校验验证码是否正确，不修改 email_verified 字段</p>
+     *
+     * @throws top.zhaizz.common.exception.BizException 验证码过期或错误时抛出
+     */
+    void verifyPasswordResetCode(String email, String code);
 }

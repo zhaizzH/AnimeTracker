@@ -6,10 +6,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.client.service.AuthService;
 import top.zhaizz.common.result.Result;
+import top.zhaizz.pojo.dto.ForgotPasswordDTO;
 import top.zhaizz.pojo.dto.LoginDTO;
 import top.zhaizz.pojo.dto.RefreshTokenDTO;
 import top.zhaizz.pojo.dto.RegisterDTO;
 import top.zhaizz.pojo.dto.ResendCodeDTO;
+import top.zhaizz.pojo.dto.ResetPasswordDTO;
 import top.zhaizz.pojo.dto.VerifyEmailDTO;
 import top.zhaizz.pojo.vo.LoginVO;
 
@@ -59,6 +61,24 @@ public class AuthController {
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO request) {
         LoginVO loginVO = authService.login(request);
         return Result.success(loginVO);
+    }
+
+    /**
+     * 忘记密码 — 发送重置验证码
+     */
+    @PostMapping("/forgot-password")
+    public Result<Void> forgotPassword(@Valid @RequestBody ForgotPasswordDTO request) {
+        authService.forgotPassword(request.getEmail());
+        return Result.success(null);
+    }
+
+    /**
+     * 忘记密码 — 重置密码
+     */
+    @PostMapping("/reset-password")
+    public Result<Void> resetPassword(@Valid @RequestBody ResetPasswordDTO request) {
+        authService.resetPassword(request);
+        return Result.success(null);
     }
 
     /**

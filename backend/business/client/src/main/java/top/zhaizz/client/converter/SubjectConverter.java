@@ -2,6 +2,7 @@ package top.zhaizz.client.converter;
 
 import top.zhaizz.pojo.entity.Episode;
 import top.zhaizz.pojo.entity.Subject;
+import top.zhaizz.pojo.entity.SubjectRelation;
 import top.zhaizz.pojo.entity.SubjectTag;
 import top.zhaizz.pojo.vo.*;
 import java.util.List;
@@ -93,5 +94,14 @@ public class SubjectConverter {
     public static List<TagVO> toTagVOList(List<SubjectTag> tags) {
         if (tags == null) return List.of();
         return tags.stream().map(SubjectConverter::toTagVO).collect(Collectors.toList());
+    }
+
+    /** SubjectRelation + Subject 转 relation VO */
+    public static SubjectRelationVO toSubjectRelationVO(SubjectRelation relation, Subject relatedSubject) {
+        if (relation == null || relatedSubject == null) return null;
+        return new SubjectRelationVO(
+                relation.getRelation(),
+                toSubjectListVO(relatedSubject)
+        );
     }
 }

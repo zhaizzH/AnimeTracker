@@ -401,6 +401,86 @@ paths:
                             description: ""
                         description: ""
                     description: ""
+  /api/user/auth/forgot-password:
+    post:
+      summary: "忘记密码 — 发送重置验证码"
+      description: "忘记密码 — 发送重置验证码"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "email"
+              type: "object"
+              properties:
+                email:
+                  type: "string"
+                  description: ""
+                  format: "email"
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
+  /api/user/auth/reset-password:
+    post:
+      summary: "忘记密码 — 重置密码"
+      description: "忘记密码 — 重置密码"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "code"
+              - "email"
+              - "newPassword"
+              type: "object"
+              properties:
+                email:
+                  type: "string"
+                  description: ""
+                  format: "email"
+                code:
+                  maxLength: 6
+                  minLength: 6
+                  type: "string"
+                  description: ""
+                newPassword:
+                  maxLength: 128
+                  minLength: 6
+                  type: "string"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
   /api/user/auth/refresh:
     post:
       summary: "刷新 Token"
@@ -589,6 +669,45 @@ paths:
                       createdAt:
                         type: "string"
                         description: ""
+                    description: ""
+  /api/user/me/password:
+    put:
+      summary: "修改当前登录用户密码"
+      description: "修改当前登录用户密码"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "newPassword"
+              - "oldPassword"
+              type: "object"
+              properties:
+                oldPassword:
+                  type: "string"
+                  description: ""
+                newPassword:
+                  maxLength: 128
+                  minLength: 6
+                  type: "string"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
                     description: ""
   /api/user/me/send-email-code:
     post:
@@ -1176,6 +1295,55 @@ paths:
                               type: "integer"
                               description: ""
                           description: "标签信息 VO"
+                      relations:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "object"
+                          properties:
+                            relation:
+                              type: "string"
+                              description: ""
+                            relatedSubject:
+                              type: "object"
+                              properties:
+                                id:
+                                  type: "integer"
+                                  description: ""
+                                  format: "int64"
+                                name:
+                                  type: "string"
+                                  description: ""
+                                nameCn:
+                                  type: "string"
+                                  description: ""
+                                image:
+                                  type: "string"
+                                  description: ""
+                                score:
+                                  type: "number"
+                                  description: ""
+                                rank:
+                                  type: "integer"
+                                  description: ""
+                                eps:
+                                  type: "integer"
+                                  description: ""
+                                airDate:
+                                  type: "string"
+                                  description: ""
+                                type:
+                                  type: "integer"
+                                  description: "条目类型"
+                                airWeekday:
+                                  type: "integer"
+                                  description: ""
+                                collectionTotal:
+                                  type: "integer"
+                                  description: ""
+                              description: ""
+                          description: "条目关联视图"
+                        default: "new ArrayList<>()"
                       createdAt:
                         type: "string"
                         description: ""
@@ -1815,6 +1983,55 @@ paths:
                               type: "integer"
                               description: ""
                           description: "标签信息 VO"
+                      relations:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "object"
+                          properties:
+                            relation:
+                              type: "string"
+                              description: ""
+                            relatedSubject:
+                              type: "object"
+                              properties:
+                                id:
+                                  type: "integer"
+                                  description: ""
+                                  format: "int64"
+                                name:
+                                  type: "string"
+                                  description: ""
+                                nameCn:
+                                  type: "string"
+                                  description: ""
+                                image:
+                                  type: "string"
+                                  description: ""
+                                score:
+                                  type: "number"
+                                  description: ""
+                                rank:
+                                  type: "integer"
+                                  description: ""
+                                eps:
+                                  type: "integer"
+                                  description: ""
+                                airDate:
+                                  type: "string"
+                                  description: ""
+                                type:
+                                  type: "integer"
+                                  description: "条目类型"
+                                airWeekday:
+                                  type: "integer"
+                                  description: ""
+                                collectionTotal:
+                                  type: "integer"
+                                  description: ""
+                              description: ""
+                          description: "条目关联视图"
+                        default: "new ArrayList<>()"
                       createdAt:
                         type: "string"
                         description: ""
@@ -1941,6 +2158,55 @@ paths:
                               type: "integer"
                               description: ""
                           description: "标签信息 VO"
+                      relations:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "object"
+                          properties:
+                            relation:
+                              type: "string"
+                              description: ""
+                            relatedSubject:
+                              type: "object"
+                              properties:
+                                id:
+                                  type: "integer"
+                                  description: ""
+                                  format: "int64"
+                                name:
+                                  type: "string"
+                                  description: ""
+                                nameCn:
+                                  type: "string"
+                                  description: ""
+                                image:
+                                  type: "string"
+                                  description: ""
+                                score:
+                                  type: "number"
+                                  description: ""
+                                rank:
+                                  type: "integer"
+                                  description: ""
+                                eps:
+                                  type: "integer"
+                                  description: ""
+                                airDate:
+                                  type: "string"
+                                  description: ""
+                                type:
+                                  type: "integer"
+                                  description: "条目类型"
+                                airWeekday:
+                                  type: "integer"
+                                  description: ""
+                                collectionTotal:
+                                  type: "integer"
+                                  description: ""
+                              description: ""
+                          description: "条目关联视图"
+                        default: "new ArrayList<>()"
                       createdAt:
                         type: "string"
                         description: ""
@@ -2312,6 +2578,51 @@ components:
               description: ""
           description: ""
       description: ""
+    条目关联视图:
+      type: "object"
+      properties:
+        relation:
+          type: "string"
+          description: ""
+        relatedSubject:
+          type: "object"
+          properties:
+            id:
+              type: "integer"
+              description: ""
+              format: "int64"
+            name:
+              type: "string"
+              description: ""
+            nameCn:
+              type: "string"
+              description: ""
+            image:
+              type: "string"
+              description: ""
+            score:
+              type: "number"
+              description: ""
+            rank:
+              type: "integer"
+              description: ""
+            eps:
+              type: "integer"
+              description: ""
+            airDate:
+              type: "string"
+              description: ""
+            type:
+              type: "integer"
+              description: "条目类型"
+            airWeekday:
+              type: "integer"
+              description: ""
+            collectionTotal:
+              type: "integer"
+              description: ""
+          description: ""
+      description: "条目关联视图"
     条目详情视图（含标签）:
       type: "object"
       properties:
@@ -2378,6 +2689,55 @@ components:
                 type: "integer"
                 description: ""
             description: "标签信息 VO"
+        relations:
+          type: "array"
+          description: ""
+          items:
+            type: "object"
+            properties:
+              relation:
+                type: "string"
+                description: ""
+              relatedSubject:
+                type: "object"
+                properties:
+                  id:
+                    type: "integer"
+                    description: ""
+                    format: "int64"
+                  name:
+                    type: "string"
+                    description: ""
+                  nameCn:
+                    type: "string"
+                    description: ""
+                  image:
+                    type: "string"
+                    description: ""
+                  score:
+                    type: "number"
+                    description: ""
+                  rank:
+                    type: "integer"
+                    description: ""
+                  eps:
+                    type: "integer"
+                    description: ""
+                  airDate:
+                    type: "string"
+                    description: ""
+                  type:
+                    type: "integer"
+                    description: "条目类型"
+                  airWeekday:
+                    type: "integer"
+                    description: ""
+                  collectionTotal:
+                    type: "integer"
+                    description: ""
+                description: ""
+            description: "条目关联视图"
+          default: "new ArrayList<>()"
         createdAt:
           type: "string"
           description: ""
