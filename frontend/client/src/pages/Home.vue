@@ -3,15 +3,18 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Search, TrendingUp, Flame, CalendarDays,
-  ChevronRight, Radio, Users,
+  ChevronRight, Star, Heart,
 } from '@lucide/vue'
 import { subjectsApi } from '@/api/subjects'
 import { tagsApi } from '@/api/tags'
+import { collectionsApi } from '@/api/collections'
+import { useAuthStore } from '@/stores/auth'
 import type { SubjectListItem } from '@/types'
 import SubjectCard from '@/components/SubjectCard.vue'
 import SubjectCardSkeleton from '@/components/SubjectCardSkeleton.vue'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const searchQuery = ref('')
 
@@ -80,6 +83,44 @@ async function fetchSchedule(weekday: number) {
 }
 
 const currentDaySchedule = computed(() => scheduleItems.value)
+
+// Favorite (collect) state for the schedule cards
+const favoriteIds = ref<Set<number>>(new Set())
+const favLoading = ref<Set<number>>(new Set())
+
+async function loadFavorites() {
+  if (!authStore.isAuthenticated) return
+  try {
+    const res = await collectionsApi.getList({ page: 1, size: 200 })
+    favoriteIds.value = new Set(res.data.data.content.map((c) => c.subjectId))
+  } catch { /* silently fail */ }
+}
+
+function toggleFavorite(item: SubjectListItem) {
+  if (!authStore.isAuthenticated) {
+    router.push({ name: 'Login' })
+    return
+  }
+  if (favLoading.value.has(item.id)) return
+  favLoading.value = new Set(favLoading.value).add(item.id)
+  const isFav = favoriteIds.value.has(item.id)
+  const action = isFav
+    ? collectionsApi.remove(item.id)
+    : collectionsApi.upsert(item.id, { type: 3 })
+  action
+    .then(() => {
+      const next = new Set(favoriteIds.value)
+      if (isFav) next.delete(item.id)
+      else next.add(item.id)
+      favoriteIds.value = next
+    })
+    .catch(() => { /* silently fail */ })
+    .finally(() => {
+      const next = new Set(favLoading.value)
+      next.delete(item.id)
+      favLoading.value = next
+    })
+}
 
 function handleSearch() {
   const q = searchQuery.value.trim()
@@ -154,6 +195,7 @@ onMounted(() => {
   fetchSeasonal()
   fetchSchedule(todayWeekday)
   fetchTags()
+  loadFavorites()
 })
 </script>
 
@@ -214,84 +256,89 @@ onMounted(() => {
 
     <!-- 每周追番 -->
     <section class="app-container mb-14">
-      <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center gap-3">
-          <Radio class="h-5 w-5 text-accent-pink" />
-          <h2 class="section-title">每周追番</h2>
-          <span class="badge" style="background: rgba(241,121,146,0.1); color: #f17992">{{ seasonLabel }}</span>
-        </div>
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="section-title">每周追番</h2>
+        <router-link
+          :to="`/season/${currentYear}/${currentQuarter}`"
+          class="inline-flex items-center gap-0.5 text-sm transition-colors hover:text-[var(--color-primary)]"
+          style="color: var(--color-text-secondary)"
+        >
+          查看全部 <ChevronRight class="h-4 w-4" />
+        </router-link>
       </div>
 
       <!-- Weekday tabs -->
-      <div class="flex items-center gap-1.5 mb-5 overflow-x-auto scrollbar-hide">
+      <div class="flex items-center gap-1 flex-wrap mb-5">
         <button
           v-for="(label, idx) in weekdayLabels"
           :key="idx"
-          class="relative shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200"
+          class="relative rounded-full px-2.5 py-1.5 text-sm font-medium transition-colors duration-150 sm:px-3"
           :class="activeWeekday === weekdayValues[idx]
             ? 'bg-primary-600 text-white shadow-sm'
-            : ''"
+            : 'hover:text-[var(--color-primary)]'"
           :style="activeWeekday !== weekdayValues[idx] ? 'background: var(--color-hover); color: var(--color-text-secondary)' : ''"
           @click="activeWeekday = weekdayValues[idx]"
         >
-          {{ label }}
-          <span
-            v-if="weekdayValues[idx] === todayWeekday"
-            class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-accent-pink"
-          />
+          <span class="sm:hidden">{{ label }}</span>
+          <span class="hidden sm:inline">周{{ label }}</span>
         </button>
-        <span class="ml-2 text-xs" style="color: var(--color-text-secondary)">
-          {{ currentDaySchedule.length }} 部
-        </span>
       </div>
 
-      <!-- Schedule list -->
-      <div v-if="loadingSchedule" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        <div v-for="i in 9" :key="i" class="app-skeleton h-[72px] rounded-xl" />
+      <!-- Schedule poster grid -->
+      <div v-if="loadingSchedule" class="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <div v-for="i in 10" :key="i" class="app-skeleton aspect-[2/3] rounded-xl" />
       </div>
-      <div v-else-if="currentDaySchedule.length" class="card-grid-responsive grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        <router-link
-          v-for="item in currentDaySchedule"
-          :key="item.id"
-          :to="`/subject/${item.id}`"
-          class="group app-card flex items-center gap-3 p-3 rounded-xl transition-all duration-200"
-        >
-          <!-- Thumbnail -->
-          <div class="shrink-0 w-12 h-16 rounded-lg overflow-hidden">
-            <img
-              v-if="item.image"
-              :src="item.image"
-              :alt="item.nameCn || item.name"
-              class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
-            />
-            <div
-              v-else
-              class="h-full w-full flex items-center justify-center text-xs font-bold opacity-20"
-              style="background: var(--color-hover); color: var(--color-text)"
+      <div v-else-if="currentDaySchedule.length" class="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <article v-for="item in currentDaySchedule" :key="item.id" class="group relative flex flex-col">
+          <div class="relative w-full shrink-0">
+            <router-link
+              :to="`/subject/${item.id}`"
+              class="relative block w-full overflow-hidden rounded-xl aspect-[2/3]"
+              style="background: var(--color-hover)"
             >
-              {{ (item.nameCn || item.name)?.charAt(0) || '?' }}
-            </div>
-          </div>
-          <!-- Info -->
-          <div class="flex-1 min-w-0">
-            <h4
-              class="text-sm font-medium truncate group-hover:text-primary-600 transition-colors"
-              style="color: var(--color-text)"
-              :title="item.nameCn || item.name"
+              <img
+                v-if="item.image"
+                :src="item.image"
+                :alt="item.nameCn || item.name"
+                class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              <div
+                v-else
+                class="absolute inset-0 flex items-center justify-center text-3xl font-bold opacity-20"
+                style="color: var(--color-text)"
+              >
+                {{ (item.nameCn || item.name)?.charAt(0) || '?' }}
+              </div>
+            </router-link>
+            <!-- Favorite button -->
+            <button
+              type="button"
+              class="absolute right-2 top-2 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full border shadow-md shadow-black/10 backdrop-blur-sm transition-colors hover:border-[var(--color-primary)]"
+              :style="favoriteIds.has(item.id)
+                ? 'background: var(--color-card); border-color: var(--color-primary); color: var(--color-primary)'
+                : 'background: var(--color-card); border-color: var(--color-border); color: var(--color-text-secondary)'"
+              :title="favoriteIds.has(item.id) ? '取消收藏' : '加入收藏'"
+              @click.stop="toggleFavorite(item)"
             >
-              {{ item.nameCn || item.name }}
-            </h4>
-            <div class="flex items-center gap-3 mt-1.5">
-              <span v-if="item.collectionTotal" class="inline-flex items-center gap-1 text-[11px]" style="color: var(--color-text-secondary)">
-                <Users class="h-3 w-3" />
-                {{ formatCount(item.collectionTotal) }}
-              </span>
-              <span v-if="item.score > 0" class="badge-score text-[11px]">
-                {{ item.score.toFixed(1) }}分
-              </span>
-            </div>
+              <Heart class="h-5 w-5" :fill="favoriteIds.has(item.id) ? 'currentColor' : 'none'" />
+            </button>
           </div>
-        </router-link>
+          <router-link
+            :to="`/subject/${item.id}`"
+            class="mt-2 truncate text-base font-normal leading-snug transition-colors duration-150 group-hover:text-[var(--color-primary)]"
+            style="color: var(--color-text)"
+            :title="item.nameCn || item.name"
+          >
+            {{ item.nameCn || item.name }}
+          </router-link>
+          <div class="mt-1 flex items-center justify-between text-sm" style="color: var(--color-text-secondary)">
+            <span class="min-w-0 truncate">{{ item.eps ? '全 ' + item.eps + ' 话' : (item.airDate || '') }}</span>
+            <span v-if="item.score > 0" class="inline-flex shrink-0 items-center gap-1">
+              <Star class="h-3.5 w-3.5" />
+              {{ item.score.toFixed(1) }}
+            </span>
+          </div>
+        </article>
       </div>
       <div v-else class="app-card p-8 text-center" style="background: var(--color-card); border: 1px solid var(--color-border)">
         <p style="color: var(--color-text-secondary)">暂无追番数据</p>
