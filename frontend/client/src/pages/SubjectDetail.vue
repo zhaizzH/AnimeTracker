@@ -648,15 +648,11 @@ onBeforeUnmount(() => {
 
             <!-- Rating Card -->
             <section class="app-card p-4 sm:p-5">
-              <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center mb-4">
                 <h3 class="text-sm font-semibold flex items-center gap-2" style="color: var(--color-text)">
                   <Star class="h-4 w-4" />
                   我的评分
                 </h3>
-                <button class="text-xs font-medium inline-flex items-center gap-0.5 transition-colors hover:text-primary-500" style="color: var(--color-text-secondary)">
-                  查看站内评分
-                  <ChevronRight class="h-3 w-3" />
-                </button>
               </div>
 
               <div v-if="collection" class="flex items-center gap-1">
