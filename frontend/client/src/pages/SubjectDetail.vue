@@ -879,6 +879,14 @@ onBeforeUnmount(() => {
 .jump-input::placeholder {
   color: var(--color-text-secondary);
 }
+.jump-input::-webkit-inner-spin-button,
+.jump-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.jump-input[type='number'] {
+  -moz-appearance: textfield;
+}
 .jump-btn {
   @apply px-3 py-1.5 rounded-lg text-sm font-medium transition-colors;
   background: var(--color-hover);
