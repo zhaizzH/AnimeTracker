@@ -13,6 +13,7 @@ import argparse
 import logging
 import os
 import sys
+import time
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -23,7 +24,7 @@ from sqlalchemy.orm import Session
 
 from client import BangumiClient
 from db import get_engine, upsert_subject, upsert_episodes, upsert_tags, \
-    create_import_record, complete_import_record
+    upsert_relations, create_import_record, complete_import_record
 
 logging.basicConfig(
     level=logging.INFO,
@@ -43,12 +44,21 @@ COMMIT_EVERY = 50
 
 # ponytail: 模块级单例，避免层层传递
 _minio_client = None
+_start_time = None
 
 EXT_MAP = {
     "image/jpeg": "jpg",
     "image/png": "png",
     "image/webp": "webp",
 }
+
+
+def _fmt_duration(secs: float) -> str:
+    m, s = divmod(int(secs), 60)
+    h, m = divmod(m, 60)
+    if h:
+        return f"{h}h{m:02d}m{s:02d}s"
+    return f"{m}m{s:02d}s"
 
 
 def _get_minio_client():
@@ -94,6 +104,15 @@ def upload_cover(subject_id: int, image_url: str) -> str:
     except Exception as e:
         logger.warning("Cover upload failed for subject %d: %s, fallback to original URL", subject_id, e)
         return image_url
+
+
+def _progress(done: int, total: int | None = None):
+    elapsed = time.time() - _start_time
+    if total:
+        pct = done * 100 // total
+        logger.info("  progress: %d/%d (%d%%) [%s]", done, total, pct, _fmt_duration(elapsed))
+    else:
+        logger.info("  progress: %d subjects imported [%s]", done, _fmt_duration(elapsed))
 
 
 def parse_args(argv=None):
@@ -157,6 +176,15 @@ def import_single_subject(client, db, bangumi_id, resume):
             if episodes:
                 upsert_episodes(db, subject_id, episodes)
 
+        # 导入关联条目
+        try:
+            relations = client.get_relations(bangumi_id)
+            client.rate_limit()
+            if relations:
+                upsert_relations(db, subject_id, relations)
+        except Exception as e:
+            logger.warning("  -> failed to import relations for subject %d: %s", bangumi_id, e)
+
         db.commit()
         return True
 
@@ -194,6 +222,7 @@ def run_full(client, db, resume):
                         total += 1
                     if total % COMMIT_EVERY == 0:
                         db.commit()
+                        _progress(total)
 
                 total_count = result.get("total", 0)
                 offset += len(items)
@@ -228,6 +257,7 @@ def run_season(client, db, key, resume):
                     total += 1
                 if total % COMMIT_EVERY == 0:
                     db.commit()
+                    _progress(total)
 
             total_count = result.get("total", 0)
             offset += len(items)
@@ -258,6 +288,7 @@ def run_recent(client, db, resume):
                 total += 1
             if total % COMMIT_EVERY == 0:
                 db.commit()
+                _progress(total)
     return total
 
 
@@ -293,6 +324,7 @@ def run_since(client, db, since_date, resume):
                         total += 1
                     if total % COMMIT_EVERY == 0:
                         db.commit()
+                        _progress(total)
 
                 total_count = result.get("total", 0)
                 offset += len(items)
@@ -320,7 +352,21 @@ def main():
     record_id = create_import_record(db, args.mode, getattr(args, "key", None))
     db.commit()
 
-    logger.info("=== Import started [mode=%s] ===", args.mode)
+    global _start_time
+    _start_time = time.time()
+
+    logger.info("")
+    logger.info("=" * 60)
+    logger.info("  Bangumi 数据导入")
+    logger.info("  模式: %s", args.mode)
+    if args.key:
+        logger.info("  季度: %s", args.key)
+    if args.since:
+        logger.info("  起始: %s", args.since)
+    if args.resume:
+        logger.info("  启用跳过已导入条目")
+    logger.info("=" * 60)
+    logger.info("")
     try:
         if args.mode == "full":
             count = run_full(client, db, args.resume)
@@ -339,10 +385,17 @@ def main():
 
         complete_import_record(db, record_id, count, "COMPLETED")
         db.commit()
-        logger.info("=== Import complete, %d subjects ===", count)
+        elapsed = _fmt_duration(time.time() - _start_time)
+        logger.info("")
+        logger.info("=" * 60)
+        logger.info("  导入完成！共 %d 个条目", count)
+        logger.info("  耗时: %s", elapsed)
+        logger.info("=" * 60)
+        logger.info("")
 
     except Exception as e:
-        logger.exception("Import aborted")
+        elapsed = _fmt_duration(time.time() - _start_time)
+        logger.exception("导入异常终止（耗时 %s）", elapsed)
         complete_import_record(db, record_id, 0, "FAILED", str(e))
         db.commit()
         sys.exit(1)

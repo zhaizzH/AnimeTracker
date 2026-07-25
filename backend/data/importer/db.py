@@ -177,6 +177,69 @@ def upsert_tags(session: Session, subject_id: int, tags: list[dict]):
         )
 
 
+def upsert_relations(session: Session, subject_id: int, relations: list[dict]):
+    """先删后插条目关联，双向写入。
+
+    A→prequel→B 时同时写 A→prequel→B 和 B→sequel→A。
+    FK 保护：写入前检查 related_subject_id 在 subject 表是否存在，不存在则跳过。
+    """
+    # 1. 删除该条目的所有原有关联
+    session.execute(
+        text("DELETE FROM subject_relation WHERE subject_id = :sid OR related_subject_id = :sid2"),
+        {"sid": subject_id, "sid2": subject_id},
+    )
+
+    # 2. 写入新的关联
+    for rel in relations:
+        related_id = rel.get("id")
+        relation_type = rel.get("relation", "")
+
+        if not related_id or not relation_type:
+            continue
+
+        # FK 保护：检查 related_subject 是否存在
+        exists = session.execute(
+            text("SELECT 1 FROM subject WHERE id = :rid"),
+            {"rid": related_id},
+        ).scalar()
+        if not exists:
+            logger.warning("  -> skip relation: subject %d not found (related to %d)", related_id, subject_id)
+            continue
+
+        # 正向：subject_id → related_id
+        session.execute(
+            text("""
+                INSERT INTO subject_relation (subject_id, related_subject_id, relation)
+                VALUES (:sid, :rid, :rel)
+                ON DUPLICATE KEY UPDATE relation = :rel2
+            """),
+            {"sid": subject_id, "rid": related_id, "rel": relation_type, "rel2": relation_type},
+        )
+
+        # 反向：related_id → subject_id（双向）
+        inverse_rel = _inverse_relation(relation_type)
+        session.execute(
+            text("""
+                INSERT INTO subject_relation (subject_id, related_subject_id, relation)
+                VALUES (:sid, :rid, :rel)
+                ON DUPLICATE KEY UPDATE relation = :rel2
+            """),
+            {"sid": related_id, "rid": subject_id, "rel": inverse_rel, "rel2": inverse_rel},
+        )
+
+
+def _inverse_relation(relation: str) -> str:
+    """返回关联类型的反向关系。"""
+    mapping = {
+        "prequel": "sequel",
+        "sequel": "prequel",
+        "side_story": "parent_story",
+        "parent_story": "side_story",
+        "spin_off": "parent_story",
+    }
+    return mapping.get(relation, relation)
+
+
 def create_import_record(session: Session, mode: str, season_key: Optional[str] = None) -> int:
     """创建导入记录，返回 record_id。"""
     result = session.execute(

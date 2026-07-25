@@ -92,6 +92,10 @@ class BangumiClient:
         """GET /calendar — 每日放送（本周播出表）。"""
         return self._request("GET", "/calendar")
 
+    def get_relations(self, subject_id: int) -> list[dict]:
+        """GET /v0/subjects/{subject_id}/subjects — 条目关联列表。"""
+        return self._request("GET", f"/v0/subjects/{subject_id}/subjects")
+
     def rate_limit(self):
         """两次请求间的限流等待（1-2 秒）。"""
         time.sleep(random.uniform(1.0, 2.0))
