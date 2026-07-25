@@ -72,6 +72,16 @@ async function fetchSchedule(weekday: number) {
 
 const currentDaySchedule = computed(() => scheduleItems.value)
 
+// Schedule filter: all / mine
+const scheduleFilter = ref<'all' | 'mine'>('all')
+
+const filteredSchedule = computed(() => {
+  if (scheduleFilter.value === 'mine') {
+    return currentDaySchedule.value.filter((item) => favoriteIds.value.has(item.id))
+  }
+  return currentDaySchedule.value
+})
+
 // Favorite (collect) state for the schedule cards
 const favoriteIds = ref<Set<number>>(new Set())
 const favLoading = ref<Set<number>>(new Set())
@@ -250,12 +260,41 @@ onMounted(() => {
         </button>
       </div>
 
+      <!-- Filter tabs + count -->
+      <div class="mb-4 flex items-center justify-between">
+        <div class="inline-flex items-center gap-1 rounded-full p-1" style="background: var(--color-hover)">
+          <button
+            class="rounded-full px-3 py-1 text-xs font-medium transition-colors duration-150 sm:px-4 sm:text-sm"
+            :class="scheduleFilter === 'all'
+              ? 'bg-primary-600 text-white shadow-sm'
+              : ''"
+            :style="scheduleFilter !== 'all' ? 'color: var(--color-text-secondary)' : ''"
+            @click="scheduleFilter = 'all'"
+          >
+            全部
+          </button>
+          <button
+            class="rounded-full px-3 py-1 text-xs font-medium transition-colors duration-150 sm:px-4 sm:text-sm"
+            :class="scheduleFilter === 'mine'
+              ? 'bg-primary-600 text-white shadow-sm'
+              : ''"
+            :style="scheduleFilter !== 'mine' ? 'color: var(--color-text-secondary)' : ''"
+            @click="scheduleFilter = 'mine'"
+          >
+            我的
+          </button>
+        </div>
+        <span class="text-xs font-medium sm:text-sm" style="color: var(--color-text-secondary)">
+          {{ filteredSchedule.length }} 部
+        </span>
+      </div>
+
       <!-- Schedule poster grid -->
       <div v-if="loadingSchedule" class="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         <div v-for="i in 10" :key="i" class="app-skeleton aspect-[2/3] rounded-xl" />
       </div>
-      <div v-else-if="currentDaySchedule.length" class="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        <article v-for="item in currentDaySchedule" :key="item.id" class="group relative flex flex-col">
+      <div v-else-if="filteredSchedule.length" class="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <article v-for="item in filteredSchedule" :key="item.id" class="group relative flex flex-col">
           <div class="relative w-full shrink-0">
             <router-link
               :to="`/subject/${item.id}`"
@@ -307,7 +346,9 @@ onMounted(() => {
         </article>
       </div>
       <div v-else class="app-card p-8 text-center" style="background: var(--color-card); border: 1px solid var(--color-border)">
-        <p style="color: var(--color-text-secondary)">暂无追番数据</p>
+        <p style="color: var(--color-text-secondary)">
+          {{ scheduleFilter === 'mine' ? '当天暂无我的收藏' : '暂无追番数据' }}
+        </p>
       </div>
     </section>
 
