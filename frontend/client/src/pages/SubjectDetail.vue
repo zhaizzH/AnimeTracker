@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeft, Star, Trophy, Calendar, Tv, Hash, ExternalLink,
   Heart, ChevronDown, ChevronUp, Plus, Minus, Trash2, Bookmark, XCircle,
+  Flame, BarChart3, ChevronLeft, ChevronRight, Play, Info,
 } from '@lucide/vue'
 import { subjectsApi } from '@/api/subjects'
 import { collectionsApi, type UserCollectionVO, type UpsertCollectionRequest } from '@/api/collections'
@@ -11,16 +12,36 @@ import { useAuthStore } from '@/stores/auth'
 import type { SubjectDetail, EpisodeVO } from '@/types'
 import { SUBJECT_TYPES, WEEKDAYS } from '@/types'
 import TagBadge from '@/components/TagBadge.vue'
-import EpisodeList from '@/components/EpisodeList.vue'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
+
+const EPISODES_PER_RANGE = 100
+const COLLECTION_ACTIONS = [
+  { type: 1, label: '想看' },
+  { type: 3, label: '在看' },
+  { type: 2, label: '看过' },
+  { type: 4, label: '搁置' },
+  { type: 5, label: '抛弃' },
+]
 
 const subject = ref<SubjectDetail | null>(null)
 const episodes = ref<EpisodeVO[]>([])
 const loading = ref(true)
 const error = ref('')
 const summaryExpanded = ref(false)
+
+const collection = ref<UserCollectionVO | null>(null)
+const collectionLoading = ref(false)
+const collectionError = ref('')
+const showDeleteConfirm = ref(false)
+const showCollectionMenu = ref(false)
+const collectionWrapperRef = ref<HTMLElement | null>(null)
+
+const activeEpisodeRange = ref(0)
+const jumpEpisodeInput = ref('')
+const activeHeatTab = ref<'heat' | 'score'>('heat')
 
 const subjectId = computed(() => parseInt(route.params.id as string, 10))
 
@@ -51,6 +72,39 @@ const bangumiUrl = computed(() => {
   return `https://bgm.tv/subject/${subject.value.bangumiId}`
 })
 
+const airYear = computed(() => {
+  if (!subject.value?.airDate) return ''
+  const y = new Date(subject.value.airDate).getFullYear()
+  return isNaN(y) ? subject.value.airDate.slice(0, 4) : String(y)
+})
+
+const episodeRanges = computed(() => {
+  const total = subject.value?.eps || episodes.value.length || 0
+  if (!total) return []
+  const ranges: Array<{ start: number; end: number }> = []
+  for (let start = 1; start <= total; start += EPISODES_PER_RANGE) {
+    const end = Math.min(start + EPISODES_PER_RANGE - 1, total)
+    ranges.push({ start, end })
+  }
+  return ranges
+})
+
+const visibleRange = computed(() => episodeRanges.value[activeEpisodeRange.value] || null)
+
+const visibleEpisodeNumbers = computed(() => {
+  if (!visibleRange.value) return []
+  const list: number[] = []
+  for (let i = visibleRange.value.start; i <= visibleRange.value.end; i++) {
+    list.push(i)
+  }
+  return list
+})
+
+const collectionLabel = computed(() => {
+  if (!collection.value) return ''
+  return COLLECTION_ACTIONS.find(a => a.type === collection.value!.type)?.label || ''
+})
+
 async function fetchDetail() {
   loading.value = true
   error.value = ''
@@ -61,6 +115,7 @@ async function fetchDetail() {
     ])
     subject.value = detailRes.data.data
     episodes.value = episodesRes.data.data
+    activeEpisodeRange.value = 0
   } catch (e: any) {
     error.value = e?.response?.data?.message || '加载失败'
   } finally {
@@ -76,22 +131,6 @@ function goBack() {
   }
 }
 
-// --- Collection ---
-const authStore = useAuthStore()
-
-const collection = ref<UserCollectionVO | null>(null)
-const collectionLoading = ref(false)
-const collectionError = ref('')
-const showDeleteConfirm = ref(false)
-
-const COLLECTION_ACTIONS = [
-  { type: 1, label: '想看' },
-  { type: 3, label: '在看' },
-  { type: 2, label: '看过' },
-  { type: 4, label: '搁置' },
-  { type: 5, label: '抛弃' },
-]
-
 async function fetchCollection() {
   if (!authStore.isAuthenticated) return
   try {
@@ -103,6 +142,11 @@ async function fetchCollection() {
 }
 
 async function handleUpsert(type: number) {
+  if (!authStore.isAuthenticated) {
+    collectionError.value = '请先登录'
+    setTimeout(() => { collectionError.value = '' }, 3000)
+    return
+  }
   collectionLoading.value = true
   collectionError.value = ''
   try {
@@ -122,7 +166,16 @@ async function handleUpsert(type: number) {
 }
 
 async function handleRate(rate: number) {
-  if (!collection.value) return
+  if (!authStore.isAuthenticated) {
+    collectionError.value = '请先登录'
+    setTimeout(() => { collectionError.value = '' }, 3000)
+    return
+  }
+  if (!collection.value) {
+    // Auto collect as "在看" with this rating
+    await handleUpsert(3)
+    if (!collection.value) return
+  }
   const newRate = collection.value.rate === rate ? 0 : rate
   collectionLoading.value = true
   try {
@@ -140,11 +193,36 @@ async function handleRate(rate: number) {
   }
 }
 
-async function handleEpStatusChange(delta: number) {
-  if (!collection.value) return
-  const newStatus = Math.max(0, Math.min(subject.value?.eps || 999, collection.value.epStatus + delta))
-  if (newStatus === collection.value.epStatus) return
+async function ensureCollectionForProgress(epStatus: number) {
+  if (!authStore.isAuthenticated) return false
+  if (collection.value) return true
   collectionLoading.value = true
+  collectionError.value = ''
+  try {
+    await collectionsApi.upsert(subjectId.value, { type: 3, epStatus })
+    await fetchCollection()
+    return true
+  } catch (e: any) {
+    collectionError.value = e?.response?.data?.message || '操作失败'
+    setTimeout(() => { collectionError.value = '' }, 3000)
+    return false
+  } finally {
+    collectionLoading.value = false
+  }
+}
+
+async function handleEpStatusChange(delta: number) {
+  const current = collection.value?.epStatus || 0
+  const newStatus = Math.max(0, Math.min(subject.value?.eps || 999, current + delta))
+  if (newStatus === current && collection.value) return
+
+  if (!collection.value) {
+    await ensureCollectionForProgress(newStatus)
+    return
+  }
+
+  collectionLoading.value = true
+  collectionError.value = ''
   try {
     await collectionsApi.updateEpStatus(subjectId.value, newStatus)
     collection.value.epStatus = newStatus
@@ -156,12 +234,38 @@ async function handleEpStatusChange(delta: number) {
   }
 }
 
+async function setEpStatusTo(num: number) {
+  if (!subject.value) return
+  if (num < 1 || num > subject.value.eps) return
+
+  if (!collection.value) {
+    await ensureCollectionForProgress(num)
+    return
+  }
+
+  if (collection.value.epStatus === num) return
+
+  collectionLoading.value = true
+  collectionError.value = ''
+  try {
+    await collectionsApi.updateEpStatus(subjectId.value, num)
+    collection.value.epStatus = num
+  } catch (e: any) {
+    collectionError.value = e?.response?.data?.message || '更新失败'
+    setTimeout(() => { collectionError.value = '' }, 3000)
+  } finally {
+    collectionLoading.value = false
+  }
+}
+
 async function handleDelete() {
   collectionLoading.value = true
+  collectionError.value = ''
   try {
     await collectionsApi.remove(subjectId.value)
     collection.value = null
     showDeleteConfirm.value = false
+    showCollectionMenu.value = false
   } catch (e: any) {
     collectionError.value = e?.response?.data?.message || '删除失败'
     setTimeout(() => { collectionError.value = '' }, 3000)
@@ -170,17 +274,62 @@ async function handleDelete() {
   }
 }
 
+function toggleCollectionMenu() {
+  showCollectionMenu.value = !showCollectionMenu.value
+}
+
+function handleDocumentClick(e: MouseEvent) {
+  if (collectionWrapperRef.value && !collectionWrapperRef.value.contains(e.target as Node)) {
+    showCollectionMenu.value = false
+    showDeleteConfirm.value = false
+  }
+}
+
+function prevRange() {
+  activeEpisodeRange.value = Math.max(0, activeEpisodeRange.value - 1)
+}
+
+function nextRange() {
+  activeEpisodeRange.value = Math.min(episodeRanges.value.length - 1, activeEpisodeRange.value + 1)
+}
+
+function jumpToEpisode() {
+  const n = parseInt(jumpEpisodeInput.value, 10)
+  if (!n || !subject.value?.eps) return
+  if (n < 1 || n > subject.value.eps) {
+    collectionError.value = `请输入 1-${subject.value.eps} 之间的集数`
+    setTimeout(() => { collectionError.value = '' }, 3000)
+    return
+  }
+  const rangeIndex = Math.floor((n - 1) / EPISODES_PER_RANGE)
+  activeEpisodeRange.value = Math.max(0, Math.min(rangeIndex, episodeRanges.value.length - 1))
+  jumpEpisodeInput.value = ''
+}
+
+function formatNumber(num?: number) {
+  if (!num) return '0'
+  if (num >= 10000) {
+    return (num / 10000).toFixed(1) + '万'
+  }
+  return num.toLocaleString()
+}
+
 onMounted(() => {
   fetchDetail()
   fetchCollection()
+  document.addEventListener('click', handleDocumentClick)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick)
 })
 </script>
 
 <template>
-  <div class="app-container py-8">
+  <div class="app-container py-6 md:py-8">
     <!-- Back Button -->
     <button
-      class="btn-ghost mb-6 -ml-1"
+      class="btn-ghost mb-5 -ml-1"
       @click="goBack"
     >
       <ArrowLeft class="h-4 w-4" />
@@ -189,21 +338,17 @@ onMounted(() => {
 
     <!-- Loading State -->
     <div v-if="loading" class="space-y-6">
-      <div class="flex flex-col md:flex-row gap-8">
-        <div class="app-skeleton w-48 md:w-64 shrink-0 rounded-2xl" style="aspect-ratio: 2/3" />
-        <div class="flex-1 space-y-4">
-          <div class="app-skeleton h-8 w-3/4 rounded-lg" />
-          <div class="app-skeleton h-5 w-1/2 rounded-lg" />
-          <div class="flex gap-3 mt-4">
-            <div class="app-skeleton h-7 w-16 rounded-md" />
-            <div class="app-skeleton h-7 w-16 rounded-md" />
-            <div class="app-skeleton h-7 w-24 rounded-md" />
-          </div>
-          <div class="app-skeleton h-24 w-full rounded-xl mt-6" />
-          <div class="flex gap-2 mt-4">
-            <div class="app-skeleton h-7 w-20 rounded-full" />
-            <div class="app-skeleton h-7 w-20 rounded-full" />
-            <div class="app-skeleton h-7 w-20 rounded-full" />
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+        <div class="lg:col-span-3 space-y-5">
+          <div class="app-skeleton w-full rounded-2xl" style="aspect-ratio: 2/3" />
+          <div class="app-skeleton h-48 rounded-2xl" />
+        </div>
+        <div class="lg:col-span-9 space-y-5">
+          <div class="app-skeleton h-24 rounded-2xl" />
+          <div class="app-skeleton h-64 rounded-2xl" />
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="app-skeleton h-32 rounded-2xl" />
+            <div class="app-skeleton h-32 rounded-2xl" />
           </div>
         </div>
       </div>
@@ -216,214 +361,157 @@ onMounted(() => {
     </div>
 
     <!-- Subject Detail -->
-    <div v-else-if="subject">
-      <div class="flex flex-col md:flex-row gap-8 mb-10">
-        <!-- Cover Image -->
-        <div class="shrink-0 mx-auto md:mx-0">
-          <div class="w-48 md:w-64 rounded-2xl overflow-hidden shadow-xl" style="aspect-ratio: 2/3">
+    <div v-else-if="subject" class="space-y-6">
+      <!-- Header -->
+      <header class="flex items-start gap-4 md:gap-6">
+        <div class="flex-1 min-w-0">
+          <h1 class="text-2xl md:text-3xl font-bold" style="color: var(--color-text)">
+            {{ subject.nameCn || subject.name }}
+          </h1>
+          <p v-if="subject.nameCn" class="text-sm md:text-base mt-1" style="color: var(--color-text-secondary)">
+            {{ subject.name }}
+          </p>
+
+          <div class="flex flex-wrap items-center gap-2 mt-3">
+            <span v-if="airYear" class="header-tag year">{{ airYear }}年</span>
+            <span class="header-tag type">{{ typeName }}</span>
+            <span v-if="subject.eps" class="header-tag eps">{{ subject.eps }} 话</span>
+            <span v-if="subject.score" class="header-tag score">
+              <Star class="inline h-3 w-3 mr-1" />{{ subject.score.toFixed(1) }}
+            </span>
+            <span v-if="subject.rank" class="header-tag rank">
+              <Trophy class="inline h-3 w-3 mr-1" />Rank #{{ subject.rank }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Favorite / Collection -->
+        <div v-if="authStore.isAuthenticated" ref="collectionWrapperRef" class="relative shrink-0">
+          <button
+            class="heart-btn"
+            :class="{ active: collection }"
+            :disabled="collectionLoading"
+            @click.stop="toggleCollectionMenu"
+            aria-label="收藏"
+          >
+            <Heart class="h-6 w-6 transition-transform duration-200" :class="collection ? 'fill-current scale-110' : ''" />
+          </button>
+
+          <Transition name="slide-fade">
+            <div
+              v-if="showCollectionMenu"
+              class="collection-menu"
+            >
+              <div class="text-xs font-medium px-2 py-1.5" style="color: var(--color-text-secondary)">
+                {{ collection ? '切换收藏状态' : '添加到收藏' }}
+              </div>
+              <button
+                v-for="action in COLLECTION_ACTIONS"
+                :key="action.type"
+                class="menu-item"
+                :class="{ active: collection?.type === action.type }"
+                @click="handleUpsert(action.type); showCollectionMenu = false"
+              >
+                <Bookmark class="h-3.5 w-3.5" />
+                {{ action.label }}
+              </button>
+              <div v-if="collection" class="border-t mt-1 pt-1" style="border-color: var(--color-border)">
+                <button class="menu-item danger" @click="showDeleteConfirm = true">
+                  <Trash2 class="h-3.5 w-3.5" />
+                  删除收藏
+                </button>
+              </div>
+            </div>
+          </Transition>
+
+          <!-- Delete confirm modal -->
+          <Transition name="slide-fade">
+            <div
+              v-if="showDeleteConfirm"
+              class="delete-confirm"
+            >
+              <p class="text-xs mb-2" style="color: var(--color-text-secondary)">确认删除收藏？</p>
+              <div class="flex gap-2">
+                <button class="px-2.5 py-1 rounded-md text-xs font-medium bg-red-500 text-white" @click="handleDelete">确认</button>
+                <button class="px-2.5 py-1 rounded-md text-xs font-medium" style="background: var(--color-hover); color: var(--color-text-secondary)" @click="showDeleteConfirm = false">取消</button>
+              </div>
+            </div>
+          </Transition>
+        </div>
+      </header>
+
+      <!-- Collection Error Toast -->
+      <Transition name="slide-fade">
+        <div
+          v-if="collectionError"
+          class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-sm text-red-600 dark:text-red-400"
+        >
+          <XCircle class="h-4 w-4 shrink-0" />
+          {{ collectionError }}
+        </div>
+      </Transition>
+
+      <!-- Two Column Layout -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+        <!-- Left Column: Poster + Info -->
+        <aside class="lg:col-span-3 space-y-5">
+          <!-- Poster -->
+          <div class="rounded-2xl overflow-hidden shadow-xl" style="aspect-ratio: 2/3; background: var(--color-hover)">
             <img
               v-if="subject.image"
               :src="subject.image"
               :alt="subject.nameCn || subject.name"
               class="w-full h-full object-cover"
             />
-            <div v-else class="w-full h-full flex items-center justify-center" style="background: var(--color-hover)">
-              <Tv class="h-12 w-12 opacity-20" style="color: var(--color-text-secondary)" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Info Panel -->
-        <div class="flex-1 min-w-0">
-          <!-- Title -->
-          <h1 class="text-2xl md:text-3xl font-bold mb-1" style="color: var(--color-text)">
-            {{ subject.nameCn || subject.name }}
-          </h1>
-          <p v-if="subject.nameCn" class="text-base mb-5" style="color: var(--color-text-secondary)">
-            {{ subject.name }}
-          </p>
-
-          <!-- Badges Row -->
-          <div class="flex flex-wrap items-center gap-2 mb-6">
-            <span v-if="subject.score" class="badge-score text-sm px-2.5 py-1">
-              <Star class="inline h-3.5 w-3.5 mr-1 -mt-0.5" />{{ subject.score.toFixed(1) }}
-            </span>
-            <span v-if="subject.rank" class="badge-rank text-sm px-2.5 py-1">
-              <Trophy class="inline h-3.5 w-3.5 mr-1 -mt-0.5" />Rank #{{ subject.rank }}
-            </span>
-            <span class="badge text-sm px-2.5 py-1">{{ typeName }}</span>
-            <span v-if="subject.eps" class="badge text-sm px-2.5 py-1">
-              {{ subject.eps }} 话
-            </span>
-          </div>
-
-          <!-- Collection Section -->
-          <div v-if="authStore.isAuthenticated" class="mb-6">
-            <!-- Error toast -->
-            <Transition name="slide-fade">
-              <div
-                v-if="collectionError"
-                class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-sm text-red-600 dark:text-red-400"
-              >
-                <XCircle class="h-4 w-4 shrink-0" />
-                {{ collectionError }}
-              </div>
-            </Transition>
-
-            <div class="app-card p-4 sm:p-5">
-              <div v-if="collectionLoading && !collection" class="app-skeleton h-12 rounded-lg" />
-              <!-- Not collected -->
-              <template v-else-if="!collection">
-                <h3 class="text-sm font-medium mb-3" style="color: var(--color-text)">追番</h3>
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    v-for="action in COLLECTION_ACTIONS"
-                    :key="action.type"
-                    class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200"
-                    :class="'hover:bg-primary-500/10 hover:text-primary-500'"
-                    style="background: var(--color-hover); color: var(--color-text-secondary);"
-                    :disabled="collectionLoading"
-                    @click="handleUpsert(action.type)"
-                  >
-                    <Bookmark class="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
-                    {{ action.label }}
-                  </button>
-                </div>
-              </template>
-              <!-- Collected -->
-              <template v-else>
-                <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-                  <!-- Type switcher -->
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm font-medium" style="color: var(--color-text)">状态：</span>
-                    <div class="flex flex-wrap gap-1">
-                      <button
-                        v-for="action in COLLECTION_ACTIONS"
-                        :key="action.type"
-                        class="px-3 py-1 rounded-full text-xs font-medium transition-all duration-200"
-                        :class="collection.type === action.type
-                          ? 'bg-primary-600 text-white shadow-sm'
-                          : ''"
-                        :style="collection.type !== action.type ? 'background: var(--color-hover); color: var(--color-text-secondary)' : ''"
-                        :disabled="collectionLoading"
-                        @click="handleUpsert(action.type)"
-                      >
-                        {{ action.label }}
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Rating -->
-                  <div class="flex items-center gap-1">
-                    <span class="text-sm font-medium mr-1" style="color: var(--color-text)">评分：</span>
-                    <button
-                      v-for="i in 10"
-                      :key="i"
-                      class="w-5 h-5 flex items-center justify-center transition-colors duration-150"
-                      :class="i <= (collection.rate || 0) ? 'text-yellow-500' : 'text-gray-300 dark:text-gray-600'"
-                      :disabled="collectionLoading"
-                      @click="handleRate(i)"
-                    >
-                      <Star :size="14" :fill="i <= (collection.rate || 0) ? 'currentColor' : 'none'" />
-                    </button>
-                    <span v-if="collection.rate > 0" class="text-xs ml-1" style="color: var(--color-text-secondary)">{{ collection.rate }}/10</span>
-                    <span v-else class="text-xs ml-1" style="color: var(--color-text-secondary)">未评分</span>
-                  </div>
-                </div>
-
-                <!-- Progress + Delete -->
-                <div class="flex items-center justify-between mt-4 pt-4 border-t" style="border-color: var(--color-border)">
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm font-medium" style="color: var(--color-text)">进度：</span>
-                    <button
-                      class="btn-ghost !p-1.5"
-                      :disabled="collectionLoading || collection.epStatus <= 0"
-                      @click="handleEpStatusChange(-1)"
-                    >
-                      <Minus :size="14" />
-                    </button>
-                    <span class="text-sm tabular-nums min-w-[4rem] text-center" style="color: var(--color-text)">
-                      {{ collection.epStatus }} / {{ subject?.eps || '?' }} 话
-                    </span>
-                    <button
-                      class="btn-ghost !p-1.5"
-                      :disabled="collectionLoading || (!!subject?.eps && collection.epStatus >= subject.eps)"
-                      @click="handleEpStatusChange(1)"
-                    >
-                      <Plus :size="14" />
-                    </button>
-                  </div>
-                  <div class="relative">
-                    <button
-                      class="btn-ghost !p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
-                      :disabled="collectionLoading"
-                      @click="showDeleteConfirm = !showDeleteConfirm"
-                    >
-                      <Trash2 :size="14" />
-                    </button>
-                    <Transition name="slide-fade">
-                      <div
-                        v-if="showDeleteConfirm"
-                        class="absolute right-0 bottom-full mb-2 flex items-center gap-2 p-2 rounded-lg shadow-lg border z-10"
-                        style="background: var(--color-card); border-color: var(--color-border)"
-                      >
-                        <span class="text-xs whitespace-nowrap" style="color: var(--color-text-secondary)">确认删除？</span>
-                        <button
-                          class="px-2 py-1 rounded text-xs font-medium bg-red-500 text-white"
-                          @click="handleDelete"
-                        >
-                          确认
-                        </button>
-                        <button
-                          class="px-2 py-1 rounded text-xs font-medium"
-                          style="background: var(--color-hover); color: var(--color-text-secondary)"
-                          @click="showDeleteConfirm = false"
-                        >
-                          取消
-                        </button>
-                      </div>
-                    </Transition>
-                  </div>
-                </div>
-              </template>
+            <div v-else class="w-full h-full flex items-center justify-center">
+              <Tv class="h-16 w-16 opacity-20" style="color: var(--color-text-secondary)" />
             </div>
           </div>
 
-          <!-- Meta Info -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 text-sm">
-            <div v-if="subject.airDate" class="flex items-center gap-2" style="color: var(--color-text-secondary)">
-              <Calendar class="h-4 w-4 shrink-0" />
-              <span>首播: {{ subject.airDate }}</span>
-            </div>
-            <div v-if="weekdayName" class="flex items-center gap-2" style="color: var(--color-text-secondary)">
-              <Tv class="h-4 w-4 shrink-0" />
-              <span>放送: {{ weekdayName }}</span>
-            </div>
-            <div v-if="subject.collectionTotal" class="flex items-center gap-2" style="color: var(--color-text-secondary)">
-              <Heart class="h-4 w-4 shrink-0" />
-              <span>{{ subject.collectionTotal.toLocaleString() }} 人收藏</span>
-            </div>
-            <div v-if="subject.bangumiId" class="flex items-center gap-2" style="color: var(--color-text-secondary)">
-              <Hash class="h-4 w-4 shrink-0" />
-              <span>Bangumi ID: {{ subject.bangumiId }}</span>
-            </div>
+          <!-- Info Card -->
+          <div class="app-card p-4 sm:p-5">
+            <h3 class="text-sm font-semibold mb-3 flex items-center gap-2" style="color: var(--color-text)">
+              <Info class="h-4 w-4" />
+              详细信息
+            </h3>
+            <ul class="space-y-2.5 text-sm">
+              <li class="info-row">
+                <span class="info-label"><Hash class="h-3.5 w-3.5" />话数</span>
+                <span class="info-value">{{ subject.eps || '-' }}</span>
+              </li>
+              <li class="info-row">
+                <span class="info-label"><Calendar class="h-3.5 w-3.5" />首播</span>
+                <span class="info-value">{{ subject.airDate || '-' }}</span>
+              </li>
+              <li class="info-row">
+                <span class="info-label"><Tv class="h-3.5 w-3.5" />放送</span>
+                <span class="info-value">{{ weekdayName || '-' }}</span>
+              </li>
+              <li class="info-row">
+                <span class="info-label"><Heart class="h-3.5 w-3.5" />收藏</span>
+                <span class="info-value">{{ subject.collectionTotal ? subject.collectionTotal.toLocaleString() : '-' }}</span>
+              </li>
+              <li class="info-row">
+                <span class="info-label"><Hash class="h-3.5 w-3.5" />Bangumi</span>
+                <span class="info-value">{{ subject.bangumiId || '-' }}</span>
+              </li>
+            </ul>
+            <a
+              v-if="bangumiUrl"
+              :href="bangumiUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-1.5 mt-4 text-xs font-medium transition-colors hover:text-primary-500"
+              style="color: var(--color-text-secondary)"
+            >
+              <ExternalLink class="h-3 w-3" />
+              在 Bangumi 查看
+            </a>
           </div>
-
-          <!-- Bangumi Link -->
-          <a
-            v-if="bangumiUrl"
-            :href="bangumiUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="btn-secondary text-xs mb-6 inline-flex"
-          >
-            <ExternalLink class="h-3.5 w-3.5" />
-            在 Bangumi 查看
-          </a>
 
           <!-- Tags -->
-          <div v-if="subject.tags && subject.tags.length > 0" class="mb-6">
-            <h3 class="text-sm font-medium mb-2" style="color: var(--color-text)">标签</h3>
+          <div v-if="subject.tags && subject.tags.length > 0">
+            <h3 class="text-sm font-semibold mb-2.5" style="color: var(--color-text)">标签</h3>
             <div class="flex flex-wrap gap-2">
               <TagBadge
                 v-for="tag in subject.tags"
@@ -435,8 +523,8 @@ onMounted(() => {
           </div>
 
           <!-- Summary -->
-          <div v-if="subject.summary" class="mb-4">
-            <h3 class="text-sm font-medium mb-2" style="color: var(--color-text)">简介</h3>
+          <div v-if="subject.summary">
+            <h3 class="text-sm font-semibold mb-2.5" style="color: var(--color-text)">简介</h3>
             <p class="text-sm leading-relaxed whitespace-pre-line" style="color: var(--color-text-secondary)">
               {{ displaySummary }}
             </p>
@@ -450,13 +538,224 @@ onMounted(() => {
               {{ summaryExpanded ? '收起' : '展开全部' }}
             </button>
           </div>
-        </div>
-      </div>
+        </aside>
 
-      <!-- Episodes Section -->
-      <div v-if="episodes.length > 0">
-        <h2 class="section-title mb-4">剧集列表</h2>
-        <EpisodeList :episodes="episodes" />
+        <!-- Right Column: Episodes + Progress + Rating + Heat -->
+        <main class="lg:col-span-9 space-y-5">
+          <!-- Episode Selector -->
+          <section v-if="episodeRanges.length > 0" class="app-card p-4 sm:p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div class="flex items-center gap-2">
+                <Play class="h-4 w-4" style="color: var(--color-text-secondary)" />
+                <h2 class="text-base font-semibold" style="color: var(--color-text)">剧集列表</h2>
+              </div>
+              <div class="flex items-center gap-2">
+                <input
+                  v-model="jumpEpisodeInput"
+                  type="number"
+                  min="1"
+                  :max="subject.eps || 1"
+                  placeholder="输入集数"
+                  class="jump-input"
+                  @keyup.enter="jumpToEpisode"
+                />
+                <button class="jump-btn" @click="jumpToEpisode">跳转</button>
+              </div>
+            </div>
+
+            <!-- Range Tabs -->
+            <div class="flex items-center gap-1.5 mb-4 overflow-x-auto scrollbar-hide pb-1">
+              <button
+                class="range-arrow"
+                :disabled="activeEpisodeRange === 0"
+                @click="prevRange"
+              >
+                <ChevronLeft class="h-4 w-4" />
+              </button>
+              <button
+                v-for="(range, idx) in episodeRanges"
+                :key="idx"
+                class="range-tab"
+                :class="{ active: idx === activeEpisodeRange }"
+                @click="activeEpisodeRange = idx"
+              >
+                {{ range.start }}-{{ range.end }}
+              </button>
+              <button
+                class="range-arrow"
+                :disabled="activeEpisodeRange >= episodeRanges.length - 1"
+                @click="nextRange"
+              >
+                <ChevronRight class="h-4 w-4" />
+              </button>
+            </div>
+
+            <!-- Episode Grid -->
+            <div
+              class="grid gap-2"
+              style="grid-template-columns: repeat(7, minmax(0, 1fr))"
+            >
+              <button
+                v-for="num in visibleEpisodeNumbers"
+                :key="num"
+                class="ep-btn"
+                :class="{
+                  watched: collection && num <= collection.epStatus,
+                  current: collection && num === collection.epStatus + 1,
+                }"
+                :disabled="collectionLoading"
+                @click="setEpStatusTo(num)"
+              >
+                {{ num }}
+              </button>
+            </div>
+          </section>
+
+          <!-- Progress + Rating -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <!-- Progress Card -->
+            <section class="app-card p-4 sm:p-5">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-semibold flex items-center gap-2" style="color: var(--color-text)">
+                  <Play class="h-4 w-4" />
+                  我的进度
+                </h3>
+                <span
+                  class="text-xs px-2 py-0.5 rounded-full font-medium"
+                  :class="collection
+                    ? 'bg-primary-500/10 text-primary-500'
+                    : ''"
+                  :style="!collection ? 'background: var(--color-hover); color: var(--color-text-secondary)' : ''"
+                >
+                  {{ collection ? collectionLabel : '未追番' }}
+                </span>
+              </div>
+
+              <div class="flex items-center gap-3">
+                <span class="text-sm" style="color: var(--color-text-secondary)">已看</span>
+                <button
+                  class="step-btn"
+                  :disabled="collectionLoading || (collection ? collection.epStatus <= 0 : false)"
+                  @click="handleEpStatusChange(-1)"
+                >
+                  <Minus class="h-4 w-4" />
+                </button>
+                <span class="text-lg font-bold tabular-nums min-w-[3rem] text-center" style="color: var(--color-text)">
+                  {{ collection?.epStatus || 0 }}
+                </span>
+                <button
+                  class="step-btn"
+                  :disabled="collectionLoading || (!!subject?.eps && !!collection && collection.epStatus >= subject.eps)"
+                  @click="handleEpStatusChange(1)"
+                >
+                  <Plus class="h-4 w-4" />
+                </button>
+                <span class="text-sm" style="color: var(--color-text-secondary)">集 / 共 {{ subject?.eps || '?' }} 集</span>
+              </div>
+
+              <p class="text-xs mt-3" style="color: var(--color-text-secondary)">
+                首次保存进度将自动加入追番
+              </p>
+            </section>
+
+            <!-- Rating Card -->
+            <section class="app-card p-4 sm:p-5">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-semibold flex items-center gap-2" style="color: var(--color-text)">
+                  <Star class="h-4 w-4" />
+                  我的评分
+                </h3>
+                <button class="text-xs font-medium inline-flex items-center gap-0.5 transition-colors hover:text-primary-500" style="color: var(--color-text-secondary)">
+                  查看站内评分
+                  <ChevronRight class="h-3 w-3" />
+                </button>
+              </div>
+
+              <div v-if="collection" class="flex items-center gap-1">
+                <button
+                  v-for="i in 10"
+                  :key="i"
+                  class="star-btn"
+                  :class="i <= (collection.rate || 0) ? 'active' : ''"
+                  :disabled="collectionLoading"
+                  @click="handleRate(i)"
+                >
+                  <Star class="h-5 w-5" />
+                </button>
+                <span class="text-sm font-medium ml-2" style="color: var(--color-text-secondary)">
+                  {{ collection.rate ? collection.rate + '/10' : '未评分' }}
+                </span>
+              </div>
+
+              <div v-else>
+                <button
+                  class="rate-action-btn"
+                  :disabled="collectionLoading"
+                  @click="handleUpsert(3)"
+                >
+                  <Star class="h-4 w-4" />
+                  立即评分
+                </button>
+              </div>
+            </section>
+          </div>
+
+          <!-- Heat Overview -->
+          <section class="app-card p-4 sm:p-5">
+            <div class="flex items-center gap-1 p-1 rounded-xl mb-4 w-fit" style="background: var(--color-hover)">
+              <button
+                class="heat-tab"
+                :class="{ active: activeHeatTab === 'heat' }"
+                @click="activeHeatTab = 'heat'"
+              >
+                <Flame class="h-3.5 w-3.5" />
+                热度
+              </button>
+              <button
+                class="heat-tab"
+                :class="{ active: activeHeatTab === 'score' }"
+                @click="activeHeatTab = 'score'"
+              >
+                <BarChart3 class="h-3.5 w-3.5" />
+                评分
+              </button>
+            </div>
+
+            <div v-if="activeHeatTab === 'heat'" class="space-y-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(241,121,146,0.12)">
+                  <Flame class="h-5 w-5 text-primary-500" />
+                </div>
+                <div>
+                  <div class="text-2xl font-bold" style="color: var(--color-text)">{{ formatNumber(subject.collectionTotal) }}</div>
+                  <div class="text-xs" style="color: var(--color-text-secondary)">综合热度</div>
+                </div>
+              </div>
+              <div class="h-2 rounded-full overflow-hidden" style="background: var(--color-hover)">
+                <div
+                  class="h-full rounded-full bg-primary-500"
+                  :style="{ width: Math.min(100, ((subject.collectionTotal || 0) / 100000) * 100) + '%' }"
+                />
+              </div>
+            </div>
+
+            <div v-else class="space-y-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(255,185,0,0.12)">
+                  <Star class="h-5 w-5" style="color: #ffb900" />
+                </div>
+                <div>
+                  <div class="text-2xl font-bold" style="color: var(--color-text)">{{ subject.score ? subject.score.toFixed(1) : '-' }}</div>
+                  <div class="text-xs" style="color: var(--color-text-secondary)">Bangumi 评分</div>
+                </div>
+              </div>
+              <div v-if="subject.rank" class="flex items-center gap-2 text-sm" style="color: var(--color-text-secondary)">
+                <Trophy class="h-4 w-4" />
+                Rank #{{ subject.rank }}
+              </div>
+            </div>
+          </section>
+        </main>
       </div>
     </div>
   </div>
@@ -475,5 +774,228 @@ onMounted(() => {
 }
 .slide-fade-leave-to {
   opacity: 0;
+}
+
+.header-tag {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+.header-tag.year {
+  background: var(--color-hover);
+  color: var(--color-text-secondary);
+}
+.header-tag.type {
+  background: rgba(0, 161, 214, 0.12);
+  color: #22b8e8;
+}
+.dark .header-tag.type {
+  color: #4dd1f7;
+}
+.header-tag.eps {
+  background: rgba(132, 94, 247, 0.12);
+  color: #845ef7;
+}
+.header-tag.score {
+  background: rgba(255, 185, 0, 0.15);
+  color: #e69d00;
+}
+.dark .header-tag.score {
+  color: #ffb900;
+}
+.header-tag.rank {
+  background: rgba(54, 211, 153, 0.12);
+  color: #20a96d;
+}
+.dark .header-tag.rank {
+  color: #36d399;
+}
+
+.heart-btn {
+  @apply w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200;
+  background: var(--color-hover);
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+}
+.heart-btn:hover {
+  border-color: var(--color-border-solid);
+  color: var(--color-text);
+}
+.heart-btn.active {
+  background: rgba(241, 121, 146, 0.12);
+  color: #f17992;
+  border-color: rgba(241, 121, 146, 0.25);
+}
+.heart-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.collection-menu {
+  @apply absolute right-0 top-full mt-2 p-1.5 rounded-xl shadow-lg z-20 min-w-[9rem];
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+}
+.menu-item {
+  @apply w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm transition-colors duration-150;
+  color: var(--color-text);
+}
+.menu-item:hover {
+  background: var(--color-hover);
+}
+.menu-item.active {
+  background: rgba(241, 121, 146, 0.1);
+  color: #f17992;
+}
+.menu-item.danger {
+  color: #ef4444;
+}
+.menu-item.danger:hover {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.delete-confirm {
+  @apply absolute right-0 top-full mt-2 p-3 rounded-xl shadow-lg z-20 w-44;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+}
+
+.info-row {
+  @apply flex items-center justify-between;
+}
+.info-label {
+  @apply inline-flex items-center gap-1.5;
+  color: var(--color-text-secondary);
+}
+.info-value {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.jump-input {
+  @apply w-24 px-2.5 py-1.5 rounded-lg text-sm outline-none transition-colors;
+  background: var(--color-hover);
+  color: var(--color-text);
+  border: 1px solid transparent;
+}
+.jump-input:focus {
+  border-color: var(--color-border-solid);
+}
+.jump-input::placeholder {
+  color: var(--color-text-secondary);
+}
+.jump-btn {
+  @apply px-3 py-1.5 rounded-lg text-sm font-medium transition-colors;
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+.jump-btn:hover {
+  background: var(--color-border-solid);
+}
+
+.range-arrow {
+  @apply w-8 h-8 flex items-center justify-center rounded-lg transition-colors shrink-0;
+  background: var(--color-hover);
+  color: var(--color-text-secondary);
+}
+.range-arrow:hover:not(:disabled) {
+  background: var(--color-border-solid);
+  color: var(--color-text);
+}
+.range-arrow:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.range-tab {
+  @apply px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors;
+  background: var(--color-hover);
+  color: var(--color-text-secondary);
+}
+.range-tab:hover {
+  color: var(--color-text);
+}
+.range-tab.active {
+  background: rgba(241, 121, 146, 0.12);
+  color: #f17992;
+}
+
+.ep-btn {
+  @apply aspect-square flex items-center justify-center rounded-lg text-xs font-medium transition-all duration-150;
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+.ep-btn:hover:not(:disabled) {
+  background: var(--color-border-solid);
+}
+.ep-btn.watched {
+  background: rgba(241, 121, 146, 0.85);
+  color: white;
+}
+.ep-btn.watched:hover:not(:disabled) {
+  background: #f17992;
+}
+.ep-btn.current {
+  border: 1px solid rgba(241, 121, 146, 0.5);
+}
+.ep-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.step-btn {
+  @apply w-8 h-8 flex items-center justify-center rounded-lg transition-colors;
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+.step-btn:hover:not(:disabled) {
+  background: var(--color-border-solid);
+}
+.step-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.star-btn {
+  @apply p-0.5 transition-colors duration-150;
+  color: var(--color-border-solid);
+}
+.star-btn.active {
+  color: #ffb900;
+}
+.star-btn:hover:not(:disabled) {
+  color: #ffb900;
+}
+.star-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rate-action-btn {
+  @apply inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors;
+  background: rgba(241, 121, 146, 0.1);
+  color: #f17992;
+}
+.rate-action-btn:hover:not(:disabled) {
+  background: rgba(241, 121, 146, 0.18);
+}
+.rate-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.heat-tab {
+  @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200;
+  color: var(--color-text-secondary);
+}
+.heat-tab.active {
+  background: var(--color-card);
+  color: var(--color-text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 </style>
