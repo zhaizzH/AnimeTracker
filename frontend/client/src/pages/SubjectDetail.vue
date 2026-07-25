@@ -591,10 +591,7 @@ onBeforeUnmount(() => {
             </div>
 
             <!-- Episode Grid -->
-            <div
-              class="grid gap-2"
-              style="grid-template-columns: repeat(7, minmax(0, 1fr))"
-            >
+            <div class="ep-grid">
               <button
                 v-for="num in visibleEpisodeNumbers"
                 :key="num"
@@ -917,8 +914,15 @@ onBeforeUnmount(() => {
   color: #f17992;
 }
 
+.ep-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 60px);
+  gap: 0.5rem;
+}
 .ep-btn {
-  @apply aspect-square flex items-center justify-center rounded-lg text-xs font-medium transition-all duration-150;
+  @apply flex items-center justify-center rounded-lg text-xs font-medium transition-all duration-150;
+  width: 60px;
+  height: 60px;
   background: var(--color-hover);
   color: var(--color-text);
 }
