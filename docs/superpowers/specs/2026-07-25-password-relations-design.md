@@ -21,7 +21,6 @@
 1. 从 `SecurityUtil.getCurrentUserId()` 获取当前用户
 2. `passwordEncoder.matches(oldPassword, user.password)` — 不匹配抛 `UNAUTHORIZED`
 3. 新密码 BCrypt 加密，更新 DB
-4. 清除 Redis 中该用户的其他 token 白名单（保留当前 token）
 
 **VO**：无（返回 `Result<Void>`）
 
@@ -81,7 +80,7 @@
 | client | `ClientUserService.java` | 加 `changePassword` |
 | client | `ClientUserServiceImpl.java` | 实现 |
 | client | `VerificationService.java` | 加 `sendPasswordResetCode`、`verifyPasswordResetCode` |
-| client | `VerificationServiceImpl.java` | 实现 |
+| client | `VerificationServiceImpl.java` | 实现。注意 `verifyPasswordResetCode` 只校验验证码，不修改 `email_verified` 字段 |
 | common | `SecurityConfig.java` | 公开 `/api/user/auth/forgot-password`、`/api/user/auth/reset-password` |
 
 ### 1.5 Redis Key 设计
@@ -127,8 +126,18 @@ CREATE TABLE `subject_relation` (
 | 文件 | 变更 |
 |------|------|
 | `client.py` | 加 `get_relations(subject_id)` → `GET /v0/subjects/{subject_id}/subjects` |
-| `db.py` | 加 `upsert_relations(session, subject_id, relations)` — 先删后插 |
-| `main.py` | `import_single_subject` 中获取剧集后调用 relation 相关函数 |
+| `db.py` | 加 `upsert_relations(session, subject_id, relations)` — 先删原条目的全部关联后插。**双向写入**：A→prequel→B 时同时写 A→prequel→B 和 B→sequel→A。**FK 保护**：写入前检查 `related_subject_id` 在 subject 表是否存在，不存在则跳过该条 |
+| `main.py` | `import_single_subject` 中获取剧集后调用 `client.get_relations(bangumi_id)` + `upsert_relations(db, subject_id, relations)` |
+
+### 2.4 Mapper XML
+
+路径：`backend/business/client/src/main/resources/mapper/SubjectRelationMapper.xml`
+
+```xml
+<select id="findBySubjectId" resultType="top.zhaizz.pojo.entity.SubjectRelation">
+    SELECT * FROM subject_relation WHERE subject_id = #{subjectId}
+</select>
+```
 
 只读不写，无管理端 API。关联数据随导入自动同步，详情页 GET 时一并返回。
 
