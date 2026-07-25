@@ -655,7 +655,7 @@ onBeforeUnmount(() => {
                 </h3>
               </div>
 
-              <div v-if="collection" class="flex items-center gap-1">
+              <div v-if="collection" class="flex items-center justify-center gap-1">
                 <button
                   v-for="i in 10"
                   :key="i"
@@ -671,7 +671,7 @@ onBeforeUnmount(() => {
                 </span>
               </div>
 
-              <div v-else>
+              <div v-else class="flex justify-center">
                 <button
                   class="rate-action-btn"
                   :disabled="collectionLoading"
