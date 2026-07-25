@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  Search, TrendingUp, Flame, CalendarDays,
+  Search, TrendingUp, Flame,
   ChevronRight, Star, Heart,
 } from '@lucide/vue'
 import { subjectsApi } from '@/api/subjects'
@@ -10,8 +10,6 @@ import { tagsApi } from '@/api/tags'
 import { collectionsApi } from '@/api/collections'
 import { useAuthStore } from '@/stores/auth'
 import type { SubjectListItem } from '@/types'
-import SubjectCard from '@/components/SubjectCard.vue'
-import SubjectCardSkeleton from '@/components/SubjectCardSkeleton.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -21,15 +19,12 @@ const searchQuery = ref('')
 // Data
 const popularItems = ref<SubjectListItem[]>([])
 const latestItems = ref<SubjectListItem[]>([])
-const seasonalItems = ref<SubjectListItem[]>([])
 const totalSubjects = ref(0)
 const totalTags = ref(0)
-const seasonTotal = ref(0)
 
 // Loading states
 const loadingPopular = ref(true)
 const loadingLatest = ref(true)
-const loadingSeasonal = ref(true)
 
 // Current season computation
 const currentYear = new Date().getFullYear()
@@ -40,13 +35,6 @@ const currentQuarter = computed(() => {
   if (month <= 9) return 'summer'
   return 'fall'
 })
-const seasonLabel = computed(() => {
-  const map: Record<string, string> = {
-    winter: '冬季', spring: '春季', summer: '夏季', fall: '秋季',
-  }
-  return `${currentYear}年${map[currentQuarter.value]}`
-})
-
 // Weekday schedule
 const weekdayLabels = ['一', '二', '三', '四', '五', '六', '日']
 const weekdayValues  = [1, 2, 3, 4, 5, 6, 0] // Mon-Sun
@@ -163,23 +151,6 @@ async function fetchLatest() {
   }
 }
 
-async function fetchSeasonal() {
-  loadingSeasonal.value = true
-  try {
-    const res = await subjectsApi.getBySeason({
-      year: currentYear,
-      quarter: currentQuarter.value,
-      page: 1,
-      size: 12,
-    })
-    seasonalItems.value = res.data.data.content
-    seasonTotal.value = res.data.data.total
-  } catch { /* silently fail */ }
-  finally {
-    loadingSeasonal.value = false
-  }
-}
-
 watch(activeWeekday, (wd) => fetchSchedule(wd))
 
 async function fetchTags() {
@@ -192,7 +163,6 @@ async function fetchTags() {
 onMounted(() => {
   fetchPopular()
   fetchLatest()
-  fetchSeasonal()
   fetchSchedule(todayWeekday)
   fetchTags()
   loadFavorites()
@@ -234,14 +204,10 @@ onMounted(() => {
 
     <!-- Stats Row -->
     <section class="app-container -mt-4 mb-12 relative z-20">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 max-w-3xl mx-auto">
+      <div class="grid grid-cols-3 md:grid-cols-3 gap-3 md:gap-4 max-w-3xl mx-auto">
         <div class="app-card p-3 sm:p-4 text-center">
           <div class="text-xl sm:text-2xl font-bold text-primary-600 dark:text-primary-400">{{ formatCount(totalSubjects) }}</div>
           <div class="text-xs mt-1" style="color: var(--color-text-secondary)">番剧条目</div>
-        </div>
-        <div class="app-card p-3 sm:p-4 text-center">
-          <div class="text-xl sm:text-2xl font-bold" style="color: var(--color-text)">{{ seasonTotal }}</div>
-          <div class="text-xs mt-1" style="color: var(--color-text-secondary)">本季新番</div>
         </div>
         <div class="app-card p-3 sm:p-4 text-center">
           <div class="text-xl sm:text-2xl font-bold" style="color: var(--color-text)">{{ totalTags.toLocaleString() }}</div>
@@ -342,32 +308,6 @@ onMounted(() => {
       </div>
       <div v-else class="app-card p-8 text-center" style="background: var(--color-card); border: 1px solid var(--color-border)">
         <p style="color: var(--color-text-secondary)">暂无追番数据</p>
-      </div>
-    </section>
-
-    <!-- 本季新番 -->
-    <section class="app-container mb-14">
-      <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center gap-3">
-          <CalendarDays class="h-5 w-5 text-primary-500" />
-          <h2 class="section-title">本季新番</h2>
-          <span class="badge">{{ seasonLabel }}</span>
-        </div>
-        <router-link
-          :to="`/season/${currentYear}/${currentQuarter}`"
-          class="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline"
-        >
-          查看全部 <ChevronRight class="h-4 w-4" />
-        </router-link>
-      </div>
-      <div v-if="loadingSeasonal" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-        <SubjectCardSkeleton v-for="i in 12" :key="i" />
-      </div>
-      <div v-else-if="seasonalItems.length" class="card-grid-responsive grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-        <SubjectCard v-for="item in seasonalItems" :key="item.id" :subject="item" />
-      </div>
-      <div v-else class="app-card p-8 text-center" style="background: var(--color-card); border: 1px solid var(--color-border)">
-        <p style="color: var(--color-text-secondary)">暂无本季新番数据</p>
       </div>
     </section>
 
