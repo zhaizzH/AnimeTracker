@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeft, Star, Trophy, Calendar, Tv, Hash, ExternalLink,
   Heart, ChevronDown, ChevronUp, Plus, Minus, Trash2, Bookmark, XCircle,
-  Flame, BarChart3, ChevronLeft, ChevronRight, Play, Info,
+  ChevronLeft, ChevronRight, Play, Info,
 } from '@lucide/vue'
 import { subjectsApi } from '@/api/subjects'
 import { collectionsApi, type UserCollectionVO, type UpsertCollectionRequest } from '@/api/collections'
@@ -41,7 +41,6 @@ const collectionWrapperRef = ref<HTMLElement | null>(null)
 
 const activeEpisodeRange = ref(0)
 const jumpEpisodeInput = ref('')
-const activeHeatTab = ref<'heat' | 'score'>('heat')
 
 const subjectId = computed(() => parseInt(route.params.id as string, 10))
 
@@ -304,14 +303,6 @@ function jumpToEpisode() {
   const rangeIndex = Math.floor((n - 1) / EPISODES_PER_RANGE)
   activeEpisodeRange.value = Math.max(0, Math.min(rangeIndex, episodeRanges.value.length - 1))
   jumpEpisodeInput.value = ''
-}
-
-function formatNumber(num?: number) {
-  if (!num) return '0'
-  if (num >= 10000) {
-    return (num / 10000).toFixed(1) + '万'
-  }
-  return num.toLocaleString()
 }
 
 onMounted(() => {
@@ -697,59 +688,20 @@ onBeforeUnmount(() => {
             </section>
           </div>
 
-          <!-- Heat Overview -->
+          <!-- Score Overview -->
           <section class="app-card p-4 sm:p-5">
-            <div class="flex items-center gap-1 p-1 rounded-xl mb-4 w-fit" style="background: var(--color-hover)">
-              <button
-                class="heat-tab"
-                :class="{ active: activeHeatTab === 'heat' }"
-                @click="activeHeatTab = 'heat'"
-              >
-                <Flame class="h-3.5 w-3.5" />
-                热度
-              </button>
-              <button
-                class="heat-tab"
-                :class="{ active: activeHeatTab === 'score' }"
-                @click="activeHeatTab = 'score'"
-              >
-                <BarChart3 class="h-3.5 w-3.5" />
-                评分
-              </button>
-            </div>
-
-            <div v-if="activeHeatTab === 'heat'" class="space-y-3">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(241,121,146,0.12)">
-                  <Flame class="h-5 w-5 text-primary-500" />
-                </div>
-                <div>
-                  <div class="text-2xl font-bold" style="color: var(--color-text)">{{ formatNumber(subject.collectionTotal) }}</div>
-                  <div class="text-xs" style="color: var(--color-text-secondary)">综合热度</div>
-                </div>
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(255,185,0,0.12)">
+                <Star class="h-5 w-5" style="color: #ffb900" />
               </div>
-              <div class="h-2 rounded-full overflow-hidden" style="background: var(--color-hover)">
-                <div
-                  class="h-full rounded-full bg-primary-500"
-                  :style="{ width: Math.min(100, ((subject.collectionTotal || 0) / 100000) * 100) + '%' }"
-                />
+              <div>
+                <div class="text-2xl font-bold" style="color: var(--color-text)">{{ subject.score ? subject.score.toFixed(1) : '-' }}</div>
+                <div class="text-xs" style="color: var(--color-text-secondary)">Bangumi 评分</div>
               </div>
             </div>
-
-            <div v-else class="space-y-3">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(255,185,0,0.12)">
-                  <Star class="h-5 w-5" style="color: #ffb900" />
-                </div>
-                <div>
-                  <div class="text-2xl font-bold" style="color: var(--color-text)">{{ subject.score ? subject.score.toFixed(1) : '-' }}</div>
-                  <div class="text-xs" style="color: var(--color-text-secondary)">Bangumi 评分</div>
-                </div>
-              </div>
-              <div v-if="subject.rank" class="flex items-center gap-2 text-sm" style="color: var(--color-text-secondary)">
-                <Trophy class="h-4 w-4" />
-                Rank #{{ subject.rank }}
-              </div>
+            <div v-if="subject.rank" class="flex items-center gap-2 mt-3 text-sm" style="color: var(--color-text-secondary)">
+              <Trophy class="h-4 w-4" />
+              Rank #{{ subject.rank }}
             </div>
           </section>
         </main>
@@ -991,16 +943,6 @@ onBeforeUnmount(() => {
 .rate-action-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.heat-tab {
-  @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200;
-  color: var(--color-text-secondary);
-}
-.heat-tab.active {
-  background: var(--color-card);
-  color: var(--color-text);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .scrollbar-hide {
