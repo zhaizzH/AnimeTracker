@@ -157,3 +157,20 @@ CREATE TABLE `user_collection`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户追番收藏表' ROW_FORMAT = Dynamic;
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- ----------------------------
+-- Table structure for subject_relation
+-- ----------------------------
+DROP TABLE IF EXISTS `subject_relation`;
+CREATE TABLE `subject_relation`  (
+  `id`                 bigint       NOT NULL AUTO_INCREMENT COMMENT '关联ID',
+  `subject_id`         bigint       NOT NULL COMMENT '当前条目ID',
+  `related_subject_id` bigint       NOT NULL COMMENT '关联条目ID',
+  `relation`           varchar(32)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '关联类型: prequel, sequel, side_story 等',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_subject_relation`(`subject_id` ASC, `related_subject_id` ASC) USING BTREE,
+  INDEX `idx_sr_subject`(`subject_id` ASC) USING BTREE,
+  INDEX `idx_sr_related`(`related_subject_id` ASC) USING BTREE,
+  CONSTRAINT `fk_sr_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_sr_related` FOREIGN KEY (`related_subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '条目关联表' ROW_FORMAT = Dynamic;
