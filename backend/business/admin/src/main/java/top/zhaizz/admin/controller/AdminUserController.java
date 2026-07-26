@@ -32,7 +32,7 @@ public class AdminUserController {
     /**
      * 修改指定用户的角色
      */
-    @PutMapping("/{id}/role")
+    @PostMapping("/{id}/update-role")
     public Result<UserVO> updateUserRole(
             @PathVariable Long id,
             @Valid @RequestBody UpdateRoleDTO request) {
