@@ -38,7 +38,7 @@ public class UserController {
     /**
      * 修改当前登录用户信息
      */
-    @PutMapping
+    @PostMapping("/update")
     public Result<UserVO> updateMyProfile(@Valid @RequestBody UpdateUserDTO request) {
         Long userId = SecurityUtil.getCurrentUserId();
         return Result.success(clientUserService.updateUser(userId, request));
@@ -47,7 +47,7 @@ public class UserController {
     /**
      * 修改当前登录用户密码
      */
-    @PutMapping("/password")
+    @PostMapping("/update-password")
     public Result<Void> changePassword(@Valid @RequestBody ChangePasswordDTO request) {
         Long userId = SecurityUtil.getCurrentUserId();
         clientUserService.changePassword(userId, request);

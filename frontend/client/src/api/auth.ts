@@ -24,7 +24,7 @@ export const authApi = {
     return http.get<ApiResponse<UserVO>>('/api/user/me')
   },
   updateProfile(data: UpdateProfileRequest) {
-    return http.put<ApiResponse<UserVO>>('/api/user/me', data)
+    return http.post<ApiResponse<UserVO>>('/api/user/me/update', data)
   },
   sendEmailCode(data: SendEmailCodeRequest) {
     return http.post<ApiResponse<null>>('/api/user/me/send-email-code', data)
