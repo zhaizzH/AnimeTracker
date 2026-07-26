@@ -32,7 +32,7 @@ public class AdminController {
     /**
      * 更新指定番剧的信息
      */
-    @PutMapping("/{id}")
+    @PostMapping("/{id}/update")
     public Result<SubjectDetailVO> updateSubject(
             @PathVariable Long id,
             @Valid @RequestBody SubjectUpdateDTO request) {
@@ -42,7 +42,7 @@ public class AdminController {
     /**
      * 删除指定番剧
      */
-    @DeleteMapping("/{id}")
+    @PostMapping("/{id}/remove")
     public Result<Void> deleteSubject(@PathVariable Long id) {
         adminSubjectService.deleteSubject(id);
         return Result.success();
