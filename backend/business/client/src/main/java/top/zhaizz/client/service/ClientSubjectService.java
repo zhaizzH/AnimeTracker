@@ -5,6 +5,7 @@ import top.zhaizz.pojo.vo.EpisodeVO;
 import top.zhaizz.pojo.vo.SubjectDetailVO;
 import top.zhaizz.pojo.vo.SubjectListVO;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /** 番剧查询服务接口 */
@@ -19,8 +20,11 @@ public interface ClientSubjectService {
     /** 获取番剧剧集列表 */
     List<EpisodeVO> getEpisodes(Long subjectId);
 
-    /** 搜索番剧（分页） */
-    PageResult<SubjectListVO> searchSubjects(String keyword, int page, int size);
+    /** 搜索番剧（分页、多维筛选） */
+    PageResult<SubjectListVO> searchSubjects(
+            String keyword, int page, int size,
+            List<String> tagList, BigDecimal scoreMin, BigDecimal scoreMax,
+            Integer year, Integer weekday, String sort, String order);
 
     /** 按季度筛选番剧（分页） */
     PageResult<SubjectListVO> listBySeason(int year, String quarter, int page, int size);

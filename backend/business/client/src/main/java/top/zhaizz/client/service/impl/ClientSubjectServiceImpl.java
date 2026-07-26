@@ -24,6 +24,7 @@ import top.zhaizz.pojo.vo.SubjectDetailVO;
 import top.zhaizz.pojo.vo.SubjectListVO;
 import top.zhaizz.pojo.vo.SubjectRelationVO;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
@@ -93,27 +94,25 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
     }
 
     @Override
-    public PageResult<SubjectListVO> searchSubjects(String keyword, int page, int size) {
-        List<Subject> records = subjectMapper.searchByKeyword(keyword);
+    public PageResult<SubjectListVO> searchSubjects(String keyword, int page, int size,
+            List<String> tagList, BigDecimal scoreMin, BigDecimal scoreMax,
+            Integer year, Integer weekday, String sort, String order) {
 
-        int total = records.size();
-        int startIndex = (page - 1) * size;
-        int endIndex = Math.min(startIndex + size, total);
+        String sortField = buildSortFieldRaw(sort);
+        String orderDir = buildOrderRaw(order);
 
-        List<Subject> pageRecords;
-        if (startIndex >= total) {
-            pageRecords = List.of();
-        } else {
-            pageRecords = records.subList(startIndex, endIndex);
-        }
+        Page<Subject> mpPage = subjectMapper.searchWithFilters(
+                new Page<>(page, size),
+                keyword, tagList, scoreMin, scoreMax, year, weekday,
+                sortField, orderDir);
 
         return PageResult.of(
-                pageRecords.stream()
+                mpPage.getRecords().stream()
                         .map(SubjectConverter::toSubjectListVO)
                         .collect(Collectors.toList()),
-                total,
-                page,
-                size
+                mpPage.getTotal(),
+                (int) mpPage.getCurrent(),
+                (int) mpPage.getSize()
         );
     }
 
@@ -167,5 +166,18 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
             case "rank" -> Subject::getRank;
             default -> Subject::getScore;
         };
+    }
+
+    private String buildSortFieldRaw(String sort) {
+        return switch (sort) {
+            case "name" -> "s.name";
+            case "air_date" -> "s.air_date";
+            case "rank" -> "s.rank";
+            default -> "s.score";
+        };
+    }
+
+    private String buildOrderRaw(String order) {
+        return "asc".equalsIgnoreCase(order) ? "asc" : "desc";
     }
 }

@@ -1,5 +1,7 @@
 package top.zhaizz.client.controller;
 
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
@@ -17,6 +19,7 @@ import top.zhaizz.pojo.vo.EpisodeVO;
 import top.zhaizz.pojo.vo.SubjectDetailVO;
 import top.zhaizz.pojo.vo.SubjectListVO;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -48,13 +51,20 @@ public class SubjectController {
      */
     @GetMapping("/search")
     public Result<PageResult<SubjectListVO>> searchSubjects(
-            @RequestParam String q,
+            @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "1") @Min(1) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-        if (q == null || q.trim().isEmpty()) {
-            throw new BizException(ErrorType.BAD_REQUEST, "搜索关键词不能为空");
-        }
-        return Result.success(clientSubjectService.searchSubjects(q.trim(), page, size));
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @RequestParam(required = false) List<String> tag,
+            @RequestParam(required = false) @DecimalMin("0") @DecimalMax("10") BigDecimal scoreMin,
+            @RequestParam(required = false) @DecimalMin("0") @DecimalMax("10") BigDecimal scoreMax,
+            @RequestParam(required = false) @Min(1970) @Max(2100) Integer year,
+            @RequestParam(required = false) @Min(0) @Max(6) Integer weekday,
+            @RequestParam(defaultValue = "score") String sort,
+            @RequestParam(defaultValue = "desc") String order) {
+        String keyword = (q != null && !q.trim().isEmpty()) ? q.trim() : null;
+        return Result.success(clientSubjectService.searchSubjects(
+                keyword, page, size,
+                tag, scoreMin, scoreMax, year, weekday, sort, order));
     }
 
     /**
