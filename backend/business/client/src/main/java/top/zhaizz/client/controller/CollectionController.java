@@ -51,7 +51,7 @@ public class CollectionController {
     /**
      * 新增或修改收藏
      */
-    @PutMapping("/{subjectId}")
+    @PostMapping("/{subjectId}/save")
     public Result<Void> saveOrUpdate(
             @PathVariable Long subjectId,
             @Valid @RequestBody CollectionUpdateDTO dto) {
@@ -63,7 +63,7 @@ public class CollectionController {
     /**
      * 删除收藏
      */
-    @DeleteMapping("/{subjectId}")
+    @PostMapping("/{subjectId}/remove")
     public Result<Void> deleteCollection(@PathVariable Long subjectId) {
         Long userId = SecurityUtil.getCurrentUserId();
         collectionService.deleteCollection(userId, subjectId);
@@ -90,7 +90,7 @@ public class CollectionController {
     /**
      * 更新剧集进度
      */
-    @PutMapping("/{subjectId}/ep-status")
+    @PostMapping("/{subjectId}/ep-status")
     public Result<Void> updateEpStatus(
             @PathVariable Long subjectId,
             @RequestBody @Valid EpStatusDTO request) {

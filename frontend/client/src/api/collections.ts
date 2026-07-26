@@ -32,12 +32,12 @@ export const collectionsApi = {
     return http.get<ApiResponse<UserCollectionVO>>(`/api/user/collections/${subjectId}`)
   },
   upsert(subjectId: number, data: UpsertCollectionRequest) {
-    return http.put<ApiResponse<string>>(`/api/user/collections/${subjectId}`, data)
+    return http.post<ApiResponse<string>>(`/api/user/collections/${subjectId}/save`, data)
   },
   remove(subjectId: number) {
-    return http.delete<ApiResponse<string>>(`/api/user/collections/${subjectId}`)
+    return http.post<ApiResponse<string>>(`/api/user/collections/${subjectId}/remove`)
   },
   updateEpStatus(subjectId: number, epStatus: number) {
-    return http.put<ApiResponse<string>>(`/api/user/collections/${subjectId}/ep-status`, { epStatus })
+    return http.post<ApiResponse<string>>(`/api/user/collections/${subjectId}/ep-status`, { epStatus })
   },
 }
