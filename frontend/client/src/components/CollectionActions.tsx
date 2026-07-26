@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Rate, InputNumber, Space, message, Card, Typography, Empty } from 'antd';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { collectionsApi } from '@/api/collections';
@@ -38,13 +38,13 @@ export default function CollectionActions({ subjectId }: Props) {
   const [epStatus, setEpStatus] = useState(collection?.epStatus || 0);
 
   // 同步收藏数据到本地状态
-  useState(() => {
+  useEffect(() => {
     if (collection) {
       setSelectedType(collection.type);
       setRate(collection.rate);
       setEpStatus(collection.epStatus);
     }
-  });
+  }, [collection]);
 
   const saveMutation = useMutation({
     mutationFn: (dto: CollectionUpdateDTO) => collectionsApi.save(subjectId, dto),
