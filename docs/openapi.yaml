@@ -549,8 +549,8 @@ paths:
                     description: ""
   /api/user/auth/logout:
     post:
-      summary: "用户注销"
-      description: "用户注销"
+      summary: "用户退出登录"
+      description: "用户退出登录"
       responses:
         "200":
           description: ""
@@ -612,7 +612,8 @@ paths:
                         type: "string"
                         description: ""
                     description: ""
-    put:
+  /api/user/me/update:
+    post:
       summary: "修改当前登录用户信息"
       description: "修改当前登录用户信息"
       requestBody:
@@ -670,8 +671,8 @@ paths:
                         type: "string"
                         description: ""
                     description: ""
-  /api/user/me/password:
-    put:
+  /api/user/me/update-password:
+    post:
       summary: "修改当前登录用户密码"
       description: "修改当前登录用户密码"
       requestBody:
@@ -899,7 +900,7 @@ paths:
       - name: "q"
         in: "query"
         description: ""
-        required: true
+        required: false
         schema:
           type: "string"
           nullable: false
@@ -919,6 +920,59 @@ paths:
           type: "integer"
           nullable: false
           default: "20"
+      - name: "tag"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "array"
+          nullable: false
+          items:
+            type: "string"
+      - name: "scoreMin"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+          nullable: false
+      - name: "scoreMax"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+          nullable: false
+      - name: "year"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "integer"
+          nullable: false
+      - name: "weekday"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "integer"
+          nullable: false
+      - name: "sort"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+          default: "score"
+      - name: "order"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+          default: "desc"
       responses:
         "200":
           description: ""
@@ -1617,7 +1671,8 @@ paths:
                             description: ""
                         description: ""
                     description: ""
-    put:
+  /api/user/collections/{subjectId}/save:
+    post:
       summary: "新增或修改收藏"
       description: "新增或修改收藏"
       parameters:
@@ -1667,7 +1722,8 @@ paths:
                   data:
                     type: "string"
                     description: ""
-    delete:
+  /api/user/collections/{subjectId}/remove:
+    post:
       summary: "删除收藏"
       description: "删除收藏"
       parameters:
@@ -1828,7 +1884,7 @@ paths:
                         description: ""
                     description: ""
   /api/user/collections/{subjectId}/ep-status:
-    put:
+    post:
       summary: "更新剧集进度"
       description: "更新剧集进度"
       parameters:
@@ -2039,8 +2095,8 @@ paths:
                         type: "string"
                         description: ""
                     description: ""
-  /api/admin/subjects/{id}:
-    put:
+  /api/admin/subjects/{id}/update:
+    post:
       summary: "更新指定番剧的信息"
       description: "更新指定番剧的信息"
       parameters:
@@ -2214,7 +2270,8 @@ paths:
                         type: "string"
                         description: ""
                     description: ""
-    delete:
+  /api/admin/subjects/{id}/remove:
+    post:
       summary: "删除指定番剧"
       description: "删除指定番剧"
       parameters:
@@ -2397,8 +2454,8 @@ paths:
                         type: "integer"
                         description: ""
                     description: ""
-  /api/admin/users/{id}/role:
-    put:
+  /api/admin/users/{id}/update-role:
+    post:
       summary: "修改指定用户的角色"
       description: "修改指定用户的角色"
       parameters:
