@@ -1,13 +1,13 @@
-import axios from 'axios';
+import axios, { type AxiosRequestConfig } from 'axios';
 import type { ApiResult } from '@/types';
 
-const http = axios.create({
+const instance = axios.create({
   baseURL: '/api',
   timeout: 30_000,
 });
 
 // 请求拦截器 — 自动附加 token
-http.interceptors.request.use((config) => {
+instance.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -16,7 +16,7 @@ http.interceptors.request.use((config) => {
 });
 
 // 响应拦截器 — 自动解包 data
-http.interceptors.response.use(
+instance.interceptors.response.use(
   (response) => {
     const result = response.data as ApiResult<unknown>;
     if (result.code !== 0 && result.code !== 200) {
@@ -36,7 +36,7 @@ http.interceptors.response.use(
             localStorage.setItem('token', data.token);
             localStorage.setItem('refreshToken', data.refreshToken);
             error.config.headers.Authorization = `Bearer ${data.token}`;
-            return http(error.config);
+            return instance(error.config);
           }
         } catch {
           // refresh 失败，清除登录状态
@@ -52,5 +52,13 @@ http.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// 包装类型以匹配拦截器解包行为 — 运行时已解包，仅修正 TS 类型
+const http = {
+  get: <T>(url: string, config?: AxiosRequestConfig): Promise<T> =>
+    instance.get(url, config) as Promise<T>,
+  post: <T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> =>
+    instance.post(url, data, config) as Promise<T>,
+};
 
 export default http;
