@@ -20,6 +20,7 @@ from urllib.parse import urlparse
 import requests
 from dotenv import load_dotenv
 from minio import Minio
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from client import BangumiClient
@@ -82,37 +83,42 @@ def _get_ext_from_url(url: str) -> str | None:
 
 
 def upload_cover(subject_id: int, image_url: str) -> str:
-    """下载封面 → 上传 MinIO → 返回 MinIO 公开 URL；失败则返回原 URL。"""
+    """下载封面 → 上传 MinIO → 返回 MinIO 公开 URL；失败重试 2 次后回退。"""
     if not image_url:
         return image_url
-    try:
-        resp = requests.get(image_url, timeout=15, stream=True)
-        resp.raise_for_status()
-        content_type = resp.headers.get("Content-Type", "")
-        ext = EXT_MAP.get(content_type) or _get_ext_from_url(image_url) or "jpg"
-        object_name = f"covers/{subject_id}.{ext}"
+    for attempt in range(3):
+        image_url="https://proxy.8000150.xyz/"+image_url
+        try:
+            resp = requests.get(image_url, timeout=15, stream=True)
+            resp.raise_for_status()
+            content_type = resp.headers.get("Content-Type", "")
+            ext = EXT_MAP.get(content_type) or _get_ext_from_url(image_url) or "jpg"
+            object_name = f"covers/{subject_id}.{ext}"
 
-        mc = _get_minio_client()
-        bucket = os.getenv("MINIO_BUCKET", "anime-tracker")
-        if not mc.bucket_exists(bucket):
-            mc.make_bucket(bucket)
+            mc = _get_minio_client()
+            bucket = os.getenv("MINIO_BUCKET", "anime-tracker")
+            if not mc.bucket_exists(bucket):
+                mc.make_bucket(bucket)
 
-        mc.put_object(bucket, object_name, resp.raw, length=-1, part_size=10 * 1024 * 1024,
-                      content_type=content_type or "image/jpeg")
-        public_url = os.getenv("MINIO_PUBLIC_URL", "http://localhost:9000").rstrip("/")
-        return f"{public_url}/{bucket}/{object_name}"
-    except Exception as e:
-        logger.warning("Cover upload failed for subject %d: %s, fallback to original URL", subject_id, e)
-        return image_url
+            mc.put_object(bucket, object_name, resp.raw, length=-1, part_size=10 * 1024 * 1024,
+                          content_type=content_type or "image/jpeg")
+            public_url = os.getenv("MINIO_PUBLIC_URL", "http://localhost:9000").rstrip("/")
+            return f"{public_url}/{bucket}/{object_name}"
+        except Exception as e:
+            if attempt < 2:
+                logger.warning("  封面上传失败 subject %d（第 %d 次重试）: %s", subject_id, attempt + 1, e)
+            else:
+                logger.warning("  封面上传失败 subject %d（已重试 2 次），回退到原始 URL: %s", subject_id, e)
+    return image_url
 
 
 def _progress(done: int, total: int | None = None):
     elapsed = time.time() - _start_time
     if total:
         pct = done * 100 // total
-        logger.info("  progress: %d/%d (%d%%) [%s]", done, total, pct, _fmt_duration(elapsed))
+        logger.info("  进度: %d/%d (%d%%) [%s]", done, total, pct, _fmt_duration(elapsed))
     else:
-        logger.info("  progress: %d subjects imported [%s]", done, _fmt_duration(elapsed))
+        logger.info("  进度: %d 个条目已导入 [%s]", done, _fmt_duration(elapsed))
 
 
 def parse_args(argv=None):
@@ -147,10 +153,10 @@ def import_single_subject(client, db, bangumi_id, resume):
                 {"bid": bangumi_id},
             ).scalar()
             if existing:
-                logger.info("  -> skip already imported subject %d", bangumi_id)
+                logger.info("  -> 跳过已导入条目 %d", bangumi_id)
                 return True
 
-        logger.info("  -> fetch subject %d", bangumi_id)
+        logger.info("  -> 获取条目 %d", bangumi_id)
         data = client.get_subject(bangumi_id)
         client.rate_limit()
 
@@ -169,7 +175,7 @@ def import_single_subject(client, db, bangumi_id, resume):
 
         total_eps = data.get("eps") or data.get("total_episodes") or 0
         if total_eps > 0:
-            logger.info("  -> fetch episodes for subject %d (%d eps)", bangumi_id, total_eps)
+            logger.info("  -> 获取剧集 subject %d（共 %d 集）", bangumi_id, total_eps)
             eps_data = client.get_episodes(bangumi_id)
             client.rate_limit()
             episodes = eps_data.get("data") or []
@@ -181,16 +187,39 @@ def import_single_subject(client, db, bangumi_id, resume):
             relations = client.get_relations(bangumi_id)
             client.rate_limit()
             if relations:
-                upsert_relations(db, subject_id, relations)
+                # 仅保留番剧关联（type=2）
+                anime_relations = [r for r in relations if r.get("type") == 2]
+                if not anime_relations:
+                    logger.info("  -> 无非番剧关联条目")
+                else:
+                    # 预导入缺失的关联条目，确保 upsert_relations 时 FK 约束满足
+                    for rel in anime_relations:
+                        related_bid = rel.get("id")
+                        if not related_bid:
+                            continue
+                        exists = db.execute(
+                            text("SELECT 1 FROM subject WHERE bangumi_id = :bid"),
+                            {"bid": related_bid},
+                        ).scalar()
+                        if not exists:
+                            logger.info("  -> 导入缺失的关联条目 %d（主条目 %d）", related_bid, bangumi_id)
+                            import_single_subject(client, db, related_bid, resume)
+
+                    upsert_relations(db, subject_id, anime_relations)
+                # 记录非番剧跳过
+                non_anime = [r for r in relations if r.get("type") not in (None, 2)]
+                if non_anime:
+                    for r in non_anime:
+                        logger.info("  -> 跳过非番剧关联条目 %d（type=%s）", r["id"], r.get("type"))
         except Exception as e:
-            logger.warning("  -> failed to import relations for subject %d: %s", bangumi_id, e)
+            logger.warning("  -> 关联条目导入失败 subject %d: %s", bangumi_id, e)
 
         db.commit()
         return True
 
     except Exception as e:
         db.rollback()
-        logger.error("  x subject %d failed: %s", bangumi_id, e)
+        logger.error("  x subject %d 导入失败: %s", bangumi_id, e)
         return False
 
 
@@ -200,14 +229,14 @@ def run_full(client, db, resume):
     for year in range(2000, now.year + 1):
         max_month = now.month if year == now.year else 12
         for month in range(1, max_month + 1):
-            logger.info("Processing %d-%d...", year, month)
+            logger.info("处理 %d-%d...", year, month)
             offset = 0
             while True:
                 try:
                     result = client.browse_subjects(type=2, year=year, month=month, offset=offset)
                     client.rate_limit()
                 except Exception as e:
-                    logger.error("Browse %d-%d failed: %s", year, month, e)
+                    logger.error("浏览 %d-%d 失败: %s", year, month, e)
                     break
 
                 items = result.get("data") or []
@@ -235,14 +264,14 @@ def run_season(client, db, key, resume):
     year, ms, me = parse_season_key(key)
     total = 0
     for month in range(ms, me + 1):
-        logger.info("Processing %d-%d...", year, month)
+        logger.info("处理 %d-%d...", year, month)
         offset = 0
         while True:
             try:
                 result = client.browse_subjects(type=2, year=year, month=month, offset=offset)
                 client.rate_limit()
             except Exception as e:
-                logger.error("Browse %d-%d failed: %s", year, month, e)
+                logger.error("浏览 %d-%d 失败: %s", year, month, e)
                 break
 
             items = result.get("data") or []
@@ -267,12 +296,12 @@ def run_season(client, db, key, resume):
 
 
 def run_recent(client, db, resume):
-    logger.info("Fetching calendar...")
+    logger.info("获取日历...")
     try:
         calendar = client.get_calendar()
         client.rate_limit()
     except Exception as e:
-        logger.error("Calendar failed: %s", e)
+        logger.error("日历获取失败: %s", e)
         return 0
 
     seen = set()
@@ -301,14 +330,14 @@ def run_since(client, db, since_date, resume):
         start_month = since.month if year == since.year else 1
         end_month = now.month if year == now.year else 12
         for month in range(start_month, end_month + 1):
-            logger.info("Processing %d-%d...", year, month)
+            logger.info("处理 %d-%d...", year, month)
             offset = 0
             while True:
                 try:
                     result = client.browse_subjects(type=2, year=year, month=month, offset=offset)
                     client.rate_limit()
                 except Exception as e:
-                    logger.error("Browse %d-%d failed: %s", year, month, e)
+                    logger.error("浏览 %d-%d 失败: %s", year, month, e)
                     break
 
                 items = result.get("data") or []

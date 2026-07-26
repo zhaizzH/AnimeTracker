@@ -9,7 +9,7 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-BASE_URL = "https://api.bgm.tv"
+BASE_URL = "https://proxy.8000150.xyz/https%3A%2F%2Fapi.bgm.tv"
 
 
 class BangumiClient:

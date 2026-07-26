@@ -115,6 +115,8 @@ def upsert_episodes(session: Session, subject_id: int, episodes: list[dict]):
             {"sid": subject_id, "eid": bangumi_ep_id},
         ).scalar()
 
+        airdate = ep.get("airdate") or None  # empty string → NULL
+
         if existing_id:
             session.execute(
                 text("""
@@ -131,7 +133,7 @@ def upsert_episodes(session: Session, subject_id: int, episodes: list[dict]):
                     "name": ep.get("name"),
                     "name_cn": ep.get("name_cn"),
                     "duration": ep.get("duration"),
-                    "airdate": ep.get("airdate"),
+                    "airdate": airdate,
                     "description": ep.get("desc", ""),
                     "status": ep.get("status", "NA"),
                 },
@@ -154,7 +156,7 @@ def upsert_episodes(session: Session, subject_id: int, episodes: list[dict]):
                     "name": ep.get("name"),
                     "name_cn": ep.get("name_cn"),
                     "duration": ep.get("duration"),
-                    "airdate": ep.get("airdate"),
+                    "airdate": airdate,
                     "description": ep.get("desc", ""),
                     "status": ep.get("status", "NA"),
                     "now": now,
@@ -180,8 +182,8 @@ def upsert_tags(session: Session, subject_id: int, tags: list[dict]):
 def upsert_relations(session: Session, subject_id: int, relations: list[dict]):
     """先删后插条目关联，双向写入。
 
-    A→prequel→B 时同时写 A→prequel→B 和 B→sequel→A。
-    FK 保护：写入前检查 related_subject_id 在 subject 表是否存在，不存在则跳过。
+    subject_id 为本地 PK。relations 中每个元素的 id 为 Bangumi API ID，
+    需先解析为本地 subject.id 再写入，否则 FK 约束会失败。
     """
     # 1. 删除该条目的所有原有关联
     session.execute(
@@ -191,32 +193,32 @@ def upsert_relations(session: Session, subject_id: int, relations: list[dict]):
 
     # 2. 写入新的关联
     for rel in relations:
-        related_id = rel.get("id")
+        bangumi_id = rel.get("id")
         relation_type = rel.get("relation", "")
 
-        if not related_id or not relation_type:
+        if not bangumi_id or not relation_type:
             continue
 
-        # FK 保护：检查 related_subject 是否存在
-        exists = session.execute(
-            text("SELECT 1 FROM subject WHERE id = :rid"),
-            {"rid": related_id},
+        # bangumi_id → 本地 subject.id
+        local_id = session.execute(
+            text("SELECT id FROM subject WHERE bangumi_id = :bid"),
+            {"bid": bangumi_id},
         ).scalar()
-        if not exists:
-            logger.warning("  -> skip relation: subject %d not found (related to %d)", related_id, subject_id)
+        if not local_id:
+            logger.warning("  -> 跳过关联条目 %d（bangumi_id），数据库中不存在（主条目 %d）", bangumi_id, subject_id)
             continue
 
-        # 正向：subject_id → related_id
+        # 正向：subject_id → local_id
         session.execute(
             text("""
                 INSERT INTO subject_relation (subject_id, related_subject_id, relation)
                 VALUES (:sid, :rid, :rel)
                 ON DUPLICATE KEY UPDATE relation = :rel2
             """),
-            {"sid": subject_id, "rid": related_id, "rel": relation_type, "rel2": relation_type},
+            {"sid": subject_id, "rid": local_id, "rel": relation_type, "rel2": relation_type},
         )
 
-        # 反向：related_id → subject_id（双向）
+        # 反向：local_id → subject_id（双向）
         inverse_rel = _inverse_relation(relation_type)
         session.execute(
             text("""
@@ -224,7 +226,7 @@ def upsert_relations(session: Session, subject_id: int, relations: list[dict]):
                 VALUES (:sid, :rid, :rel)
                 ON DUPLICATE KEY UPDATE relation = :rel2
             """),
-            {"sid": related_id, "rid": subject_id, "rel": inverse_rel, "rel2": inverse_rel},
+            {"sid": local_id, "rid": subject_id, "rel": inverse_rel, "rel2": inverse_rel},
         )
 
 
