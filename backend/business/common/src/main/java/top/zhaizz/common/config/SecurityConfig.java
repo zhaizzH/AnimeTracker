@@ -55,6 +55,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/user/**").authenticated()
                         // 文件上传：需认证
                         .requestMatchers("/api/common/files/**").authenticated()
+                        // Agent 代理：需认证
+                        .requestMatchers("/api/agent/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

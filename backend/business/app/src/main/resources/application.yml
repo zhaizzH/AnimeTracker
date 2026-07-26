@@ -64,6 +64,11 @@ jwt:
   expiration: ${jwt.expiration}
   refresh-expiration: ${jwt.refresh-expiration}
 
+# AI Agent 服务
+at:
+  agent:
+    base-url: http://localhost:8090
+
 # MinIO 对象存储
 minio:
   endpoint: http://${minio.endpoint}:${minio.port}

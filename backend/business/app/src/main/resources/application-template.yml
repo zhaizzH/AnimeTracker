@@ -29,6 +29,11 @@ jwt:
   expiration: 1800000    # 30 分钟
   refresh-expiration: 604800000  # 7 天
 
+# AI Agent 服务
+at:
+  agent:
+    base-url: http://localhost:8090
+
 # MinIO 对象存储
 minio:
   endpoint: <minio-host>
