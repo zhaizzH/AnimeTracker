@@ -92,7 +92,7 @@ public class AuthController {
     }
 
     /**
-     * 用户注销
+     * 用户退出登录
      */
     @PostMapping("/logout")
     public Result<Void> logout(HttpServletRequest request) {

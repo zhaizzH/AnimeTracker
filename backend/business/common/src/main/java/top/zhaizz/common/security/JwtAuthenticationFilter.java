@@ -11,7 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
-import top.zhaizz.common.util.RedisClient;
+import top.zhaizz.common.util.RedisUtil;
 
 import java.io.IOException;
 
@@ -23,7 +23,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final RedisClient redisClient;
+    private final RedisUtil redisUtil;
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String REDIS_TOKEN_PREFIX = "auth:token:";
@@ -41,7 +41,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
             // 计算 SHA256 摘要，检查 Redis 白名单
             String tokenHash = DigestUtils.sha256Hex(token);
-            Boolean exists = redisClient.exists(REDIS_TOKEN_PREFIX + tokenHash);
+            Boolean exists = redisUtil.exists(REDIS_TOKEN_PREFIX + tokenHash);
 
             if (Boolean.TRUE.equals(exists)) {
                 Long userId = jwtTokenProvider.getUserIdFromToken(token);
