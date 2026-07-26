@@ -13,6 +13,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Map;
 
+/**
+ * Agent 控制器
+ */
 @RestController
 @RequestMapping("/api/agent")
 @RequiredArgsConstructor
@@ -85,7 +88,7 @@ public class AgentController {
     }
 
     /**
-     * 删除会话（POST + 动词）
+     * 删除会话
      */
     @PostMapping("/sessions/{sessionId}/remove")
     public Result<?> deleteSession(@PathVariable String sessionId,

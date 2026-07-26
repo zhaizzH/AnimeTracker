@@ -1,6 +1,7 @@
 package top.zhaizz.client.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -101,7 +102,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
         String sortField = buildSortFieldRaw(sort);
         String orderDir = buildOrderRaw(order);
 
-        Page<Subject> mpPage = subjectMapper.searchWithFilters(
+        IPage<Subject> mpPage = subjectMapper.searchWithFilters(
                 new Page<>(page, size),
                 keyword, tagList, scoreMin, scoreMax, year, weekday,
                 sortField, orderDir);

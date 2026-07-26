@@ -57,17 +57,16 @@ mybatis-plus:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
 
+# AI Agent 服务
+at:
+  agent:
+    base-url: http://${at.agent.host}:${at.agent.port}
 
 # JWT 配置
 jwt:
   secret: ${jwt.secret}
   expiration: ${jwt.expiration}
   refresh-expiration: ${jwt.refresh-expiration}
-
-# AI Agent 服务
-at:
-  agent:
-    base-url: http://localhost:8090
 
 # MinIO 对象存储
 minio:

@@ -7,5 +7,5 @@ import lombok.Data;
 @ConfigurationProperties(prefix = "at.agent")
 public class AgentProperties {
     /** Agent 服务地址 */
-    private String baseUrl = "http://localhost:8090";
+    private String baseUrl;
 }
