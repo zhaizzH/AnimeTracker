@@ -160,6 +160,10 @@ def import_single_subject(client, db, bangumi_id, resume):
         data = client.get_subject(bangumi_id)
         client.rate_limit()
 
+        if data.get("nsfw"):
+            logger.info("  -> 跳过 NSFW 条目 %d", bangumi_id)
+            return True
+
         # 封面下载 → MinIO 转存 → 替换 URL 让 upsert_subject 直接写入 MinIO 路径
         raw_image = (data.get("images") or {}).get("large")
         if raw_image:
