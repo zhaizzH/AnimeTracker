@@ -786,185 +786,6 @@ paths:
                   data:
                     type: "string"
                     description: ""
-  /api/agent/health:
-    get:
-      summary: "健康检查"
-      description: "健康检查"
-      parameters:
-      - name: "Authorization"
-        in: "header"
-        description: ""
-        required: true
-        schema: {}
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "string"
-                    description: ""
-  /api/agent/stream:
-    post:
-      summary: "SSE 流式对话"
-      description: "SSE 流式对话"
-      parameters:
-      - name: "Authorization"
-        in: "header"
-        description: ""
-        required: true
-        schema: {}
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: "object"
-              properties:
-                key:
-                  type: "object"
-                  properties: {}
-              description: ""
-      responses:
-        "200":
-          description: "No Content"
-  /api/agent/sessions:
-    get:
-      summary: "会话列表"
-      description: "会话列表"
-      parameters:
-      - name: "Authorization"
-        in: "header"
-        description: ""
-        required: true
-        schema: {}
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "string"
-                    description: ""
-    post:
-      summary: "创建会话"
-      description: "创建会话"
-      parameters:
-      - name: "Authorization"
-        in: "header"
-        description: ""
-        required: true
-        schema: {}
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: "object"
-              properties:
-                key:
-                  type: "object"
-                  properties: {}
-              description: ""
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "string"
-                    description: ""
-  /api/agent/sessions/{sessionId}/history:
-    get:
-      summary: "获取会话历史"
-      description: "获取会话历史"
-      parameters:
-      - name: "sessionId"
-        in: "path"
-        description: ""
-        required: true
-        schema:
-          type: "string"
-      - name: "Authorization"
-        in: "header"
-        description: ""
-        required: true
-        schema: {}
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "string"
-                    description: ""
-  /api/agent/sessions/{sessionId}/remove:
-    post:
-      summary: "删除会话"
-      description: "删除会话"
-      parameters:
-      - name: "sessionId"
-        in: "path"
-        description: ""
-        required: true
-        schema:
-          type: "string"
-      - name: "Authorization"
-        in: "header"
-        description: ""
-        required: true
-        schema: {}
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "string"
-                    description: ""
   /api/user/subjects:
     get:
       summary: "获取番剧列表"
@@ -2084,6 +1905,185 @@ paths:
                   type: "integer"
                   description: ""
               description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
+  /api/agent/health:
+    get:
+      summary: "健康检查"
+      description: "健康检查"
+      parameters:
+      - name: "Authorization"
+        in: "header"
+        description: ""
+        required: true
+        schema: {}
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
+  /api/agent/stream:
+    post:
+      summary: "Agent 流式对话"
+      description: "Agent 流式对话"
+      parameters:
+      - name: "Authorization"
+        in: "header"
+        description: ""
+        required: true
+        schema: {}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                key:
+                  type: "object"
+                  properties: {}
+              description: ""
+      responses:
+        "200":
+          description: "No Content"
+  /api/agent/sessions:
+    get:
+      summary: "获取会话列表"
+      description: "获取会话列表"
+      parameters:
+      - name: "Authorization"
+        in: "header"
+        description: ""
+        required: true
+        schema: {}
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
+    post:
+      summary: "创建新会话"
+      description: "创建新会话"
+      parameters:
+      - name: "Authorization"
+        in: "header"
+        description: ""
+        required: true
+        schema: {}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                key:
+                  type: "object"
+                  properties: {}
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
+  /api/agent/sessions/{sessionId}/history:
+    get:
+      summary: "获取会话历史"
+      description: "获取会话历史"
+      parameters:
+      - name: "sessionId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      - name: "Authorization"
+        in: "header"
+        description: ""
+        required: true
+        schema: {}
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
+  /api/agent/sessions/{sessionId}/remove:
+    post:
+      summary: "删除会话"
+      description: "删除会话"
+      parameters:
+      - name: "sessionId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      - name: "Authorization"
+        in: "header"
+        description: ""
+        required: true
+        schema: {}
       responses:
         "200":
           description: ""
