@@ -28,8 +28,7 @@ public class AgentController {
      */
     @GetMapping("/health")
     public Result<?> health(@RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward(
-                "/health", HttpMethod.GET, auth, null);
+        ResponseEntity<String> resp = agentService.forward("/health", HttpMethod.GET, auth, null);
         return agentService.wrapResult(resp.getBody());
     }
 
@@ -37,9 +36,7 @@ public class AgentController {
      * SSE 流式对话
      */
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public void stream(@RequestHeader("Authorization") String auth,
-                       @RequestBody Map<String, Object> body,
-                       HttpServletResponse response) throws IOException {
+    public void stream(@RequestHeader("Authorization") String auth, @RequestBody Map<String, Object> body, HttpServletResponse response) throws IOException {
         String jsonBody = agentService.toJson(body);
 
         response.setContentType(MediaType.TEXT_EVENT_STREAM_VALUE);
@@ -59,8 +56,7 @@ public class AgentController {
      */
     @GetMapping("/sessions")
     public Result<?> listSessions(@RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward(
-                "/sessions", HttpMethod.GET, auth, null);
+        ResponseEntity<String> resp = agentService.forward("/sessions", HttpMethod.GET, auth, null);
         return agentService.wrapResult(resp.getBody());
     }
 
@@ -68,11 +64,9 @@ public class AgentController {
      * 创建会话
      */
     @PostMapping("/sessions")
-    public Result<?> createSession(@RequestHeader("Authorization") String auth,
-                                   @RequestBody(required = false) Map<String, Object> body) {
+    public Result<?> createSession(@RequestHeader("Authorization") String auth, @RequestBody(required = false) Map<String, Object> body) {
         String jsonBody = agentService.toJson(body != null ? body : Map.of());
-        ResponseEntity<String> resp = agentService.forward(
-                "/sessions", HttpMethod.POST, auth, jsonBody);
+        ResponseEntity<String> resp = agentService.forward("/sessions", HttpMethod.POST, auth, jsonBody);
         return agentService.wrapResult(resp.getBody());
     }
 
@@ -80,10 +74,8 @@ public class AgentController {
      * 获取会话历史
      */
     @GetMapping("/sessions/{sessionId}/history")
-    public Result<?> getHistory(@PathVariable String sessionId,
-                                @RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward(
-                "/sessions/" + sessionId + "/history", HttpMethod.GET, auth, null);
+    public Result<?> getHistory(@PathVariable String sessionId, @RequestHeader("Authorization") String auth) {
+        ResponseEntity<String> resp = agentService.forward("/sessions/" + sessionId + "/history", HttpMethod.GET, auth, null);
         return agentService.wrapResult(resp.getBody());
     }
 
@@ -91,10 +83,8 @@ public class AgentController {
      * 删除会话
      */
     @PostMapping("/sessions/{sessionId}/remove")
-    public Result<?> deleteSession(@PathVariable String sessionId,
-                                   @RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward(
-                "/sessions/" + sessionId, HttpMethod.DELETE, auth, null);
+    public Result<?> deleteSession(@PathVariable String sessionId, @RequestHeader("Authorization") String auth) {
+        ResponseEntity<String> resp = agentService.forward("/sessions/" + sessionId, HttpMethod.DELETE, auth, null);
         return agentService.wrapResult(resp.getBody());
     }
 }
