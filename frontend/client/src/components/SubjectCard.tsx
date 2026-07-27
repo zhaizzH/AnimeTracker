@@ -24,7 +24,7 @@ export default function SubjectCard({ subject, extra }: SubjectCardProps) {
           onClick={() => navigate(`/subject/${subject.id}`)}
         />
       }
-      bodyStyle={{ padding: 12 }}
+      styles={{ body: { padding: 12 } }}
     >
       <Text ellipsis style={{ display: 'block', fontWeight: 'bold' }}>
         {subject.nameCn || subject.name}

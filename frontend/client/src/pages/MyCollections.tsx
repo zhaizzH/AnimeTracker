@@ -4,15 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { collectionsApi } from '@/api/collections';
 import { useCollections } from '@/hooks/useCollections';
+import { COLLECTION_TYPE_LABELS } from '@/utils';
 import type { UserCollectionVO } from '@/types';
 
 const typeTabs = [
   { key: '', label: '全部' },
-  { key: '1', label: '想看' },
-  { key: '2', label: '看过' },
-  { key: '3', label: '在看' },
-  { key: '4', label: '搁置' },
-  { key: '5', label: '抛弃' },
+  ...Object.entries(COLLECTION_TYPE_LABELS).map(([key, label]) => ({ key, label })),
 ];
 
 export default function MyCollections() {

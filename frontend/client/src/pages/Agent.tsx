@@ -9,13 +9,18 @@ import ReactMarkdown from 'react-markdown';
 const { Sider, Content } = Layout;
 const { Text } = Typography;
 
+interface Session {
+  id?: string;
+  sessionId?: string;
+  title?: string;
+}
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
 
 export default function Agent() {
-  const [sessions, setSessions] = useState<any[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
@@ -25,15 +30,10 @@ export default function Agent() {
   const { token } = useAuthStore();
 
   // 加载会话列表
-  const { isLoading: sessionsLoading } = useQuery({
+  const { isLoading: sessionsLoading, data: sessions } = useQuery<Session[]>({
     queryKey: ['agent-sessions'],
-    queryFn: () => agentApi.sessions(),
+    queryFn: () => agentApi.sessions() as Promise<Session[]>,
   });
-
-  // 会话列表变化时更新本地状态
-  useEffect(() => {
-    agentApi.sessions().then((data: any) => setSessions(data || [])).catch(() => {});
-  }, []);
 
   // 加载历史消息
   const loadHistory = async (sessionId: string) => {
@@ -47,7 +47,6 @@ export default function Agent() {
 
   const refetchSessions = () => {
     queryClient.invalidateQueries({ queryKey: ['agent-sessions'] });
-    agentApi.sessions().then((data: any) => setSessions(data || [])).catch(() => {});
   };
 
   const createSession = async () => {
@@ -167,7 +166,7 @@ export default function Agent() {
         </div>
         <List
           loading={sessionsLoading}
-          dataSource={sessions}
+          dataSource={sessions ?? []}
           renderItem={(session: any) => (
             <List.Item
               onClick={() => selectSession(session.id || session.sessionId)}

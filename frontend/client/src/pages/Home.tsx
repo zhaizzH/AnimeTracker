@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Row, Col, Card, Statistic, Tabs } from 'antd';
 import { subjectsApi } from '@/api/subjects';
 import SubjectCard from '@/components/SubjectCard';
+import { getCurrentQuarter } from '@/utils';
 import type { SubjectListVO } from '@/types';
 
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
@@ -76,12 +77,4 @@ export default function Home() {
       <Tabs defaultActiveKey={String(today)} items={tabItems} />
     </div>
   );
-}
-
-function getCurrentQuarter(): string {
-  const m = new Date().getMonth();
-  if (m < 3) return 'spring';
-  if (m < 6) return 'summer';
-  if (m < 9) return 'autumn';
-  return 'winter';
 }
