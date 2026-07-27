@@ -108,6 +108,7 @@ def upsert_subject(session: Session, data: dict) -> int:
 def upsert_episodes(session: Session, subject_id: int, episodes: list[dict]):
     """upsert 剧集列表。使用 (subject_id, bangumi_ep_id) 作为匹配键。"""
     now = datetime.now()
+    today = now.date()
     for ep in episodes:
         bangumi_ep_id = ep["id"]
         existing_id = session.execute(
@@ -116,6 +117,18 @@ def upsert_episodes(session: Session, subject_id: int, episodes: list[dict]):
         ).scalar()
 
         airdate = ep.get("airdate") or None  # empty string → NULL
+
+        # ponytail: airdate 推 status，不用 API 返回的值
+        ep_status = "NA"
+        if airdate:
+            try:
+                ep_date = datetime.strptime(airdate, "%Y-%m-%d").date()
+                if ep_date < today:
+                    ep_status = "Air"
+                elif ep_date == today:
+                    ep_status = "Today"
+            except ValueError:
+                pass
 
         if existing_id:
             session.execute(
@@ -135,7 +148,7 @@ def upsert_episodes(session: Session, subject_id: int, episodes: list[dict]):
                     "duration": ep.get("duration"),
                     "airdate": airdate,
                     "description": ep.get("desc", ""),
-                    "status": ep.get("status", "NA"),
+                    "status": ep_status,
                 },
             )
         else:
@@ -158,7 +171,7 @@ def upsert_episodes(session: Session, subject_id: int, episodes: list[dict]):
                     "duration": ep.get("duration"),
                     "airdate": airdate,
                     "description": ep.get("desc", ""),
-                    "status": ep.get("status", "NA"),
+                    "status": ep_status,
                     "now": now,
                 },
             )
