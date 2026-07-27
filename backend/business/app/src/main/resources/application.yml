@@ -70,7 +70,7 @@ jwt:
 
 # MinIO 对象存储
 minio:
-  endpoint: http://${minio.endpoint}:${minio.port}
+  endpoint: http://${minio.host}:${minio.port}
   access-key: ${minio.access-key}
   secret-key: ${minio.secret-key}
   bucket: ${minio.bucket}

@@ -27,6 +27,7 @@ export default function Profile() {
     mutationFn: (data: UpdateUserDTO) => userApi.update(data),
     onSuccess: (result: any) => {
       setUser(result);
+      refetch();
       message.success('资料已更新');
       setEditModalOpen(false);
     },
