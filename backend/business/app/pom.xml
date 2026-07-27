@@ -14,7 +14,7 @@
     <artifactId>animetracker-app</artifactId>
     <packaging>jar</packaging>
     <name>AnimeTracker App</name>
-    <description>AnimeTracker Spring Boot application entry point</description>
+    <description>AnimeTracker Spring Boot应用程序入口点</description>
 
     <dependencies>
         <!-- 聚合业务模块 -->
@@ -25,6 +25,10 @@
         <dependency>
             <groupId>top.zhaizz</groupId>
             <artifactId>animetracker-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>top.zhaizz</groupId>
+            <artifactId>animetracker-agent</artifactId>
         </dependency>
 
         <!-- MySQL 驱动 -->

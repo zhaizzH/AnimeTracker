@@ -1,4 +1,4 @@
-package top.zhaizz.client.service;
+package top.zhaizz.agent.service;
 
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;

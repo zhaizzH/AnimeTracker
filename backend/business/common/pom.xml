@@ -14,7 +14,7 @@
     <artifactId>animetracker-common</artifactId>
     <packaging>jar</packaging>
     <name>AnimeTracker Common</name>
-    <description>Shared base classes, exceptions, utilities</description>
+    <description>公共模块</description>
 
     <dependencies>
         <dependency>

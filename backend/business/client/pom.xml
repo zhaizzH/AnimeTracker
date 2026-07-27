@@ -14,9 +14,13 @@
     <artifactId>animetracker-client</artifactId>
     <packaging>jar</packaging>
     <name>AnimeTracker Client</name>
-    <description>Client module: subject browse/search, auth, profile, tags</description>
+    <description>客户端模块</description>
 
     <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
         <dependency>
             <groupId>top.zhaizz</groupId>
             <artifactId>animetracker-common</artifactId>

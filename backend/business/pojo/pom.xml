@@ -14,7 +14,7 @@
     <artifactId>animetracker-pojo</artifactId>
     <packaging>jar</packaging>
     <name>AnimeTracker Pojo</name>
-    <description>Pojo classes for AnimeTracker</description>
+    <description>POJO 模块</description>
 
     <dependencies>
         <!-- commons-codec 依赖 -->

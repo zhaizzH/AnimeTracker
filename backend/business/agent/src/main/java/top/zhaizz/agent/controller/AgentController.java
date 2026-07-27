@@ -1,4 +1,4 @@
-package top.zhaizz.client.controller;
+package top.zhaizz.agent.controller;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -6,7 +6,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import top.zhaizz.client.service.AgentService;
+import top.zhaizz.agent.service.AgentService;
 import top.zhaizz.common.result.Result;
 
 import java.io.IOException;
@@ -34,7 +34,7 @@ public class AgentController {
     }
 
     /**
-     * SSE 流式对话
+     * Agent 流式对话
      */
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public void stream(@RequestHeader("Authorization") String auth, @RequestBody Map<String, Object> body, HttpServletResponse response) throws IOException {
@@ -57,7 +57,7 @@ public class AgentController {
     }
 
     /**
-     * 会话列表
+     * 获取会话列表
      */
     @GetMapping("/sessions")
     public Result<?> listSessions(@RequestHeader("Authorization") String auth) {
@@ -66,7 +66,7 @@ public class AgentController {
     }
 
     /**
-     * 创建会话
+     * 创建新会话
      */
     @PostMapping("/sessions")
     public Result<?> createSession(@RequestHeader("Authorization") String auth, @RequestBody(required = false) Map<String, Object> body) {

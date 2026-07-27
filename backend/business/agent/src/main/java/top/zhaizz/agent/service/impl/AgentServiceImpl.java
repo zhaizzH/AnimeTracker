@@ -1,4 +1,4 @@
-package top.zhaizz.client.service.impl;
+package top.zhaizz.agent.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,7 +8,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-import top.zhaizz.client.service.AgentService;
+import top.zhaizz.agent.service.AgentService;
 import top.zhaizz.common.config.AgentProperties;
 import top.zhaizz.common.result.Result;
 
