@@ -26,7 +26,7 @@ export default function Schedule() {
       weekday: -1,
       year: selectedYear,
       quarter: selectedQuarter,
-      size: 200,
+      size: 100,
     }),
   });
 
@@ -40,7 +40,7 @@ export default function Schedule() {
     return map;
   }, [data]);
 
-  const years = Array.from({ length: 10 }, (_, i) => year - 5 + i);
+  const years = Array.from({ length: year + 10 - 1950 + 1 }, (_, i) => 1950 + i);
 
   const tabItems = Array.from({ length: 7 }, (_, i) => ({
     key: String(i),

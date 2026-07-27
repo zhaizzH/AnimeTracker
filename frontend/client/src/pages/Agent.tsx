@@ -26,6 +26,7 @@ export default function Agent() {
   const [inputText, setInputText] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const historyCache = useRef<Map<string, Message[]>>(new Map());
   const queryClient = useQueryClient();
   const { token } = useAuthStore();
 
@@ -37,9 +38,13 @@ export default function Agent() {
 
   // 加载历史消息
   const loadHistory = async (sessionId: string) => {
+    const cached = historyCache.current.get(sessionId);
+    if (cached) { setMessages(cached); return; }
     try {
       const history = await agentApi.history(sessionId) as any;
-      setMessages(history?.messages || []);
+      const msgs = history || [];
+      historyCache.current.set(sessionId, msgs);
+      setMessages(msgs);
     } catch {
       setMessages([]);
     }
@@ -52,7 +57,7 @@ export default function Agent() {
   const createSession = async () => {
     try {
       const result = await agentApi.createSession() as any;
-      setCurrentSessionId(result?.id || result?.sessionId);
+      setCurrentSessionId(result?.id || result?.sessionId || result?.session_id);
       setMessages([]);
       refetchSessions();
     } catch (err: any) {
@@ -84,7 +89,7 @@ export default function Agent() {
     if (!sessionId) {
       try {
         const result = await agentApi.createSession() as any;
-        sessionId = result?.id || result?.sessionId;
+        sessionId = result?.id || result?.sessionId || result?.session_id;
         setCurrentSessionId(sessionId);
         refetchSessions();
       } catch { return; }
@@ -145,6 +150,13 @@ export default function Agent() {
   };
 
   // 自动滚动到底部
+  // 缓存当前会话消息到本地
+  useEffect(() => {
+    if (currentSessionId && !isStreaming && messages.length > 0) {
+      historyCache.current.set(currentSessionId, messages);
+    }
+  }, [currentSessionId, isStreaming, messages]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -169,14 +181,14 @@ export default function Agent() {
           dataSource={sessions ?? []}
           renderItem={(session: any) => (
             <List.Item
-              onClick={() => selectSession(session.id || session.sessionId)}
+              onClick={() => selectSession(session.id || session.sessionId || session.session_id)}
               style={{
                 cursor: 'pointer',
-                background: currentSessionId === (session.id || session.sessionId) ? '#e6f4ff' : 'transparent',
+                background: currentSessionId === (session.id || session.sessionId || session.session_id) ? '#e6f4ff' : 'transparent',
                 padding: '8px 16px',
               }}
               actions={[
-                <Popconfirm title="删除此会话？" onConfirm={() => deleteSession(session.id || session.sessionId)}>
+                <Popconfirm title="删除此会话？" onConfirm={() => deleteSession(session.id || session.sessionId || session.session_id)}>
                   <DeleteOutlined style={{ color: '#999' }} />
                 </Popconfirm>
               ]}

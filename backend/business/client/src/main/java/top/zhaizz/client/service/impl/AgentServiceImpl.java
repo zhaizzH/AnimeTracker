@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import top.zhaizz.client.service.AgentService;
 import top.zhaizz.common.config.AgentProperties;
@@ -15,6 +16,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -52,7 +54,13 @@ public class AgentServiceImpl implements AgentService {
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
         HttpEntity<String> entity = new HttpEntity<>(body, headers);
-        return restTemplate.exchange(url, method, entity, String.class);
+        try {
+            return restTemplate.exchange(url, method, entity, String.class);
+        } catch (HttpClientErrorException e) {
+            return ResponseEntity.status(e.getStatusCode())
+                    .headers(e.getResponseHeaders())
+                    .body(e.getResponseBodyAsString());
+        }
     }
 
     @Override
@@ -86,6 +94,10 @@ public class AgentServiceImpl implements AgentService {
     @Override
     public Result<?> wrapResult(String agentBody) {
         try {
+            if (agentBody.trim().startsWith("[")) {
+                List<?> list = objectMapper.readValue(agentBody, List.class);
+                return Result.success(list);
+            }
             Map<?, ?> map = objectMapper.readValue(agentBody, Map.class);
             return Result.success(map);
         } catch (JsonProcessingException e) {

@@ -104,7 +104,7 @@ async def get_history(
     ) for m in messages]
 
 
-@router.delete("/sessions/{session_id}")
+@router.post("/sessions/{session_id}")
 async def delete_session(
     session_id: str,
     user: UserInfo = Depends(verify_token),

@@ -58,7 +58,7 @@ export default function CollectionActions({ subjectId }: Props) {
   const removeMutation = useMutation({
     mutationFn: () => collectionsApi.remove(subjectId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collection', subjectId] });
+      queryClient.setQueryData(['collection', subjectId], null);
       setSelectedType(0); setRate(0); setEpStatus(0);
       message.success('已取消收藏');
     },

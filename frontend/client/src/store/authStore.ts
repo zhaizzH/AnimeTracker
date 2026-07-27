@@ -12,11 +12,22 @@ interface AuthState {
   hydrate: () => void;
 }
 
+function loadUser(): UserVO | null {
+  try {
+    const raw = localStorage.getItem('user');
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+const initToken = localStorage.getItem('token');
+const initRefreshToken = localStorage.getItem('refreshToken');
+const initUser = loadUser();
+
 export const useAuthStore = create<AuthState>((set) => ({
-  token: null,
-  refreshToken: null,
-  user: null,
-  isLoggedIn: false,
+  token: initToken,
+  refreshToken: initRefreshToken,
+  user: initUser,
+  isLoggedIn: !!initToken && !!initUser,
 
   login: (token, refreshToken, user) => {
     localStorage.setItem('token', token);
