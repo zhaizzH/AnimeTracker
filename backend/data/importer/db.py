@@ -120,6 +120,7 @@ def upsert_episodes(session: Session, subject_id: int, episodes: list[dict]):
         # ponytail: Bangumi API 有时返回中文日期格式
         if airdate:
             airdate = airdate.replace("年", "-").replace("月", "-").replace("日", "")
+            airdate = airdate.replace(" ", "")
 
         # ponytail: airdate 推 status，不用 API 返回的值
         ep_status = "NA"
