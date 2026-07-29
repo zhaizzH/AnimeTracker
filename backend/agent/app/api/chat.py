@@ -16,7 +16,7 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/chat")
+router = APIRouter(prefix="/api/agent")
 
 # 全局实例（main.py 中初始化后替换）
 chat_store: SQLiteStore | None = None

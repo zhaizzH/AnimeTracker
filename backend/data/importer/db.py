@@ -132,7 +132,7 @@ def upsert_episodes(session: Session, subject_id: int, episodes: list[dict]):
                 elif ep_date == today:
                     ep_status = "Today"
             except ValueError:
-                pass
+                airdate = None
 
         if existing_id:
             session.execute(

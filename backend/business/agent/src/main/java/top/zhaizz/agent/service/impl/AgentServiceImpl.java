@@ -39,7 +39,7 @@ public class AgentServiceImpl implements AgentService {
     }
 
     private String agentUrl(String path) {
-        return agentProperties.getBaseUrl() + "/api/chat" + path;
+        return agentProperties.getBaseUrl() + "/api/agent" + path;
     }
 
     @Override

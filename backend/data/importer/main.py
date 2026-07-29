@@ -145,6 +145,36 @@ def parse_season_key(key: str):
     return year, ms, me
 
 
+def _import_related_subject(client, db, bangumi_id):
+    """预导入关联条目，仅创建 subject + tags + episodes，不做 relations 递归。
+
+    与 import_single_subject 不同：不 commit/rollback（由调用方控制），
+    避免递归时 rollback 污染父事务。
+    """
+    data = client.get_subject(bangumi_id)
+    if data.get("nsfw"):
+        return
+
+    raw_image = (data.get("images") or {}).get("large")
+    if raw_image:
+        minio_url = upload_cover(data["id"], raw_image)
+        if minio_url != raw_image:
+            data.setdefault("images", {})["large"] = minio_url
+
+    subject_id = upsert_subject(db, data)
+
+    tags = data.get("tags") or []
+    if tags:
+        upsert_tags(db, subject_id, tags)
+
+    total_eps = data.get("eps") or data.get("total_episodes") or 0
+    if total_eps > 0:
+        eps_data = client.get_episodes(bangumi_id)
+        episodes = eps_data.get("data") or []
+        if episodes:
+            upsert_episodes(db, subject_id, episodes)
+
+
 def import_single_subject(client, db, bangumi_id, resume):
     try:
         if resume:
@@ -158,7 +188,6 @@ def import_single_subject(client, db, bangumi_id, resume):
 
         logger.info("  -> 获取条目 %d", bangumi_id)
         data = client.get_subject(bangumi_id)
-        client.rate_limit()
 
         if data.get("nsfw"):
             logger.info("  -> 跳过 NSFW 条目 %d", bangumi_id)
@@ -181,7 +210,6 @@ def import_single_subject(client, db, bangumi_id, resume):
         if total_eps > 0:
             logger.info("  -> 获取剧集 subject %d（共 %d 集）", bangumi_id, total_eps)
             eps_data = client.get_episodes(bangumi_id)
-            client.rate_limit()
             episodes = eps_data.get("data") or []
             if episodes:
                 upsert_episodes(db, subject_id, episodes)
@@ -189,7 +217,6 @@ def import_single_subject(client, db, bangumi_id, resume):
         # 导入关联条目
         try:
             relations = client.get_relations(bangumi_id)
-            client.rate_limit()
             if relations:
                 # 仅保留番剧关联（type=2）
                 anime_relations = [r for r in relations if r.get("type") == 2]
@@ -207,7 +234,10 @@ def import_single_subject(client, db, bangumi_id, resume):
                         ).scalar()
                         if not exists:
                             logger.info("  -> 导入缺失的关联条目 %d（主条目 %d）", related_bid, bangumi_id)
-                            import_single_subject(client, db, related_bid, resume)
+                            try:
+                                _import_related_subject(client, db, related_bid)
+                            except Exception as e:
+                                logger.warning("  -> 关联条目 %d 预导入失败: %s", related_bid, e)
 
                     upsert_relations(db, subject_id, anime_relations)
                 # 记录非番剧跳过
@@ -238,7 +268,6 @@ def run_full(client, db, resume):
             while True:
                 try:
                     result = client.browse_subjects(type=2, year=year, month=month, offset=offset)
-                    client.rate_limit()
                 except Exception as e:
                     logger.error("浏览 %d-%d 失败: %s", year, month, e)
                     break
@@ -273,7 +302,6 @@ def run_season(client, db, key, resume):
         while True:
             try:
                 result = client.browse_subjects(type=2, year=year, month=month, offset=offset)
-                client.rate_limit()
             except Exception as e:
                 logger.error("浏览 %d-%d 失败: %s", year, month, e)
                 break
@@ -303,7 +331,6 @@ def run_recent(client, db, resume):
     logger.info("获取日历...")
     try:
         calendar = client.get_calendar()
-        client.rate_limit()
     except Exception as e:
         logger.error("日历获取失败: %s", e)
         return 0
@@ -339,7 +366,6 @@ def run_since(client, db, since_date, resume):
             while True:
                 try:
                     result = client.browse_subjects(type=2, year=year, month=month, offset=offset)
-                    client.rate_limit()
                 except Exception as e:
                     logger.error("浏览 %d-%d 失败: %s", year, month, e)
                     break

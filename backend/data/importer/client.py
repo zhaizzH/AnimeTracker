@@ -1,6 +1,5 @@
 """Bangumi API HTTP 客户端，自动限流 + 重试"""
 
-import random
 import time
 import logging
 from typing import Any, Optional
@@ -95,7 +94,3 @@ class BangumiClient:
     def get_relations(self, subject_id: int) -> list[dict]:
         """GET /v0/subjects/{subject_id}/subjects — 条目关联列表。"""
         return self._request("GET", f"/v0/subjects/{subject_id}/subjects")
-
-    def rate_limit(self):
-        """两次请求间的限流等待（1-2 秒）。"""
-        time.sleep(random.uniform(1.0, 2.0))
