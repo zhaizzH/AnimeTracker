@@ -6,7 +6,8 @@ import SubjectCard from '@/components/SubjectCard';
 import { getCurrentQuarter } from '@/utils';
 import type { SubjectListVO } from '@/types';
 
-const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+const WEEKDAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+const toMondayBased = (d: number) => (d + 6) % 7;
 
 const quarters = [
   { value: 'spring', label: '春' },
@@ -33,7 +34,7 @@ export default function Schedule() {
   const grouped = useMemo(() => {
     const map: Record<number, SubjectListVO[]> = {};
     data?.content?.forEach((s: SubjectListVO) => {
-      const wd = s.airWeekday ?? 0;
+      const wd = toMondayBased(s.airWeekday ?? 0);
       if (!map[wd]) map[wd] = [];
       map[wd].push(s);
     });
@@ -72,7 +73,7 @@ export default function Schedule() {
       </div>
 
       {isLoading ? <Spin style={{ display: 'block', margin: '40px auto' }} /> : (
-        <Tabs defaultActiveKey={String(new Date().getDay())} items={tabItems} />
+        <Tabs defaultActiveKey={String(toMondayBased(new Date().getDay()))} items={tabItems} />
       )}
     </div>
   );

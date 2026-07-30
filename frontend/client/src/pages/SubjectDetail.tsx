@@ -15,9 +15,10 @@ const episodeColumns = [
   { title: '中文名', dataIndex: 'nameCn', key: 'nameCn' },
   { title: '放送日', dataIndex: 'airdate', key: 'airdate', width: 100 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 80,
-    render: (s: string) => {
+    render: (s: 'Air' | 'Today' | 'NA') => {
+      const label = { Air: '已播出', Today: '今日播出', NA: '未播出' }[s] ?? s;
       const color = s === 'Air' ? 'green' : s === 'Today' ? 'blue' : 'default';
-      return <Tag color={color}>{s}</Tag>;
+      return <Tag color={color}>{label}</Tag>;
     },
   },
 ];

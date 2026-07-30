@@ -1,10 +1,10 @@
 /** 获取当前季度 */
 export function getCurrentQuarter(): string {
   const m = new Date().getMonth();
-  if (m < 3) return 'spring';
-  if (m < 6) return 'summer';
-  if (m < 9) return 'autumn';
-  return 'winter';
+  if (m < 3) return 'winter';
+  if (m < 6) return 'spring';
+  if (m < 9) return 'summer';
+  return 'autumn';
 }
 
 /** 收藏类型中文名 */
