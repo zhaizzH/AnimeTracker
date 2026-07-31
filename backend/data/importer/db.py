@@ -183,7 +183,8 @@ def upsert_episodes(session: Session, subject_id: int, episodes: list[dict]):
 
 def upsert_tags(session: Session, subject_id: int, tags: list[dict]):
     """upsert 标签。使用 (subject_id, name) 作为匹配键（表中有唯一索引）。"""
-    for tag in tags:
+    # ponytail: 按 name 排序，让并发线程以相同顺序获取行锁，消除死锁环
+    for tag in sorted(tags, key=lambda t: t.get("name", "")):
         name = tag.get("name", "")
         count = tag.get("count", 0)
         session.execute(

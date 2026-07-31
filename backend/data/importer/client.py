@@ -12,9 +12,9 @@ BASE_URL = "https://proxy.8000150.xyz/https%3A%2F%2Fapi.bgm.tv"
 
 
 class BangumiClient:
-    """对 Bangumi v0 API 的轻量封装，每次请求后 sleep 1-2s 避免触发限流。"""
+    """对 Bangumi v0 API 的轻量封装。"""
 
-    def __init__(self, access_token: str = "", user_agent: str = "zhaizzH/AnimeTracker"):
+    def __init__(self, access_token: str = "", user_agent: str = "zhaizzH/AnimeTracker", request_delay: float = 0):
         self._session = requests.Session()
         self._session.headers.update({
             "User-Agent": user_agent,
@@ -22,6 +22,7 @@ class BangumiClient:
         if access_token:
             self._session.headers["Authorization"] = f"Bearer {access_token}"
         self._access_token = access_token
+        self._request_delay = request_delay
 
     def _request(self, method: str, path: str, **kwargs) -> Any:
         """发送请求，自动处理限流和重试。"""
@@ -37,7 +38,10 @@ class BangumiClient:
                     time.sleep(retry_after)
                     continue
                 resp.raise_for_status()
-                return resp.json()
+                result = resp.json()
+                if self._request_delay:
+                    time.sleep(self._request_delay)
+                return result
             except requests.exceptions.Timeout:
                 logger.warning("Timeout on %s (attempt %d)", path, attempt + 1)
                 if attempt < 2:

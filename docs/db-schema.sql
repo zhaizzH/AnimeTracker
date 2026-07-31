@@ -32,7 +32,7 @@ CREATE TABLE `episode`  (
   `duration` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '时长（如 \"24m\"）',
   `airdate` date NULL DEFAULT NULL COMMENT '播出日期',
   `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '剧情简介',
-  `status` varchar(4) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'NA' COMMENT '播出状态: Air=已播出, Today=今日播出, NA=未播出',
+  `status` varchar(5) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'NA' COMMENT '播出状态: Air=已播出, Today=今日播出, NA=未播出',
   `created_at` datetime NOT NULL COMMENT '创建时间',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_ep_subject_sort`(`subject_id` ASC, `sort` ASC) USING BTREE,
