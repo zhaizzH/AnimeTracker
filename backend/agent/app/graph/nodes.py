@@ -1,31 +1,12 @@
 import logging
 from datetime import datetime
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.graph.prompts import ROUTER_PROMPT, ADMIN_DENIED_PROMPT, FINALIZER_PROMPT
 from app.graph.state import AgentState
 from app.graph.sub_agent import create_sub_agent
 
 logger = logging.getLogger(__name__)
-
-
-def create_entry_node(store):
-    """创建入口节点：解析用户信息、加载历史"""
-    async def entry(state: AgentState) -> dict:
-        user = state.user
-        session_id = state.messages[-1].additional_kwargs.get("session_id", "")
-        if session_id:
-            history = store.get_messages(session_id)
-            if history:
-                base_msgs = []
-                for m in history:
-                    if m.role == "user":
-                        base_msgs.append(HumanMessage(content=m.content))
-                    else:
-                        base_msgs.append(AIMessage(content=m.content))
-                return {"messages": base_msgs}
-        return {}
-    return entry
 
 
 def create_user_router(llm):

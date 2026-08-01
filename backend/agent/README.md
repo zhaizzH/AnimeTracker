@@ -3,27 +3,26 @@
 基于 **FastAPI + LangGraph** 构建的 AI 对话 Agent，面向番剧场景提供搜索、发现、推荐三类对话能力，并通过工具调用后端业务 API 获取实时数据。
 
 - **默认端口**：`8090`（Swagger 文档：`/docs`）
-- **LLM**：DashScope Qwen（默认 `qwen3.7-plus`）
+- **LLM**：DashScope Qwen（默认 `qwen-plus`）
 
 ## 架构：Router Graph
 
 Agent 以一张 LangGraph 状态图驱动多轮对话，流程如下：
 
 ```
-                 ┌──────────┐
-                 │  entry   │  解析用户身份/上下文
-                 └────┬─────┘
-                      │ role_router（条件边）
-         ┌────────────┴────────────┐
-         ▼                         ▼
-   ┌────────────┐           ┌────────────┐
-   │user_router │           │admin_router│
-   └─────┬──────┘           └─────┬──────┘
-         │ 意图分发                  │ (Phase 2)
-   ┌─────┼─────┐                  ▼
-   ▼     ▼     ▼               ┌────────┐
-search discover recommend     │ denied │  (无权限/占位)
-   └─────┬─────┘              └────────┘
+                 ┌──────────────┐
+                 │ role_router  │  条件入口：按角色分发
+                 └──────┬───────┘
+         ┌──────────────┴──────────────┐
+         ▼                             ▼
+   ┌────────────┐               ┌────────────┐
+   │user_router │               │admin_router│
+   └─────┬──────┘               └─────┬──────┘
+         │ 意图分发                     │ (Phase 2)
+   ┌─────┼─────┐                     ▼
+   ▼     ▼     ▼                 ┌────────┐
+search discover recommend       │ denied │  (无权限/占位)
+   └─────┬─────┘                 └────────┘
          │ 整理回复
          ▼
     ┌──────────┐
@@ -35,9 +34,8 @@ search discover recommend     │ denied │  (无权限/占位)
 
 | 节点 | 文件 | 职责 |
 |------|------|------|
-| `entry` | `nodes.create_entry_node` | 初始化会话、读取历史 |
 | `user_router` / `admin_router` | `nodes.create_*_router` | LLM 判断用户意图 / 角色 |
-| `role_router` | `nodes.create_role_router` | 条件边：分发到 user / admin |
+| `role_router` | `nodes.create_role_router` | 条件入口：分发到 user / admin |
 | `search` / `discover` / `recommend` | `nodes.create_sub_agent_node` | 子 Agent，绑定 `user_tools` 与各自 Prompt 循环调用工具 |
 | `denied` | `nodes.create_denied_node` | 拒绝 / 占位回复（管理侧能力 Phase 2） |
 | `finalizer` | `nodes.create_finalizer_node` | 汇总子 Agent 结果生成最终回复 |
@@ -80,7 +78,7 @@ agent/
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `dashscope_api_key` | 空 | DashScope API Key（必填） |
-| `llm_model` | `qwen3.7-plus` | 模型名 |
+| `llm_model` | `qwen-plus` | 模型名 |
 | `llm_temperature` | `0.3` | 温度 |
 | `llm_max_tokens` | `4096` | 最大 token |
 | `agent_host` / `agent_port` | `0.0.0.0` / `8090` | 服务监听 |

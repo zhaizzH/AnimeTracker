@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
     llm = create_llm(settings)
 
     logger.info("创建路由图...")
-    graph = create_router_graph(llm, settings, store)
+    graph = create_router_graph(llm, settings)
 
     logger.info("创建聊天服务...")
     chat_api.chat_service = ChatService(store=store, router_graph=graph, settings=settings)

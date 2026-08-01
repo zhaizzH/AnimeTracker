@@ -25,21 +25,21 @@ chat_service: ChatService | None = None
 
 def get_store() -> SQLiteStore:
     if chat_store is None:
-        raise RuntimeError("ChatStore not initialized")
+        raise RuntimeError("ChatStore 未初始化")
     return chat_store
 
 
 def get_service() -> ChatService:
     if chat_service is None:
-        raise RuntimeError("ChatService not initialized")
+        raise RuntimeError("ChatService 未初始化")
     return chat_service
 
 
 @router.post("/stream")
 async def chat_stream(
-    req: ChatRequest,
-    user: UserInfo = Depends(verify_token),
-    svc: ChatService = Depends(get_service),
+        req: ChatRequest,
+        user: UserInfo = Depends(verify_token),
+        svc: ChatService = Depends(get_service),
 ):
     """发送消息，返回 SSE 流"""
     # 检查会话权限
@@ -59,7 +59,7 @@ async def chat_stream(
 
 @router.get("/sessions")
 async def list_sessions(
-    user: UserInfo = Depends(verify_token),
+        user: UserInfo = Depends(verify_token),
 ):
     """获取当前用户会话列表"""
     store = get_store()
@@ -74,8 +74,8 @@ async def list_sessions(
 
 @router.post("/sessions")
 async def create_session(
-    body: SessionCreateRequest,
-    user: UserInfo = Depends(verify_token),
+        body: SessionCreateRequest,
+        user: UserInfo = Depends(verify_token),
 ):
     """创建新会话"""
     store = get_store()
@@ -86,8 +86,8 @@ async def create_session(
 
 @router.get("/sessions/{session_id}/history")
 async def get_history(
-    session_id: str,
-    user: UserInfo = Depends(verify_token),
+        session_id: str,
+        user: UserInfo = Depends(verify_token),
 ):
     """获取会话历史"""
     store = get_store()
@@ -106,8 +106,8 @@ async def get_history(
 
 @router.post("/sessions/{session_id}")
 async def delete_session(
-    session_id: str,
-    user: UserInfo = Depends(verify_token),
+        session_id: str,
+        user: UserInfo = Depends(verify_token),
 ):
     """删除会话"""
     store = get_store()
