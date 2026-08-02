@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -28,6 +29,7 @@ public class AgentServiceImpl implements AgentService {
     private final RestTemplate restTemplate;
     private final AgentProperties agentProperties;
     private final ObjectMapper objectMapper;
+    private volatile RestTemplate streamRestTemplate;
 
     @Override
     public String toJson(Object value) {
@@ -40,6 +42,21 @@ public class AgentServiceImpl implements AgentService {
 
     private String agentUrl(String path) {
         return agentProperties.getBaseUrl() + "/api/agent" + path;
+    }
+
+    /** SSE 流式转发专用:不设读超时,思考模型响应可能远超普通接口的 30s 读超时。 */
+    private RestTemplate getStreamRestTemplate() {
+        if (streamRestTemplate == null) {
+            synchronized (this) {
+                if (streamRestTemplate == null) {
+                    SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+                    factory.setConnectTimeout(10_000);
+                    factory.setReadTimeout(0);
+                    streamRestTemplate = new RestTemplate(factory);
+                }
+            }
+        }
+        return streamRestTemplate;
     }
 
     @Override
@@ -74,7 +91,7 @@ public class AgentServiceImpl implements AgentService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(Collections.singletonList(MediaType.TEXT_EVENT_STREAM));
 
-        restTemplate.execute(url, method, request -> {
+        getStreamRestTemplate().execute(url, method, request -> {
             request.getHeaders().addAll(headers);
             if (body != null) {
                 request.getBody().write(body.getBytes(StandardCharsets.UTF_8));
