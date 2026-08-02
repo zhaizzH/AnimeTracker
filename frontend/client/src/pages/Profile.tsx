@@ -1,13 +1,12 @@
 import { useState } from 'react';
-import { Badge, Card, Descriptions, Avatar, Button, Modal, Form, Input, Upload, message, Typography, Space } from 'antd';
+import { Badge, Avatar, Button, Modal, Form, Input, Upload, message } from 'antd';
 import { UserOutlined, EditOutlined, KeyOutlined, MailOutlined } from '@ant-design/icons';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { userApi } from '@/api/user';
 import { commonApi } from '@/api/common';
 import { useAuthStore } from '@/store/authStore';
+import PageHeading from '@/components/PageHeading';
 import type { UpdateUserDTO, ChangePasswordDTO } from '@/types';
-
-const { Title } = Typography;
 
 export default function Profile() {
   const { user, setUser } = useAuthStore();
@@ -22,7 +21,6 @@ export default function Profile() {
 
   const displayUser = profile || user;
 
-  // 编辑资料
   const updateMutation = useMutation({
     mutationFn: (data: UpdateUserDTO) => userApi.update(data),
     onSuccess: (result: any) => {
@@ -34,7 +32,6 @@ export default function Profile() {
     onError: (err: any) => message.error(err.message || '更新失败'),
   });
 
-  // 修改密码
   const passwordMutation = useMutation({
     mutationFn: (data: ChangePasswordDTO) => userApi.changePassword(data),
     onSuccess: () => {
@@ -44,7 +41,6 @@ export default function Profile() {
     onError: (err: any) => message.error(err.message || '修改失败'),
   });
 
-  // 上传头像
   const handleUpload = async (file: File) => {
     try {
       const url = await commonApi.upload(file, 'avatar');
@@ -60,30 +56,47 @@ export default function Profile() {
   };
 
   return (
-    <div style={{ maxWidth: 600, margin: '0 auto' }}>
-      <Card>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+    <div>
+      <PageHeading
+        index="05 / PROFILE"
+        title="个人档案"
+        subtitle={`@${displayUser?.username || ''} · 本子上的记录`}
+      />
+
+      <div className="profile-sheet">
+        <div className="profile-head">
           <Badge
             count={
               <Upload showUploadList={false} beforeUpload={file => { handleUpload(file); return false; }}>
-                <EditOutlined style={{ fontSize: 16, color: '#fff', background: '#1677ff', borderRadius: '50%', padding: 4 }} />
+                <EditOutlined
+                  style={{
+                    fontSize: 16,
+                    color: '#fff',
+                    background: 'var(--accent)',
+                    borderRadius: '50%',
+                    padding: 4,
+                  }}
+                />
               </Upload>
             }
-            offset={[-10, 80]}
+            offset={[-8, 66]}
           >
-            <Avatar size={100} src={displayUser?.avatar} icon={<UserOutlined />} />
+            <Avatar size={84} src={displayUser?.avatar} icon={<UserOutlined />} />
           </Badge>
-          <Title level={4} style={{ marginTop: 12 }}>{displayUser?.nickname || displayUser?.username}</Title>
+          <div>
+            <h2>{displayUser?.nickname || displayUser?.username}</h2>
+            <p>USER / {displayUser?.username}</p>
+          </div>
         </div>
 
-        <Descriptions column={1} size="default">
-          <Descriptions.Item label="用户名">{displayUser?.username}</Descriptions.Item>
-          <Descriptions.Item label="邮箱">{displayUser?.email}</Descriptions.Item>
-          <Descriptions.Item label="角色">{displayUser?.role === 'ADMIN' ? '管理员' : '用户'}</Descriptions.Item>
-          <Descriptions.Item label="注册时间">{displayUser?.createdAt}</Descriptions.Item>
-        </Descriptions>
+        <dl className="dossier-meta">
+          <div><dt>用户名</dt><dd>{displayUser?.username}</dd></div>
+          <div><dt>邮箱</dt><dd>{displayUser?.email}</dd></div>
+          <div><dt>角色</dt><dd>{displayUser?.role === 'ADMIN' ? '管理员' : '用户'}</dd></div>
+          <div><dt>注册时间</dt><dd>{displayUser?.createdAt}</dd></div>
+        </dl>
 
-        <Space direction="vertical" style={{ width: '100%', marginTop: 16 }}>
+        <div className="profile-actions">
           <Button icon={<EditOutlined />} onClick={() => setEditModalOpen(true)} block>
             编辑资料
           </Button>
@@ -93,10 +106,9 @@ export default function Profile() {
           <Button icon={<MailOutlined />} onClick={() => setEmailModalOpen(true)} block>
             修改邮箱
           </Button>
-        </Space>
-      </Card>
+        </div>
+      </div>
 
-      {/* 编辑资料 Modal */}
       <Modal title="编辑资料" open={editModalOpen} onCancel={() => setEditModalOpen(false)} footer={null}>
         <Form
           layout="vertical"
@@ -114,7 +126,6 @@ export default function Profile() {
         </Form>
       </Modal>
 
-      {/* 修改密码 Modal */}
       <Modal title="修改密码" open={passwordModalOpen} onCancel={() => setPasswordModalOpen(false)} footer={null}>
         <Form layout="vertical" onFinish={values => passwordMutation.mutate(values)}>
           <Form.Item name="oldPassword" label="当前密码" rules={[{ required: true }]}>
@@ -131,7 +142,6 @@ export default function Profile() {
         </Form>
       </Modal>
 
-      {/* 修改邮箱 — 流程: 输入新邮箱 → 发送验证码 → 输入验证码 → 确认 */}
       <Modal title="修改邮箱" open={emailModalOpen} onCancel={() => setEmailModalOpen(false)} footer={null}>
         <EmailChangeForm onSuccess={handleEmailChangeSuccess} />
       </Modal>
@@ -139,7 +149,6 @@ export default function Profile() {
   );
 }
 
-// 邮箱修改子组件（两步流程）
 function EmailChangeForm({ onSuccess }: { onSuccess?: () => void }) {
   const [step, setStep] = useState<'send' | 'verify'>('send');
   const [newEmail, setNewEmail] = useState('');

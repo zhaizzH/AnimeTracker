@@ -25,18 +25,18 @@ export default function Agent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [toolStatus, setToolStatus] = useState('');
+  const [thinking, setThinking] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const historyCache = useRef<Map<string, Message[]>>(new Map());
   const queryClient = useQueryClient();
   const { token } = useAuthStore();
 
-  // 加载会话列表
   const { isLoading: sessionsLoading, data: sessions } = useQuery<Session[]>({
     queryKey: ['agent-sessions'],
     queryFn: () => agentApi.sessions() as Promise<Session[]>,
   });
 
-  // 加载历史消息
   const loadHistory = async (sessionId: string) => {
     const cached = historyCache.current.get(sessionId);
     if (cached) { setMessages(cached); return; }
@@ -78,14 +78,12 @@ export default function Agent() {
     }
   };
 
-  // SSE 流式发送消息
   const sendMessage = async () => {
     if (!inputText.trim() || isStreaming) return;
 
     const userMessage: Message = { role: 'user', content: inputText.trim() };
     let sessionId = currentSessionId;
 
-    // 如果没有会话，先创建
     if (!sessionId) {
       try {
         const result = await agentApi.createSession() as any;
@@ -99,7 +97,6 @@ export default function Agent() {
     setInputText('');
     setIsStreaming(true);
 
-    // 添加空的 AI 消息占位
     const aiMsg: Message = { role: 'assistant', content: '' };
     setMessages(prev => [...prev, aiMsg]);
 
@@ -110,7 +107,7 @@ export default function Agent() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ session_id: sessionId, message: userMessage.content }),
+        body: JSON.stringify({ session_id: sessionId, content: userMessage.content }),
       });
 
       const reader = response.body?.getReader();
@@ -124,22 +121,29 @@ export default function Agent() {
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        // SSE 格式: "data: {...}\n\n"
         const lines = chunk.split('\n');
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const json = JSON.parse(line.slice(6));
-              if (json.content) {
-                fullContent += json.content;
-                setMessages(prev => {
-                  const updated = [...prev];
-                  updated[updated.length - 1] = { role: 'assistant', content: fullContent };
-                  return updated;
-                });
-              }
-            } catch { /* ignore parse errors during streaming */ }
-          }
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const json = JSON.parse(line.slice(6));
+            if (json.type === 'answer' && json.content?.text) {
+              fullContent += json.content.text;
+              setMessages(prev => {
+                const updated = [...prev];
+                updated[updated.length - 1] = { role: 'assistant', content: fullContent };
+                return updated;
+              });
+            } else if (json.type === 'thinking' && json.content?.text) {
+              setThinking(prev => prev + json.content.text);
+            } else if (json.type === 'function_call' && json.content?.state === 'start') {
+              setToolStatus(json.content.message || '正在处理...');
+            } else if (json.type === 'function_call' && json.content?.state === 'end') {
+              setToolStatus('');
+            } else if (json.is_end) {
+              setToolStatus('');
+              setThinking('');
+            }
+          } catch { /* 忽略流式中的解析错误 */ }
         }
       }
     } catch (err) {
@@ -149,8 +153,6 @@ export default function Agent() {
     }
   };
 
-  // 自动滚动到底部
-  // 缓存当前会话消息到本地
   useEffect(() => {
     if (currentSessionId && !isStreaming && messages.length > 0) {
       historyCache.current.set(currentSessionId, messages);
@@ -161,67 +163,74 @@ export default function Agent() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // 选中会话
   const selectSession = (sessionId: string) => {
     setCurrentSessionId(sessionId);
     loadHistory(sessionId);
   };
 
   return (
-    <Layout style={{ height: 'calc(100vh - 64px)', background: '#fff' }}>
-      {/* 侧边栏 — 会话列表 */}
-      <Sider width={260} style={{ background: '#fafafa', borderRight: '1px solid #f0f0f0', overflow: 'auto' }}>
-        <div style={{ padding: 16 }}>
+    <Layout className="agent-book">
+      <Sider width={260}>
+        <div className="agent-sider-head">
+          <h3>会话档案</h3>
           <Button type="primary" icon={<PlusOutlined />} onClick={createSession} block>
-            新建会话
+            新开一页
           </Button>
         </div>
         <List
+          className="agent-session-list"
           loading={sessionsLoading}
           dataSource={sessions ?? []}
-          renderItem={(session: any) => (
-            <List.Item
-              onClick={() => selectSession(session.id || session.sessionId || session.session_id)}
-              style={{
-                cursor: 'pointer',
-                background: currentSessionId === (session.id || session.sessionId || session.session_id) ? '#e6f4ff' : 'transparent',
-                padding: '8px 16px',
-              }}
-              actions={[
-                <Popconfirm title="删除此会话？" onConfirm={() => deleteSession(session.id || session.sessionId || session.session_id)}>
-                  <DeleteOutlined style={{ color: '#999' }} />
+          split={false}
+          renderItem={(session: any, idx: number) => {
+            const sid = session.id || session.sessionId || session.session_id;
+            return (
+              <div
+                className={`agent-session-item ${currentSessionId === sid ? 'active' : ''}`}
+                onClick={() => selectSession(sid)}
+              >
+                <Space size={6} style={{ minWidth: 0 }}>
+                  <span className="session-no">{String(idx + 1).padStart(2, '0')}</span>
+                  <Text ellipsis style={{ color: 'inherit' }}>
+                    {session.title || session.id || '未命名会话'}
+                  </Text>
+                </Space>
+                <Popconfirm
+                  title="删除此会话？"
+                  onConfirm={e => { e?.stopPropagation(); deleteSession(sid); }}
+                  onCancel={e => e?.stopPropagation()}
+                >
+                  <DeleteOutlined
+                    style={{ color: 'var(--ink-faint)' }}
+                    onClick={e => e.stopPropagation()}
+                  />
                 </Popconfirm>
-              ]}
-            >
-              <Text ellipsis>{session.title || session.id || '未命名会话'}</Text>
-            </List.Item>
-          )}
+              </div>
+            );
+          }}
         />
       </Sider>
 
-      {/* 主聊天区 */}
-      <Content style={{ display: 'flex', flexDirection: 'column' }}>
-        <div style={{ flex: 1, overflow: 'auto', padding: 24 }}>
+      <Content className="agent-chat">
+        <div className="agent-chat-scroll">
           {messages.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#999', marginTop: 80 }}>
-              <Text>开始和 AI 助手对话吧！</Text>
-            </div>
+            <div className="agent-empty">开始和 AI 助手对话吧。</div>
           ) : (
             messages.map((msg, idx) => (
-              <div key={idx} style={{
-                marginBottom: 16,
-                textAlign: msg.role === 'user' ? 'right' : 'left',
-              }}>
-                <div style={{
-                  display: 'inline-block',
-                  maxWidth: '70%',
-                  padding: '12px 16px',
-                  borderRadius: 8,
-                  background: msg.role === 'user' ? '#1677ff' : '#f5f5f5',
-                  color: msg.role === 'user' ? '#fff' : '#333',
-                }}>
+              <div key={idx} className={`agent-message ${msg.role}`}>
+                <div className={`agent-bubble ${msg.role}`}>
                   {msg.role === 'assistant' ? (
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    <>
+                      {thinking && (
+                        <details style={{ marginBottom: 8, opacity: 0.6, fontSize: 12 }}>
+                          <summary>思考过程</summary>
+                          <pre style={{ whiteSpace: 'pre-wrap' }}>{thinking}</pre>
+                        </details>
+                      )}
+                      <div className="agent-markdown">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
+                    </>
                   ) : (
                     msg.content
                   )}
@@ -232,8 +241,8 @@ export default function Agent() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* 输入区 */}
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #f0f0f0' }}>
+        <div className="agent-input-bar">
+          {toolStatus && <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>{toolStatus}</Text>}
           <Space.Compact style={{ width: '100%' }}>
             <Input.TextArea
               value={inputText}

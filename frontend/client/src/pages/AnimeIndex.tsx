@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Input, Select, Row, Col, Table, Segmented, Pagination, Spin, Empty, Space } from 'antd';
+import { Input, Select, Table, Segmented, Pagination, Spin, Empty } from 'antd';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { subjectsApi } from '@/api/subjects';
 import { tagsApi } from '@/api/tags';
 import SubjectCard from '@/components/SubjectCard';
+import PageHeading from '@/components/PageHeading';
 import type { SubjectListVO } from '@/types';
 
 const sortOptions = [
@@ -77,8 +78,13 @@ export default function AnimeIndex() {
 
   return (
     <div>
-      <Space direction="vertical" style={{ width: '100%' }} size="middle">
-        {/* 搜索栏 */}
+      <PageHeading
+        index="03 / INDEX"
+        title="番剧索引"
+        subtitle="按标签、年份与评分翻查全部条目"
+      />
+
+      <div className="index-toolbar">
         <Input.Search
           placeholder="搜索番剧名称..."
           value={searchText}
@@ -88,8 +94,7 @@ export default function AnimeIndex() {
           size="large"
         />
 
-        {/* 筛选行 */}
-        <Space wrap>
+        <div className="index-toolbar-row">
           <Select
             placeholder="标签"
             allowClear
@@ -117,34 +122,35 @@ export default function AnimeIndex() {
             onChange={val => updateParams({ order: val })}
             options={[{ value: 'desc', label: '降序' }, { value: 'asc', label: '升序' }]}
           />
-        </Space>
+        </div>
+      </div>
 
-        {/* 视图切换 */}
+      <div className="index-result-line">
+        <span>共 <strong>{(data as any)?.total || 0}</strong> 条记录</span>
         <Segmented options={viewOptions} value={view} onChange={v => setView(v as 'card' | 'table')} />
+      </div>
 
-        {/* 内容区 */}
-        {isLoading ? <Spin style={{ display: 'block', margin: '40px auto' }} /> : (
-          !data || (data as any).content?.length === 0 ? <Empty description="没有找到匹配的番剧" /> : (
-            view === 'card' ? (
-              <Row gutter={[16, 16]}>
+      {isLoading ? <Spin className="paper-loading" /> : (
+        !data || (data as any).content?.length === 0 ? <Empty description="没有找到匹配的番剧" /> : (
+          view === 'card' ? (
+              <div className="poster-grid">
                 {(data as any).content?.map((subject: SubjectListVO) => (
-                  <Col key={subject.id}>
-                    <SubjectCard subject={subject} />
-                  </Col>
+                  <SubjectCard subject={subject} key={subject.id} />
                 ))}
-              </Row>
-            ) : (
-              <Table
-                dataSource={(data as any).content || []}
-                columns={columns}
-                rowKey="id"
-                pagination={false}
-              />
-            )
+              </div>
+          ) : (
+            <Table
+              className="paper-table"
+              dataSource={(data as any).content || []}
+              columns={columns}
+              rowKey="id"
+              pagination={false}
+            />
           )
-        )}
+        )
+      )}
 
-        {/* 分页 */}
+      <div style={{ marginTop: 20, textAlign: 'right' }}>
         <Pagination
           current={page}
           total={(data as any)?.total || 0}
@@ -152,7 +158,7 @@ export default function AnimeIndex() {
           onChange={p => updateParams({ page: String(p) })}
           showTotal={total => `共 ${total} 条`}
         />
-      </Space>
+      </div>
     </div>
   );
 }

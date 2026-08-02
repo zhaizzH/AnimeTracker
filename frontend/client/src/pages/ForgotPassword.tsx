@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Form, Input, Button, Card, Typography, message } from 'antd';
+import { Form, Input, Button, message } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '@/api/auth';
-
-const { Title } = Typography;
+import AuthShell from '@/components/AuthShell';
 
 export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
@@ -23,21 +22,18 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f5f5f5' }}>
-      <Card style={{ width: 400 }}>
-        <Title level={3} style={{ textAlign: 'center' }}>忘记密码</Title>
-        <Form onFinish={onFinish} layout="vertical">
-          <Form.Item name="email" label="注册邮箱" rules={[{ required: true, type: 'email' }]}>
-            <Input placeholder="请输入注册时使用的邮箱" />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading} block>发送重置验证码</Button>
-          </Form.Item>
-          <div style={{ textAlign: 'center' }}>
-            <Link to="/login">返回登录</Link>
-          </div>
-        </Form>
-      </Card>
-    </div>
+    <AuthShell title="找回密码" en="FORGOT PASSWORD" subtitle="验证码会寄到你登记的邮箱">
+      <Form onFinish={onFinish} layout="vertical">
+        <Form.Item name="email" label="注册邮箱" rules={[{ required: true, type: 'email' }]}>
+          <Input placeholder="请输入注册时使用的邮箱" />
+        </Form.Item>
+        <Form.Item>
+          <Button type="primary" htmlType="submit" loading={loading} block>发送重置验证码</Button>
+        </Form.Item>
+        <div className="auth-sheet-foot">
+          <Link to="/login">返回登录</Link>
+        </div>
+      </Form>
+    </AuthShell>
   );
 }

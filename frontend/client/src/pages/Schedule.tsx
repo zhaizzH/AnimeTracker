@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Tabs, Row, Col, Select, Spin, Empty } from 'antd';
+import { Tabs, Select, Spin } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { subjectsApi } from '@/api/subjects';
 import SubjectCard from '@/components/SubjectCard';
+import PageHeading from '@/components/PageHeading';
 import { getCurrentQuarter } from '@/utils';
 import type { SubjectListVO } from '@/types';
 
@@ -23,11 +24,10 @@ export default function Schedule() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['schedule', selectedYear, selectedQuarter],
-    queryFn: () => subjectsApi.schedule({
+    queryFn: () => subjectsApi.scheduleAll({
       weekday: -1,
       year: selectedYear,
       quarter: selectedQuarter,
-      size: 100,
     }),
   });
 
@@ -42,38 +42,59 @@ export default function Schedule() {
   }, [data]);
 
   const years = Array.from({ length: year + 10 - 1950 + 1 }, (_, i) => 1950 + i);
+  const quarterLabel = quarters.find(q => q.value === selectedQuarter)?.label || '';
 
   const tabItems = Array.from({ length: 7 }, (_, i) => ({
     key: String(i),
     label: `${WEEKDAYS[i]} (${(grouped[i] || []).length})`,
     children: (
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        {(grouped[i] || []).map(s => (
-          <Col key={s.id}>
-            <SubjectCard
-              subject={s}
-              extra={<span style={{ color: '#1677ff' }}>{s.airDate || ''}</span>}
-            />
-          </Col>
-        ))}
+      <div className="day-panel">
+        <div className="day-panel-title">
+          <span>{WEEKDAYS[i]}放送</span>
+          <span>{(grouped[i] || []).length} 部</span>
+        </div>
+        <div className="poster-grid">
+          {(grouped[i] || []).map(s => (
+            <SubjectCard subject={s} key={s.id} extra={s.airDate || ''} />
+          ))}
+        </div>
         {(!grouped[i] || grouped[i].length === 0) && (
-          <Col span={24}><Empty description="本周日无放送" /></Col>
+          <p style={{ margin: 0, color: 'var(--ink-soft)' }}>当日暂无放送。</p>
         )}
-      </Row>
+      </div>
     ),
   }));
 
   return (
     <div>
-      <div style={{ marginBottom: 16 }}>
-        <Select value={selectedYear} onChange={setSelectedYear} style={{ width: 100, marginRight: 8 }}
-          options={years.map(y => ({ value: y, label: `${y}年` }))} />
-        <Select value={selectedQuarter} onChange={setSelectedQuarter} style={{ width: 80 }}
-          options={quarters.map(q => ({ value: q.value, label: q.label }))} />
-      </div>
+      <PageHeading
+        index="02 / AIRING"
+        title="放送表"
+        subtitle={`${selectedYear} 年 ${quarterLabel}季 · 按周查看`}
+        actions={
+          <>
+            <Select
+              value={selectedYear}
+              onChange={setSelectedYear}
+              style={{ width: 104 }}
+              options={years.map(y => ({ value: y, label: `${y}年` }))}
+            />
+            <Select
+              value={selectedQuarter}
+              onChange={setSelectedQuarter}
+              style={{ width: 76 }}
+              options={quarters.map(q => ({ value: q.value, label: `${q.label}季` }))}
+            />
+          </>
+        }
+      />
 
-      {isLoading ? <Spin style={{ display: 'block', margin: '40px auto' }} /> : (
-        <Tabs defaultActiveKey={String(toMondayBased(new Date().getDay()))} items={tabItems} />
+      {isLoading ? <Spin className="paper-loading" /> : (
+        <Tabs
+          className="schedule-tabs paper-tabs"
+          defaultActiveKey={String(toMondayBased(new Date().getDay()))}
+          items={tabItems}
+        />
       )}
     </div>
   );

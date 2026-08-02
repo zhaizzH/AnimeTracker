@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Form, Input, Button, Card, Typography, message } from 'antd';
+import { Form, Input, Button, message } from 'antd';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '@/api/auth';
-
-const { Title } = Typography;
+import AuthShell from '@/components/AuthShell';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -25,25 +24,21 @@ export default function ResetPassword() {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f5f5f5' }}>
-      <Card style={{ width: 400 }}>
-        <Title level={3} style={{ textAlign: 'center' }}>重置密码</Title>
-        <Typography.Text>邮箱: <strong>{email}</strong></Typography.Text>
-        <Form onFinish={onFinish} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="code" label="验证码" rules={[{ required: true, len: 6 }]}>
-            <Input placeholder="6位验证码" maxLength={6} />
-          </Form.Item>
-          <Form.Item name="newPassword" label="新密码" rules={[{ required: true, min: 6, max: 128 }]}>
-            <Input.Password placeholder="新密码（至少6位）" />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading} block>重置密码</Button>
-          </Form.Item>
-          <div style={{ textAlign: 'center' }}>
-            <Link to="/login">返回登录</Link>
-          </div>
-        </Form>
-      </Card>
-    </div>
+    <AuthShell title="重置密码" en="RESET PASSWORD" subtitle={`邮箱: ${email}`}>
+      <Form onFinish={onFinish} layout="vertical">
+        <Form.Item name="code" label="验证码" rules={[{ required: true, len: 6 }]}>
+          <Input placeholder="6位验证码" maxLength={6} />
+        </Form.Item>
+        <Form.Item name="newPassword" label="新密码" rules={[{ required: true, min: 6, max: 128 }]}>
+          <Input.Password placeholder="新密码（至少6位）" />
+        </Form.Item>
+        <Form.Item>
+          <Button type="primary" htmlType="submit" loading={loading} block>重置密码</Button>
+        </Form.Item>
+        <div className="auth-sheet-foot">
+          <Link to="/login">返回登录</Link>
+        </div>
+      </Form>
+    </AuthShell>
   );
 }

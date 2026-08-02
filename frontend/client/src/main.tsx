@@ -6,6 +6,7 @@ import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
+import './styles/theme.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,7 +22,28 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
-        <ConfigProvider locale={zhCN}>
+        <ConfigProvider
+          locale={zhCN}
+          theme={{
+            token: {
+              colorPrimary: '#c13a24',
+              colorInfo: '#c13a24',
+              colorBgLayout: '#f3eee3',
+              colorBgContainer: '#faf7f0',
+              colorBorder: '#cbbfa8',
+              colorText: '#201d18',
+              colorTextSecondary: '#615a4e',
+              borderRadius: 2,
+              fontSize: 14,
+              fontFamily: '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif',
+            },
+            components: {
+              Card: { borderRadiusLG: 2 },
+              Table: { headerBg: '#e8e0d0', rowHoverBg: '#faf7f0' },
+              Tabs: { inkBarColor: '#c13a24', itemSelectedColor: '#201d18' },
+            },
+          }}
+        >
           <ErrorBoundary>
             <Suspense fallback={<div style={{ textAlign: 'center', padding: 48 }}>加载中...</div>}>
               <App />

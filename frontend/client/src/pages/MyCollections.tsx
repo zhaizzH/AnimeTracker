@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Tabs, Table, Rate, InputNumber, Button, Space, Image, Popconfirm } from 'antd';
+import { Tabs, Table, Rate, InputNumber, Button, Space, Popconfirm } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { collectionsApi } from '@/api/collections';
 import { useCollections } from '@/hooks/useCollections';
+import PageHeading from '@/components/PageHeading';
 import { COLLECTION_TYPE_LABELS } from '@/utils';
 import type { UserCollectionVO } from '@/types';
 
@@ -22,44 +23,61 @@ export default function MyCollections() {
     queryKey: ['collections', type, page],
     queryFn: () => collectionsApi.list({
       type: type ? parseInt(type) : undefined,
-      page, size: 20,
+      page,
+      size: 20,
     }),
   });
 
   const columns = [
     {
-      title: '封面', dataIndex: ['subject', 'image'], key: 'image', width: 80,
+      title: '封面',
+      dataIndex: ['subject', 'image'],
+      key: 'image',
+      width: 76,
       render: (src: string, record: UserCollectionVO) => (
-        <Image src={src} alt={record.subject.name}
-          style={{ width: 48, height: 64, objectFit: 'cover', cursor: 'pointer' }}
-          preview={false}
-          onClick={() => navigate(`/subject/${record.subjectId}`)} />
+        <img
+          src={src || '/placeholder.png'}
+          alt={record.subject.name}
+          className="collection-cover"
+          onClick={() => navigate(`/subject/${record.subjectId}`)}
+        />
       ),
     },
     {
-      title: '标题', key: 'title', width: 200,
+      title: '标题',
+      key: 'title',
+      width: 220,
       render: (_: any, record: UserCollectionVO) => (
-        <a onClick={() => navigate(`/subject/${record.subjectId}`)}>
+        <a className="collection-title" onClick={() => navigate(`/subject/${record.subjectId}`)}>
           {record.subject.nameCn || record.subject.name}
         </a>
       ),
     },
     {
-      title: '评分', dataIndex: 'rate', key: 'rate', width: 200,
+      title: '评分',
+      dataIndex: 'rate',
+      key: 'rate',
+      width: 210,
       render: (rate: number, record: UserCollectionVO) => (
-        <Rate count={10} value={rate}
+        <Rate
+          count={10}
+          value={rate}
           onChange={val => saveMutation.mutate({
             subjectId: record.subjectId,
             data: { type: record.type, rate: val, epStatus: record.epStatus },
-          })} />
+          })}
+        />
       ),
     },
     {
-      title: '进度', key: 'progress', width: 160,
+      title: '进度',
+      key: 'progress',
+      width: 160,
       render: (_: any, record: UserCollectionVO) => (
         <Space>
           <InputNumber
-            min={0} value={record.epStatus}
+            min={0}
+            value={record.epStatus}
             onChange={val => epStatusMutation.mutate({
               subjectId: record.subjectId,
               epStatus: val || 0,
@@ -71,12 +89,11 @@ export default function MyCollections() {
       ),
     },
     {
-      title: '操作', key: 'actions', width: 120,
+      title: '操作',
+      key: 'actions',
+      width: 110,
       render: (_: any, record: UserCollectionVO) => (
-        <Popconfirm
-          title="确定取消收藏？"
-          onConfirm={() => removeMutation.mutate(record.subjectId)}
-        >
+        <Popconfirm title="确定取消收藏？" onConfirm={() => removeMutation.mutate(record.subjectId)}>
           <Button size="small" danger>取消收藏</Button>
         </Popconfirm>
       ),
@@ -85,15 +102,32 @@ export default function MyCollections() {
 
   return (
     <div>
+      <PageHeading
+        index="04 / LIBRARY"
+        title="我的收藏"
+        subtitle="想看、在看、看过，都记在这一页"
+      />
+
       <Tabs
+        className="paper-tabs"
         activeKey={type}
         onChange={val => { setType(val); setPage(1); }}
         items={typeTabs.map(t => ({ key: t.key, label: t.label }))}
       />
+
+      <div className="index-result-line">
+        <span>共 <strong>{(data as any)?.total || 0}</strong> 条记录</span>
+        <span style={{ color: 'var(--ink-faint)', fontFamily: 'var(--mono)', fontSize: 11 }}>
+          EPISODE LOG
+        </span>
+      </div>
+
       <Table
+        className="paper-table"
         dataSource={(data as any)?.content || []}
         columns={columns}
         rowKey="id"
+        scroll={{ x: 820 }}
         loading={isLoading}
         pagination={{
           current: page,

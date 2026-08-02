@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { Form, Input, Button, Card, Typography, message } from 'antd';
+import { Form, Input, Button, message } from 'antd';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
-
-const { Title, Text } = Typography;
+import AuthShell from '@/components/AuthShell';
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
@@ -41,20 +40,16 @@ export default function VerifyEmail() {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f5f5f5' }}>
-      <Card style={{ width: 400 }}>
-        <Title level={3} style={{ textAlign: 'center' }}>验证邮箱</Title>
-        <Text>验证码已发送至 <strong>{email}</strong></Text>
-        <Form onFinish={onFinish} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="code" label="6位验证码" rules={[{ required: true, len: 6 }]}>
-            <Input.OTP length={6} />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading} block>验证</Button>
-          </Form.Item>
-          <Button type="link" onClick={resendCode} loading={resending} block>重新发送验证码</Button>
-        </Form>
-      </Card>
-    </div>
+    <AuthShell title="验证邮箱" en="VERIFY EMAIL" subtitle={`验证码已发送至 ${email}`}>
+      <Form onFinish={onFinish} layout="vertical">
+        <Form.Item name="code" label="6位验证码" rules={[{ required: true, len: 6 }]}>
+          <Input.OTP length={6} />
+        </Form.Item>
+        <Form.Item>
+          <Button type="primary" htmlType="submit" loading={loading} block>验证</Button>
+        </Form.Item>
+        <Button type="link" onClick={resendCode} loading={resending} block>重新发送验证码</Button>
+      </Form>
+    </AuthShell>
   );
 }

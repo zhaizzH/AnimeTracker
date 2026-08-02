@@ -20,7 +20,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 
 // 简易 Loading 组件
 function PageLoading() {
-  return <div style={{ textAlign: 'center', padding: 48, color: '#999' }}>加载中...</div>;
+  return <div className="paper-loading">加载中...</div>;
 }
 
 export default function App() {

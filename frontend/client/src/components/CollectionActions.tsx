@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button, Rate, InputNumber, Space, message, Card, Typography, Empty } from 'antd';
+import { Button, Rate, InputNumber, Space, message, Typography } from 'antd';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { collectionsApi } from '@/api/collections';
 import { useAuthStore } from '@/store/authStore';
@@ -10,11 +10,11 @@ import { CollectionType } from '@/types';
 const { Text } = Typography;
 
 const typeLabels: Record<number, { label: string; color: string }> = {
-  [CollectionType.WISH]: { label: '想看', color: '#1677ff' },
-  [CollectionType.DOING]: { label: '在看', color: '#52c41a' },
-  [CollectionType.DONE]: { label: '看过', color: '#722ed1' },
-  [CollectionType.ON_HOLD]: { label: '搁置', color: '#faad14' },
-  [CollectionType.DROPPED]: { label: '抛弃', color: '#ff4d4f' },
+  [CollectionType.WISH]: { label: '想看', color: '#3c5a6b' },
+  [CollectionType.DOING]: { label: '在看', color: '#3f6b4f' },
+  [CollectionType.DONE]: { label: '看过', color: '#a67c2d' },
+  [CollectionType.ON_HOLD]: { label: '搁置', color: '#8a8172' },
+  [CollectionType.DROPPED]: { label: '抛弃', color: '#c13a24' },
 };
 
 interface Props {
@@ -26,7 +26,6 @@ export default function CollectionActions({ subjectId }: Props) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // 查询当前收藏状态
   const { data: collection, isLoading } = useQuery({
     queryKey: ['collection', subjectId],
     queryFn: () => collectionsApi.get(subjectId),
@@ -37,7 +36,6 @@ export default function CollectionActions({ subjectId }: Props) {
   const [rate, setRate] = useState(collection?.rate || 0);
   const [epStatus, setEpStatus] = useState(collection?.epStatus || 0);
 
-  // 同步收藏数据到本地状态
   useEffect(() => {
     if (collection) {
       setSelectedType(collection.type);
@@ -67,19 +65,22 @@ export default function CollectionActions({ subjectId }: Props) {
 
   if (!isLoggedIn) {
     return (
-      <Card style={{ textAlign: 'center' }}>
-        <Empty description="登录后可追番" />
+      <div className="collection-panel" style={{ textAlign: 'center' }}>
+        <p style={{ margin: '0 0 12px', color: 'var(--ink-soft)' }}>登录后可追番</p>
         <Button type="primary" onClick={() => navigate('/login')}>去登录</Button>
-      </Card>
+      </div>
     );
   }
 
   const isCollected = !!collection;
 
   return (
-    <Card title="追番操作" loading={isLoading}>
+    <div className="collection-panel" style={{ opacity: isLoading ? 0.6 : 1 }}>
+      <div className="collection-panel-head">
+        <span>追番操作</span>
+        <span>COLLECTION</span>
+      </div>
       <Space direction="vertical" style={{ width: '100%' }} size="middle">
-        {/* 收藏类型按钮 */}
         <Space wrap>
           {Object.entries(typeLabels).map(([type, { label, color }]) => (
             <Button
@@ -96,18 +97,16 @@ export default function CollectionActions({ subjectId }: Props) {
           ))}
         </Space>
 
-        {/* 评分 */}
-        <Space>
-          <Text>评分:</Text>
+        <Space wrap>
+          <Text style={{ color: 'var(--ink-soft)' }}>评分:</Text>
           <Rate count={10} value={rate} onChange={val => {
             setRate(val);
             if (isCollected) saveMutation.mutate({ type: selectedType as CollectionUpdateDTO['type'], rate: val, epStatus });
           }} />
         </Space>
 
-        {/* 进度 */}
-        <Space>
-          <Text>进度:</Text>
+        <Space wrap>
+          <Text style={{ color: 'var(--ink-soft)' }}>进度:</Text>
           <InputNumber
             min={0} value={epStatus}
             onChange={val => {
@@ -116,14 +115,13 @@ export default function CollectionActions({ subjectId }: Props) {
               if (isCollected) saveMutation.mutate({ type: selectedType as CollectionUpdateDTO['type'], rate, epStatus: v });
             }}
           />
-          <Text>集</Text>
+          <Text style={{ color: 'var(--ink-soft)' }}>集</Text>
         </Space>
 
-        {/* 取消收藏 */}
         {isCollected && (
           <Button danger onClick={() => removeMutation.mutate()}>取消收藏</Button>
         )}
       </Space>
-    </Card>
+    </div>
   );
 }
