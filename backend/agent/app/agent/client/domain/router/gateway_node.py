@@ -39,7 +39,6 @@ def gateway_router(state: AgentState) -> dict[str, Any]:
         system_prompt=SystemMessage(
             content=load_managed_prompt("client_gateway_prompt", "client/gateway_prompt.md")
         ),
-        response_format={"type": "json_object"},
     )
     result = agent_invoke(agent, list(state.get("history_messages") or []))
     return {"routing": _resolve_routing_result(result.payload)}
