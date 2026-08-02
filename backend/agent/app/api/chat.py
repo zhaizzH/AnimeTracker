@@ -1,29 +1,29 @@
+import json
 import uuid
-import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.deps import verify_token
+from app.config import settings
+from app.db.redis_store import RedisStore
 from app.schemas.auth import UserInfo
 from app.schemas.chat import ChatRequest
 from app.schemas.session import (
-    SessionInfo, MessageOut, SessionCreateRequest,
-    SessionCreateResponse, DeleteResponse,
+    DeleteResponse,
+    MessageOut,
+    SessionCreateRequest,
+    SessionCreateResponse,
+    SessionInfo,
 )
 from app.service.chat import ChatService
-from app.db.sqlite_store import SQLiteStore
-from app.config import settings
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/agent")
 
-# 全局实例（main.py 中初始化后替换）
-chat_store: SQLiteStore | None = None
+chat_store: RedisStore | None = None
 chat_service: ChatService | None = None
 
 
-def get_store() -> SQLiteStore:
+def get_store() -> RedisStore:
     if chat_store is None:
         raise RuntimeError("ChatStore 未初始化")
     return chat_store
@@ -41,14 +41,10 @@ async def chat_stream(
         user: UserInfo = Depends(verify_token),
         svc: ChatService = Depends(get_service),
 ):
-    """发送消息，返回 SSE 流"""
-    # 检查会话权限
     store = get_store()
-    sessions = store.get_user_sessions(user.user_id)
-    existing_ids = {s.session_id for s in sessions}
-    if req.session_id not in existing_ids:
+    sessions = await store.get_user_sessions(user.user_id)
+    if not any(s.session_id == req.session_id for s in sessions):
         raise HTTPException(status_code=404, detail="会话不存在或无权限")
-
     return await svc.stream_chat(
         session_id=req.session_id,
         content=req.content,
@@ -58,12 +54,9 @@ async def chat_stream(
 
 
 @router.get("/sessions")
-async def list_sessions(
-        user: UserInfo = Depends(verify_token),
-):
-    """获取当前用户会话列表"""
+async def list_sessions(user: UserInfo = Depends(verify_token)):
     store = get_store()
-    sessions = store.get_user_sessions(user.user_id)
+    sessions = await store.get_user_sessions(user.user_id)
     return [SessionInfo(
         session_id=s.session_id,
         title=s.title,
@@ -73,49 +66,35 @@ async def list_sessions(
 
 
 @router.post("/sessions")
-async def create_session(
-        body: SessionCreateRequest,
-        user: UserInfo = Depends(verify_token),
-):
-    """创建新会话"""
+async def create_session(body: SessionCreateRequest, user: UserInfo = Depends(verify_token)):
     store = get_store()
     session_id = body.session_id or str(uuid.uuid4())
-    store.create_session(user.user_id, session_id)
+    await store.create_session(user.user_id, session_id)
     return SessionCreateResponse(session_id=session_id)
 
 
 @router.get("/sessions/{session_id}/history")
-async def get_history(
-        session_id: str,
-        user: UserInfo = Depends(verify_token),
-):
-    """获取会话历史"""
+async def get_history(session_id: str, user: UserInfo = Depends(verify_token)):
     store = get_store()
-    sessions = store.get_user_sessions(user.user_id)
+    sessions = await store.get_user_sessions(user.user_id)
     if not any(s.session_id == session_id for s in sessions):
         raise HTTPException(status_code=404, detail="会话不存在或无权限")
-
-    messages = store.get_messages(session_id)
+    messages = await store.get_messages(session_id)
     return [MessageOut(
         role=m.role,
         content=m.content,
-        tool_calls=__import__("json").loads(m.tool_calls) if m.tool_calls else None,
+        tool_calls=json.loads(m.tool_calls) if m.tool_calls else None,
         created_at=m.created_at,
     ) for m in messages]
 
 
 @router.post("/sessions/{session_id}")
-async def delete_session(
-        session_id: str,
-        user: UserInfo = Depends(verify_token),
-):
-    """删除会话"""
+async def delete_session(session_id: str, user: UserInfo = Depends(verify_token)):
     store = get_store()
-    store.delete_session(session_id, user.user_id)
+    await store.delete_session(session_id, user.user_id)
     return DeleteResponse()
 
 
 @router.get("/health")
 async def health():
-    """健康检查"""
     return {"status": "ok", "llm_configured": bool(settings.dashscope_api_key)}

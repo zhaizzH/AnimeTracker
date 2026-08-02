@@ -26,7 +26,7 @@ def _now_iso() -> str:
 
 class RedisStore(ChatStore):
     def __init__(self, redis_url: str):
-        self._r: redis.asyncio.Redis = redis.asyncio.from_url(redis_url, decode_responses=True)
+        self._r: redis.asyncio.Redis = redis.asyncio.from_url(redis_url, decode_responses=True, socket_connect_timeout=2)
 
     def _session_key(self, session_id: str) -> str:
         return f"agent:session:{session_id}"
