@@ -36,9 +36,13 @@ _patch_chat_tongyi()
 
 
 def create_llm(*, model: str, temperature: float, api_key: str, max_tokens: int) -> ChatTongyi:
+    model_kwargs: dict = {"temperature": temperature, "max_tokens": max_tokens}
+    if model.startswith("qwen3"):
+        # qwen3 系列默认不输出思考,需显式开启;qwen-plus 等不支持该参数
+        model_kwargs["enable_thinking"] = True
     return ChatTongyi(
         model=model,
         api_key=api_key,
         streaming=True,
-        model_kwargs={"temperature": temperature, "max_tokens": max_tokens},
+        model_kwargs=model_kwargs,
     )
