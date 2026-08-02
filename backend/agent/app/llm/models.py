@@ -1,13 +1,13 @@
 import json
 import logging
+
 from langchain_community.chat_models.tongyi import ChatTongyi
 
 logger = logging.getLogger(__name__)
 
 
 def _patch_chat_tongyi():
-    """修复 langchain-community ChatTongyi 流式 delta 合并问题。
-    如果上游修复可移除此 monkey-patch。"""
+    """修复 langchain-community ChatTongyi 流式 delta 合并问题。"""
     _orig = ChatTongyi.subtract_client_response
 
     def _patched_subtract(self, resp, prev_resp):
@@ -29,18 +29,16 @@ def _patch_chat_tongyi():
 
     _patched_subtract.__name__ = "patched_subtract_client_response"
     ChatTongyi.subtract_client_response = _patched_subtract
-    logger.info("已应用chatongyi monkey-用于流式delta合并的补丁")
+    logger.info("已应用 chatongyi 流式 delta 合并补丁")
 
 
-def create_llm(settings):
-    """创建并返回 ChatTongyi 实例（已应用 monkey-patch）"""
-    _patch_chat_tongyi()
+_patch_chat_tongyi()
+
+
+def create_llm(*, model: str, temperature: float, api_key: str, max_tokens: int) -> ChatTongyi:
     return ChatTongyi(
-        model=settings.llm_model,
-        api_key=settings.dashscope_api_key,
+        model=model,
+        api_key=api_key,
         streaming=True,
-        model_kwargs={
-            "temperature": settings.llm_temperature,
-            "max_tokens": settings.llm_max_tokens,
-        },
+        model_kwargs={"temperature": temperature, "max_tokens": max_tokens},
     )

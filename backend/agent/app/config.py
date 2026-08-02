@@ -1,4 +1,9 @@
+from enum import Enum
+from typing import Any
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.llm.models import create_llm
 
 
 class Settings(BaseSettings):
@@ -14,17 +19,41 @@ class Settings(BaseSettings):
     agent_host: str = "0.0.0.0"
     agent_port: int = 8090
 
-    # Backend API — 去掉路径后缀，工具调用时自行拼接完整路径
+    # Backend API
     backend_base_url: str = "http://localhost:8080"
 
-    # Database
-    database_url: str = "sqlite:///agent.db"
-
-    # Agent Runtime
-    agent_max_iterations: int = 5
+    # Redis
+    redis_url: str = "redis://localhost:6379/0"
 
     # CORS (开发环境)
     cors_origins: list[str] = ["http://localhost:5173"]
 
 
 settings = Settings()
+
+
+class AgentChatModelSlot(str, Enum):
+    CLIENT_ROUTE = "client_route"
+    CLIENT_SEARCH = "client_search"
+    CLIENT_DISCOVER = "client_discover"
+    CLIENT_RECOMMEND = "client_recommend"
+
+
+# None 表示继承 settings.llm_temperature
+_SLOT_DEFAULTS: dict[AgentChatModelSlot, dict[str, Any]] = {
+    AgentChatModelSlot.CLIENT_ROUTE: {"temperature": 0.0},
+    AgentChatModelSlot.CLIENT_SEARCH: {},
+    AgentChatModelSlot.CLIENT_DISCOVER: {},
+    AgentChatModelSlot.CLIENT_RECOMMEND: {},
+}
+
+
+def create_agent_chat_llm(slot: AgentChatModelSlot, *, temperature: float | None = None):
+    cfg = _SLOT_DEFAULTS[slot]
+    resolved_temp = temperature if temperature is not None else cfg.get("temperature", settings.llm_temperature)
+    return create_llm(
+        model=settings.llm_model,
+        temperature=resolved_temp,
+        api_key=settings.dashscope_api_key,
+        max_tokens=settings.llm_max_tokens,
+    )
