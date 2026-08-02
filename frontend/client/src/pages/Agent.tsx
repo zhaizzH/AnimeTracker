@@ -32,9 +32,10 @@ export default function Agent() {
   const queryClient = useQueryClient();
   const { token } = useAuthStore();
 
-  const { isLoading: sessionsLoading, data: sessions } = useQuery<Session[]>({
+  const { isLoading: sessionsLoading, data: sessions, isError: sessionsError } = useQuery<Session[]>({
     queryKey: ['agent-sessions'],
     queryFn: () => agentApi.sessions() as Promise<Session[]>,
+    retry: 1,
   });
 
   const loadHistory = async (sessionId: string) => {
@@ -47,6 +48,7 @@ export default function Agent() {
       setMessages(msgs);
     } catch {
       setMessages([]);
+      message.error('加载历史失败，请重试');
     }
   };
 
@@ -95,6 +97,8 @@ export default function Agent() {
 
     setMessages(prev => [...prev, userMessage]);
     setInputText('');
+    setThinking('');
+    setToolStatus('');
     setIsStreaming(true);
 
     const aiMsg: Message = { role: 'assistant', content: '' };
@@ -141,7 +145,6 @@ export default function Agent() {
               setToolStatus('');
             } else if (json.is_end) {
               setToolStatus('');
-              setThinking('');
             }
           } catch { /* 忽略流式中的解析错误 */ }
         }
@@ -153,6 +156,15 @@ export default function Agent() {
     }
   };
 
+  // 进入对话时默认打开最近一次对话(后端已按 updated_at 倒序,sessions[0] 即最近)
+  useEffect(() => {
+    if (currentSessionId || !sessions || sessions.length === 0) return;
+    const sid = (sessions[0] as any).session_id || (sessions[0] as any).sessionId || (sessions[0] as any).id;
+    setCurrentSessionId(sid);
+    loadHistory(sid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSessionId, sessions]);
+
   useEffect(() => {
     if (currentSessionId && !isStreaming && messages.length > 0) {
       historyCache.current.set(currentSessionId, messages);
@@ -160,8 +172,9 @@ export default function Agent() {
   }, [currentSessionId, isStreaming, messages]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    // 思考/工具状态变化时容器高度也在变,只依赖 messages 会导致思考期间不滚底
+    messagesEndRef.current?.scrollIntoView({ behavior: isStreaming ? 'auto' : 'smooth' });
+  }, [messages, thinking, toolStatus, isStreaming]);
 
   const selectSession = (sessionId: string) => {
     setCurrentSessionId(sessionId);
@@ -177,6 +190,12 @@ export default function Agent() {
             新开一页
           </Button>
         </div>
+        {!sessionsLoading && sessionsError && (
+          <div style={{ padding: 12, textAlign: 'center' }}>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>加载会话失败</Text>
+            <Button size="small" onClick={refetchSessions}>重试</Button>
+          </div>
+        )}
         <List
           className="agent-session-list"
           loading={sessionsLoading}
@@ -221,14 +240,19 @@ export default function Agent() {
                 <div className={`agent-bubble ${msg.role}`}>
                   {msg.role === 'assistant' ? (
                     <>
-                      {thinking && (
-                        <details style={{ marginBottom: 8, opacity: 0.6, fontSize: 12 }}>
+                      {/* 思考过程只属于当前正在回答的最后一条消息;流中展开,结束后自动折叠 */}
+                      {thinking && idx === messages.length - 1 && (
+                        <details open={isStreaming} style={{ marginBottom: 8, opacity: 0.6, fontSize: 12 }}>
                           <summary>思考过程</summary>
                           <pre style={{ whiteSpace: 'pre-wrap' }}>{thinking}</pre>
                         </details>
                       )}
                       <div className="agent-markdown">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        {msg.content ? (
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        ) : isStreaming ? (
+                          <Text type="secondary">正在思考…</Text>
+                        ) : null}
                       </div>
                     </>
                   ) : (

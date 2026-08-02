@@ -35,11 +35,15 @@ def _patch_chat_tongyi():
 _patch_chat_tongyi()
 
 
-def create_llm(*, model: str, temperature: float, api_key: str, max_tokens: int) -> ChatTongyi:
+def create_llm(*, model: str, temperature: float, api_key: str, max_tokens: int,
+               thinking_budget: int = 2048) -> ChatTongyi:
     model_kwargs: dict = {"temperature": temperature, "max_tokens": max_tokens}
     if model.startswith("qwen3"):
         # qwen3 系列默认不输出思考,需显式开启;qwen-plus 等不支持该参数
         model_kwargs["enable_thinking"] = True
+        # 限制思考长度,否则会一直想到 max_tokens,响应明显变慢
+        if thinking_budget:
+            model_kwargs["thinking_budget"] = thinking_budget
     return ChatTongyi(
         model=model,
         api_key=api_key,

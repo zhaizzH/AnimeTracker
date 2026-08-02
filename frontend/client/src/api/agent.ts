@@ -5,5 +5,5 @@ export const agentApi = {
   sessions: () => http.get('/agent/sessions'),
   createSession: () => http.post('/agent/sessions'),
   history: (sessionId: string) => http.get(`/agent/sessions/${sessionId}/history`),
-  removeSession: (sessionId: string) => http.post(`/agent/sessions/${sessionId}`),
+  removeSession: (sessionId: string) => http.post(`/agent/sessions/${sessionId}/remove`),
 };
