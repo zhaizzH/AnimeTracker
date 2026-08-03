@@ -5,6 +5,7 @@ from langchain_core.messages import AIMessage, SystemMessage
 
 from app.agent.client.domain.discover.tools import discover_tools
 from app.agent.client.state import AgentState
+from app.agent.tools.time_tool import get_current_time
 from app.config import AgentChatModelSlot, create_agent_chat_llm
 from app.core.agent.agent_event_bus import emit_answer_delta, emit_thinking_delta
 from app.core.agent.agent_runtime import agent_stream
@@ -16,7 +17,7 @@ def discover_agent(state: AgentState) -> dict[str, Any]:
     llm = create_agent_chat_llm(slot=AgentChatModelSlot.CLIENT_DISCOVER)
     agent = create_agent(
         model=llm,
-        tools=discover_tools,
+        tools=[*discover_tools, get_current_time],
         system_prompt=SystemMessage(
             content=load_managed_prompt("client_discover_agent_prompt", "client/discover_agent_prompt.md")
         ),
