@@ -3,12 +3,14 @@ from app.agent.client.domain.search.tools import search_subjects
 from app.agent.client.domain.search.node import search_agent
 from app.agent.client.domain.discover.node import discover_agent
 from app.agent.client.domain.recommend.node import recommend_agent
+from app.agent.tools.time_tool import get_current_time
 
 
 def test_tools_are_registered():
     assert search_subjects.name == "search_subjects"
     assert get_schedule.name == "get_schedule"
     assert get_popular_subjects.name == "get_popular_subjects"
+    assert get_current_time.name == "get_current_time"
 
 
 def test_nodes_are_callable():
