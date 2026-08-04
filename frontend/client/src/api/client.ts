@@ -4,6 +4,8 @@ import type { ApiResult } from '@/types';
 const instance = axios.create({
   baseURL: '/api',
   timeout: 30_000,
+  // 数组参数序列化为重复键（tag=2003 而非 tag[]=2003），匹配 Spring @RequestParam List 绑定
+  paramsSerializer: { indexes: null },
 });
 
 // 请求拦截器 — 自动附加 token
