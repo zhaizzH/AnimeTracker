@@ -9,6 +9,7 @@ interface AuthState {
   login: (token: string, refreshToken: string, user: UserVO) => void;
   logout: () => void;
   setUser: (user: UserVO) => void;
+  setTokens: (token: string, refreshToken: string) => void;
   hydrate: () => void;
 }
 
@@ -23,7 +24,7 @@ const initToken = localStorage.getItem('token');
 const initRefreshToken = localStorage.getItem('refreshToken');
 const initUser = loadUser();
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   token: initToken,
   refreshToken: initRefreshToken,
   user: initUser,
@@ -46,6 +47,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   setUser: (user) => {
     localStorage.setItem('user', JSON.stringify(user));
     set({ user });
+  },
+
+  setTokens: (token, refreshToken) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('refreshToken', refreshToken);
+    set({ token, refreshToken, isLoggedIn: !!token && !!get().user });
   },
 
   hydrate: () => {

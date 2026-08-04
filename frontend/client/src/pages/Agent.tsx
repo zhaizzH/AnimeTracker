@@ -3,7 +3,7 @@ import { Layout, Input, Button, List, Typography, Space, Spin, message, Popconfi
 import { SendOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { agentApi } from '@/api/agent';
-import { useAuthStore } from '@/store/authStore';
+import { refreshAccessToken } from '@/api/client';
 import ReactMarkdown from 'react-markdown';
 
 const { Sider, Content } = Layout;
@@ -30,7 +30,6 @@ export default function Agent() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const historyCache = useRef<Map<string, Message[]>>(new Map());
   const queryClient = useQueryClient();
-  const { token } = useAuthStore();
 
   const { isLoading: sessionsLoading, data: sessions, isError: sessionsError } = useQuery<Session[]>({
     queryKey: ['agent-sessions'],
@@ -105,14 +104,32 @@ export default function Agent() {
     setMessages(prev => [...prev, aiMsg]);
 
     try {
-      const response = await fetch('/api/agent/stream', {
+      const streamMessage = (accessToken: string) => fetch('/api/agent/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ session_id: sessionId, content: userMessage.content }),
       });
+
+      let accessToken = localStorage.getItem('token') || '';
+      let response = await streamMessage(accessToken);
+
+      // 流式请求不走 axios 拦截器，401 时自行刷新 token 并重试一次
+      if (response.status === 401) {
+        const newToken = await refreshAccessToken();
+        if (!newToken) {
+          window.location.href = '/login';
+          return;
+        }
+        accessToken = newToken;
+        response = await streamMessage(accessToken);
+      }
+
+      if (!response.ok) {
+        throw new Error(`Stream request failed: ${response.status}`);
+      }
 
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No response stream');
