@@ -16,17 +16,23 @@ public class ImportController {
 
     private final ImportService importService;
 
-    // TODO 待接入python功能
     /**
      * 运行番剧导入
+     *
+     * @param mode    导入模式：full / season / recent / since
+     * @param key     季度标识（season 模式必填），如 "2026-summer"
+     * @param since   起始日期（since 模式必填），如 "2026-01-01"
+     * @param workers 并发线程数，为空使用 Python 侧默认值
      */
     @PostMapping("/run")
-    public Result<Void> runImport() {
-        importService.runImport();
+    public Result<Void> runImport(@RequestParam String mode,
+                                  @RequestParam(required = false) String key,
+                                  @RequestParam(required = false) String since,
+                                  @RequestParam(required = false) Integer workers) {
+        importService.runImport(mode, key, since, workers);
         return Result.success();
     }
 
-    // TODO 待接入python功能
     /**
      * 获取番剧导入状态
      */

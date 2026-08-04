@@ -2481,6 +2481,35 @@ paths:
     post:
       summary: "运行番剧导入"
       description: "运行番剧导入"
+      parameters:
+      - name: "mode"
+        in: "query"
+        description: "导入模式：full / season / recent / since"
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "key"
+        in: "query"
+        description: "季度标识（season 模式必填），如 \"2026-summer\""
+        required: false
+        schema:
+          type: "string"
+          nullable: false
+      - name: "since"
+        in: "query"
+        description: "起始日期（since 模式必填），如 \"2026-01-01\""
+        required: false
+        schema:
+          type: "string"
+          nullable: false
+      - name: "workers"
+        in: "query"
+        description: "并发线程数，为空使用 Python 侧默认值"
+        required: false
+        schema:
+          type: "integer"
+          nullable: false
       responses:
         "200":
           description: ""

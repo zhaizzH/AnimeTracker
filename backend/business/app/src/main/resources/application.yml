@@ -62,6 +62,12 @@ at:
   agent:
     base-url: http://${at.agent.host}:${at.agent.port}
 
+  # 番剧数据导入
+  importer:
+    python-command: python
+    script-dir: backend/data/importer
+    script-name: main.py
+
 # JWT 配置
 jwt:
   secret: ${jwt.secret}
