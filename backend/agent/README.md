@@ -6,6 +6,20 @@
 - **LLM**：DashScope Qwen（默认 `qwen-plus`）
 - **存储**：Redis（会话 / 消息 + 托管提示词快照）
 
+## 在整体架构中的位置
+
+本服务是真正的**大模型推理层**。业务后端 `backend/business` 内置 `agent` 代理模块（Maven 模块 `anime-tracker-agent`），在 `8080` 端口对外暴露 `/api/agent/*`，并将请求转发到本服务：
+
+```
+前端 (5173) ──/api/agent/*──► business :8080 (agent 代理层) ──HTTP 转发──► 本服务 :8090
+                                                                          │
+                                                                          └─工具调用─► business API（获取番剧实时数据）
+```
+
+- 前端不直接访问 `8090`；所有 Agent 流量经 Vite 代理统一走 `8080` 的 `/api` 前缀。
+- 本服务通过 `BACKEND_BASE_URL`（默认 `http://localhost:8080`）回查业务 API。
+- 后端代理层配置见 [`../business/README.md`](../business/README.md)；项目总览见 [`../../README.md`](../../README.md)。
+
 ## 架构：单张 StateGraph
 
 Agent 以一张 LangGraph 状态图驱动，节点内部用 `langchain.agents.create_agent` 执行，并经 ContextVar 事件总线把增量事件流式输出给前端：

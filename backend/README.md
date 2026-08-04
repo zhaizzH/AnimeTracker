@@ -1,16 +1,27 @@
 # AnimeTracker Backend
 
-AnimeTracker 后端由三个独立子模块组成，分别负责业务 API、AI 对话与数据导入。
+AnimeTracker 后端由三个独立子模块组成，分别负责业务 API、AI 对话与数据导入：
+
+- **business**：Spring Boot 多模块工程（Java 21，端口 `8080`），提供番剧、用户、收藏、标签等核心 API，并内置 `agent` 代理层将 AI 对话请求转发至 Python Agent。
+- **agent**：基于 FastAPI + LangGraph 的 AI 对话服务（Python，端口 `8090`），调用业务 API 获取实时数据并以 SSE 流式输出。
+- **data/importer**：番剧数据导入脚本（Python），从 Bangumi 拉取元数据并写入业务库。
+
+> 数据库名统一为 **`anime_tracker`**。建表脚本位于项目根 [`../docs/db-schema.sql`](../docs/db-schema.sql)。
 
 ## 目录结构
 
 ```
 backend/
 ├── business/     # Spring Boot 多模块工程 (Java 21, 端口 8080)
+│   ├── common/   # 公共基础：Result/异常/JWT/Redis/安全/MinIO 配置
+│   ├── pojo/     # 实体 / DTO / VO
+│   ├── admin/    # 管理端：条目 CRUD、用户管理、数据导入
+│   ├── client/   # 用户端：浏览/搜索、认证、收藏、标签、剧集进度
+│   ├── agent/    # Agent 代理模块（转发至 Python Agent）
+│   └── app/      # 启动模块：聚合 admin + client，Spring Boot 入口
 ├── agent/        # AI Agent (FastAPI + LangGraph, 端口 8090)
-├── data/         # 数据层 / 导入器
-│   └── importer/ # 番剧数据导入脚本 (Python)
-└── docs/         # 后端 SQL 与文档 (docs/sql)
+└── data/
+    └── importer/ # 番剧数据导入脚本 (Python, 数据源: Bangumi)
 ```
 
 ## 技术栈
@@ -30,51 +41,54 @@ backend/
 
 ### 1. 数据库
 
-创建 MySQL 数据库并导入表结构：
-
 ```bash
 mysql -u root -p
-CREATE DATABASE animetracker CHARACTER SET utf8mb4;
-# 在新会话中执行：
-mysql -u root -p animetracker < ../docs/db-schema.sql
+CREATE DATABASE anime_tracker DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+# 另开会话导入表结构
+mysql -u root -p anime_tracker < ../docs/db-schema.sql
 ```
 
-> `../docs/db-schema.sql` 为项目根目录 `docs/` 下的建表脚本；`backend/docs/sql` 下另有分模块 SQL。
+> 建表脚本为项目根 `docs/db-schema.sql`（非 `backend/docs/sql`）。
 
 ### 2. Java 业务后端（business）
 
 ```bash
 cd backend/business
-mvn clean package -DskipTests
-java -jar app/target/animetracker-app-*.jar
+mvn clean install -DskipTests
+mvn -pl app spring-boot:run -Dspring-boot.run.profiles.active=local
 ```
 
 API 文档（Knife4j）：http://localhost:8080/doc.html
 
-### 3. AI Agent
+> 该模块内置 `agent` 代理层，对外暴露 `/api/agent/*`。Agent 类请求经此后被转发至 Python Agent（默认 `http://localhost:8090`），由 `at.agent.host` / `at.agent.port` 配置。
+
+### 3. AI Agent（Python）
 
 ```bash
 cd backend/agent
-cp .env.example .env          # 填入 DASHSCOPE_API_KEY 等配置
+cp .env.example .env          # 填入 DASHSCOPE_API_KEY 与 REDIS_URL
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8090
 ```
 
 API 文档（Swagger）：http://localhost:8090/docs
 
-> Agent 通过 `backend_base_url` 调用 business 后端（默认 `http://localhost:8080`），
-> 使用 SQLite（`agent.db`）存储会话与聊天记录。
+> Agent 通过 `BACKEND_BASE_URL`（默认 `http://localhost:8080`）调用 business 后端；会话与托管提示词存储于 **Redis**（非 SQLite）。Redis 不可用时仅告警并继续启动，但会话功能不可用。
 
 ### 4. 数据导入器
 
 ```bash
 cd backend/data/importer
+cp .env.example .env          # 填入 DB_* 与 BANGUMI_ACCESS_TOKEN（可选）
 pip install -r requirements.txt
-python main.py
+python main.py --mode season --key 2026-summer
 ```
+
+详见 [data/importer/README.md](data/importer/README.md)。
 
 ## 模块说明
 
 - **business**：核心业务 API，详见 [business/README.md](business/README.md)。
 - **agent**：基于 LangGraph 的多轮对话 Agent，详见 [agent/README.md](agent/README.md)。
-- **data/importer**：从外部数据源抓取/清洗番剧信息并写入业务库。
+- **data/importer**：从 Bangumi 抓取 / 清洗番剧信息并写入业务库，详见 [data/importer/README.md](data/importer/README.md)。

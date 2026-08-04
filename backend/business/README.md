@@ -1,13 +1,13 @@
 # AnimeTracker Business
 
-Spring Boot 3.2 多模块后端，提供番剧条目管理、剧集与进度、标签、用户认证与收藏等核心 API。
+Spring Boot 3.2 多模块后端，提供番剧条目管理、剧集与进度、标签、用户认证与收藏等核心 API，并通过内置的 `agent` 代理层将 AI 对话请求转发至独立的 Python Agent 服务。
 
 - **项目坐标**：`top.zhaizz:business:2.0.0`
 - **默认端口**：`8080`（Knife4j 文档：`/doc.html`）
 
 ## 模块结构
 
-采用 Maven 父子模块架构，依赖方向 `app → {admin, client} → {common, pojo}`：
+采用 Maven 父子模块架构，依赖方向 `app → {admin, client, agent} → {common, pojo}`：
 
 ```
 business/
@@ -16,7 +16,8 @@ business/
 ├── pojo/            # 实体 / DTO / VO（entity、dto、vo 包）
 ├── admin/           # 管理端：条目 CRUD、用户管理、数据导入
 ├── client/          # 用户端：浏览/搜索、认证、收藏、标签、剧集进度
-└── app/             # 启动模块：聚合 admin + client，Spring Boot 入口
+├── agent/           # Agent 代理层：转发 /api/agent/* 至 Python Agent 服务
+└── app/             # 启动模块：聚合 admin + client + agent，Spring Boot 入口
 ```
 
 ### 各模块职责
@@ -27,7 +28,8 @@ business/
 | pojo | `animetracker-pojo` | `entity`（Subject、Episode、User、UserCollection…）、`dto`（入参）、`vo`（出参） |
 | admin | `animetracker-admin` | `AdminController`/`AdminUserController`/`ImportController` + Service/Converter/Mapper |
 | client | `animetracker-client` | `Auth`/`Subject`/`Collection`/`Tag`/`User` Controller + Service/Mapper/Converter |
-| app | `animetracker-app` | 聚合 admin + client，含主类 `top.zhaizz.app.AppApplication` |
+| agent | `animetracker-agent` | `AgentController`/`AgentService`：将 `/api/agent/*` 转发至 Python Agent（默认 `http://localhost:8090`），SSE 流式透传 |
+| app | `animetracker-app` | 聚合 admin + client + agent，含主类 `top.zhaizz.app.AppApplication` |
 
 ## 分层约定
 
@@ -50,19 +52,27 @@ converter/    # 实体 ⇄ DTO/VO 转换
 
 ```bash
 # 构建全部模块
-mvn clean package -DskipTests
+mvn clean install -DskipTests
 
-# 启动（app 模块聚合了 admin 与 client）
-java -jar app/target/animetracker-app-*.jar
+# 启动（app 模块聚合了 admin、client 与 agent）
+mvn -pl app spring-boot:run -Dspring-boot.run.profiles.active=local
+# 或指定 profile 直接运行 jar：
+# java -jar app/target/animetracker-app-*.jar
 ```
 
-配置文件（如 `application.yml`）位于 `app/src/main/resources`，需配置：
+配置文件位于 `app/src/main/resources`：
 
-- `spring.datasource` —— MySQL 连接
-- `spring.data.redis` —— Redis 连接
-- `minio` —— 对象存储（endpoint / key / bucket）
-- `jwt.secret` —— JWT 签名密钥
+- `application.yml` —— 生产配置（默认激活 `local` profile）
+- `application-local.yml` —— 本地覆盖（数据源、Redis、JWT、MinIO、Agent 地址等）
+
+需配置：
+
+- `zzz.datasource` —— MySQL 连接（库名 `anime_tracker`）
+- `zzz.data.redis` —— Redis 连接
+- `jwt.secret` / `jwt.expiration` —— JWT 签名密钥与有效期
+- `minio.*` —— 对象存储（endpoint / key / bucket）
+- `at.agent.host` / `at.agent.port` —— Python Agent 服务地址（默认 `localhost:8090`）
 
 ## 数据库
 
-建表脚本见项目根 `docs/db-schema.sql`；更细分的 DDL 位于 `../docs/sql`。
+建表脚本见项目根 [`../../docs/db-schema.sql`](../../docs/db-schema.sql)。
