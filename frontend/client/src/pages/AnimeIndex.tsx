@@ -10,8 +10,8 @@ import type { SubjectListVO } from '@/types';
 
 const sortOptions = [
   { value: 'score', label: '评分' },
-  { value: 'airDate', label: '放送日' },
-  { value: 'collectionTotal', label: '收藏数' },
+  { value: 'air_date', label: '放送日' },
+  { value: 'collection_total', label: '收藏数' },
 ];
 
 const viewOptions = [

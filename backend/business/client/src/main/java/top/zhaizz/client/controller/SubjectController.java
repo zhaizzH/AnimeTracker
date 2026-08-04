@@ -71,8 +71,7 @@ public class SubjectController {
     @GetMapping("/season")
     public Result<PageResult<SubjectListVO>> listBySeason(
             @RequestParam @Min(1970) @Max(2100) int year,
-            @RequestParam @Pattern(regexp = "spring|summer|autumn|winter",
-                    message = "季度仅允许: spring/summer/autumn/winter") String quarter,
+            @RequestParam @Pattern(regexp = "spring|summer|autumn|winter", message = "季度仅允许: spring/summer/autumn/winter") String quarter,
             @RequestParam(defaultValue = "1") @Min(1) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
         return Result.success(clientSubjectService.listBySeason(year, quarter, page, size));

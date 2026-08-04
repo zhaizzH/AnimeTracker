@@ -21,7 +21,8 @@
                 AND s.score &lt;= #{scoreMax}
             </if>
             <if test="year != null">
-                AND YEAR(s.air_date) = #{year}
+                AND s.air_date &gt;= CONCAT(#{year}, '-01-01')
+                AND s.air_date &lt;= CONCAT(#{year}, '-12-31')
             </if>
             <if test="weekday != null">
                 AND s.air_weekday = #{weekday}
@@ -32,7 +33,7 @@
             HAVING COUNT(DISTINCT st.name) = ${tagList.size}
         </if>
         ORDER BY
-        <if test="keyword != null and keyword != ''">
+        <if test="keyword != null and keyword != '' and sortField == 's.score'">
             IF(s.name_cn LIKE CONCAT('%', #{keyword}, '%'), 0, 1),
         </if>
         ${sortField} ${order}

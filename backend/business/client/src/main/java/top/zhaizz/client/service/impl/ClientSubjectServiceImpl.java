@@ -165,6 +165,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
             case "name" -> Subject::getName;
             case "air_date" -> Subject::getAirDate;
             case "rank" -> Subject::getRank;
+            case "collection_total" -> Subject::getCollectionTotal;
             default -> Subject::getScore;
         };
     }
@@ -174,6 +175,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
             case "name" -> "s.name";
             case "air_date" -> "s.air_date";
             case "rank" -> "s.rank";
+            case "collection_total" -> "s.collection_total";
             default -> "s.score";
         };
     }
