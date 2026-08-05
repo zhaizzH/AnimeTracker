@@ -2301,6 +2301,395 @@ paths:
                   data:
                     type: "string"
                     description: ""
+  /api/admin/import/run:
+    post:
+      summary: "运行番剧导入"
+      description: "运行番剧导入"
+      parameters:
+      - name: "mode"
+        in: "query"
+        description: "导入模式：full / season / recent / since"
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "key"
+        in: "query"
+        description: "季度标识（season 模式必填），如 \"2026-summer\""
+        required: false
+        schema:
+          type: "string"
+          nullable: false
+      - name: "since"
+        in: "query"
+        description: "起始日期（since 模式必填），如 \"2026-01-01\""
+        required: false
+        schema:
+          type: "string"
+          nullable: false
+      - name: "workers"
+        in: "query"
+        description: "并发线程数，为空使用 Python 侧默认值"
+        required: false
+        schema:
+          type: "integer"
+          nullable: false
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
+  /api/admin/import/status:
+    get:
+      summary: "获取番剧导入状态"
+      description: "获取番剧导入状态"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      lastImportedAt:
+                        type: "string"
+                        description: "最近导入时间（从未导入=null）"
+                      totalSubjects:
+                        type: "integer"
+                        description: "最近导入记录条数（最多 10 条）"
+                      recentRecords:
+                        type: "array"
+                        description: "最近导入记录"
+                        items:
+                          type: "object"
+                          properties:
+                            id:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            season:
+                              type: "string"
+                              description: "如 \"2026-spring\""
+                            startedAt:
+                              type: "string"
+                              description: ""
+                            completedAt:
+                              type: "string"
+                              description: "可空"
+                            status:
+                              type: "string"
+                              description: "RUNNING / COMPLETED / FAILED"
+                            subjectCount:
+                              type: "integer"
+                              description: ""
+                            errorMessage:
+                              type: "string"
+                              description: "可空"
+                          description: "导入记录 VO"
+                    description: ""
+  /api/admin/logs:
+    get:
+      summary: "分页查询操作/登录日志"
+      description: "分页查询操作/登录日志"
+      parameters:
+      - name: "action"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+          nullable: false
+      - name: "module"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+          nullable: false
+      - name: "username"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+          nullable: false
+      - name: "userId"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "integer"
+          nullable: false
+      - name: "start"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+          nullable: false
+      - name: "end"
+        in: "query"
+        description: ""
+        required: false
+        schema:
+          type: "string"
+          nullable: false
+      - name: "page"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "1"
+      - name: "size"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "20"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      content:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "object"
+                          properties:
+                            id:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            userId:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            username:
+                              type: "string"
+                              description: ""
+                            action:
+                              type: "string"
+                              description: ""
+                            module:
+                              type: "string"
+                              description: ""
+                            method:
+                              type: "string"
+                              description: ""
+                            path:
+                              type: "string"
+                              description: ""
+                            ip:
+                              type: "string"
+                              description: ""
+                            userAgent:
+                              type: "string"
+                              description: ""
+                            status:
+                              type: "integer"
+                              description: ""
+                            errorMsg:
+                              type: "string"
+                              description: ""
+                            durationMs:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            createdAt:
+                              type: "string"
+                              description: ""
+                          description: "操作日志 VO"
+                      total:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      page:
+                        type: "integer"
+                        description: ""
+                      size:
+                        type: "integer"
+                        description: ""
+                    description: ""
+  /api/admin/users:
+    get:
+      summary: "分页查看所有注册用户（不返回密码字段）"
+      description: "分页查看所有注册用户（不返回密码字段）"
+      parameters:
+      - name: "page"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "1"
+      - name: "size"
+        in: "query"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+          default: "20"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      content:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "object"
+                          properties:
+                            id:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            username:
+                              type: "string"
+                              description: ""
+                            email:
+                              type: "string"
+                              description: ""
+                            nickname:
+                              type: "string"
+                              description: ""
+                            avatar:
+                              type: "string"
+                              description: ""
+                            role:
+                              type: "string"
+                              description: "USER / ADMIN"
+                            createdAt:
+                              type: "string"
+                              description: ""
+                          description: "用户信息 VO（不含密码）"
+                      total:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      page:
+                        type: "integer"
+                        description: ""
+                      size:
+                        type: "integer"
+                        description: ""
+                    description: ""
+  /api/admin/users/{id}/update-role:
+    post:
+      summary: "修改指定用户的角色"
+      description: "修改指定用户的角色"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "role"
+              type: "object"
+              properties:
+                role:
+                  pattern: "USER|ADMIN"
+                  type: "string"
+                  description: "USER / ADMIN"
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      username:
+                        type: "string"
+                        description: ""
+                      email:
+                        type: "string"
+                        description: ""
+                      nickname:
+                        type: "string"
+                        description: ""
+                      avatar:
+                        type: "string"
+                        description: ""
+                      role:
+                        type: "string"
+                        description: "USER / ADMIN"
+                      createdAt:
+                        type: "string"
+                        description: ""
+                    description: ""
   /api/admin/subjects:
     post:
       summary: "创建新番剧"
@@ -2676,395 +3065,6 @@ paths:
                     description: ""
                   data:
                     type: "string"
-                    description: ""
-  /api/admin/import/run:
-    post:
-      summary: "运行番剧导入"
-      description: "运行番剧导入"
-      parameters:
-      - name: "mode"
-        in: "query"
-        description: "导入模式：full / season / recent / since"
-        required: true
-        schema:
-          type: "string"
-          nullable: false
-      - name: "key"
-        in: "query"
-        description: "季度标识（season 模式必填），如 \"2026-summer\""
-        required: false
-        schema:
-          type: "string"
-          nullable: false
-      - name: "since"
-        in: "query"
-        description: "起始日期（since 模式必填），如 \"2026-01-01\""
-        required: false
-        schema:
-          type: "string"
-          nullable: false
-      - name: "workers"
-        in: "query"
-        description: "并发线程数，为空使用 Python 侧默认值"
-        required: false
-        schema:
-          type: "integer"
-          nullable: false
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "string"
-                    description: ""
-  /api/admin/import/status:
-    get:
-      summary: "获取番剧导入状态"
-      description: "获取番剧导入状态"
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "object"
-                    properties:
-                      lastImportedAt:
-                        type: "string"
-                        description: "最近导入时间（从未导入=null）"
-                      totalSubjects:
-                        type: "integer"
-                        description: "当前 subject 表总条目数"
-                      recentRecords:
-                        type: "array"
-                        description: "最近导入记录"
-                        items:
-                          type: "object"
-                          properties:
-                            id:
-                              type: "integer"
-                              description: ""
-                              format: "int64"
-                            season:
-                              type: "string"
-                              description: "如 \"2026-spring\""
-                            startedAt:
-                              type: "string"
-                              description: ""
-                            completedAt:
-                              type: "string"
-                              description: "可空"
-                            status:
-                              type: "string"
-                              description: "RUNNING / COMPLETED / FAILED"
-                            subjectCount:
-                              type: "integer"
-                              description: ""
-                            errorMessage:
-                              type: "string"
-                              description: "可空"
-                          description: "导入记录 VO"
-                    description: ""
-  /api/admin/logs:
-    get:
-      summary: "分页查询操作/登录日志"
-      description: "分页查询操作/登录日志"
-      parameters:
-      - name: "action"
-        in: "query"
-        description: ""
-        required: false
-        schema:
-          type: "string"
-          nullable: false
-      - name: "module"
-        in: "query"
-        description: ""
-        required: false
-        schema:
-          type: "string"
-          nullable: false
-      - name: "username"
-        in: "query"
-        description: ""
-        required: false
-        schema:
-          type: "string"
-          nullable: false
-      - name: "userId"
-        in: "query"
-        description: ""
-        required: false
-        schema:
-          type: "integer"
-          nullable: false
-      - name: "start"
-        in: "query"
-        description: ""
-        required: false
-        schema:
-          type: "string"
-          nullable: false
-      - name: "end"
-        in: "query"
-        description: ""
-        required: false
-        schema:
-          type: "string"
-          nullable: false
-      - name: "page"
-        in: "query"
-        description: ""
-        required: true
-        schema:
-          type: "integer"
-          nullable: false
-          default: "1"
-      - name: "size"
-        in: "query"
-        description: ""
-        required: true
-        schema:
-          type: "integer"
-          nullable: false
-          default: "20"
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "object"
-                    properties:
-                      content:
-                        type: "array"
-                        description: ""
-                        items:
-                          type: "object"
-                          properties:
-                            id:
-                              type: "integer"
-                              description: ""
-                              format: "int64"
-                            userId:
-                              type: "integer"
-                              description: ""
-                              format: "int64"
-                            username:
-                              type: "string"
-                              description: ""
-                            action:
-                              type: "string"
-                              description: ""
-                            module:
-                              type: "string"
-                              description: ""
-                            method:
-                              type: "string"
-                              description: ""
-                            path:
-                              type: "string"
-                              description: ""
-                            ip:
-                              type: "string"
-                              description: ""
-                            userAgent:
-                              type: "string"
-                              description: ""
-                            status:
-                              type: "integer"
-                              description: ""
-                            errorMsg:
-                              type: "string"
-                              description: ""
-                            durationMs:
-                              type: "integer"
-                              description: ""
-                              format: "int64"
-                            createdAt:
-                              type: "string"
-                              description: ""
-                          description: "操作日志 VO"
-                      total:
-                        type: "integer"
-                        description: ""
-                        format: "int64"
-                      page:
-                        type: "integer"
-                        description: ""
-                      size:
-                        type: "integer"
-                        description: ""
-                    description: ""
-  /api/admin/users:
-    get:
-      summary: "分页查看所有注册用户（不返回密码字段）"
-      description: "分页查看所有注册用户（不返回密码字段）"
-      parameters:
-      - name: "page"
-        in: "query"
-        description: ""
-        required: true
-        schema:
-          type: "integer"
-          nullable: false
-          default: "1"
-      - name: "size"
-        in: "query"
-        description: ""
-        required: true
-        schema:
-          type: "integer"
-          nullable: false
-          default: "20"
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "object"
-                    properties:
-                      content:
-                        type: "array"
-                        description: ""
-                        items:
-                          type: "object"
-                          properties:
-                            id:
-                              type: "integer"
-                              description: ""
-                              format: "int64"
-                            username:
-                              type: "string"
-                              description: ""
-                            email:
-                              type: "string"
-                              description: ""
-                            nickname:
-                              type: "string"
-                              description: ""
-                            avatar:
-                              type: "string"
-                              description: ""
-                            role:
-                              type: "string"
-                              description: "USER / ADMIN"
-                            createdAt:
-                              type: "string"
-                              description: ""
-                          description: "用户信息 VO（不含密码）"
-                      total:
-                        type: "integer"
-                        description: ""
-                        format: "int64"
-                      page:
-                        type: "integer"
-                        description: ""
-                      size:
-                        type: "integer"
-                        description: ""
-                    description: ""
-  /api/admin/users/{id}/update-role:
-    post:
-      summary: "修改指定用户的角色"
-      description: "修改指定用户的角色"
-      parameters:
-      - name: "id"
-        in: "path"
-        description: ""
-        required: true
-        schema:
-          type: "integer"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              required:
-              - "role"
-              type: "object"
-              properties:
-                role:
-                  pattern: "USER|ADMIN"
-                  type: "string"
-                  description: "USER / ADMIN"
-              description: ""
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "object"
-                    properties:
-                      id:
-                        type: "integer"
-                        description: ""
-                        format: "int64"
-                      username:
-                        type: "string"
-                        description: ""
-                      email:
-                        type: "string"
-                        description: ""
-                      nickname:
-                        type: "string"
-                        description: ""
-                      avatar:
-                        type: "string"
-                        description: ""
-                      role:
-                        type: "string"
-                        description: "USER / ADMIN"
-                      createdAt:
-                        type: "string"
-                        description: ""
                     description: ""
   /api/admin/dashboard/overview:
     get:
@@ -3749,7 +3749,7 @@ components:
           description: "最近导入时间（从未导入=null）"
         totalSubjects:
           type: "integer"
-          description: "当前 subject 表总条目数"
+          description: "最近导入记录条数（最多 10 条）"
         recentRecords:
           type: "array"
           description: "最近导入记录"
