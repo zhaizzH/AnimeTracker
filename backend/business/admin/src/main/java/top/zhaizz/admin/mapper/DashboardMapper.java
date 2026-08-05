@@ -1,7 +1,6 @@
 package top.zhaizz.admin.mapper;
 
 import org.apache.ibatis.annotations.Param;
-import top.zhaizz.pojo.vo.dashboard.CollectionStatsVO;
 import top.zhaizz.pojo.vo.dashboard.DailyCount;
 import top.zhaizz.pojo.vo.dashboard.DashboardOverviewVO;
 import top.zhaizz.pojo.vo.dashboard.HotSubjectVO;

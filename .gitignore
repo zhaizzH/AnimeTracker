@@ -101,7 +101,7 @@ $RECYCLE.BIN/
 
 # === Logs ===
 *.log
-log/
+/log/
 logs/
 
 # === Docker ===
@@ -134,6 +134,7 @@ backend/data/importer/.env
 frontend\client\.workbuddy
 
 docs/superpowers
+docs/api
 .superpowers
 .workbuddy
 .firecrawl

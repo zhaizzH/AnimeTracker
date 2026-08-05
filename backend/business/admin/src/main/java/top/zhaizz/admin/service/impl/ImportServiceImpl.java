@@ -159,7 +159,7 @@ public class ImportServiceImpl implements ImportService {
                             .orderByDesc(ImportRecord::getId)
                             .last("LIMIT 1"));
             if (!recs.isEmpty()) {
-                return recs.get(0).getId();
+                return recs.getFirst().getId();
             }
             Thread.sleep(500);
         }
