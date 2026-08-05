@@ -9,13 +9,17 @@ function hueOf(id: number): number {
   return Math.abs(Math.sin(id * 12.9898) * 43758.5453) % 360;
 }
 
+function roleLabel(role: UserVO['role']): string {
+  return role === 'ADMIN' ? '管理员' : '普通用户';
+}
+
 export default function Users() {
   const { message } = App.useApp();
   const [list, setList] = useState<UserVO[]>([]);
   const [keyword, setKeyword] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | UserVO['role']>('all');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(8);
+  const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [roleTarget, setRoleTarget] = useState<UserVO | null>(null);
@@ -135,7 +139,7 @@ export default function Users() {
       render: (value: UserVO['role']) => (
         <span className={`status-tag ${value === 'ADMIN' ? 'admin' : 'neutral'}`}>
           <span className="status-dot" />
-          {value}
+          {roleLabel(value)}
         </span>
       ),
     },
@@ -161,8 +165,7 @@ export default function Users() {
     <div className="dash-stack">
       <div className="dash-toolbar">
         <div>
-          <div className="dash-toolbar-title">注册用户</div>
-          <div className="dash-toolbar-sub">LIVE API · GET /api/admin/users?page=1&size=20</div>
+          <div className="dash-toolbar-sub">接口 · GET /api/admin/users?page=1&size=20</div>
         </div>
         <div className="dash-toolbar-actions">
           <Tooltip title="刷新用户数据">
@@ -200,7 +203,7 @@ export default function Users() {
 
       <div className="filter-panel">
         <div className="filter-item">
-          <span>KEYWORD</span>
+          <span>关键词</span>
           <Input
             allowClear
             prefix={<SearchOutlined />}
@@ -211,20 +214,20 @@ export default function Users() {
           />
         </div>
         <div className="filter-item">
-          <span>ROLE</span>
+          <span>角色</span>
           <Select
             value={roleFilter}
             onChange={setRoleFilter}
             style={{ width: 150 }}
             options={[
               { value: 'all', label: '全部角色' },
-              { value: 'ADMIN', label: 'ADMIN' },
-              { value: 'USER', label: 'USER' },
+              { value: 'ADMIN', label: '管理员' },
+              { value: 'USER', label: '普通用户' },
             ]}
           />
         </div>
         <div className="filter-spacer" />
-        <span className="filter-count">MATCHED {filtered.length} / {list.length}</span>
+        <span className="filter-count">匹配 {filtered.length} / {list.length}</span>
       </div>
 
       <section className="panel table-panel">
@@ -235,7 +238,7 @@ export default function Users() {
             </h3>
             <div className="panel-sub">角色变更接口 POST /api/admin/users/{'{id}'}/update-role</div>
           </div>
-          <span className="panel-note">PAGE {page}/{Math.max(1, Math.ceil(total / pageSize))}</span>
+          <span className="panel-note">第 {page}/{Math.max(1, Math.ceil(total / pageSize))} 页</span>
         </div>
         <Table<UserVO>
           rowKey="id"
@@ -249,7 +252,7 @@ export default function Users() {
             pageSize,
             total,
             showSizeChanger: true,
-            pageSizeOptions: [8, 20, 50, 100],
+            pageSizeOptions: [10, 20, 50, 100],
             showTotal: (count) => `共 ${count} 条`,
           }}
           scroll={{ x: 900 }}
@@ -271,15 +274,15 @@ export default function Users() {
       >
         <p className="modal-desc">
           将 <b>{roleTarget?.nickname ?? ''}</b>（@{roleTarget?.username ?? ''}）的角色从{' '}
-          <b>{roleTarget?.role ?? '-'}</b> 调整为：
+          <b>{roleTarget ? roleLabel(roleTarget.role) : '-'}</b> 调整为：
         </p>
         <Select
           value={nextRole}
           onChange={setNextRole}
           style={{ width: '100%' }}
           options={[
-            { value: 'USER', label: '普通用户 USER' },
-            { value: 'ADMIN', label: '管理员 ADMIN' },
+            { value: 'USER', label: '普通用户' },
+            { value: 'ADMIN', label: '管理员' },
           ]}
         />
       </Modal>

@@ -67,6 +67,11 @@ export interface SubjectQueryParams {
   size?: number;
   sort?: string;
   order?: string;
+  tag?: string[];
+  scoreMin?: number;
+  scoreMax?: number;
+  year?: number;
+  weekday?: number;
 }
 
 export interface ImportRecordVO {

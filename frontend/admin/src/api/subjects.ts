@@ -8,8 +8,8 @@ import type {
 } from '../types/api';
 
 export const subjectsApi = {
-  list: (params: SubjectQueryParams) =>
-    http.get<PageResult<SubjectListVO>>('/user/subjects', { params }),
+  search: (params: SubjectQueryParams) =>
+    http.get<PageResult<SubjectListVO>>('/user/subjects/search', { params }),
   create: (data: SubjectUpsertDTO) => http.post<SubjectDetailVO>('/admin/subjects', data),
   update: (id: number, data: SubjectUpsertDTO) =>
     http.post<SubjectDetailVO>(`/admin/subjects/${id}/update`, data),

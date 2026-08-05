@@ -154,15 +154,14 @@ export default function AgentConfig() {
     <div className="dash-stack">
       <div className="dash-toolbar">
         <div>
-          <div className="dash-toolbar-title">Agent 配置</div>
-          <div className="dash-toolbar-sub">LIVE API · /api/admin/agent/prompts · /api/admin/agent/config</div>
+          <div className="dash-toolbar-sub">接口 · /api/admin/agent/prompts · /api/admin/agent/config</div>
         </div>
       </div>
 
       <div className="agent-banner">
         <RobotOutlined className="agent-banner-icon" />
         <span>
-          运行时模型配置写入 Redis key <b>agent:config:model</b>，提示词通过 <b>agent:prompt:{'{key}'}</b>{' '}
+          运行时模型配置写入 Redis 键 <b>agent:config:model</b>，提示词通过 <b>agent:prompt:{'{key}'}</b>{' '}
           热加载，保存后无需重启服务。
         </span>
       </div>
@@ -174,9 +173,9 @@ export default function AgentConfig() {
               <h3 className="panel-title">
                 <span className="seq">01</span>提示词管理
               </h3>
-              <div className="panel-sub">4 个托管 Prompt</div>
+              <div className="panel-sub">4 个托管提示词</div>
             </div>
-            <span className="panel-note">MANAGED</span>
+            <span className="panel-note">托管</span>
           </div>
           <div className="prompt-list">
             {prompts.map((item) => (
@@ -194,7 +193,7 @@ export default function AgentConfig() {
                 <span className="prompt-key">{item.promptKey}</span>
                 <p>{promptMeta[item.promptKey]?.description ?? '托管提示词，保存后立即热加载。'}</p>
                 <div className="prompt-meta">
-                  {(item.promptContent ?? '').length} CHARS · REDIS HOT RELOAD
+                  共 {(item.promptContent ?? '').length} 字符 · Redis 热更新
                 </div>
               </div>
             ))}
@@ -209,10 +208,10 @@ export default function AgentConfig() {
                   <span className="seq">02</span>编辑提示词
                 </h3>
                 <div className="panel-sub">
-                  key: <span className="cell-mono">{activePrompt?.promptKey ?? '-'}</span>
+                  键：<span className="cell-mono">{activePrompt?.promptKey ?? '-'}</span>
                 </div>
               </div>
-              <span className="panel-note">{draft.length} CHARS</span>
+              <span className="panel-note">共 {draft.length} 字符</span>
             </div>
             <textarea
               className="prompt-editor"
@@ -289,15 +288,15 @@ export default function AgentConfig() {
           </Form.Item>
           <Form.Item
             name="temperature"
-            label="Temperature"
+            label="温度系数"
             rules={[{ required: true, message: '请输入 temperature' }]}
           >
-            <InputNumber min={0} max={2} step={0.1} style={{ width: '100%' }} />
+            <InputNumber placeholder="0~1" min={0} max={2} step={0.1} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="maxTokens" label="Max Tokens" rules={[{ required: true, message: '请输入 maxTokens' }]}>
+          <Form.Item name="maxTokens" label="最大 Tokens" rules={[{ required: true, message: '请输入 maxTokens' }]}>
             <InputNumber min={1} step={256} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="thinkingBudget" label="Thinking Budget">
+          <Form.Item name="thinkingBudget" label="思考预算">
             <InputNumber min={0} step={256} style={{ width: '100%' }} />
           </Form.Item>
         </Form>

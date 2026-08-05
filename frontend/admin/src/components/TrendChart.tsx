@@ -16,9 +16,9 @@ export default function TrendChart({ data }: TrendChartProps) {
   }
 
   const series = [
-    { key: 'newUsers', label: '新增用户', color: '#00b3a4', values: data.map((d) => d.newUsers) },
-    { key: 'newCollections', label: '新增收藏', color: '#e99b2f', values: data.map((d) => d.newCollections) },
-    { key: 'logins', label: '登录数', color: '#2f7fe8', values: data.map((d) => d.logins) },
+    { key: 'newUsers', label: '新增用户', color: 'var(--cyan)', values: data.map((d) => d.newUsers) },
+    { key: 'newCollections', label: '新增收藏', color: 'var(--amber)', values: data.map((d) => d.newCollections) },
+    { key: 'logins', label: '登录数', color: 'var(--blue)', values: data.map((d) => d.logins) },
   ] as const;
 
   const maxValue = Math.max(...series.flatMap((s) => s.values)) * 1.15;
@@ -44,14 +44,12 @@ export default function TrendChart({ data }: TrendChartProps) {
               x2={W - PAD_X}
               y1={tick}
               y2={tick}
-              stroke="#dfe6ee"
               strokeDasharray="3 4"
               strokeWidth="1"
             />
             <text
               x={4}
               y={tick + 3}
-              fill="#8a9aa8"
               fontSize="10"
               fontFamily="Cascadia Mono, Consolas, monospace"
             >
@@ -59,13 +57,13 @@ export default function TrendChart({ data }: TrendChartProps) {
             </text>
           </g>
         ))}
-        <path d={toArea(series[0].values)} fill="rgba(0,179,164,0.10)" />
+        <path d={toArea(series[0].values)} style={{ fill: 'var(--cyan-soft)' }} />
         {series.map((s) => (
           <path
             key={s.key}
             d={toLine(s.values)}
             fill="none"
-            stroke={s.color}
+            style={{ stroke: s.color }}
             strokeWidth="2"
             strokeLinejoin="round"
           />
@@ -75,7 +73,6 @@ export default function TrendChart({ data }: TrendChartProps) {
             key={i}
             x={x(i)}
             y={H - 6}
-            fill="#8a9aa8"
             fontSize="10"
             textAnchor="middle"
             fontFamily="Cascadia Mono, Consolas, monospace"

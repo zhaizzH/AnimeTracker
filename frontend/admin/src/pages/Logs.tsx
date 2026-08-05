@@ -182,8 +182,7 @@ export default function Logs() {
     <div className="dash-stack">
       <div className="dash-toolbar">
         <div>
-          <div className="dash-toolbar-title">操作日志</div>
-          <div className="dash-toolbar-sub">LIVE API · GET /api/admin/logs?page=&size=&module=&action=</div>
+          <div className="dash-toolbar-sub">接口 · GET /api/admin/logs?page=&size=&module=&action=</div>
         </div>
         <div className="dash-toolbar-actions">
           <Tooltip title="刷新日志">
@@ -194,7 +193,7 @@ export default function Logs() {
 
       <div className="filter-panel logs-filter">
         <div className="filter-item">
-          <span>USER</span>
+          <span>用户</span>
           <Input
             allowClear
             prefix={<SearchOutlined />}
@@ -206,7 +205,7 @@ export default function Logs() {
           />
         </div>
         <div className="filter-item">
-          <span>MODULE</span>
+          <span>模块</span>
           <Select
             value={moduleFilter}
             onChange={setModuleFilter}
@@ -215,7 +214,7 @@ export default function Logs() {
           />
         </div>
         <div className="filter-item">
-          <span>ACTION</span>
+          <span>操作</span>
           <Select
             value={actionFilter}
             onChange={setActionFilter}
@@ -224,7 +223,7 @@ export default function Logs() {
           />
         </div>
         <div className="filter-item">
-          <span>RANGE</span>
+          <span>时间范围</span>
           <DatePicker.RangePicker
             value={range}
             onChange={(value) => setRange(value as DateRange | null)}
@@ -236,7 +235,7 @@ export default function Logs() {
         <Button type="primary" ghost icon={<SearchOutlined />} onClick={handleSearch}>
           查询
         </Button>
-        <span className="filter-count">TOTAL {total.toLocaleString()}</span>
+        <span className="filter-count">总数 {total.toLocaleString()}</span>
       </div>
 
       <section className="panel table-panel">
@@ -247,7 +246,7 @@ export default function Logs() {
             </h3>
             <div className="panel-sub">覆盖登录、条目、用户、导入与 Agent 管理操作</div>
           </div>
-          <span className="panel-note">DESC BY ID</span>
+          <span className="panel-note">按 ID 倒序</span>
         </div>
         <Table<OperationLogVO>
           rowKey="id"

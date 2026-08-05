@@ -14,9 +14,9 @@ interface RunImportValues {
 }
 
 const statusMeta: Record<ImportRecordVO['status'], { label: string; cls: string }> = {
-  RUNNING: { label: 'RUNNING', cls: 'running' },
-  COMPLETED: { label: 'COMPLETED', cls: 'success' },
-  FAILED: { label: 'FAILED', cls: 'failed' },
+  RUNNING: { label: '运行中', cls: 'running' },
+  COMPLETED: { label: '已完成', cls: 'success' },
+  FAILED: { label: '失败', cls: 'failed' },
 };
 
 export default function ImportTasks() {
@@ -29,7 +29,7 @@ export default function ImportTasks() {
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
   const [form] = Form.useForm<RunImportValues>();
-  const mode = Form.useWatch('mode', form) ?? 'season';
+  const mode = Form.useWatch('mode', form) ?? 'recent';
   const timerRef = useRef<number | null>(null);
 
   const records = status.recentRecords ?? [];
@@ -147,8 +147,7 @@ export default function ImportTasks() {
     <div className="dash-stack">
       <div className="dash-toolbar">
         <div>
-          <div className="dash-toolbar-title">番剧导入</div>
-          <div className="dash-toolbar-sub">LIVE API · POST /api/admin/import/run?mode=&key=&since=&workers=</div>
+          <div className="dash-toolbar-sub">接口 · POST /api/admin/import/run?mode=&key=&since=&workers=</div>
         </div>
         <div className="dash-toolbar-actions">
           <Tooltip title="刷新导入状态">
@@ -193,35 +192,35 @@ export default function ImportTasks() {
               </h3>
               <div className="panel-sub">选择模式并提交任务</div>
             </div>
-            <span className="panel-note">ASYNC JOB</span>
+            <span className="panel-note">异步任务</span>
           </div>
           <Form
             form={form}
             layout="vertical"
-            initialValues={{ mode: 'season', key: '2026-summer', workers: 4 }}
+            initialValues={{ mode: 'recent', key: '2026-summer', workers: 10 }}
             onFinish={runImport}
           >
             <Form.Item name="mode" label="导入模式" rules={[{ required: true, message: '请选择导入模式' }]}>
               <Select
                 options={[
-                  { value: 'full', label: '全量导入 FULL' },
-                  { value: 'season', label: '季度导入 SEASON' },
-                  { value: 'recent', label: '近期更新 RECENT' },
-                  { value: 'since', label: '指定日期起 SINCE' },
+                  { value: 'full', label: '全量导入' },
+                  { value: 'season', label: '季度导入' },
+                  { value: 'recent', label: '近期更新' },
+                  { value: 'since', label: '指定日期起' },
                 ]}
               />
             </Form.Item>
             <Form.Item
               name="key"
               label="季度标识"
-              rules={[{ required: mode === 'season', message: 'season 模式必填季度标识' }]}
+              rules={[{ required: mode === 'season', message: '季度模式必填季度标识' }]}
             >
               <Input placeholder="2026-summer" disabled={mode !== 'season'} />
             </Form.Item>
             <Form.Item
               name="since"
               label="起始日期"
-              rules={[{ required: mode === 'since', message: 'since 模式必填起始日期' }]}
+              rules={[{ required: mode === 'since', message: '指定日期模式必填起始日期' }]}
             >
               <DatePicker style={{ width: '100%' }} disabled={mode !== 'since'} />
             </Form.Item>
@@ -243,14 +242,14 @@ export default function ImportTasks() {
                 </h3>
                 <div className="panel-sub">GET /api/admin/import/status</div>
               </div>
-              <span className="panel-note">{runningRecord ? 'BUSY' : 'IDLE'}</span>
+              <span className="panel-note">{runningRecord ? '繁忙' : '空闲'}</span>
             </div>
             {runningRecord ? (
               <div className="current-task">
                 <div className="current-task-row">
                   <span className="status-tag running">
                     <span className="status-dot running" />
-                    RUNNING
+                    运行中
                   </span>
                   <span className="cell-mono">{runningRecord.season || '-'}</span>
                 </div>
@@ -267,7 +266,7 @@ export default function ImportTasks() {
               <div className="current-task idle">
                 <span className="status-tag neutral">
                   <span className="status-dot" />
-                  IDLE
+                  空闲
                 </span>
                 <p className="panel-sub">当前无运行中的导入任务，最近一次完成于 {status.lastImportedAt ?? '-'}。</p>
               </div>
@@ -282,7 +281,7 @@ export default function ImportTasks() {
                 </h3>
                 <div className="panel-sub">最近 {records.length} 次任务记录</div>
               </div>
-              <span className="panel-note">RUNNING {runningCount}</span>
+              <span className="panel-note">运行中 {runningCount}</span>
             </div>
             <Table<ImportRecordVO>
               rowKey="id"
@@ -290,7 +289,7 @@ export default function ImportTasks() {
               dataSource={records}
               size="middle"
               pagination={{
-                pageSize: 6,
+                pageSize: 10,
                 showTotal: (count) => `共 ${count} 条`,
               }}
               scroll={{ x: 900 }}

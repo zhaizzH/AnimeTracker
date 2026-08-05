@@ -18,7 +18,7 @@ import type { TablePaginationConfig, TableProps } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { subjectsApi } from '../api/subjects';
-import type { SubjectListVO, SubjectUpsertDTO } from '../types/api';
+import type { SubjectListVO, SubjectQueryParams, SubjectUpsertDTO } from '../types/api';
 
 interface SubjectFormValues {
   name: string;
@@ -51,8 +51,13 @@ export default function Subjects() {
   const { message } = App.useApp();
   const [list, setList] = useState<SubjectListVO[]>([]);
   const [keyword, setKeyword] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [scoreMin, setScoreMin] = useState<number | null>(null);
+  const [scoreMax, setScoreMax] = useState<number | null>(null);
+  const [year, setYear] = useState<number | null>(null);
+  const [weekday, setWeekday] = useState<number | null>(null);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(8);
+  const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -64,14 +69,19 @@ export default function Subjects() {
   const load = async (nextPage = page, nextSize = pageSize, nextKeyword = keyword) => {
     setLoading(true);
     try {
-      const params = {
+      const params: SubjectQueryParams = {
         q: nextKeyword.trim() || undefined,
         page: nextPage,
         size: nextSize,
         sort: 'id',
         order: 'desc',
+        tag: tags.length ? tags : undefined,
+        scoreMin: scoreMin ?? undefined,
+        scoreMax: scoreMax ?? undefined,
+        year: year ?? undefined,
+        weekday: weekday ?? undefined,
       };
-      const result = await subjectsApi.list(params);
+      const result = await subjectsApi.search(params);
       setList(result.content ?? []);
       setTotal(result.total ?? 0);
       setPage(result.page ?? nextPage);
@@ -101,6 +111,17 @@ export default function Subjects() {
     setPage(nextPage);
     setPageSize(nextSize);
     load(nextPage, nextSize, keyword);
+  };
+
+  const resetFilters = () => {
+    setTags([]);
+    setScoreMin(null);
+    setScoreMax(null);
+    setYear(null);
+    setWeekday(null);
+    setKeyword('');
+    setPage(1);
+    load(1, pageSize, '');
   };
 
   const animatedCount = list.filter((item) => item.type === 2).length;
@@ -288,8 +309,7 @@ export default function Subjects() {
     <div className="dash-stack">
       <div className="dash-toolbar">
         <div>
-          <div className="dash-toolbar-title">条目清单</div>
-          <div className="dash-toolbar-sub">LIVE API · GET /api/user/subjects?page=&size=&q=</div>
+          <div className="dash-toolbar-sub">接口 · GET /api/user/subjects/search?q=&tag=&year=&weekday=&scoreMin=&scoreMax=</div>
         </div>
         <div className="dash-toolbar-actions">
           <Tooltip title="刷新条目数据">
@@ -330,7 +350,7 @@ export default function Subjects() {
 
       <div className="filter-panel">
         <div className="filter-item">
-          <span>KEYWORD</span>
+          <span>关键词</span>
           <Input
             allowClear
             prefix={<SearchOutlined />}
@@ -338,14 +358,57 @@ export default function Subjects() {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             onPressEnter={handleSearch}
-            style={{ width: 280 }}
+            style={{ width: 200 }}
           />
+        </div>
+        <div className="filter-item">
+          <span>标签</span>
+          <Select
+            mode="tags"
+            placeholder="输入标签回车"
+            value={tags}
+            onChange={setTags}
+            tokenSeparators={[',']}
+            style={{ width: 170 }}
+          />
+        </div>
+        <div className="filter-item">
+          <span>年份</span>
+          <InputNumber min={1970} max={2100} placeholder="年份" value={year} onChange={setYear} style={{ width: 110 }} />
+        </div>
+        <div className="filter-item">
+          <span>星期</span>
+          <Select
+            allowClear
+            placeholder="周几"
+            value={weekday}
+            onChange={setWeekday}
+            style={{ width: 110 }}
+            options={[
+              { value: 1, label: '周一' },
+              { value: 2, label: '周二' },
+              { value: 3, label: '周三' },
+              { value: 4, label: '周四' },
+              { value: 5, label: '周五' },
+              { value: 6, label: '周六' },
+              { value: 0, label: '周日' },
+            ]}
+          />
+        </div>
+        <div className="filter-item">
+          <span>评分</span>
+          <Space size={4}>
+            <InputNumber min={0} max={10} step={0.1} placeholder="最低" value={scoreMin} onChange={setScoreMin} style={{ width: 88 }} />
+            <span>~</span>
+            <InputNumber min={0} max={10} step={0.1} placeholder="最高" value={scoreMax} onChange={setScoreMax} style={{ width: 88 }} />
+          </Space>
         </div>
         <Button type="primary" ghost icon={<SearchOutlined />} onClick={handleSearch}>
           搜索
         </Button>
+        <Button onClick={resetFilters}>重置</Button>
         <div className="filter-spacer" />
-        <span className="filter-count">TOTAL {total.toLocaleString()}</span>
+        <span className="filter-count">总数 {total.toLocaleString()}</span>
       </div>
 
       <section className="panel table-panel">
@@ -356,7 +419,7 @@ export default function Subjects() {
             </h3>
             <div className="panel-sub">创建 / 更新 / 删除均走管理接口</div>
           </div>
-          <span className="panel-note">PAGE {page}/{Math.max(1, Math.ceil(total / pageSize))}</span>
+          <span className="panel-note">第 {page}/{Math.max(1, Math.ceil(total / pageSize))} 页</span>
         </div>
         <Table<SubjectListVO>
           rowKey="id"
@@ -370,7 +433,7 @@ export default function Subjects() {
             pageSize,
             total,
             showSizeChanger: true,
-            pageSizeOptions: [8, 20, 50, 100],
+            pageSizeOptions: [10, 20, 50, 100],
             showTotal: (count) => `共 ${count} 条`,
           }}
           scroll={{ x: 1120 }}

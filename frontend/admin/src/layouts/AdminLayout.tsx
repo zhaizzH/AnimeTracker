@@ -14,6 +14,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useAuthStore } from '../store/authStore';
+import ThemeToggle from '../components/ThemeToggle';
 
 interface NavItem {
   key: string;
@@ -32,7 +33,7 @@ const navItems: NavItem[] = [
 ];
 
 const titleMap: Record<string, string> = {
-  dashboard: '运营总览',
+  dashboard: '总览',
   subjects: '番剧管理',
   users: '用户管理',
   import: '数据导入',
@@ -82,7 +83,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <span className="sidebar-brand-mark">AT</span>
           <div>
             <div className="sidebar-brand-name">ANIMETRACKER</div>
-            <div className="sidebar-brand-sub">ADMIN / OPS</div>
+          <div className="sidebar-brand-sub">管理端</div>
           </div>
         </div>
         <nav className="sidebar-nav">
@@ -108,18 +109,18 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <span className="foot-avatar">{initial}</span>
             <div>
               <div>{username ?? 'admin'}</div>
-              <div className="foot-role">ROLE: {role ?? 'ADMIN'}</div>
+              <div className="foot-role">角色：{role === 'ADMIN' ? '管理员' : '普通用户'}</div>
             </div>
           </div>
-          <div className="foot-text">SESSION: JWT</div>
-          <div className="foot-text">NODE: API /api</div>
+          <div className="foot-text">会话：JWT</div>
+          <div className="foot-text">节点：API /api</div>
         </div>
       </aside>
       <div className="admin-main">
         <header className="admin-header">
           <div className="admin-header-title">
-            <h2>{titleMap[active] ?? '运营总览'}</h2>
-            <span className="crumb">OPERATIONS / {active.toUpperCase()}</span>
+            <h2>{titleMap[active] ?? '总览'}</h2>
+            <span className="crumb">{titleMap[active] ?? '总览'}</span>
           </div>
           <div className="admin-header-right">
             <span className="header-status">
@@ -127,6 +128,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               API 已连接
             </span>
             <span className="header-clock">{now.format('YYYY-MM-DD HH:mm:ss')}</span>
+            <ThemeToggle />
             <Tooltip title="刷新数据">
               <Button type="text" icon={<ReloadOutlined spin={syncing} />} onClick={sync} />
             </Tooltip>

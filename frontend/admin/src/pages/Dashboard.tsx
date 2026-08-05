@@ -35,18 +35,18 @@ const typeLabel: Record<number, string> = {
 };
 
 const typeColor: Record<number, string> = {
-  1: '#e99b2f',
-  2: '#2f7fe8',
-  3: '#00b3a4',
-  4: '#8fa3b3',
-  5: '#d84a3f',
+  1: 'var(--amber)',
+  2: 'var(--blue)',
+  3: 'var(--cyan)',
+  4: 'var(--text-faint)',
+  5: 'var(--red)',
 };
 
 const seasonColor: Record<string, string> = {
-  winter: '#2f7fe8',
-  spring: '#00b3a4',
-  summer: '#e99b2f',
-  autumn: '#8a6fd8',
+  winter: 'var(--blue)',
+  spring: 'var(--cyan)',
+  summer: 'var(--amber)',
+  autumn: 'var(--purple)',
 };
 
 function hueOf(id: number): number {
@@ -66,7 +66,7 @@ function seasonLabel(key: string): string {
 
 function seasonHue(key: string): string {
   const season = key.split('-')[1] ?? '';
-  return seasonColor[season] ?? '#8fa3b3';
+  return seasonColor[season] ?? 'var(--text-faint)';
 }
 
 const emptyOverview: DashboardOverviewVO = {
@@ -87,9 +87,9 @@ const emptyImportStatus: ImportStatusVO = {
 };
 
 const statusLabel: Record<string, string> = {
-  RUNNING: 'RUNNING',
-  COMPLETED: 'COMPLETED',
-  FAILED: 'FAILED',
+  RUNNING: '运行中',
+  COMPLETED: '已完成',
+  FAILED: '失败',
 };
 
 export default function Dashboard() {
@@ -152,7 +152,7 @@ export default function Dashboard() {
       (collectionStats.types ?? []).map((item) => ({
         label: typeLabel[item.type] ?? `类型 ${item.type}`,
         value: item.count,
-        color: typeColor[item.type] ?? '#8fa3b3',
+        color: typeColor[item.type] ?? 'var(--text-faint)',
       })),
     [collectionStats],
   );
@@ -170,7 +170,7 @@ export default function Dashboard() {
       (subjectStats.importStatuses ?? []).map((item) => ({
         label: item.importStatus === 1 ? '已导入' : '待导入',
         value: item.count,
-        color: item.importStatus === 1 ? '#1f9d6f' : '#8fa3b3',
+        color: item.importStatus === 1 ? 'var(--green)' : 'var(--text-faint)',
       })),
     [subjectStats],
   );
@@ -185,8 +185,7 @@ export default function Dashboard() {
     <div className="dash-stack">
       <div className="dash-toolbar">
         <div>
-          <div className="dash-toolbar-title">数据快照</div>
-          <div className="dash-toolbar-sub">LIVE API · /api/admin/dashboard/* · AUTO SYNC 5M</div>
+          <div className="dash-toolbar-sub">接口 · /api/admin/dashboard/* · 每 5 分钟自动同步</div>
         </div>
         <div className="dash-toolbar-actions">
           <Segmented
@@ -251,7 +250,7 @@ export default function Dashboard() {
               </h3>
               <div className="panel-sub">每日新增用户 / 新增收藏 / 登录</div>
             </div>
-            <span className="panel-note">{range} DAYS</span>
+            <span className="panel-note">近 {range} 天</span>
           </div>
           <TrendChart data={trends} />
         </section>
@@ -314,15 +313,15 @@ export default function Dashboard() {
           </div>
           <div className="import-metrics">
             <div className="import-metric running">
-              <span>TOTAL</span>
+              <span>总数</span>
               <strong>{subjectStats.importStat?.importTotal ?? 0}</strong>
             </div>
             <div className="import-metric success">
-              <span>SUCCEEDED</span>
+              <span>成功</span>
               <strong>{subjectStats.importStat?.importSucceeded ?? 0}</strong>
             </div>
             <div className="import-metric failed">
-              <span>FAILED</span>
+              <span>失败</span>
               <strong>{subjectStats.importStat?.importFailed ?? 0}</strong>
             </div>
           </div>
@@ -335,7 +334,7 @@ export default function Dashboard() {
               <h3 className="panel-title">
                 <span className="seq">06</span>热门榜
               </h3>
-              <div className="panel-sub">本站收藏最多 TOP 5</div>
+              <div className="panel-sub">本站收藏最多的前 5 名</div>
             </div>
           </div>
           <div className="table-scroll">
