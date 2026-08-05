@@ -9,6 +9,7 @@ from app.core.prompt_sync import (
     load_managed_prompt,
     refresh_agent_prompt_snapshot,
 )
+from app.core.runtime_config import MODEL_CONFIG_KEY, get_runtime_model_config, set_runtime_model_config
 from app.schemas.admin_config import ModelConfig, PromptOut, PromptUpdateRequest
 from app.schemas.auth import UserInfo
 
@@ -74,3 +75,19 @@ def reset_prompt(key: str):
     _redis().delete(PROMPT_REDIS_KEY_TEMPLATE.format(key))
     refresh_agent_prompt_snapshot(key)
     return PromptOut(promptKey=key, promptContent=_effective_prompt(key))
+
+
+@router.get("/config", dependencies=[Depends(require_admin)])
+def get_config():
+    return ModelConfig(**(get_runtime_model_config() or {}))
+
+
+@router.post("/config/update", dependencies=[Depends(require_admin)])
+def update_config(body: ModelConfig):
+    cfg = body.model_dump(exclude_none=True)
+    if cfg.get("temperature") is not None and not (0 <= cfg["temperature"] <= 2):
+        raise HTTPException(status_code=400, detail="temperature 需在 0~2 之间")
+    if cfg.get("maxTokens") is not None and cfg["maxTokens"] <= 0:
+        raise HTTPException(status_code=400, detail="maxTokens 需为正整数")
+    set_runtime_model_config(cfg)
+    return ModelConfig(**cfg)

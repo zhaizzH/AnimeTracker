@@ -3,6 +3,7 @@ from typing import Any
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.core.runtime_config import get_runtime_model_config
 from app.llm.models import create_llm
 
 
@@ -56,11 +57,18 @@ _SLOT_DEFAULTS: dict[AgentChatModelSlot, dict[str, Any]] = {
 
 def create_agent_chat_llm(slot: AgentChatModelSlot, *, temperature: float | None = None):
     cfg = _SLOT_DEFAULTS[slot]
-    resolved_temp = temperature if temperature is not None else cfg.get("temperature", settings.llm_temperature)
+    rc = get_runtime_model_config() or {}
+    if slot is AgentChatModelSlot.CLIENT_ROUTE:
+        model = rc.get("modelRoute") or cfg.get("model") or settings.llm_model_route
+    else:
+        model = rc.get("model") or cfg.get("model") or settings.llm_model
+    resolved_temp = temperature if temperature is not None else rc.get("temperature", cfg.get("temperature", settings.llm_temperature))
+    max_tokens = rc.get("maxTokens") or settings.llm_max_tokens
+    budget = rc.get("thinkingBudget", settings.llm_thinking_budget)
     return create_llm(
-        model=cfg.get("model", settings.llm_model),
+        model=model,
         temperature=resolved_temp,
         api_key=settings.dashscope_api_key,
-        max_tokens=settings.llm_max_tokens,
-        thinking_budget=settings.llm_thinking_budget,
+        max_tokens=max_tokens,
+        thinking_budget=budget,
     )
