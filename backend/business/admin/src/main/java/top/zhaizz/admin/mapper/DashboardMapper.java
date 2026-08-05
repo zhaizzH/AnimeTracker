@@ -4,7 +4,11 @@ import org.apache.ibatis.annotations.Param;
 import top.zhaizz.pojo.vo.dashboard.CollectionStatsVO;
 import top.zhaizz.pojo.vo.dashboard.DailyCount;
 import top.zhaizz.pojo.vo.dashboard.DashboardOverviewVO;
+import top.zhaizz.pojo.vo.dashboard.HotSubjectVO;
+import top.zhaizz.pojo.vo.dashboard.ImportStatVO;
 import top.zhaizz.pojo.vo.dashboard.RatingCountVO;
+import top.zhaizz.pojo.vo.dashboard.SeasonCountVO;
+import top.zhaizz.pojo.vo.dashboard.SubjectStatusCountVO;
 import top.zhaizz.pojo.vo.dashboard.TypeCountVO;
 
 import java.time.LocalDate;
@@ -26,4 +30,12 @@ public interface DashboardMapper {
     List<TypeCountVO> collectionTypeCounts();
 
     List<RatingCountVO> ratingCounts();
+
+    List<SeasonCountVO> seasonCounts();
+
+    List<SubjectStatusCountVO> subjectStatusCounts();
+
+    ImportStatVO importStats();
+
+    List<HotSubjectVO> hotSubjects(@Param("limit") int limit);
 }

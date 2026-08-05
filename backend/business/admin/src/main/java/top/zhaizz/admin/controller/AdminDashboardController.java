@@ -12,6 +12,8 @@ import top.zhaizz.admin.service.DashboardService;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.pojo.vo.dashboard.CollectionStatsVO;
 import top.zhaizz.pojo.vo.dashboard.DashboardOverviewVO;
+import top.zhaizz.pojo.vo.dashboard.HotSubjectVO;
+import top.zhaizz.pojo.vo.dashboard.SubjectStatsVO;
 import top.zhaizz.pojo.vo.dashboard.TrendPointVO;
 
 import java.util.List;
@@ -50,5 +52,22 @@ public class AdminDashboardController {
     @GetMapping("/collection-stats")
     public Result<CollectionStatsVO> collectionStats() {
         return Result.success(dashboardService.collectionStats());
+    }
+
+    /**
+     * 番剧季度数量、导入状态与导入记录统计
+     */
+    @GetMapping("/subject-stats")
+    public Result<SubjectStatsVO> subjectStats() {
+        return Result.success(dashboardService.subjectStats());
+    }
+
+    /**
+     * 本站收藏最多 Top N 热门榜
+     */
+    @GetMapping("/hot")
+    public Result<List<HotSubjectVO>> hot(
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int limit) {
+        return Result.success(dashboardService.hot(limit));
     }
 }

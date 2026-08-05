@@ -44,4 +44,39 @@
         SELECT rate, COUNT(*) AS count FROM user_collection WHERE rate > 0 GROUP BY rate ORDER BY rate
     </select>
 
+    <select id="seasonCounts" resultType="top.zhaizz.pojo.vo.dashboard.SeasonCountVO">
+        SELECT CONCAT(YEAR(air_date), '-',
+               CASE
+                   WHEN MONTH(air_date) BETWEEN 1 AND 3 THEN 'winter'
+                   WHEN MONTH(air_date) BETWEEN 4 AND 6 THEN 'spring'
+                   WHEN MONTH(air_date) BETWEEN 7 AND 9 THEN 'summer'
+                   ELSE 'autumn'
+               END) AS season_key,
+               COUNT(*) AS count
+        FROM subject
+        WHERE air_date IS NOT NULL
+        GROUP BY season_key
+        ORDER BY season_key DESC
+    </select>
+
+    <select id="subjectStatusCounts" resultType="top.zhaizz.pojo.vo.dashboard.SubjectStatusCountVO">
+        SELECT import_status, COUNT(*) AS count FROM subject GROUP BY import_status
+    </select>
+
+    <select id="importStats" resultType="top.zhaizz.pojo.vo.dashboard.ImportStatVO">
+        SELECT COUNT(*) AS import_total,
+               COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END), 0) AS import_succeeded,
+               COALESCE(SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END), 0) AS import_failed
+        FROM import_record
+    </select>
+
+    <select id="hotSubjects" resultType="top.zhaizz.pojo.vo.dashboard.HotSubjectVO">
+        SELECT s.id, s.name, s.name_cn, s.image, COUNT(uc.id) AS count
+        FROM user_collection uc
+        JOIN subject s ON uc.subject_id = s.id
+        GROUP BY uc.subject_id, s.id, s.name, s.name_cn, s.image
+        ORDER BY count DESC
+        LIMIT #{limit}
+    </select>
+
 </mapper>

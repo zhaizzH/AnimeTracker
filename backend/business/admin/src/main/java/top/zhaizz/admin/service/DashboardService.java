@@ -2,6 +2,8 @@ package top.zhaizz.admin.service;
 
 import top.zhaizz.pojo.vo.dashboard.CollectionStatsVO;
 import top.zhaizz.pojo.vo.dashboard.DashboardOverviewVO;
+import top.zhaizz.pojo.vo.dashboard.HotSubjectVO;
+import top.zhaizz.pojo.vo.dashboard.SubjectStatsVO;
 import top.zhaizz.pojo.vo.dashboard.TrendPointVO;
 
 import java.util.List;
@@ -16,4 +18,8 @@ public interface DashboardService {
     List<TrendPointVO> trends(int days);
 
     CollectionStatsVO collectionStats();
+
+    SubjectStatsVO subjectStats();
+
+    List<HotSubjectVO> hot(int limit);
 }

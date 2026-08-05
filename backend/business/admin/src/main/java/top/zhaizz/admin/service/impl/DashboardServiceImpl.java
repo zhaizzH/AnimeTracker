@@ -7,6 +7,8 @@ import top.zhaizz.admin.service.DashboardService;
 import top.zhaizz.pojo.vo.dashboard.CollectionStatsVO;
 import top.zhaizz.pojo.vo.dashboard.DailyCount;
 import top.zhaizz.pojo.vo.dashboard.DashboardOverviewVO;
+import top.zhaizz.pojo.vo.dashboard.HotSubjectVO;
+import top.zhaizz.pojo.vo.dashboard.SubjectStatsVO;
 import top.zhaizz.pojo.vo.dashboard.TrendPointVO;
 
 import java.time.LocalDate;
@@ -60,5 +62,19 @@ public class DashboardServiceImpl implements DashboardService {
         vo.setTypes(dashboardMapper.collectionTypeCounts());
         vo.setRatings(dashboardMapper.ratingCounts());
         return vo;
+    }
+
+    @Override
+    public SubjectStatsVO subjectStats() {
+        SubjectStatsVO vo = new SubjectStatsVO();
+        vo.setSeasons(dashboardMapper.seasonCounts());
+        vo.setImportStatuses(dashboardMapper.subjectStatusCounts());
+        vo.setImportStat(dashboardMapper.importStats());
+        return vo;
+    }
+
+    @Override
+    public List<HotSubjectVO> hot(int limit) {
+        return dashboardMapper.hotSubjects(Math.min(Math.max(limit, 1), 50));
     }
 }
