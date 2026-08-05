@@ -7,10 +7,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import top.zhaizz.agent.service.AgentService;
+import top.zhaizz.common.ErrorType;
 import top.zhaizz.common.config.AgentProperties;
+import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.result.Result;
 
 import java.io.BufferedReader;
@@ -73,10 +76,13 @@ public class AgentServiceImpl implements AgentService {
         HttpEntity<String> entity = new HttpEntity<>(body, headers);
         try {
             return restTemplate.exchange(url, method, entity, String.class);
-        } catch (HttpClientErrorException e) {
-            return ResponseEntity.status(e.getStatusCode())
-                    .headers(e.getResponseHeaders())
-                    .body(e.getResponseBodyAsString());
+        } catch (HttpStatusCodeException e) {
+            String errBody = e.getResponseBodyAsString();
+            throw new BizException(e.getStatusCode().value(),
+                    "Agent 请求失败: " + (errBody == null || errBody.isEmpty() ? "无响应" : errBody));
+        } catch (ResourceAccessException e) {
+            log.error("Agent 服务连接失败: {}", url, e);
+            throw new BizException(ErrorType.INTERNAL_ERROR, "Agent 服务连接失败");
         }
     }
 

@@ -11,7 +11,6 @@ import top.zhaizz.common.result.Result;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -81,9 +80,6 @@ public class AgentController {
     @GetMapping("/sessions/{sessionId}/history")
     public Result<?> getHistory(@PathVariable String sessionId, @RequestHeader("Authorization") String auth) {
         ResponseEntity<String> resp = agentService.forward("/sessions/" + sessionId + "/history", HttpMethod.GET, auth, null);
-        if (!resp.getStatusCode().is2xxSuccessful()) {
-            return Result.success(Collections.emptyList());
-        }
         return agentService.wrapResult(resp.getBody());
     }
 

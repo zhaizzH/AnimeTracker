@@ -5,12 +5,18 @@ import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import top.zhaizz.common.result.Result;
 
 import java.util.HashMap;
@@ -18,7 +24,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 全局异常处理，捕获 BizException、参数校验异常、NoHandlerFoundException 等
+ * 全局异常处理，捕获 BizException、参数校验异常、Spring MVC 异常等
  * <p>
  * 统一拦截所有 Controller 抛出的异常，并按定义好的处理逻辑返回统一的 JSON 响应结构
  * <p>
@@ -66,12 +72,62 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理 404
+     * 处理请求体 JSON 解析失败（空 body / 语法错误 / 字段类型不匹配）
      */
-    @ExceptionHandler(NoHandlerFoundException.class)
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<Void> handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
+        log.warn("请求体解析失败: {}", e.getMessage());
+        return Result.error(400, "请求体格式错误");
+    }
+
+    /**
+     * 处理缺参 / 缺请求头 / 参数类型不匹配
+     */
+    @ExceptionHandler({ServletRequestBindingException.class, MethodArgumentTypeMismatchException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<Void> handleBadRequestParams(Exception e) {
+        log.warn("请求参数错误: {}", e.getMessage());
+        return Result.error(400, "请求参数错误");
+    }
+
+    /**
+     * 处理不支持的 Content-Type
+     */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+    public Result<Void> handleHttpMediaTypeNotSupported(HttpMediaTypeNotSupportedException e) {
+        log.warn("不支持的 Content-Type: {}", e.getContentType());
+        return Result.error(415, "不支持的 Content-Type: " + e.getContentType());
+    }
+
+    /**
+     * 处理不支持的 HTTP 方法
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+    public Result<Void> handleHttpRequestMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        log.warn("不支持的请求方法: {}", e.getMethod());
+        return Result.error(405, "不支持的请求方法: " + e.getMethod());
+    }
+
+    /**
+     * 处理上传文件超限
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    @ResponseStatus(HttpStatus.PAYLOAD_TOO_LARGE)
+    public Result<Void> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException e) {
+        log.warn("上传文件超限: {}", e.getMessage());
+        return Result.error(413, "上传文件大小超过限制");
+    }
+
+    /**
+     * 处理静态资源 handler 抛出的 404（未知 API 路径）
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Result<Void> handleNoHandlerFoundException(NoHandlerFoundException e) {
-        return Result.error(404, "接口不存在: " + e.getRequestURL());
+    public Result<Void> handleNoResourceFound(NoResourceFoundException e) {
+        return Result.error(404, "接口不存在: " + e.getResourcePath());
     }
 
     /**

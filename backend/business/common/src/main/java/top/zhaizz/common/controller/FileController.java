@@ -3,9 +3,12 @@ package top.zhaizz.common.controller;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import top.zhaizz.common.ErrorType;
 import top.zhaizz.common.config.MinioProperties;
+import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.result.Result;
 
 import java.util.List;
@@ -14,6 +17,7 @@ import java.util.UUID;
 /**
  * 文件控制器
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/common/files")
 @RequiredArgsConstructor
@@ -35,13 +39,13 @@ public class FileController {
 
         // 校验分类
         if (!ALLOWED_CATEGORIES.contains(type)) {
-            return Result.error(400, "无效的上传分类: " + type);
+            throw new BizException(ErrorType.BAD_REQUEST, "无效的上传分类: " + type);
         }
 
         // 校验文件类型
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
-            return Result.error(400, "仅支持 JPG/PNG/WebP 格式的图片");
+            throw new BizException(ErrorType.BAD_REQUEST, "仅支持 JPG/PNG/WebP 格式的图片");
         }
 
         // 推断扩展名
@@ -70,7 +74,8 @@ public class FileController {
 
             return Result.success(url);
         } catch (Exception e) {
-            return Result.error(500, "文件上传失败: " + e.getMessage());
+            log.error("文件上传失败", e);
+            throw new BizException(ErrorType.INTERNAL_ERROR, "文件上传失败");
         }
     }
 }

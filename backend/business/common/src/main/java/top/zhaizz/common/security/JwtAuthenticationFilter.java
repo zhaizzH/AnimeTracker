@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.lang.NonNull;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,6 +19,7 @@ import java.io.IOException;
 /**
  * JWT 认证过滤器：提取 Authorization 头，校验 Token，设置 SecurityContext
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -38,20 +40,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = resolveToken(request);
 
-        if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
-            // 计算 SHA256 摘要，检查 Redis 白名单
-            String tokenHash = DigestUtils.sha256Hex(token);
-            Boolean exists = redisUtil.exists(REDIS_TOKEN_PREFIX + tokenHash);
+        if (StringUtils.hasText(token)) {
+            if (jwtTokenProvider.validateToken(token)) {
+                // 计算 SHA256 摘要，检查 Redis 白名单
+                String tokenHash = DigestUtils.sha256Hex(token);
+                Boolean exists = redisUtil.exists(REDIS_TOKEN_PREFIX + tokenHash);
 
-            if (Boolean.TRUE.equals(exists)) {
-                Long userId = jwtTokenProvider.getUserIdFromToken(token);
-                String role = jwtTokenProvider.getRoleFromToken(token);
+                if (Boolean.TRUE.equals(exists)) {
+                    Long userId = jwtTokenProvider.getUserIdFromToken(token);
+                    String role = jwtTokenProvider.getRoleFromToken(token);
 
-                UserPrincipal principal = new UserPrincipal(userId, role);
-                principal.setAuthenticated(true);
-                SecurityContextHolder.getContext().setAuthentication(principal);
+                    UserPrincipal principal = new UserPrincipal(userId, role);
+                    principal.setAuthenticated(true);
+                    SecurityContextHolder.getContext().setAuthentication(principal);
+                } else {
+                    log.debug("token 不在 Redis 白名单，视为未认证");
+                }
+            } else {
+                log.debug("token 校验失败，视为未认证");
             }
-            // Redis 中不存在 → token 已失效，不设置认证上下文
         }
 
         chain.doFilter(request, response);
