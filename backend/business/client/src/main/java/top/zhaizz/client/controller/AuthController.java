@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import top.zhaizz.client.service.AuthService;
 import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.result.Result;
+import top.zhaizz.common.security.JwtAuthenticationFilter;
 import top.zhaizz.pojo.dto.ForgotPasswordDTO;
 import top.zhaizz.pojo.dto.LoginDTO;
 import top.zhaizz.pojo.dto.RefreshTokenDTO;
@@ -103,8 +104,8 @@ public class AuthController {
     @PostMapping("/logout")
     public Result<Void> logout(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
+        if (authHeader != null && authHeader.startsWith(JwtAuthenticationFilter.BEARER_PREFIX)) {
+            String token = authHeader.substring(JwtAuthenticationFilter.BEARER_PREFIX.length());
             authService.logout(token);
         }
         return Result.success(null);

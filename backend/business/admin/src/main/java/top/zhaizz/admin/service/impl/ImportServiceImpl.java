@@ -77,7 +77,7 @@ public class ImportServiceImpl implements ImportService {
                         .last("LIMIT 10"));
         ImportStatusVO vo = new ImportStatusVO();
         vo.setLastImportedAt(records.isEmpty() ? null : records.getFirst().getCompletedAt());
-        vo.setTotalSubjects(records.size());
+        vo.setTotalSubjects(records.size()); // 最近导入记录条数，非 subject 表总数
         vo.setRecentRecords(SubjectConverter.toImportRecordVOList(records));
         return vo;
     }

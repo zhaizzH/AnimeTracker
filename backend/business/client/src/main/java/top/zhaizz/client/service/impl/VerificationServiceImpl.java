@@ -11,6 +11,7 @@ import top.zhaizz.client.mapper.UserMapper;
 import top.zhaizz.client.service.VerificationService;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.ErrorType;
+import top.zhaizz.common.util.RedisKeys;
 import top.zhaizz.common.util.RedisUtil;
 import top.zhaizz.pojo.entity.User;
 
@@ -32,9 +33,6 @@ public class VerificationServiceImpl implements VerificationService {
     @Value("${resend.api-key}")
     private String resendApiKey;
 
-    private static final String REDIS_KEY_PREFIX = "auth:email:";
-    private static final String REDIS_EMAIL_CHANGE_PREFIX = "auth:email-change:";
-    private static final String REDIS_PASSWORD_RESET_PREFIX = "auth:password-reset:";
     private static final long CODE_TTL_MINUTES = 5;
     private static final int CODE_LENGTH = 6;
     private static final String ALPHANUMERIC = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -56,7 +54,7 @@ public class VerificationServiceImpl implements VerificationService {
         String code = generateCode();
 
         // 2. 存入 Redis（5分钟 TTL）
-        redisUtil.set(REDIS_KEY_PREFIX + email, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
+        redisUtil.set(RedisKeys.EMAIL + email, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
 
         // 3. 通过 Resend 发送邮件
         Resend resend = new Resend(resendApiKey);
@@ -70,7 +68,7 @@ public class VerificationServiceImpl implements VerificationService {
         try {
             resend.emails().send(params);
         } catch (Exception e) {
-            redisUtil.del(REDIS_KEY_PREFIX + email);
+            redisUtil.del(RedisKeys.EMAIL + email);
             throw new BizException(ErrorType.INTERNAL_ERROR, "验证码发送失败，请稍后重试");
         }
     }
@@ -78,7 +76,7 @@ public class VerificationServiceImpl implements VerificationService {
     @Override
     public void verifyEmail(String email, String code) {
         // 1. 从 Redis 获取存储的验证码
-        String storedCode = redisUtil.get(REDIS_KEY_PREFIX + email);
+        String storedCode = redisUtil.get(RedisKeys.EMAIL + email);
 
         if (storedCode == null) {
             throw new BizException(ErrorType.VERIFICATION_FAILED, "验证码已过期，请重新发送");
@@ -89,7 +87,7 @@ public class VerificationServiceImpl implements VerificationService {
         }
 
         // 2. 校验通过，删除 Redis key
-        redisUtil.del(REDIS_KEY_PREFIX + email);
+        redisUtil.del(RedisKeys.EMAIL + email);
 
         // 3. 更新用户 email_verified 状态
         User user = userMapper.selectOne(
@@ -117,12 +115,12 @@ public class VerificationServiceImpl implements VerificationService {
         String code = generateCode();
 
         // 3. 存入 Redis（不同 key 前缀）
-        redisUtil.set(REDIS_EMAIL_CHANGE_PREFIX + userId + ":" + newEmail, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
+        redisUtil.set(RedisKeys.EMAIL_CHANGE + userId + ":" + newEmail, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
 
         // 4. 通过 Resend 发送邮件
         Resend resend = new Resend(resendApiKey);
         CreateEmailOptions params = CreateEmailOptions.builder()
-                .from("admin@zhaizz.top")
+                .from(resendSendEmail)
                 .to(newEmail)
                 .subject("[AnimeTracker] 邮箱修改验证码")
                 .text("你正在修改邮箱绑定，验证码是：" + code + "\n\n此验证码5分钟内有效，请勿泄露给他人。")
@@ -131,7 +129,7 @@ public class VerificationServiceImpl implements VerificationService {
         try {
             resend.emails().send(params);
         } catch (Exception e) {
-            redisUtil.del(REDIS_EMAIL_CHANGE_PREFIX + userId + ":" + newEmail);
+            redisUtil.del(RedisKeys.EMAIL_CHANGE + userId + ":" + newEmail);
             throw new BizException(ErrorType.INTERNAL_ERROR, "验证码发送失败，请稍后重试");
         }
     }
@@ -142,7 +140,7 @@ public class VerificationServiceImpl implements VerificationService {
         newEmail = newEmail.toLowerCase();
 
         // 1. 从 Redis 获取存储的验证码
-        String storedCode = redisUtil.get(REDIS_EMAIL_CHANGE_PREFIX + userId + ":" + newEmail);
+        String storedCode = redisUtil.get(RedisKeys.EMAIL_CHANGE + userId + ":" + newEmail);
         if (storedCode == null) {
             throw new BizException(ErrorType.VERIFICATION_FAILED, "验证码已过期，请重新发送");
         }
@@ -156,7 +154,7 @@ public class VerificationServiceImpl implements VerificationService {
         }
 
         // 3. 校验通过，删除 Redis key
-        redisUtil.del(REDIS_EMAIL_CHANGE_PREFIX + userId + ":" + newEmail);
+        redisUtil.del(RedisKeys.EMAIL_CHANGE + userId + ":" + newEmail);
 
         // 4. 查询当前用户，获取旧邮箱
         User user = userMapper.selectById(userId);
@@ -176,7 +174,7 @@ public class VerificationServiceImpl implements VerificationService {
             try {
                 Resend resend = new Resend(resendApiKey);
                 CreateEmailOptions params = CreateEmailOptions.builder()
-                        .from("admin@zhaizz.top")
+                        .from(resendSendEmail)
                         .to(oldEmail)
                         .subject("[AnimeTracker] 邮箱变更通知")
                         .text("你的 AnimeTracker 账号邮箱已变更为：" + newEmail + "\n\n如非本人操作，请立即联系管理员。")
@@ -192,7 +190,7 @@ public class VerificationServiceImpl implements VerificationService {
     @Override
     public void sendPasswordResetCode(String email) {
         String code = generateCode();
-        redisUtil.set(REDIS_PASSWORD_RESET_PREFIX + email, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
+        redisUtil.set(RedisKeys.PASSWORD_RESET + email, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
 
         Resend resend = new Resend(resendApiKey);
         CreateEmailOptions params = CreateEmailOptions.builder()
@@ -205,14 +203,14 @@ public class VerificationServiceImpl implements VerificationService {
         try {
             resend.emails().send(params);
         } catch (Exception e) {
-            redisUtil.del(REDIS_PASSWORD_RESET_PREFIX + email);
+            redisUtil.del(RedisKeys.PASSWORD_RESET + email);
             throw new BizException(ErrorType.INTERNAL_ERROR, "验证码发送失败，请稍后重试");
         }
     }
 
     @Override
     public void verifyPasswordResetCode(String email, String code) {
-        String storedCode = redisUtil.get(REDIS_PASSWORD_RESET_PREFIX + email);
+        String storedCode = redisUtil.get(RedisKeys.PASSWORD_RESET + email);
 
         if (storedCode == null) {
             throw new BizException(ErrorType.VERIFICATION_FAILED, "验证码已过期，请重新发送");

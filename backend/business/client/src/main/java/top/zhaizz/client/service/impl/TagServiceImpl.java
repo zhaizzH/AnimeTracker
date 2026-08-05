@@ -6,6 +6,7 @@ import top.zhaizz.client.converter.SubjectConverter;
 import top.zhaizz.client.mapper.SubjectMapper;
 import top.zhaizz.client.mapper.SubjectTagMapper;
 import top.zhaizz.client.service.TagService;
+import top.zhaizz.common.converter.SubjectVoConverter;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.entity.Subject;
 import top.zhaizz.pojo.vo.SubjectListVO;
@@ -28,7 +29,7 @@ public class TagServiceImpl implements TagService {
     @Override
     public List<TagVO> listTags() {
         return subjectTagMapper.selectTagCountList().stream()
-                .map(SubjectConverter::toTagVO)
+                .map(SubjectVoConverter::toTagVO)
                 .collect(Collectors.toList());
     }
 

@@ -12,6 +12,7 @@ import top.zhaizz.client.mapper.SubjectRelationMapper;
 import top.zhaizz.client.mapper.SubjectTagMapper;
 import top.zhaizz.client.service.ClientSubjectService;
 import top.zhaizz.client.util.SeasonUtil;
+import top.zhaizz.common.converter.SubjectVoConverter;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.ErrorType;
 import top.zhaizz.common.result.PageResult;
@@ -68,7 +69,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
                 new LambdaQueryWrapper<SubjectTag>().eq(SubjectTag::getSubjectId, id)
         );
 
-        SubjectDetailVO detailVO = SubjectConverter.toSubjectDetailVO(subject, SubjectConverter.toTagVOList(tags));
+        SubjectDetailVO detailVO = SubjectVoConverter.toSubjectDetailVO(subject, SubjectVoConverter.toTagVOList(tags));
 
         // 组装关联条目（一次批量查询替代 N+1，保持顺序与 null 过滤语义）
         List<SubjectRelation> relations = subjectRelationMapper.findBySubjectId(id);

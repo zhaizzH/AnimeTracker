@@ -12,6 +12,7 @@ import top.zhaizz.client.service.AuthService;
 import top.zhaizz.client.service.VerificationService;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.ErrorType;
+import top.zhaizz.common.util.RedisKeys;
 import top.zhaizz.common.util.RedisUtil;
 import top.zhaizz.common.security.JwtTokenProvider;
 import top.zhaizz.pojo.dto.LoginDTO;
@@ -44,10 +45,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Value("${jwt.refresh-expiration}")
     private long jwtRefreshExpiration; // Refresh Token 过期时间，单位毫秒
-
-    private static final String REDIS_TOKEN_PREFIX = "auth:token:";
-    private static final String REDIS_REFRESH_PREFIX = "auth:refresh:";
-    private static final String REDIS_USER_TOKENS_PREFIX = "auth:active-tokens:";
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -128,13 +125,13 @@ public class AuthServiceImpl implements AuthService {
     public void logout(String token) {
         // 计算 SHA256 摘要，从 Redis 删除
         String tokenHash = DigestUtils.sha256Hex(token);
-        redisUtil.del(REDIS_TOKEN_PREFIX + tokenHash);
+        redisUtil.del(RedisKeys.TOKEN + tokenHash);
 
         // 从用户活跃 token Set 中移除
         // 通过 jwtTokenProvider.getUserIdFromToken(token) 获取 userId
         try {
             Long userId = jwtTokenProvider.getUserIdFromToken(token);
-            redisUtil.srem(REDIS_USER_TOKENS_PREFIX + userId, tokenHash);
+            redisUtil.srem(RedisKeys.ACTIVE_TOKENS + userId, tokenHash);
         } catch (Exception e) {
             // token 已过期或无效，忽略
         }
@@ -149,7 +146,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginVO refresh(String refreshToken) {
         String refreshTokenHash = DigestUtils.sha256Hex(refreshToken);
-        String userIdStr = redisUtil.get(REDIS_REFRESH_PREFIX + refreshTokenHash);
+        String userIdStr = redisUtil.get(RedisKeys.REFRESH + refreshTokenHash);
         if (userIdStr == null) {
             throw new BizException(ErrorType.UNAUTHORIZED, "refresh token 无效或已过期");
         }
@@ -158,13 +155,13 @@ public class AuthServiceImpl implements AuthService {
         User user = userMapper.selectById(Long.valueOf(userIdStr));
         if (user == null) {
             // 用户已被删除，清理孤儿 refresh token
-            redisUtil.del(REDIS_REFRESH_PREFIX + refreshTokenHash);
+            redisUtil.del(RedisKeys.REFRESH + refreshTokenHash);
             throw new BizException(ErrorType.UNAUTHORIZED, "用户不存在");
         }
 
         // 先生成新 token 对，再删除旧的（防止生成过程中异常导致旧 token 已删、用户被锁定）
         LoginVO loginVO = generateLoginVO(user);
-        redisUtil.del(REDIS_REFRESH_PREFIX + refreshTokenHash);
+        redisUtil.del(RedisKeys.REFRESH + refreshTokenHash);
         return loginVO;
     }
 
@@ -174,12 +171,12 @@ public class AuthServiceImpl implements AuthService {
     private LoginVO generateLoginVO(User user) {
         String accessToken = jwtTokenProvider.generateToken(user.getId(), user.getRole());
         String accessTokenHash = DigestUtils.sha256Hex(accessToken);
-        redisUtil.set(REDIS_TOKEN_PREFIX + accessTokenHash, user.getId().toString(), jwtExpiration, TimeUnit.MILLISECONDS);
-        redisUtil.sadd(REDIS_USER_TOKENS_PREFIX + user.getId(), accessTokenHash);
+        redisUtil.set(RedisKeys.TOKEN + accessTokenHash, user.getId().toString(), jwtExpiration, TimeUnit.MILLISECONDS);
+        redisUtil.sadd(RedisKeys.ACTIVE_TOKENS + user.getId(), accessTokenHash);
 
         String refreshToken = generateRefreshToken();
         String refreshTokenHash = DigestUtils.sha256Hex(refreshToken);
-        redisUtil.set(REDIS_REFRESH_PREFIX + refreshTokenHash, user.getId().toString(), jwtRefreshExpiration, TimeUnit.MILLISECONDS);
+        redisUtil.set(RedisKeys.REFRESH + refreshTokenHash, user.getId().toString(), jwtRefreshExpiration, TimeUnit.MILLISECONDS);
 
         return new LoginVO(accessToken, refreshToken, UserConverter.toUserVO(user));
     }
@@ -228,16 +225,16 @@ public class AuthServiceImpl implements AuthService {
         userMapper.updateById(user);
 
         // 4. 踢出所有设备
-        String userTokensKey = REDIS_USER_TOKENS_PREFIX + user.getId();
+        String userTokensKey = RedisKeys.ACTIVE_TOKENS + user.getId();
         Set<String> tokenHashes = redisUtil.smembers(userTokensKey);
         if (tokenHashes != null) {
             for (String hash : tokenHashes) {
-                redisUtil.del(REDIS_TOKEN_PREFIX + hash);
+                redisUtil.del(RedisKeys.TOKEN + hash);
             }
         }
         redisUtil.del(userTokensKey);
 
         // 5. 删除验证码
-        redisUtil.del("auth:password-reset:" + request.getEmail());
+        redisUtil.del(RedisKeys.PASSWORD_RESET + request.getEmail());
     }
 }

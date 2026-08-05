@@ -68,6 +68,10 @@ at:
     script-dir: backend/data/importer
     script-name: main.py
 
+  # 管理端
+  admin:
+    superadmin-id: 1  # 管理员用户 ID
+
 # JWT 配置
 jwt:
   secret: ${jwt.secret}

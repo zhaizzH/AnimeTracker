@@ -18,7 +18,7 @@ import top.zhaizz.pojo.vo.SubjectDetailVO;
 @RequestMapping("/api/admin/subjects")
 @RequiredArgsConstructor
 @Validated
-public class AdminController {
+public class AdminSubjectController {
 
     private final AdminSubjectService adminSubjectService;
 

@@ -3,6 +3,7 @@ package top.zhaizz.admin.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import top.zhaizz.admin.converter.UserConverter;
 import top.zhaizz.admin.mapper.AdminUserMapper;
@@ -24,6 +25,9 @@ import java.util.stream.Collectors;
 public class AdminUserServiceImpl implements AdminUserService {
 
     private final AdminUserMapper userMapper;
+
+    @Value("${at.admin.superadmin-id:1}")
+    private long superadminId;
 
     @Override
     public PageResult<UserVO> listUsers(int page, int size) {
@@ -47,7 +51,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (user == null) {
             throw new BizException(ErrorType.NOT_FOUND, "用户不存在");
         }
-        if (user.getId() == 1) {
+        if (user.getId() == superadminId) {
             throw new BizException(ErrorType.FORBIDDEN, "管理员角色不能被修改");
         }
         user.setRole(role);

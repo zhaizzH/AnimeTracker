@@ -9,6 +9,7 @@ import top.zhaizz.admin.mapper.AdminSubjectMapper;
 import top.zhaizz.admin.mapper.AdminSubjectTagMapper;
 import top.zhaizz.admin.service.AdminSubjectService;
 import top.zhaizz.common.ErrorType;
+import top.zhaizz.common.converter.SubjectVoConverter;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.pojo.dto.SubjectCreateDTO;
 import top.zhaizz.pojo.dto.SubjectUpdateDTO;
@@ -87,8 +88,8 @@ public class AdminSubjectServiceImpl implements AdminSubjectService {
         List<SubjectTag> tags = subjectTagMapper.selectList(
                 new LambdaQueryWrapper<SubjectTag>().eq(SubjectTag::getSubjectId, id)
         );
-        List<TagVO> tagVOs = SubjectConverter.toTagVOList(tags);
+        List<TagVO> tagVOs = SubjectVoConverter.toTagVOList(tags);
 
-        return SubjectConverter.toSubjectDetailVO(subject, tagVOs);
+        return SubjectVoConverter.toSubjectDetailVO(subject, tagVOs);
     }
 }

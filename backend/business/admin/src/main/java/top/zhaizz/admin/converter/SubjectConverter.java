@@ -4,7 +4,6 @@ import top.zhaizz.pojo.dto.SubjectCreateDTO;
 import top.zhaizz.pojo.dto.SubjectUpdateDTO;
 import top.zhaizz.pojo.entity.ImportRecord;
 import top.zhaizz.pojo.entity.Subject;
-import top.zhaizz.pojo.entity.SubjectTag;
 import top.zhaizz.pojo.vo.*;
 
 import java.util.List;
@@ -15,55 +14,6 @@ import java.util.stream.Collectors;
  */
 public class SubjectConverter {
     private SubjectConverter() {}
-
-    /**
-     * Subject + 标签列表 转为详情 VO
-     */
-    public static SubjectDetailVO toSubjectDetailVO(Subject entity, List<TagVO> tags) {
-        if (entity == null) return null;
-        SubjectDetailVO vo = new SubjectDetailVO();
-        vo.setId(entity.getId());
-        vo.setName(entity.getName());
-        vo.setNameCn(entity.getNameCn());
-        vo.setImage(entity.getImage());
-        vo.setScore(entity.getScore());
-        vo.setRank(entity.getRank());
-        vo.setEps(entity.getEps());
-        vo.setAirDate(entity.getAirDate());
-        vo.setType(entity.getType());
-        vo.setBangumiId(entity.getBangumiId());
-        vo.setSummary(entity.getSummary());
-        vo.setVolumes(entity.getVolumes());
-        vo.setAirWeekday(entity.getAirWeekday());
-        vo.setCollectionTotal(entity.getCollectionTotal());
-        vo.setNsfw(entity.getNsfw());
-        vo.setTags(tags);
-        vo.setCreatedAt(entity.getCreatedAt());
-        vo.setUpdatedAt(entity.getUpdatedAt());
-        return vo;
-    }
-
-    /**
-     * SubjectTag 转为 TagVO
-     */
-    public static TagVO toTagVO(SubjectTag entity) {
-        if (entity == null) return null;
-        TagVO vo = new TagVO();
-        vo.setId(entity.getId());
-        vo.setName(entity.getName());
-        vo.setCount(entity.getCount());
-        return vo;
-    }
-
-    /**
-     * SubjectTag 列表转为 TagVO 列表
-     */
-    public static List<TagVO> toTagVOList(List<SubjectTag> tags) {
-        if (tags == null) return List.of();
-        return tags.stream()
-                .map(SubjectConverter::toTagVO)
-                .collect(Collectors.toList());
-    }
 
     /**
      * 创建 DTO 转为 Subject 实体

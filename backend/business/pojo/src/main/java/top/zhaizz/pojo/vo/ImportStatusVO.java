@@ -12,6 +12,6 @@ import java.util.List;
 public class ImportStatusVO {
 
     private LocalDateTime lastImportedAt;   // 最近导入时间（从未导入=null）
-    private Integer totalSubjects;          // 当前 subject 表总条目数
+    private Integer totalSubjects;          // 最近导入记录条数（最多 10 条）
     private List<ImportRecordVO> recentRecords; // 最近导入记录
 }

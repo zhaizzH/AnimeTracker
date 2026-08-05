@@ -14,7 +14,7 @@ business/
 ├── pom.xml          # 父 POM（依赖管理、插件管理）
 ├── common/          # 公共基础：Result/PageResult、异常、JWT、Redis、安全配置、MinIO
 ├── pojo/            # 实体 / DTO / VO（entity、dto、vo 包）
-├── admin/           # 管理端：条目 CRUD、用户管理、数据导入
+├── admin/           # 管理端：条目 CRUD、用户管理、数据导入、仪表盘统计、操作审计日志
 ├── client/          # 用户端：浏览/搜索、认证、收藏、标签、剧集进度
 ├── agent/           # Agent 代理层：转发 /api/agent/* 至 Python Agent 服务
 └── app/             # 启动模块：聚合 admin + client + agent，Spring Boot 入口
@@ -26,10 +26,12 @@ business/
 |------|-----------|------|
 | common | `animetracker-common` | 统一响应 `Result`/`PageResult`、全局异常处理、`JwtTokenProvider`/`JwtAuthenticationFilter`、RedisUtil、Security/Cors/MinIO 配置 |
 | pojo | `animetracker-pojo` | `entity`（Subject、Episode、User、UserCollection…）、`dto`（入参）、`vo`（出参） |
-| admin | `animetracker-admin` | `AdminController`/`AdminUserController`/`ImportController` + Service/Converter/Mapper |
+| admin | `animetracker-admin` | `AdminSubjectController`/`AdminDashboardController`/`AdminUserController`/`ImportController`/`AdminLogController` + Service/Converter/Mapper |
 | client | `animetracker-client` | `Auth`/`Subject`/`Collection`/`Tag`/`User` Controller + Service/Mapper/Converter |
 | agent | `animetracker-agent` | `AgentController`/`AgentService`：将 `/api/agent/*` 转发至 Python Agent（默认 `http://localhost:8090`），SSE 流式透传 |
 | app | `animetracker-app` | 聚合 admin + client + agent，含主类 `top.zhaizz.app.AppApplication` |
+
+> **操作审计日志**：admin 模块通过 `AdminLogController` / `AdminLogService` 落库 `operation_log` 表，记录登录、注册、条目增删改、角色变更、导入任务等后台操作（含操作人、动作、模块、IP、耗时、成败状态），供运营后台「日志」页审计追溯。
 
 ## 分层约定
 
