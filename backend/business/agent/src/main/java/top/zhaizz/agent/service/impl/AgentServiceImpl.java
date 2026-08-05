@@ -39,7 +39,8 @@ public class AgentServiceImpl implements AgentService {
         try {
             return objectMapper.writeValueAsString(value);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("JSON serialization failed", e);
+            log.error("请求数据序列化失败", e);
+            throw new BizException(ErrorType.INTERNAL_ERROR, "请求数据序列化失败");
         }
     }
 

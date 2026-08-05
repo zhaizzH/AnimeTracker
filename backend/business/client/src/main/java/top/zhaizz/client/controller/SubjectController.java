@@ -83,8 +83,8 @@ public class SubjectController {
     @GetMapping("/schedule")
     public Result<PageResult<SubjectListVO>> listSchedule(
             @RequestParam(defaultValue = "-1") @Min(-1) @Max(6) int weekday,
-            @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) String quarter,
+            @RequestParam(required = false) @Min(1970) @Max(2100) Integer year,
+            @RequestParam(required = false) @Pattern(regexp = "spring|summer|autumn|winter", message = "季度仅允许: spring/summer/autumn/winter") String quarter,
             @RequestParam(defaultValue = "1") @Min(1) int page,
             @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size) {
         int y = year != null ? year : SeasonUtil.getCurrentYear();

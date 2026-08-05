@@ -69,6 +69,7 @@ public class VerificationServiceImpl implements VerificationService {
             resend.emails().send(params);
         } catch (Exception e) {
             redisUtil.del(RedisKeys.EMAIL + email);
+            log.error("验证码邮件发送失败", e);
             throw new BizException(ErrorType.INTERNAL_ERROR, "验证码发送失败，请稍后重试");
         }
     }
@@ -130,6 +131,7 @@ public class VerificationServiceImpl implements VerificationService {
             resend.emails().send(params);
         } catch (Exception e) {
             redisUtil.del(RedisKeys.EMAIL_CHANGE + userId + ":" + newEmail);
+            log.error("验证码邮件发送失败", e);
             throw new BizException(ErrorType.INTERNAL_ERROR, "验证码发送失败，请稍后重试");
         }
     }
@@ -204,6 +206,7 @@ public class VerificationServiceImpl implements VerificationService {
             resend.emails().send(params);
         } catch (Exception e) {
             redisUtil.del(RedisKeys.PASSWORD_RESET + email);
+            log.error("验证码邮件发送失败", e);
             throw new BizException(ErrorType.INTERNAL_ERROR, "验证码发送失败，请稍后重试");
         }
     }
