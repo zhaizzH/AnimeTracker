@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.zhaizz.admin.mapper.DashboardMapper">
+
+    <select id="overview" resultType="top.zhaizz.pojo.vo.dashboard.DashboardOverviewVO">
+        SELECT
+            (SELECT COUNT(*) FROM user)                                        AS user_count,
+            (SELECT COUNT(*) FROM subject)                                     AS subject_count,
+            (SELECT COUNT(*) FROM user_collection)                             AS collection_count,
+            (SELECT COUNT(*) FROM episode)                                     AS episode_count,
+            (SELECT COUNT(*) FROM import_record)                               AS import_count,
+            (SELECT COUNT(*) FROM user WHERE created_at >= CURDATE())          AS today_new_users,
+            (SELECT COUNT(*) FROM user_collection WHERE created_at >= CURDATE()) AS today_new_collections,
+            (SELECT COUNT(*) FROM operation_log WHERE action = 'LOGIN'
+                 AND status = 0 AND created_at >= CURDATE())                   AS today_logins
+    </select>
+
+    <select id="countUsersByDay" resultType="top.zhaizz.pojo.vo.dashboard.DailyCount">
+        SELECT DATE(created_at) AS stat_date, COUNT(*) AS cnt
+        FROM user
+        WHERE created_at >= #{since}
+        GROUP BY DATE(created_at)
+    </select>
+
+    <select id="countCollectionsByDay" resultType="top.zhaizz.pojo.vo.dashboard.DailyCount">
+        SELECT DATE(created_at) AS stat_date, COUNT(*) AS cnt
+        FROM user_collection
+        WHERE created_at >= #{since}
+        GROUP BY DATE(created_at)
+    </select>
+
+    <select id="countLoginsByDay" resultType="top.zhaizz.pojo.vo.dashboard.DailyCount">
+        SELECT DATE(created_at) AS stat_date, COUNT(*) AS cnt
+        FROM operation_log
+        WHERE action = 'LOGIN' AND status = 0 AND created_at >= #{since}
+        GROUP BY DATE(created_at)
+    </select>
+
+    <select id="collectionTypeCounts" resultType="top.zhaizz.pojo.vo.dashboard.TypeCountVO">
+        SELECT type, COUNT(*) AS count FROM user_collection GROUP BY type ORDER BY type
+    </select>
+
+    <select id="ratingCounts" resultType="top.zhaizz.pojo.vo.dashboard.RatingCountVO">
+        SELECT rate, COUNT(*) AS count FROM user_collection WHERE rate > 0 GROUP BY rate ORDER BY rate
+    </select>
+
+</mapper>
