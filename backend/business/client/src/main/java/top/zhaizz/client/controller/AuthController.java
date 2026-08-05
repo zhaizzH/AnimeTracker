@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.client.service.AuthService;
+import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.pojo.dto.ForgotPasswordDTO;
 import top.zhaizz.pojo.dto.LoginDTO;
@@ -29,6 +30,7 @@ public class AuthController {
      * 用户注册
      * <p>创建用户并发送验证码邮件，注册成功后需调用 verify-email 完成验证</p>
      */
+    @OperationLog(action = "REGISTER", module = "AUTH")
     @PostMapping("/register")
     public Result<Void> register(@Valid @RequestBody RegisterDTO request) {
         authService.register(request);
@@ -39,6 +41,7 @@ public class AuthController {
      * 验证邮箱
      * <p>校验验证码，通过后标记邮箱已验证并返回 JWT Token 和用户信息</p>
      */
+    @OperationLog(action = "VERIFY_EMAIL", module = "AUTH")
     @PostMapping("/verify-email")
     public Result<LoginVO> verifyEmail(@Valid @RequestBody VerifyEmailDTO request) {
         LoginVO loginVO = authService.verifyEmail(request.getEmail(), request.getCode());
@@ -57,6 +60,7 @@ public class AuthController {
     /**
      * 用户登录
      */
+    @OperationLog(action = "LOGIN", module = "AUTH")
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO request) {
         LoginVO loginVO = authService.login(request);
@@ -75,6 +79,7 @@ public class AuthController {
     /**
      * 忘记密码 — 重置密码
      */
+    @OperationLog(action = "RESET_PASSWORD", module = "AUTH")
     @PostMapping("/reset-password")
     public Result<Void> resetPassword(@Valid @RequestBody ResetPasswordDTO request) {
         authService.resetPassword(request);
@@ -94,6 +99,7 @@ public class AuthController {
     /**
      * 用户退出登录
      */
+    @OperationLog(action = "LOGOUT", module = "AUTH")
     @PostMapping("/logout")
     public Result<Void> logout(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");

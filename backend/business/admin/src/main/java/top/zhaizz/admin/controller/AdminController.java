@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.admin.service.AdminSubjectService;
+import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.pojo.dto.SubjectCreateDTO;
 import top.zhaizz.pojo.dto.SubjectUpdateDTO;
@@ -24,6 +25,7 @@ public class AdminController {
     /**
      * 创建新番剧
      */
+    @OperationLog(action = "SUBJECT_CREATE", module = "SUBJECT")
     @PostMapping
     public Result<SubjectDetailVO> createSubject(@Valid @RequestBody SubjectCreateDTO request) {
         return Result.success(adminSubjectService.createSubject(request));
@@ -32,6 +34,7 @@ public class AdminController {
     /**
      * 更新指定番剧的信息
      */
+    @OperationLog(action = "SUBJECT_UPDATE", module = "SUBJECT")
     @PostMapping("/{id}/update")
     public Result<SubjectDetailVO> updateSubject(
             @PathVariable Long id,
@@ -42,6 +45,7 @@ public class AdminController {
     /**
      * 删除指定番剧
      */
+    @OperationLog(action = "SUBJECT_DELETE", module = "SUBJECT")
     @PostMapping("/{id}/remove")
     public Result<Void> deleteSubject(@PathVariable Long id) {
         adminSubjectService.deleteSubject(id);

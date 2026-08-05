@@ -3,6 +3,7 @@ package top.zhaizz.admin.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.admin.service.ImportService;
+import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.pojo.vo.ImportStatusVO;
 
@@ -24,6 +25,7 @@ public class ImportController {
      * @param since   起始日期（since 模式必填），如 "2026-01-01"
      * @param workers 并发线程数，为空使用 Python 侧默认值
      */
+    @OperationLog(action = "IMPORT_RUN", module = "IMPORT")
     @PostMapping("/run")
     public Result<Void> runImport(@RequestParam String mode,
                                   @RequestParam(required = false) String key,

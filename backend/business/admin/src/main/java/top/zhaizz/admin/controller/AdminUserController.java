@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.admin.service.AdminUserService;
+import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.pojo.dto.UpdateRoleDTO;
@@ -32,6 +33,7 @@ public class AdminUserController {
     /**
      * 修改指定用户的角色
      */
+    @OperationLog(action = "ROLE_CHANGE", module = "ADMIN")
     @PostMapping("/{id}/update-role")
     public Result<UserVO> updateUserRole(
             @PathVariable Long id,
