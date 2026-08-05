@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import chat as chat_api
+from app.api import admin_config as admin_config_api
 from app.agent.client.workflow import build_graph
 from app.config import settings
 from app.core.prompt_sync import initialize_agent_prompt_snapshot
@@ -49,6 +50,7 @@ app.add_middleware(
 )
 
 app.include_router(chat_api.router)
+app.include_router(admin_config_api.router)
 
 
 if __name__ == "__main__":
