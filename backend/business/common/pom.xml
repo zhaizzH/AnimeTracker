@@ -18,6 +18,14 @@
 
     <dependencies>
         <dependency>
+            <groupId>top.zhaizz</groupId>
+            <artifactId>animetracker-pojo</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
