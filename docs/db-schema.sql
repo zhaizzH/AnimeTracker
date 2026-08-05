@@ -174,3 +174,28 @@ CREATE TABLE `subject_relation`  (
   CONSTRAINT `fk_sr_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_sr_related` FOREIGN KEY (`related_subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '条目关联表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for operation_log
+-- ----------------------------
+DROP TABLE IF EXISTS `operation_log`;
+CREATE TABLE `operation_log`  (
+  `id`          bigint       NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+  `user_id`     bigint       NULL DEFAULT NULL COMMENT '用户ID（匿名失败登录为NULL）',
+  `username`    varchar(64)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '用户名/邮箱快照',
+  `action`      varchar(32)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '动作: LOGIN/LOGOUT/REGISTER/SUBJECT_CREATE/SUBJECT_UPDATE/SUBJECT_DELETE/ROLE_CHANGE/IMPORT_RUN',
+  `module`      varchar(32)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '模块: AUTH/USER/SUBJECT/IMPORT/ADMIN',
+  `method`      varchar(8)   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'HTTP 方法',
+  `path`        varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '请求路径',
+  `params`      text         CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '请求参数 JSON（脱敏）',
+  `ip`          varchar(64)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '客户端 IP',
+  `user_agent`  varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'User-Agent',
+  `status`      tinyint      NOT NULL DEFAULT 0 COMMENT '0=成功, 1=失败',
+  `error_msg`   varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '失败原因',
+  `duration_ms` bigint       NULL DEFAULT NULL COMMENT '耗时(毫秒)',
+  `created_at`  datetime     NOT NULL COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_ol_user`       (`user_id` ASC) USING BTREE,
+  INDEX `idx_ol_action`     (`action` ASC) USING BTREE,
+  INDEX `idx_ol_created_at` (`created_at` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '操作/登录日志表' ROW_FORMAT = Dynamic;
