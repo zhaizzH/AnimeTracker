@@ -121,7 +121,7 @@ backend/agent/
 | `agent_host` / `agent_port` | `0.0.0.0` / `8090` | 服务监听 |
 | `backend_base_url` | `http://localhost:8080` | 业务后端地址 |
 | `redis_url` | `redis://localhost:6379/0` | Redis 地址（会话 / 消息 / 提示词） |
-| `cors_origins` | `["http://localhost:5173"]` | 前端跨域来源 |
+| `cors_origins` | `["http://localhost:5173"]` | 前端跨域来源（用户端 client :5173；如需联调管理端 admin :5174，追加 `http://localhost:5174`） |
 
 ## 本地运行
 

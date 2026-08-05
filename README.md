@@ -2,7 +2,7 @@
 
 > 个人动漫追番管理平台 —— 管理你看过的、在追的、想看的番剧，并用 AI 对话帮你搜索、发现与推荐。
 
-AnimeTracker 是一个面向个人的动漫追番管理工具。它提供番剧条目浏览 / 搜索、剧集进度追踪、评分、标签、收藏等核心能力，并内置一个基于大模型的 **AI 对话 Agent**（搜索 / 发现 / 推荐），可经工具调用实时读取番剧数据。
+AnimeTracker 是一个面向个人的动漫追番管理工具。它提供番剧条目浏览 / 搜索、剧集进度追踪、评分、标签、收藏等核心能力，并内置一个基于大模型的 **AI 对话 Agent**（搜索 / 发现 / 推荐），可经工具调用实时读取番剧数据；同时提供运营后台用于条目、用户、导入与配置管理。
 
 ---
 
@@ -15,7 +15,7 @@ AnimeTracker 是一个面向个人的动漫追番管理工具。它提供番剧�
 - **放送时间表**：按时间线查看番剧更新安排。
 - **AI 对话 Agent**：自然语言搜索番剧、发现新番、获取推荐，支持流式输出（思考过程 + 回答 + 工具调用状态）。
 - **数据导入**：从 Bangumi（bgm.tv）拉取番剧元数据并清洗入库。
-- **管理后台（后端）**：条目 CRUD、用户管理、导入记录管理（管理端 API 已就绪；管理端前端 `frontend/admin` 尚在规划中）。
+- **运营后台（预览版）**：仪表盘、番剧管理、用户管理、导入任务、操作日志、Agent 配置等管理端界面（前端预览版已就绪，登录当前为演示模式）。
 
 ---
 
@@ -23,25 +23,29 @@ AnimeTracker 是一个面向个人的动漫追番管理工具。它提供番剧�
 
 | 层 | 技术 | 说明 |
 |----|------|------|
-| 前端（用户端） | React 18 + TypeScript + Vite 6 + Ant Design 5 + Zustand + React Query + React Router 7 | `frontend/client` |
+| 前端（用户端） | React 18 + TypeScript + Vite 6 + Ant Design 5 + Zustand + React Query + React Router 7 | `frontend/client`（端口 `5173`） |
+| 前端（管理端） | React 18 + TypeScript + Vite 6 + Ant Design 5 + Zustand + React Query + React Router 7 | `frontend/admin`（端口 `5174`，预览版） |
 | 业务后端 | Spring Boot 3.2 + MyBatis-Plus 3.5.5 + Java 21 | `backend/business`（Maven 多模块） |
-| AI Agent | FastAPI + LangGraph + 通义千问（DashScope / Qwen） | `backend/agent`（Python） |
+| AI Agent | FastAPI + LangGraph + 通义千问（DashScope / Qwen） | `backend/agent`（Python，端口 `8090`） |
 | Agent 代理层 | Spring Boot Web（轻量转发） | `backend/business/agent` 模块 |
 | 数据层 | MySQL 8 + Redis + MinIO | 业务数据 / 缓存与会话 / 对象存储 |
 | 数据导入 | Python 3.10+ + SQLAlchemy + Requests | `backend/data/importer`（数据源：Bangumi） |
 
-> ⚠️ 说明：前端技术栈为 **React 生态**（非 Vue）。业务后端的 `agent` 模块是一个 Java 转发层，真正的大模型推理由独立的 Python FastAPI 服务（`backend/agent`，端口 `8090`）完成。
+> ⚠️ 说明：前端技术栈为 **React 生态**（非 Vue）。两个前端（`client` / `admin`）开发态均通过 Vite 代理将 `/api` 转发至 `http://localhost:8080`。业务后端的 `agent` 模块是一个 Java 转发层，真正的大模型推理由独立的 Python FastAPI 服务（`backend/agent`，端口 `8090`）完成。
 
 ---
 
 ## 系统架构
 
 ```
-┌─────────────────────┐
-│   Browser (5173)    │  frontend/client (React + Vite)
-└──────────┬──────────┘
-           │  /api/*  (Vite dev proxy → 8080)
-           ▼
+┌─────────────────────┐         ┌─────────────────────┐
+│  Browser (5173)     │         │  Browser (5174)     │
+│  frontend/client    │         │  frontend/admin     │
+│  (用户端 React)      │         │  (管理端 React)      │
+└──────────┬──────────┘         └──────────┬──────────┘
+           │  /api/*                         │  /api/*
+           │  (Vite dev proxy → 8080)        │  (Vite dev proxy → 8080)
+           ▼                                 ▼
 ┌──────────────────────────────────────────────┐
 │       业务后端 business (Spring Boot :8080)   │
 │  common / pojo / admin / client / agent / app │
@@ -71,13 +75,13 @@ AnimeTracker 是一个面向个人的动漫追番管理工具。它提供番剧�
 ```
 AnimeTracker/
 ├── frontend/
-│   ├── client/            # 用户端前端（React + Vite，生产代码）
-│   └── admin/             # 管理端前端（规划中，暂为空）
+│   ├── client/            # 用户端前端（React + Vite，生产代码；构建产物 dist/）
+│   └── admin/             # 管理端前端（React + Vite，预览版；构建产物 dist/）
 ├── backend/
 │   ├── business/          # Spring Boot 多模块后端（核心 API）
 │   │   ├── common/        # 公共基础：Result、异常、JWT、Redis、安全、MinIO 配置
 │   │   ├── pojo/          # 实体 / DTO / VO
-│   │   ├── admin/         # 管理端：条目 CRUD、用户管理、数据导入
+│   │   ├── admin/         # 管理端：条目 CRUD、用户管理、导入、日志、Agent 配置
 │   │   ├── client/        # 用户端：浏览/搜索、认证、收藏、标签、剧集进度
 │   │   ├── agent/         # Agent 代理模块（转发至 Python Agent）
 │   │   └── app/           # 启动模块：聚合 admin + client，Spring Boot 入口
@@ -86,9 +90,11 @@ AnimeTracker/
 │       └── importer/      # 番剧数据导入器（Bangumi 数据源）
 └── docs/                  # 项目级文档与数据库脚本
     ├── backend.md         # 后端 API 文档
-    ├── db-schema.sql      # 建表脚本
+    ├── db-schema.sql      # 建表脚本（含 operation_log 等操作审计表）
     └── openapi.yaml       # OpenAPI 规范
 ```
+
+> 注：`docs/api/` 为第三方 API 文档工具（独立仓库，已被 `.gitignore` 忽略），不属于本项目源码。
 
 ---
 
@@ -129,7 +135,7 @@ CREATE DATABASE anime_tracker DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unic
 mysql -u root -p anime_tracker < docs/db-schema.sql
 ```
 
-> 数据库名统一为 `anime_tracker`。建表脚本位于 `docs/db-schema.sql`。
+> 数据库名统一为 `anime_tracker`。建表脚本位于 `docs/db-schema.sql`（含 `operation_log` 等操作审计表）。
 
 ### 3. 业务后端（business，端口 8080）
 
@@ -145,7 +151,7 @@ mvn clean install -DskipTests
 mvn -pl app spring-boot:run -Dspring-boot.run.profiles.active=local
 ```
 
-- 配置项：`zzz.datasource`（MySQL）、`zzz.data.redis`、`jwt.secret` / `jwt.expiration`、`minio.*`、`resend.api-key`。
+- 配置项：`zzz.datasource`（MySQL）、`zzz.data.redis`、`jwt.secret` / `jwt.expiration`、`minio.*`、`resend.api-key`、`at.agent.host` / `at.agent.port`。
 - API 文档（Knife4j）：http://localhost:8080/doc.html
 - 该模块内置 `agent` 转发层，对外暴露 `/api/agent/*`，将请求转发至 Python Agent。
 
@@ -172,12 +178,12 @@ cp .env.example .env          # 填入 DB_* 与 BANGUMI_ACCESS_TOKEN（可选）
 
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python main.py
+python main.py --mode season --key 2026-summer
 ```
 
-- 数据源为 Bangumi（`api.bgm.tv`），客户端自动限流与重试。
+- 数据源为 Bangumi（`api.bgm.tv`），客户端自动限流与重试。支持 `full` / `season` / `recent` / `since` 多种模式。
 
-### 6. 前端（用户端，端口 5173）
+### 6. 用户端前端（端口 5173）
 
 ```bash
 cd frontend/client
@@ -187,6 +193,18 @@ npm run dev                   # 开发服务器 http://localhost:5173
 ```
 
 - 开发态 Vite 代理将 `/api` 转发至 `http://localhost:8080`，因此无需额外配置跨域即可联调。
+
+### 7. 管理端前端（端口 5174，预览版）
+
+```bash
+cd frontend/admin
+npm install
+npm run dev                   # 开发服务器 http://localhost:5174
+# 生产构建：npm run build → dist/
+```
+
+- 与用户端共用同一套 `/api` 代理（指向 `http://localhost:8080`）。
+- 当前为**预览版**：登录页与仪表盘可交互，其余页面（番剧 / 用户 / 导入 / 日志 / Agent 配置）骨架已就位、陆续接入中；登录暂为演示模式。
 
 ---
 
@@ -225,6 +243,7 @@ npm run dev                   # 开发服务器 http://localhost:5173
 | `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` | 目标 MySQL（库名 `anime_tracker`） |
 | `BANGUMI_ACCESS_TOKEN` | Bangumi 访问令牌（可选，提高限流额度） |
 | `BANGUMI_USER_AGENT` | 请求 UA，如 `zhaizzH/AnimeTracker` |
+| `MINIO_*` | 封面转存相关（可选，未配置则回退原始 URL） |
 
 ---
 
@@ -239,7 +258,7 @@ npm run dev                   # 开发服务器 http://localhost:5173
 | 番剧 | `/api/user/subjects` | 列表 / 搜索 / 季度筛选 / 详情 / 剧集 |
 | 标签 | `/api/user/tags` | 标签列表与标签下番剧 |
 | 收藏 | `/api/user/collections` | 收藏与观看进度 |
-| 管理 | `/api/admin/*` | 条目 CRUD、用户管理、数据导入 |
+| 管理 | `/api/admin/*` | 条目 CRUD、用户管理、导入任务、操作日志、Agent 配置 |
 | Agent | `/api/agent/*` | 会话管理与 SSE 流式对话（转发至 Python Agent） |
 
 ---
@@ -250,13 +269,14 @@ npm run dev                   # 开发服务器 http://localhost:5173
 
 | 表 | 说明 |
 |----|------|
-| `user` | 用户信息、认证与邮箱状态 |
-| `subject` | 番剧条目（标题、简介、封面、季度、评分等） |
-| `episode` | 番剧剧集与单集信息 |
+| `user` | 用户信息、认证、角色与邮箱状态 |
+| `subject` | 番剧条目（Bangumi ID、标题、封面、季度、评分、NSFW、导入状态等） |
+| `episode` | 番剧剧集（集数、类型、播出状态、时长等） |
 | `subject_tag` | 番剧—标签关联 |
 | `user_collection` | 用户收藏与观看进度 |
 | `subject_relation` | 番剧间关联关系 |
 | `import_record` | 数据导入批次记录 |
+| `operation_log` | 操作审计日志（登录、番剧增删改、角色变更、导入等） |
 
 ---
 
@@ -283,6 +303,9 @@ npm run dev                   # 开发服务器 http://localhost:5173
 - 后端整体：[`backend/README.md`](backend/README.md)
 - 业务后端详解：[`backend/business/README.md`](backend/business/README.md)
 - AI Agent 详解：[`backend/agent/README.md`](backend/agent/README.md)
+- 数据导入器：[`backend/data/importer/README.md`](backend/data/importer/README.md)
+- 用户端前端：[`frontend/client/README.md`](frontend/client/README.md)
+- 管理端前端：[`frontend/admin/README.md`](frontend/admin/README.md)
 - 后端 API 文档：[`docs/backend.md`](docs/backend.md)
 - 数据库脚本：[`docs/db-schema.sql`](docs/db-schema.sql)
 - OpenAPI 规范：[`docs/openapi.yaml`](docs/openapi.yaml)
@@ -295,7 +318,8 @@ npm run dev                   # 开发服务器 http://localhost:5173
 |------|------|------|
 | 业务后端 business | `8080` | 核心 API + Agent 代理层 |
 | AI Agent（Python） | `8090` | 内部服务，经 business 转发对外 |
-| 前端开发服务器 | `5173` | Vite dev server |
+| 用户端前端 | `5173` | Vite dev server（client） |
+| 管理端前端 | `5174` | Vite dev server（admin，预览版） |
 | MySQL | `3306` | — |
 | Redis | `6379` | 缓存 / 会话 / 提示词 |
 
@@ -303,7 +327,7 @@ npm run dev                   # 开发服务器 http://localhost:5173
 
 ## 项目状态与待办
 
-- ✅ 用户端前端（`frontend/client`）：功能完整。
+- ✅ 用户端前端（`frontend/client`）：功能完整，可生产构建。
 - ✅ 业务后端、AI Agent、数据导入：可用。
-- 🚧 管理端前端（`frontend/admin`）：目录已建立，前端实现待补充。
+- 🟡 管理端前端（`frontend/admin`）：预览版已就绪（登录 + 仪表盘可交互，番剧 / 用户 / 导入 / 日志 / Agent 配置页面骨架就位，陆续接入中；登录现为演示模式）。
 - 🚧 容器化 / CI 流水线：尚未提供（欢迎贡献 `docker-compose.yml` 与 CI 配置）。

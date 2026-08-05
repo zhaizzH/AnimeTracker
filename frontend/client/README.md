@@ -2,7 +2,7 @@
 
 面向个人用户的番剧追番管理 Web 应用，基于 **React 18 + TypeScript + Vite** 构建，使用 Ant Design 5 作为 UI 组件库。
 
-> 站点标题：**番组手账 - AnimeTracker**。管理端前端位于同级 `../admin/`（规划中，尚未实现）。
+> 站点标题：**番组手账 - AnimeTracker**。管理端运营后台位于同级 [`../admin/`](../admin/README.md)（预览版，开发端口 `5174`）。
 
 ## 技术栈
 
