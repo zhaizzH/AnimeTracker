@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
 
@@ -6,6 +7,8 @@ from fastapi.responses import StreamingResponse
 
 from app.core.agent.agent_event_bus import reset_status_emitter, set_status_emitter
 from app.schemas.sse_response import AssistantResponse, Content, MessageType, serialize_sse
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -71,6 +74,7 @@ def create_streaming_response(config: StreamConfig) -> StreamingResponse:
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
+                logger.exception("Agent 工作流执行异常")  # 记录真实异常,避免被 map_exception 吞掉
                 await queue.put(("error", exc))
             finally:
                 await queue.put(("done", None))
