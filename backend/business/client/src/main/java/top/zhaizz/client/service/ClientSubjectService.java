@@ -1,7 +1,6 @@
 package top.zhaizz.client.service;
 
 import top.zhaizz.common.result.PageResult;
-import top.zhaizz.pojo.vo.EpisodeVO;
 import top.zhaizz.pojo.vo.SubjectDetailVO;
 import top.zhaizz.pojo.vo.SubjectListVO;
 
@@ -16,9 +15,6 @@ public interface ClientSubjectService {
 
     /** 获取番剧详情 */
     SubjectDetailVO getSubjectDetail(Long id);
-
-    /** 获取番剧剧集列表 */
-    List<EpisodeVO> getEpisodes(Long subjectId);
 
     /** 搜索番剧（分页、多维筛选） */
     PageResult<SubjectListVO> searchSubjects(

@@ -27,16 +27,9 @@ public class PageResult<T> {
     }
 
     /**
-     * 创建分页结果（基于 MyBatis-Plus Page）
+     * 创建分页结果
      */
     public static <T> PageResult<T> of(List<T> content, long total, int page, int size) {
         return new PageResult<>(content, total, page, size);
-    }
-
-    /**
-     * 创建空分页结果
-     */
-    public static <T> PageResult<T> empty(int page, int size) {
-        return new PageResult<>(List.of(), 0, page, size);
     }
 }

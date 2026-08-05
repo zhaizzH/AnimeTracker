@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import top.zhaizz.client.converter.SubjectConverter;
-import top.zhaizz.client.mapper.EpisodeMapper;
 import top.zhaizz.client.mapper.SubjectMapper;
 import top.zhaizz.client.mapper.SubjectRelationMapper;
 import top.zhaizz.client.mapper.SubjectTagMapper;
@@ -16,11 +15,9 @@ import top.zhaizz.client.util.SeasonUtil;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.ErrorType;
 import top.zhaizz.common.result.PageResult;
-import top.zhaizz.pojo.entity.Episode;
 import top.zhaizz.pojo.entity.Subject;
 import top.zhaizz.pojo.entity.SubjectRelation;
 import top.zhaizz.pojo.entity.SubjectTag;
-import top.zhaizz.pojo.vo.EpisodeVO;
 import top.zhaizz.pojo.vo.SubjectDetailVO;
 import top.zhaizz.pojo.vo.SubjectListVO;
 import top.zhaizz.pojo.vo.SubjectRelationVO;
@@ -28,6 +25,7 @@ import top.zhaizz.pojo.vo.SubjectRelationVO;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -39,7 +37,6 @@ import java.util.stream.Collectors;
 public class ClientSubjectServiceImpl implements ClientSubjectService {
 
     private final SubjectMapper subjectMapper;
-    private final EpisodeMapper episodeMapper;
     private final SubjectTagMapper subjectTagMapper;
     private final SubjectRelationMapper subjectRelationMapper;
 
@@ -73,25 +70,22 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
 
         SubjectDetailVO detailVO = SubjectConverter.toSubjectDetailVO(subject, SubjectConverter.toTagVOList(tags));
 
-        // 组装关联条目
+        // 组装关联条目（一次批量查询替代 N+1，保持顺序与 null 过滤语义）
         List<SubjectRelation> relations = subjectRelationMapper.findBySubjectId(id);
-        List<SubjectRelationVO> relationVOs = relations.stream().map(rel -> {
-            Subject related = subjectMapper.selectById(rel.getRelatedSubjectId());
-            return SubjectConverter.toSubjectRelationVO(rel, related);
-        }).filter(Objects::nonNull).collect(Collectors.toList());
+        List<Long> relatedIds = relations.stream()
+                .map(SubjectRelation::getRelatedSubjectId)
+                .distinct()
+                .toList();
+        Map<Long, Subject> relatedById = relatedIds.isEmpty() ? Map.of()
+                : subjectMapper.selectBatchIds(relatedIds).stream()
+                        .collect(Collectors.toMap(Subject::getId, s -> s));
+        List<SubjectRelationVO> relationVOs = relations.stream()
+                .map(rel -> SubjectConverter.toSubjectRelationVO(rel, relatedById.get(rel.getRelatedSubjectId())))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
         detailVO.setRelations(relationVOs);
 
         return detailVO;
-    }
-
-    @Override
-    public List<EpisodeVO> getEpisodes(Long subjectId) {
-        if (subjectMapper.selectById(subjectId) == null) {
-            throw new BizException(ErrorType.NOT_FOUND, "条目不存在");
-        }
-
-        List<Episode> episodes = episodeMapper.findBySubjectIdOrderBySort(subjectId);
-        return SubjectConverter.toEpisodeVOList(episodes);
     }
 
     @Override

@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.ibatis.annotations.Param;
 import top.zhaizz.pojo.entity.Subject;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 
 /** 番剧 Mapper */
@@ -21,10 +20,6 @@ public interface SubjectMapper extends BaseMapper<Subject> {
             @Param("weekday") Integer weekday,
             @Param("sortField") String sortField,
             @Param("order") String order);
-    /** 根据播出日期范围查询番剧 */
-    List<Subject> findByAirDateRange(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
     /** 根据标签名查询番剧 ID 列表 */
     List<Long> findSubjectIdsByTag(@Param("tagName") String tagName);
-    /** 根据播出日期范围和星期几查询番剧 */
-    List<Subject> findByAirDateRangeAndWeekday(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("weekday") Integer weekday);
 }

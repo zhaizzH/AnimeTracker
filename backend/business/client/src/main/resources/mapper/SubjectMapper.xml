@@ -38,15 +38,7 @@
         </if>
         ${sortField} ${order}
     </select>
-    <select id="findByAirDateRange" resultType="top.zhaizz.pojo.entity.Subject">
-        SELECT * FROM subject WHERE air_date BETWEEN #{startDate} AND #{endDate} ORDER BY air_date
-    </select>
     <select id="findSubjectIdsByTag" resultType="java.lang.Long">
         SELECT subject_id FROM subject_tag WHERE name = #{tagName} ORDER BY id
-    </select>
-    <select id="findByAirDateRangeAndWeekday" resultType="top.zhaizz.pojo.entity.Subject">
-        SELECT * FROM subject WHERE air_date BETWEEN #{startDate} AND #{endDate}
-        <if test="weekday != null">AND air_weekday = #{weekday}</if>
-        ORDER BY air_weekday, score DESC
     </select>
 </mapper>
