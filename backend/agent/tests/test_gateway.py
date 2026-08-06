@@ -1,7 +1,7 @@
 import pytest
 from langchain_core.messages import AIMessage
 
-from app.agent.client.domain.router.gateway_node import _resolve_routing_result
+from app.agent.client.gateway import _resolve_routing_result
 
 
 def test_resolve_valid_target():

@@ -3,10 +3,10 @@ from typing import Any
 from langgraph.graph import END, START, StateGraph
 
 from app.agent.admin.node import admin_denied
-from app.agent.client.domain.discover.node import discover_agent
-from app.agent.client.domain.recommend.node import recommend_agent
-from app.agent.client.domain.router.gateway_node import gateway_router
-from app.agent.client.domain.search.node import search_agent
+from app.agent.client.discover import discover_agent
+from app.agent.client.recommend import recommend_agent
+from app.agent.client.gateway import gateway_router
+from app.agent.client.search import search_agent
 from app.agent.state import AgentState
 
 _ALLOWED_TARGETS = ("search_agent", "discover_agent", "recommend_agent")

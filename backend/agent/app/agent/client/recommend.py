@@ -3,24 +3,23 @@ from typing import Any
 from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, SystemMessage
 
-from app.agent.client.domain.discover.tools import discover_tools
-from app.agent.client.domain.user_collections_tools import user_collections_tools
+from app.agent.client.collections import user_collections_tools
 from app.agent.state import AgentState
 from app.agent.time_tool import get_current_time
 from app.config import AgentChatModelSlot, create_agent_chat_llm
-from app.core.event_bus import emit_answer_delta, emit_thinking_delta
 from app.core.agent_runtime import agent_stream
+from app.core.event_bus import emit_answer_delta, emit_thinking_delta
 from app.core.middleware import build_tool_status_middleware
 from app.core.prompt_sync import load_managed_prompt
 
 
-def discover_agent(state: AgentState) -> dict[str, Any]:
-    llm = create_agent_chat_llm(slot=AgentChatModelSlot.CLIENT_DISCOVER)
+def recommend_agent(state: AgentState) -> dict[str, Any]:
+    llm = create_agent_chat_llm(slot=AgentChatModelSlot.CLIENT_RECOMMEND)
     agent = create_agent(
         model=llm,
-        tools=[*discover_tools, *user_collections_tools, get_current_time],
+        tools=[*user_collections_tools, get_current_time],
         system_prompt=SystemMessage(
-            content=load_managed_prompt("client_discover_agent_prompt", "client/discover_agent_prompt.md")
+            content=load_managed_prompt("client_recommend_agent_prompt", "client/recommend_agent_prompt.md")
         ),
         state_schema=AgentState,
         middleware=[build_tool_status_middleware()],

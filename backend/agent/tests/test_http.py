@@ -46,9 +46,9 @@ def test_search_subjects_shape_preserved_and_no_token(monkeypatch):
         captured.update(method=method, path=path, params=params, token=token)
         return {"content": [{"id": 1}]}
 
-    monkeypatch.setattr("app.agent.client.domain.search.tools.call_api", fake_call)
+    monkeypatch.setattr("app.agent.client.search.call_api", fake_call)
 
-    from app.agent.client.domain.search.tools import search_subjects
+    from app.agent.client.search import search_subjects
 
     result = search_subjects.invoke({"query": "鬼灭"})
     assert result == [{"id": 1}]

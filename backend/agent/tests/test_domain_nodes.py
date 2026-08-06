@@ -1,9 +1,9 @@
-from app.agent.client.domain.discover.tools import get_popular_subjects, get_schedule
-from app.agent.client.domain.search.tools import search_subjects
-from app.agent.client.domain.search.node import search_agent
-from app.agent.client.domain.discover.node import discover_agent
-from app.agent.client.domain.recommend.node import recommend_agent
-from app.agent.client.domain.user_collections_tools import get_my_collections, get_my_stats, get_my_watch_profile
+from app.agent.client.discover import get_popular_subjects, get_schedule
+from app.agent.client.search import search_subjects
+from app.agent.client.search import search_agent
+from app.agent.client.discover import discover_agent
+from app.agent.client.recommend import recommend_agent
+from app.agent.client.collections import get_my_collections, get_my_stats, get_my_watch_profile
 from app.agent.time_tool import get_current_time
 
 

@@ -1,7 +1,18 @@
+from typing import Any
+
+from langchain.agents import create_agent
+from langchain_core.messages import AIMessage, SystemMessage
 from langchain_core.tools import tool
 
+from app.agent.client.collections import user_collections_tools
 from app.agent.http import call_api
-from app.core.middleware import tool_call_status
+from app.agent.state import AgentState
+from app.agent.time_tool import get_current_time
+from app.config import AgentChatModelSlot, create_agent_chat_llm
+from app.core.agent_runtime import agent_stream
+from app.core.event_bus import emit_answer_delta, emit_thinking_delta
+from app.core.middleware import build_tool_status_middleware, tool_call_status
+from app.core.prompt_sync import load_managed_prompt
 
 
 @tool
@@ -42,3 +53,25 @@ def get_subjects_by_tag(tag: str, page: int = 1, size: int = 20) -> list:
 
 
 search_tools = [search_subjects, get_subject_detail, get_episodes, get_tags, get_subjects_by_tag]
+
+
+def search_agent(state: AgentState) -> dict[str, Any]:
+    llm = create_agent_chat_llm(slot=AgentChatModelSlot.CLIENT_SEARCH)
+    agent = create_agent(
+        model=llm,
+        tools=[*search_tools, *user_collections_tools, get_current_time],
+        system_prompt=SystemMessage(
+            content=load_managed_prompt("client_search_agent_prompt", "client/search_agent_prompt.md")
+        ),
+        state_schema=AgentState,
+        middleware=[build_tool_status_middleware()],
+    )
+    stream = agent_stream(
+        agent,
+        list(state.get("history_messages") or []),
+        initial_state=state,
+        on_model_delta=emit_answer_delta,
+        on_thinking_delta=emit_thinking_delta,
+    )
+    text = stream["streamed_text"]
+    return {"result": text, "messages": [AIMessage(content=text)]}
