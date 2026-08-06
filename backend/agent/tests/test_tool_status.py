@@ -1,5 +1,5 @@
-import app.core.agent.agent_event_bus as bus
-from app.core.agent.middleware.tool_status import build_tool_status_middleware, tool_call_status
+import app.core.event_bus as bus
+from app.core.middleware import build_tool_status_middleware, tool_call_status
 from langchain.agents.middleware import AgentMiddleware
 
 

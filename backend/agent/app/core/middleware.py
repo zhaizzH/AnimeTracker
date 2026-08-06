@@ -5,7 +5,7 @@ from langchain.agents.middleware import wrap_tool_call
 from langchain.messages import ToolMessage
 from langchain.tools.tool_node import ToolCallRequest
 
-from app.core.agent.agent_event_bus import emit_function_call
+from app.core.event_bus import emit_function_call
 
 _REGISTERED: dict[str, str] = {}  # tool_name -> display_name
 

@@ -1,7 +1,7 @@
 import asyncio
 
-from app.core.agent.agent_event_bus import emit_answer_delta
-from app.core.agent.streaming import StreamConfig, create_streaming_response
+from app.core.event_bus import emit_answer_delta
+from app.core.streaming import StreamConfig, create_streaming_response
 
 
 class FakeWorkflow:

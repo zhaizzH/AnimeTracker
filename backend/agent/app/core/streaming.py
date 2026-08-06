@@ -5,7 +5,7 @@ from typing import Any, Awaitable, Callable
 
 from fastapi.responses import StreamingResponse
 
-from app.core.agent.agent_event_bus import reset_status_emitter, set_status_emitter
+from app.core.event_bus import reset_status_emitter, set_status_emitter
 from app.schemas.sse_response import AssistantResponse, Content, MessageType, serialize_sse
 
 logger = logging.getLogger(__name__)

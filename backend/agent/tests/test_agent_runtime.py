@@ -1,6 +1,6 @@
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage
 
-from app.core.agent.agent_runtime import agent_invoke, agent_stream
+from app.core.agent_runtime import agent_invoke, agent_stream
 
 
 class FakeStreamAgent:
@@ -33,7 +33,7 @@ def test_agent_invoke_extracts_content():
 
 
 def test_extract_text_multimodal_ignored():
-    from app.core.agent.agent_runtime import extract_text
+    from app.core.agent_runtime import extract_text
     chunk = AIMessageChunk(content=[{"type": "text", "text": "hi"}])
     assert extract_text(chunk) == "hi"
 

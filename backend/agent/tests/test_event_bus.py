@@ -1,4 +1,4 @@
-import app.core.agent.agent_event_bus as bus
+import app.core.event_bus as bus
 
 
 def test_emitter_roundtrip():

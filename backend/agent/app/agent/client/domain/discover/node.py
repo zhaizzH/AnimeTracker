@@ -8,9 +8,9 @@ from app.agent.client.domain.user_collections_tools import user_collections_tool
 from app.agent.client.state import AgentState
 from app.agent.tools.time_tool import get_current_time
 from app.config import AgentChatModelSlot, create_agent_chat_llm
-from app.core.agent.agent_event_bus import emit_answer_delta, emit_thinking_delta
-from app.core.agent.agent_runtime import agent_stream
-from app.core.agent.middleware import build_tool_status_middleware
+from app.core.event_bus import emit_answer_delta, emit_thinking_delta
+from app.core.agent_runtime import agent_stream
+from app.core.middleware import build_tool_status_middleware
 from app.core.prompt_sync import load_managed_prompt
 
 

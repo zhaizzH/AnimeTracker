@@ -4,7 +4,7 @@ import logging
 from fastapi.responses import StreamingResponse
 from langchain_core.messages import AIMessage, HumanMessage
 
-from app.core.agent.streaming import StreamConfig, create_streaming_response
+from app.core.streaming import StreamConfig, create_streaming_response
 from app.schemas.auth import UserInfo
 
 logger = logging.getLogger(__name__)
