@@ -106,6 +106,7 @@ export default function Dashboard() {
     seasons: [],
     importStatuses: [],
     importStat: { importTotal: 0, importSucceeded: 0, importFailed: 0 },
+    scoreCounts: [],
   });
   const [hotSubjects, setHotSubjects] = useState<HotSubjectVO[]>([]);
   const [importStatus, setImportStatus] = useState<ImportStatusVO>(emptyImportStatus);
@@ -130,7 +131,14 @@ export default function Dashboard() {
           })),
         );
         setCollectionStats(collection ?? { types: [], ratings: [] });
-        setSubjectStats(subject ?? { seasons: [], importStatuses: [], importStat: { importTotal: 0, importSucceeded: 0, importFailed: 0 } });
+        setSubjectStats(
+          subject ?? {
+            seasons: [],
+            importStatuses: [],
+            importStat: { importTotal: 0, importSucceeded: 0, importFailed: 0 },
+            scoreCounts: [],
+          },
+        );
         setHotSubjects(hot ?? []);
         setImportStatus(importInfo ?? emptyImportStatus);
       } catch (error) {
@@ -174,7 +182,7 @@ export default function Dashboard() {
       })),
     [subjectStats],
   );
-  const ratings = collectionStats.ratings ?? [];
+  const ratings = subjectStats.scoreCounts ?? [];
   const records = importStatus.recentRecords ?? [];
 
   const maxScore = Math.max(1, ...ratings.map((r) => r.count));
@@ -277,7 +285,7 @@ export default function Dashboard() {
               <h3 className="panel-title">
                 <span className="seq">03</span>评分分布
               </h3>
-              <div className="panel-sub">1-10 分收藏评分</div>
+              <div className="panel-sub">1-10 分条目评分</div>
             </div>
           </div>
           <div className="score-bars">

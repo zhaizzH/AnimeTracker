@@ -30,6 +30,8 @@ public interface DashboardMapper {
 
     List<RatingCountVO> ratingCounts();
 
+    List<RatingCountVO> subjectScoreCounts();
+
     List<SeasonCountVO> seasonCounts();
 
     List<SubjectStatusCountVO> subjectStatusCounts();

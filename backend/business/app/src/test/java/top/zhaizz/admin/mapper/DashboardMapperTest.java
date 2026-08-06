@@ -29,6 +29,7 @@ class DashboardMapperTest {
 
         assertThat(dashboardMapper.collectionTypeCounts()).isNotNull();
         assertThat(dashboardMapper.ratingCounts()).isNotNull();
+        assertThat(dashboardMapper.subjectScoreCounts()).isNotNull();
         assertThat(dashboardMapper.countUsersByDay(LocalDate.now().minusDays(30))).isNotNull();
         assertThat(dashboardMapper.countCollectionsByDay(LocalDate.now().minusDays(30))).isNotNull();
         assertThat(dashboardMapper.countLoginsByDay(LocalDate.now().minusDays(30))).isNotNull();

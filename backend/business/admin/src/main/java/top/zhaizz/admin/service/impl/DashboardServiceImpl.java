@@ -69,6 +69,7 @@ public class DashboardServiceImpl implements DashboardService {
         vo.setSeasons(dashboardMapper.seasonCounts());
         vo.setImportStatuses(dashboardMapper.subjectStatusCounts());
         vo.setImportStat(dashboardMapper.importStats());
+        vo.setScoreCounts(dashboardMapper.subjectScoreCounts());
         return vo;
     }
 

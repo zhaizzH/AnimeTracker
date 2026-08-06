@@ -153,6 +153,7 @@ export interface SubjectStatsVO {
   seasons: { seasonKey: string; count: number }[];
   importStatuses: { importStatus: number; count: number }[];
   importStat: { importTotal: number; importSucceeded: number; importFailed: number };
+  scoreCounts: { rate: number; count: number }[];
 }
 
 export interface HotSubjectVO {

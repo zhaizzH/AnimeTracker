@@ -12,4 +12,5 @@ public class SubjectStatsVO {
     private List<SeasonCountVO> seasons;
     private List<SubjectStatusCountVO> importStatuses;
     private ImportStatVO importStat;
+    private List<RatingCountVO> scoreCounts;
 }

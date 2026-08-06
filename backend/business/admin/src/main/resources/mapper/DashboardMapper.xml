@@ -44,6 +44,14 @@
         SELECT rate, COUNT(*) AS count FROM user_collection WHERE rate > 0 GROUP BY rate ORDER BY rate
     </select>
 
+    <select id="subjectScoreCounts" resultType="top.zhaizz.pojo.vo.dashboard.RatingCountVO">
+        SELECT FLOOR(score) AS rate, COUNT(*) AS count
+        FROM subject
+        WHERE score > 0
+        GROUP BY FLOOR(score)
+        ORDER BY rate
+    </select>
+
     <select id="seasonCounts" resultType="top.zhaizz.pojo.vo.dashboard.SeasonCountVO">
         SELECT CONCAT(YEAR(air_date), '-',
                CASE
