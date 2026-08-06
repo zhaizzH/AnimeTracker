@@ -1,4 +1,4 @@
-from langchain_core.messages import AIMessage, AIMessageChunk
+from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage
 
 from app.core.agent.agent_runtime import agent_invoke, agent_stream
 
@@ -36,3 +36,25 @@ def test_extract_text_multimodal_ignored():
     from app.core.agent.agent_runtime import extract_text
     chunk = AIMessageChunk(content=[{"type": "text", "text": "hi"}])
     assert extract_text(chunk) == "hi"
+
+
+class _CaptureStreamAgent:
+    def __init__(self):
+        self.payload = None
+
+    async def astream(self, payload, stream_mode=None):
+        self.payload = payload
+        yield ("values", {"messages": [AIMessage(content="x")]})
+
+
+def test_agent_stream_merges_initial_state():
+    a = _CaptureStreamAgent()
+    agent_stream(a, [HumanMessage(content="hi")], initial_state={"user": "U"})
+    assert a.payload["user"] == "U"
+    assert a.payload["messages"][0].content == "hi"
+
+
+def test_agent_stream_default_has_no_initial_state():
+    a = _CaptureStreamAgent()
+    agent_stream(a, [])
+    assert "user" not in a.payload

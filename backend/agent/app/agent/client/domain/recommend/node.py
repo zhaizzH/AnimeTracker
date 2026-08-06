@@ -26,6 +26,7 @@ def recommend_agent(state: AgentState) -> dict[str, Any]:
     stream = agent_stream(
         agent,
         list(state.get("history_messages") or []),
+        initial_state=state,
         on_model_delta=emit_answer_delta,
         on_thinking_delta=emit_thinking_delta,
     )

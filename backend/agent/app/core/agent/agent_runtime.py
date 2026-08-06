@@ -84,10 +84,12 @@ def agent_invoke(agent_instance: Any, history_messages: list[Any] | str) -> _Age
 def agent_stream(
     agent_instance: Any,
     history_messages: list[Any] | str,
+    initial_state: dict | None = None,
     on_model_delta: Callable[[str], None] | None = None,
     on_thinking_delta: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
     normalized = _normalize_history_messages(history_messages)
+    input_payload = {**(initial_state or {}), "messages": normalized}
 
     async def _collect():
         answer_chunks: list[str] = []
@@ -95,7 +97,7 @@ def agent_stream(
         latest_state: dict[str, Any] = {}
         is_answering = False
         async for raw_event in agent_instance.astream(
-            {"messages": normalized}, stream_mode=["messages", "values"]
+            input_payload, stream_mode=["messages", "values"]
         ):
             if not (isinstance(raw_event, tuple) and len(raw_event) == 2):
                 continue
