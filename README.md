@@ -228,12 +228,14 @@ npm run dev                   # 开发服务器 http://localhost:5174
 |------|--------|------|
 | `DASHSCOPE_API_KEY` | 空 | 通义千问 API Key（必填） |
 | `LLM_MODEL` | `qwen-plus` | 模型名 |
+| `LLM_MODEL_ROUTE` | `qwen-plus` | gateway 路由专用模型（快速模型，降低首段等待） |
 | `LLM_TEMPERATURE` | `0.3` | 温度 |
 | `LLM_MAX_TOKENS` | `4096` | 最大 token |
+| `LLM_THINKING_BUDGET` | `2048` | 思考预算 |
 | `AGENT_HOST` / `AGENT_PORT` | `0.0.0.0` / `8090` | 服务监听 |
 | `BACKEND_BASE_URL` | `http://localhost:8080` | 业务后端地址 |
+| `JWT_SECRET` | 开发占位密钥 | 与 business 共享的 JWT 签名密钥（agent 本地验签，不回调业务后端） |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis 地址 |
-| `AGENT_MAX_ITERATIONS` | `5` | Agent 最大迭代轮数 |
 | `CORS_ORIGINS` | `["http://localhost:5173"]` | 前端跨域来源 |
 
 ### 数据导入 `backend/data/importer/.env`
