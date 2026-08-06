@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.client.service.AuthService;
 import top.zhaizz.common.log.OperationLog;
+import top.zhaizz.common.ratelimit.RateLimit;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.common.security.JwtAuthenticationFilter;
 import top.zhaizz.pojo.dto.ForgotPasswordDTO;
@@ -31,6 +32,7 @@ public class AuthController {
      * 用户注册
      * <p>创建用户并发送验证码邮件，注册成功后需调用 verify-email 完成验证</p>
      */
+    @RateLimit(@RateLimit.Rule(key = RateLimit.LimitKey.IP, limit = 10, windowSeconds = 300))
     @OperationLog(action = "REGISTER", module = "AUTH")
     @PostMapping("/register")
     public Result<Void> register(@Valid @RequestBody RegisterDTO request) {
@@ -52,6 +54,10 @@ public class AuthController {
     /**
      * 重新发送验证码
      */
+    @RateLimit({
+            @RateLimit.Rule(key = RateLimit.LimitKey.EMAIL, limit = 1, windowSeconds = 60),
+            @RateLimit.Rule(key = RateLimit.LimitKey.IP, limit = 5, windowSeconds = 60)
+    })
     @PostMapping("/resend-code")
     public Result<Void> resendCode(@Valid @RequestBody ResendCodeDTO request) {
         authService.resendCode(request.getEmail());
@@ -71,6 +77,10 @@ public class AuthController {
     /**
      * 忘记密码 — 发送重置验证码
      */
+    @RateLimit({
+            @RateLimit.Rule(key = RateLimit.LimitKey.EMAIL, limit = 1, windowSeconds = 60),
+            @RateLimit.Rule(key = RateLimit.LimitKey.IP, limit = 5, windowSeconds = 60)
+    })
     @PostMapping("/forgot-password")
     public Result<Void> forgotPassword(@Valid @RequestBody ForgotPasswordDTO request) {
         authService.forgotPassword(request.getEmail());
