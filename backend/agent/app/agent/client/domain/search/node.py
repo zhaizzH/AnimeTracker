@@ -6,7 +6,7 @@ from langchain_core.messages import AIMessage, SystemMessage
 from app.agent.client.domain.search.tools import search_tools
 from app.agent.client.domain.user_collections_tools import user_collections_tools
 from app.agent.client.state import AgentState
-from app.agent.tools.time_tool import get_current_time
+from app.agent.time_tool import get_current_time
 from app.config import AgentChatModelSlot, create_agent_chat_llm
 from app.core.event_bus import emit_answer_delta, emit_thinking_delta
 from app.core.agent_runtime import agent_stream

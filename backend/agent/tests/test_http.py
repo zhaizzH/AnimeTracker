@@ -1,6 +1,6 @@
 import httpx
 
-from app.agent.client.domain import _http
+from app.agent import http
 
 
 def test_call_api_sends_bearer_header_and_unwraps_data(monkeypatch):
@@ -11,9 +11,9 @@ def test_call_api_sends_bearer_header_and_unwraps_data(monkeypatch):
         return httpx.Response(200, json={"code": 200, "data": {"total": 1}},
                               request=httpx.Request("GET", url))
 
-    monkeypatch.setattr(_http.httpx, "request", fake_request)
+    monkeypatch.setattr(http.httpx, "request", fake_request)
 
-    result = _http.call_api("GET", "/api/user/collections", params={"page": 1}, token="tok123")
+    result = http.call_api("GET", "/api/user/collections", params={"page": 1}, token="tok123")
 
     assert result == {"total": 1}
     assert captured["headers"]["Authorization"] == "Bearer tok123"
@@ -25,18 +25,18 @@ def test_call_api_maps_401_to_login_expired(monkeypatch):
         return httpx.Response(401, json={"code": 401, "message": "no"},
                               request=httpx.Request("GET", url))
 
-    monkeypatch.setattr(_http.httpx, "request", fake_request)
+    monkeypatch.setattr(http.httpx, "request", fake_request)
 
-    assert _http.call_api("GET", "/x") == {"error": True, "message": "登录已过期，请重新登录"}
+    assert http.call_api("GET", "/x") == {"error": True, "message": "登录已过期，请重新登录"}
 
 
 def test_call_api_maps_timeout(monkeypatch):
     def fake_request(method, url, params=None, headers=None, timeout=None):
         raise httpx.TimeoutException("timeout")
 
-    monkeypatch.setattr(_http.httpx, "request", fake_request)
+    monkeypatch.setattr(http.httpx, "request", fake_request)
 
-    assert _http.call_api("GET", "/x") == {"error": True, "message": "后端服务超时"}
+    assert http.call_api("GET", "/x") == {"error": True, "message": "后端服务超时"}
 
 
 def test_search_subjects_shape_preserved_and_no_token(monkeypatch):

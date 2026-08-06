@@ -4,7 +4,7 @@ from app.agent.client.domain.search.node import search_agent
 from app.agent.client.domain.discover.node import discover_agent
 from app.agent.client.domain.recommend.node import recommend_agent
 from app.agent.client.domain.user_collections_tools import get_my_collections, get_my_stats, get_my_watch_profile
-from app.agent.tools.time_tool import get_current_time
+from app.agent.time_tool import get_current_time
 
 
 def test_tools_are_registered():

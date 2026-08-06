@@ -3,7 +3,7 @@ from typing import Annotated
 from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 
-from app.agent.client.domain._http import call_api
+from app.agent.http import call_api
 from app.core.middleware import tool_call_status
 from app.schemas.auth import UserInfo
 

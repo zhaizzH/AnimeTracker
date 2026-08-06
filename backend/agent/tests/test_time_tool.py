@@ -1,6 +1,6 @@
 import datetime
 
-from app.agent.tools.time_tool import _build_current_time_info, get_current_time
+from app.agent.time_tool import _build_current_time_info, get_current_time
 
 
 def test_get_current_time_returns_expected_keys():
