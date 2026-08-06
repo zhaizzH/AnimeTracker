@@ -6,6 +6,7 @@ class UserInfo(BaseModel):
     user_id: int
     username: str
     role: Literal["USER", "ADMIN"]
+    token: str = ""
 
 
 class AuthResult(BaseModel):
