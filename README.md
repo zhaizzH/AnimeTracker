@@ -300,12 +300,14 @@ npm run dev                   # 开发服务器 http://localhost:5174
 
 ## 文档与子模块 README
 
+- 前端总览：[`frontend/README.md`](frontend/README.md)
+- 用户端前端：[`frontend/client/README.md`](frontend/client/README.md)
+- 管理端前端：[`frontend/admin/README.md`](frontend/admin/README.md)
 - 后端整体：[`backend/README.md`](backend/README.md)
 - 业务后端详解：[`backend/business/README.md`](backend/business/README.md)
 - AI Agent 详解：[`backend/agent/README.md`](backend/agent/README.md)
 - 数据导入器：[`backend/data/importer/README.md`](backend/data/importer/README.md)
-- 用户端前端：[`frontend/client/README.md`](frontend/client/README.md)
-- 管理端前端：[`frontend/admin/README.md`](frontend/admin/README.md)
+- 文档目录：[`docs/README.md`](docs/README.md)
 - 后端 API 文档：[`docs/backend.md`](docs/backend.md)
 - 数据库脚本：[`docs/db-schema.sql`](docs/db-schema.sql)
 - OpenAPI 规范：[`docs/openapi.yaml`](docs/openapi.yaml)

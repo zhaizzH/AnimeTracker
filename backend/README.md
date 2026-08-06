@@ -6,9 +6,9 @@ AnimeTracker 后端由三个独立子模块组成，分别负责业务 API、AI 
 - **agent**：基于 FastAPI + LangGraph 的 AI 对话服务（Python，端口 `8090`），调用业务 API 获取实时数据并以 SSE 流式输出。
 - **data/importer**：番剧数据导入脚本（Python），从 Bangumi 拉取元数据并写入业务库。
 
-> 前端由 `frontend/client`（用户端，端口 `5173`）与 `frontend/admin`（运营后台，端口 `5174`，预览版）两个独立 React 工程组成，二者均通过 Vite 代理将 `/api` 转发至本后端的 `8080` 端口。详见各自子目录 README。
+> 前端由 `frontend/client`（用户端，端口 `5173`）与 `frontend/admin`（运营后台，端口 `5174`，预览版）两个独立 React 工程组成，二者均通过 Vite 代理将 `/api` 转发至本后端的 `8080` 端口。详见 [前端总览](../frontend/README.md) 及各自子目录 README。
 
-> 数据库名统一为 **`anime_tracker`**。建表脚本位于项目根 [`../docs/db-schema.sql`](../docs/db-schema.sql)。
+> 数据库名统一为 **`anime_tracker`**。建表脚本位于项目根 [`../docs/db-schema.sql`](../docs/db-schema.sql)，文档目录说明见 [`../docs/README.md`](../docs/README.md)。
 
 ## 目录结构
 

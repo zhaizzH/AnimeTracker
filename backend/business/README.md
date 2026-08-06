@@ -28,10 +28,28 @@ business/
 | pojo | `animetracker-pojo` | `entity`（Subject、Episode、User、UserCollection…）、`dto`（入参）、`vo`（出参） |
 | admin | `animetracker-admin` | `AdminSubjectController`/`AdminDashboardController`/`AdminUserController`/`ImportController`/`AdminLogController` + Service/Converter/Mapper |
 | client | `animetracker-client` | `Auth`/`Subject`/`Collection`/`Tag`/`User` Controller + Service/Mapper/Converter |
-| agent | `animetracker-agent` | `AgentController`/`AgentService`：将 `/api/agent/*` 转发至 Python Agent（默认 `http://localhost:8090`），SSE 流式透传 |
-| app | `animetracker-app` | 聚合 admin + client + agent，含主类 `top.zhaizz.app.AppApplication` |
+| agent | `animetracker-agent` | `AgentController`（用户端）+ `AdminAgentController`（管理端）+ `AgentService`：将 `/api/agent/*` 转发至 Python Agent（默认 `http://localhost:8090`），SSE 流式透传 |
+| app | `animetracker-app` | 聚合 admin + client + agent，含主类 `top.zhaizz.app.AppApplication`（`@MapperScan("top.zhaizz.**.mapper")`、`@EnableScheduling`） |
 
-> **操作审计日志**：admin 模块通过 `AdminLogController` / `AdminLogService` 落库 `operation_log` 表，记录登录、注册、条目增删改、角色变更、导入任务等后台操作（含操作人、动作、模块、IP、耗时、成败状态），供运营后台「日志」页审计追溯。
+> **操作审计日志**：common 模块提供 `@OperationLog` 注解 + `OperationLogAspect` AOP 切面，自动记录后台操作（登录、注册、条目增删改、角色变更、导入等）到 `operation_log` 表（含操作人、动作、模块、IP、耗时、成败状态）；admin 模块通过 `AdminLogController` / `AdminLogService` 提供查询接口，供运营后台「日志」页审计追溯。定时清理由 `OperationLogCleanupTask` 负责。
+
+### common 模块关键类
+
+| 分类 | 类名 | 说明 |
+|------|------|------|
+| **配置** | `SecurityConfig` / `CorsConfig` | Spring Security + CORS 配置 |
+| | `MyBatisPlusConfig` | MyBatis-Plus 分页插件等 |
+| | `MinioConfig` / `MinioProperties` | MinIO 对象存储配置 |
+| | `AgentProperties` | Python Agent 地址配置 |
+| | `RestTemplateConfig` | RestTemplate Bean |
+| **安全** | `JwtTokenProvider` / `JwtAuthenticationFilter` | JWT 生成验证 + 认证过滤器 |
+| | `UserPrincipal` / `SecurityUtil` | 认证用户主体与工具类 |
+| **AOP** | `@OperationLog` + `OperationLogAspect` | 操作审计日志（自动落库） |
+| | `@RateLimit` + `RateLimitAspect` / `RateLimiter` | 接口限流 |
+| **响应** | `Result` / `PageResult` | 统一响应封装 |
+| **异常** | `GlobalExceptionHandler` / `BizException` / `ErrorType` | 全局异常处理 |
+| **工具** | `RedisUtil` / `RedisKeys` | Redis 操作工具 |
+| **其他** | `FileController` | 文件上传（MinIO） |
 
 ## 分层约定
 
@@ -64,17 +82,41 @@ mvn -pl app spring-boot:run -Dspring-boot.run.profiles.active=local
 
 配置文件位于 `app/src/main/resources`：
 
-- `application.yml` —— 生产配置（默认激活 `local` profile）
-- `application-local.yml` —— 本地覆盖（数据源、Redis、JWT、MinIO、Agent 地址等）
+- `application.yml` —— 主配置（默认激活 `local` profile，含 HikariCP / Lettuce 连接池、Jackson 日期格式、MyBatis-Plus、multipart 限制等）
+- `application-local.yml` —— 本地开发覆盖（数据源、Redis、JWT、MinIO、Agent 地址等）
+- `application-template.yml` —— 模板文件（所有敏感值用 `<placeholder>` 占位，供新开发者复制使用）
 
 需配置：
 
 - `zzz.datasource` —— MySQL 连接（库名 `anime_tracker`）
 - `zzz.data.redis` —— Redis 连接
-- `jwt.secret` / `jwt.expiration` —— JWT 签名密钥与有效期
+- `jwt.secret` / `jwt.expiration` / `jwt.refresh-expiration` —— JWT 签名密钥与有效期
 - `minio.*` —— 对象存储（endpoint / key / bucket）
+- `resend.api-key` —— 邮件验证服务密钥
 - `at.agent.host` / `at.agent.port` —— Python Agent 服务地址（默认 `localhost:8090`）
 
 ## 数据库
 
 建表脚本见项目根 [`../../docs/db-schema.sql`](../../docs/db-schema.sql)。
+
+## MyBatis XML Mapper
+
+MyBatis-Plus 配置 `mapper-locations: classpath*:mapper/*.xml`，自动扫描各模块 `src/main/resources/mapper/` 下的 XML 文件：
+
+| 模块 | XML 文件 |
+|------|---------|
+| admin | `DashboardMapper.xml` |
+| client | `SubjectMapper.xml`、`EpisodeMapper.xml`、`SubjectTagMapper.xml`、`CollectionMapper.xml`、`SubjectRelationMapper.xml` |
+
+> common 模块的 `OperationLogMapper` 使用 MyBatis-Plus 注解方式，无 XML 文件。
+
+## 测试
+
+测试类位于 `app/src/test/`，使用 Spring Boot Test + H2 内存数据库：
+
+- `OperationLogAspectTest` / `OperationLogCleanupTaskTest` —— 操作日志 AOP 与定时清理
+- `RateLimiterTest` / `RateLimitAspectTest` —— 限流功能
+- `DashboardMapperTest` —— 仪表盘 SQL
+- `SubjectScheduleValidationTest` —— 番剧放送校验
+- `VerificationServiceImplTest` —— 邮箱验证
+- `AdminLogServiceImplTest` —— 操作日志服务

@@ -3284,6 +3284,20 @@ paths:
                             description: ""
                             format: "int64"
                         description: ""
+                      scoreCounts:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "object"
+                          properties:
+                            rate:
+                              type: "integer"
+                              description: "1~10"
+                            count:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                          description: "评分分布"
                     description: ""
   /api/admin/dashboard/hot:
     get:
@@ -4020,6 +4034,20 @@ components:
               description: ""
               format: "int64"
           description: ""
+        scoreCounts:
+          type: "array"
+          description: ""
+          items:
+            type: "object"
+            properties:
+              rate:
+                type: "integer"
+                description: "1~10"
+              count:
+                type: "integer"
+                description: ""
+                format: "int64"
+            description: "评分分布"
       description: ""
     热门榜条目:
       type: "object"
