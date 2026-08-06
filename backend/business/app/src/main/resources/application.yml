@@ -24,7 +24,7 @@ spring:
       maximum-pool-size: 10
       minimum-idle: 5
       idle-timeout: 300000
-      connection-timeout: 20000
+      connection-timeout: 5000
 
   data:
     redis:  # redis 配置
