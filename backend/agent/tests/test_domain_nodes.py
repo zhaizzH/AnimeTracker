@@ -3,6 +3,7 @@ from app.agent.client.domain.search.tools import search_subjects
 from app.agent.client.domain.search.node import search_agent
 from app.agent.client.domain.discover.node import discover_agent
 from app.agent.client.domain.recommend.node import recommend_agent
+from app.agent.client.domain.user_collections_tools import get_my_collections, get_my_stats, get_my_watch_profile
 from app.agent.tools.time_tool import get_current_time
 
 
@@ -17,3 +18,9 @@ def test_nodes_are_callable():
     assert callable(search_agent)
     assert callable(discover_agent)
     assert callable(recommend_agent)
+
+
+def test_user_tools_registered():
+    assert get_my_collections.name == "get_my_collections"
+    assert get_my_stats.name == "get_my_stats"
+    assert get_my_watch_profile.name == "get_my_watch_profile"

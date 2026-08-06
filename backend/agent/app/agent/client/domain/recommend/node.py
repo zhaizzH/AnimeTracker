@@ -3,6 +3,7 @@ from typing import Any
 from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, SystemMessage
 
+from app.agent.client.domain.user_collections_tools import user_collections_tools
 from app.agent.client.state import AgentState
 from app.agent.tools.time_tool import get_current_time
 from app.config import AgentChatModelSlot, create_agent_chat_llm
@@ -16,7 +17,7 @@ def recommend_agent(state: AgentState) -> dict[str, Any]:
     llm = create_agent_chat_llm(slot=AgentChatModelSlot.CLIENT_RECOMMEND)
     agent = create_agent(
         model=llm,
-        tools=[get_current_time],
+        tools=[*user_collections_tools, get_current_time],
         system_prompt=SystemMessage(
             content=load_managed_prompt("client_recommend_agent_prompt", "client/recommend_agent_prompt.md")
         ),

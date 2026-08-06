@@ -4,6 +4,7 @@ from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, SystemMessage
 
 from app.agent.client.domain.search.tools import search_tools
+from app.agent.client.domain.user_collections_tools import user_collections_tools
 from app.agent.client.state import AgentState
 from app.agent.tools.time_tool import get_current_time
 from app.config import AgentChatModelSlot, create_agent_chat_llm
@@ -17,7 +18,7 @@ def search_agent(state: AgentState) -> dict[str, Any]:
     llm = create_agent_chat_llm(slot=AgentChatModelSlot.CLIENT_SEARCH)
     agent = create_agent(
         model=llm,
-        tools=[*search_tools, get_current_time],
+        tools=[*search_tools, *user_collections_tools, get_current_time],
         system_prompt=SystemMessage(
             content=load_managed_prompt("client_search_agent_prompt", "client/search_agent_prompt.md")
         ),
