@@ -47,7 +47,38 @@ export interface SubjectListVO {
 }
 
 export interface SubjectDetailVO extends SubjectListVO {
+  bangumiId: number | null;
   summary: string;
+  volumes: number | null;
+  nsfw: boolean;
+  tags: TagVO[];
+  relations: SubjectRelationVO[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TagVO {
+  id: number;
+  name: string;
+  count: number;
+}
+
+export interface SubjectRelationVO {
+  relation: string;
+  relatedSubject: SubjectListVO;
+}
+
+export interface EpisodeVO {
+  id: number;
+  subjectId: number;
+  type: number;
+  sort: number;
+  name: string;
+  nameCn: string;
+  duration: string;
+  airdate: string;
+  description: string;
+  status: 'Air' | 'Today' | 'NA' | string;
 }
 
 export interface SubjectUpsertDTO {
@@ -179,4 +210,9 @@ export interface AgentModelConfig {
 
 export interface PromptUpdateDTO {
   promptContent: string;
+}
+
+export interface AgentHealthVO {
+  status: string;
+  llmConfigured: boolean;
 }

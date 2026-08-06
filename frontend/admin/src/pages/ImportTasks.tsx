@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { App, Button, DatePicker, Form, Input, InputNumber, Select, Table, Tooltip } from 'antd';
+import { App, Button, DatePicker, Form, Input, InputNumber, Segmented, Select, Table, Tooltip } from 'antd';
 import type { TableProps } from 'antd';
-import { PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons';
+import { AlertOutlined, PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { importsApi } from '../api/imports';
 import type { ImportMode, ImportRecordVO, ImportStatusVO } from '../types/api';
@@ -40,6 +40,7 @@ export default function ImportTasks() {
   });
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
+  const [recordFilter, setRecordFilter] = useState<'all' | 'failed' | 'running'>('all');
   const [form] = Form.useForm<RunImportValues>();
   const mode = Form.useWatch('mode', form) ?? 'recent';
   const timerRef = useRef<number | null>(null);
@@ -49,6 +50,11 @@ export default function ImportTasks() {
   const completedCount = records.filter((r) => r.status === 'COMPLETED').length;
   const failedCount = records.filter((r) => r.status === 'FAILED').length;
   const runningCount = records.filter((r) => r.status === 'RUNNING').length;
+  const visibleRecords = records.filter((r) => {
+    if (recordFilter === 'failed') return r.status === 'FAILED';
+    if (recordFilter === 'running') return r.status === 'RUNNING';
+    return true;
+  });
 
   const loadStatus = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -159,7 +165,7 @@ export default function ImportTasks() {
     <div className="dash-stack">
       <div className="dash-toolbar">
         <div>
-          <div className="dash-toolbar-sub">接口 · POST /api/admin/import/run?mode=&key=&since=&workers=</div>
+          <div className="dash-toolbar-sub">接口 · GET /api/admin/import/status · POST /api/admin/import/run</div>
         </div>
         <div className="dash-toolbar-actions">
           <Tooltip title="刷新导入状态">
@@ -303,13 +309,36 @@ export default function ImportTasks() {
                 </h3>
                 <div className="panel-sub">最近 {records.length} 次任务记录</div>
               </div>
-              <span className="panel-note">运行中 {runningCount}</span>
+              <Segmented
+                size="small"
+                value={recordFilter}
+                onChange={(value) => setRecordFilter(value as 'all' | 'failed' | 'running')}
+                options={[
+                  { value: 'all', label: `全部 ${records.length}` },
+                  { value: 'failed', label: `失败 ${failedCount}` },
+                  { value: 'running', label: `运行中 ${runningCount}` },
+                ]}
+              />
             </div>
             <Table<ImportRecordVO>
               rowKey="id"
               columns={columns}
-              dataSource={records}
+              dataSource={visibleRecords}
               size="middle"
+              expandable={{
+                expandedRowRender: (record) =>
+                  record.status === 'FAILED' ? (
+                    <div className="import-error-detail">
+                      <AlertOutlined style={{ color: 'var(--red)' }} />
+                      <span>{record.errorMessage || '任务失败，但未返回具体错误信息'}</span>
+                    </div>
+                  ) : (
+                    <div className="import-error-detail">
+                      <span>{record.subjectCount} 个条目，任务正常结束</span>
+                    </div>
+                  ),
+                rowExpandable: (record) => record.status === 'FAILED',
+              }}
               pagination={{
                 pageSize: 10,
                 showTotal: (count) => `共 ${count} 条`,

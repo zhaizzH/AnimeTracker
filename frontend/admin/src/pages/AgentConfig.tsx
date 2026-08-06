@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { App, Button, Form, Input, InputNumber, Select, Space, Tooltip } from 'antd';
 import { ExperimentOutlined, RobotOutlined, SaveOutlined, UndoOutlined } from '@ant-design/icons';
 import { agentApi } from '../api/agent';
-import type { AgentModelConfig, AgentPrompt } from '../types/api';
+import type { AgentHealthVO, AgentModelConfig, AgentPrompt } from '../types/api';
 
 const promptMeta: Record<string, { label: string; description: string }> = {
   client_gateway_prompt: {
@@ -33,6 +33,9 @@ export default function AgentConfig() {
   const [resetting, setResetting] = useState(false);
   const [testing, setTesting] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
+  const [health, setHealth] = useState<AgentHealthVO | null>(null);
+  const [healthError, setHealthError] = useState('');
+  const [healthCheckedAt, setHealthCheckedAt] = useState('');
   const [configForm] = Form.useForm<AgentModelConfig>();
 
   const activePrompt = prompts.find((p) => p.promptKey === activeKey) ?? prompts[0];
@@ -62,8 +65,26 @@ export default function AgentConfig() {
 
   useEffect(() => {
     loadAll();
+    checkHealth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const checkHealth = async (): Promise<AgentHealthVO | null> => {
+    setTesting(true);
+    setHealthError('');
+    try {
+      const result = await agentApi.health();
+      setHealth(result);
+      setHealthCheckedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false }));
+      return result;
+    } catch (error) {
+      setHealth(null);
+      setHealthError(error instanceof Error ? error.message : 'Agent 服务不可达');
+      return null;
+    } finally {
+      setTesting(false);
+    }
+  };
 
   const refreshPrompts = async () => {
     try {
@@ -141,13 +162,13 @@ export default function AgentConfig() {
     }
   };
 
-  const testConfig = () => {
-    setTesting(true);
-    setTimeout(() => {
-      setTesting(false);
-      const values = configForm.getFieldsValue();
-      message.success(`连接测试通过：${values.modelRoute ?? 'tongyi'} / ${values.model ?? 'qwen-plus'}`);
-    }, 900);
+  const testConfig = async () => {
+    const result = await checkHealth();
+    if (result) {
+      message.success(`Agent 服务在线：${result.status}${result.llmConfigured ? '' : '（LLM 未配置）'}`);
+    } else {
+      message.error('连接测试失败：Agent 服务不可达');
+    }
   };
 
   return (
@@ -164,6 +185,19 @@ export default function AgentConfig() {
           运行时模型配置写入 Redis 键 <b>agent:config:model</b>，提示词通过 <b>agent:prompt:{'{key}'}</b>{' '}
           热加载，保存后无需重启服务。
         </span>
+      </div>
+
+      <div className={`agent-banner${health ? '' : ' offline'}`}>
+        <span className={`status-dot${health ? ' running' : ' warn'}`} />
+        <span>
+          {health
+            ? `Agent 服务在线（${health.status}）${health.llmConfigured ? '，LLM 已配置' : '，LLM 未配置，需要先设置模型'}`
+            : `Agent 服务不可达${healthError ? `：${healthError}` : ''}`}
+          {healthCheckedAt && ` · 上次检查 ${healthCheckedAt}`}
+        </span>
+        <Button size="small" loading={testing} onClick={checkHealth}>
+          重新检查
+        </Button>
       </div>
 
       <div className="split-grid">
@@ -249,7 +283,7 @@ export default function AgentConfig() {
             <h3 className="panel-title">
               <span className="seq">03</span>模型配置
             </h3>
-            <div className="panel-sub">POST /api/admin/agent/config/update</div>
+            <div className="panel-sub">GET /api/agent/health · POST /api/admin/agent/config/update</div>
           </div>
           <Space>
             <Button icon={<ExperimentOutlined />} loading={testing} onClick={testConfig}>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { App, Button, DatePicker, Drawer, Input, Select, Table, Tooltip } from 'antd';
+import { App, Button, DatePicker, Drawer, Input, Segmented, Select, Table, Tooltip } from 'antd';
 import type { TablePaginationConfig, TableProps } from 'antd';
-import { EyeOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { DownloadOutlined, EyeOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { logsApi } from '../api/logs';
 import type { OperationLogVO } from '../types/api';
@@ -26,6 +26,40 @@ const knownActions = [
   'SUBJECT_DELETE',
 ];
 
+const ANALYSIS_WINDOW = 10;
+
+function csvCell(value: unknown): string {
+  const text = String(value ?? '');
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function exportCsv(rows: OperationLogVO[]) {
+  const header = ['时间', '用户', '模块', '操作', '方法', '路径', 'IP', '状态', '耗时(ms)', '错误信息'];
+  const lines = rows.map((log) =>
+    [
+      csvCell(log.createdAt),
+      csvCell(log.username),
+      csvCell(log.module),
+      csvCell(log.action),
+      csvCell(log.method),
+      csvCell(log.path),
+      csvCell(log.ip),
+      csvCell(log.status === 0 ? '成功' : '失败'),
+      csvCell(log.durationMs),
+      csvCell(log.errorMsg),
+    ].join(','),
+  );
+  const blob = new Blob([`\uFEFF${[header.join(','), ...lines].join('\n')}`], {
+    type: 'text/csv;charset=utf-8',
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `operation-logs-${dayjs().format('YYYYMMDD-HHmmss')}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function Logs() {
   const { message } = App.useApp();
   const [username, setUsername] = useState('');
@@ -38,6 +72,9 @@ export default function Logs() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [detail, setDetail] = useState<OperationLogVO | null>(null);
+  const [failedOnly, setFailedOnly] = useState(false);
+  const [analysis, setAnalysis] = useState<OperationLogVO[]>([]);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
 
   const modules = useMemo(
     () => ['all', ...Array.from(new Set([...knownModules, ...list.map((l) => l.module).filter(Boolean)]))],
@@ -79,11 +116,50 @@ export default function Logs() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const loadAnalysis = async () => {
+    setAnalysisLoading(true);
+    try {
+      const result = await logsApi.list({
+        page: 1,
+        size: ANALYSIS_WINDOW,
+        username: username.trim() || undefined,
+        module: moduleFilter === 'all' ? undefined : moduleFilter,
+        action: actionFilter === 'all' ? undefined : actionFilter,
+        start: range?.[0] ? range[0].format('YYYY-MM-DD') : undefined,
+        end: range?.[1] ? range[1].format('YYYY-MM-DD') : undefined,
+      });
+      setAnalysis(result.content ?? []);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '日志统计加载失败');
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAnalysis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moduleFilter, actionFilter, range, username]);
+
+  const analysisRows = useMemo(
+    () => (failedOnly ? analysis.filter((log) => log.status !== 0) : analysis),
+    [analysis, failedOnly],
+  );
+  const visibleList = useMemo(
+    () => (failedOnly ? list.filter((log) => log.status !== 0) : list),
+    [failedOnly, list],
+  );
+  const failedCount = analysisRows.filter((log) => log.status !== 0).length;
+  const avgDuration = analysisRows.length
+    ? Math.round(analysisRows.reduce((sum, log) => sum + (log.durationMs || 0), 0) / analysisRows.length)
+    : 0;
+
   const resetFilters = () => {
     setUsername('');
     setModuleFilter('all');
     setActionFilter('all');
     setRange(null);
+    setFailedOnly(false);
     setPage(1);
     load(1, pageSize);
     message.success('筛选条件已重置');
@@ -182,12 +258,45 @@ export default function Logs() {
     <div className="dash-stack">
       <div className="dash-toolbar">
         <div>
-          <div className="dash-toolbar-sub">接口 · GET /api/admin/logs?page=&size=&module=&action=</div>
+          <div className="dash-toolbar-sub">接口 · GET /api/admin/logs?page=&size=&module=&action=&username=&start=&end=</div>
         </div>
         <div className="dash-toolbar-actions">
+          <Button icon={<DownloadOutlined />} onClick={() => exportCsv(analysisRows)}>
+            导出 CSV
+          </Button>
+          <Tooltip title="刷新日志统计窗口">
+            <Button icon={<ReloadOutlined spin={analysisLoading} />} onClick={loadAnalysis} />
+          </Tooltip>
           <Tooltip title="刷新日志">
             <Button icon={<ReloadOutlined spin={loading} />} onClick={() => load(page, pageSize)} />
           </Tooltip>
+        </div>
+      </div>
+
+      <div className="mini-stats">
+        <div className="mini-stat tone-cyan">
+          <div>
+            <div className="mini-stat-label">统计窗口</div>
+            <div className="mini-stat-value">{analysisRows.length}</div>
+          </div>
+        </div>
+        <div className="mini-stat tone-red">
+          <div>
+            <div className="mini-stat-label">失败日志</div>
+            <div className="mini-stat-value">{failedCount}</div>
+          </div>
+        </div>
+        <div className="mini-stat tone-green">
+          <div>
+            <div className="mini-stat-label">成功日志</div>
+            <div className="mini-stat-value">{analysisRows.length - failedCount}</div>
+          </div>
+        </div>
+        <div className="mini-stat tone-amber">
+          <div>
+            <div className="mini-stat-label">平均耗时</div>
+            <div className="mini-stat-value mini-value-sm">{avgDuration} ms</div>
+          </div>
         </div>
       </div>
 
@@ -231,6 +340,17 @@ export default function Logs() {
           />
         </div>
         <div className="filter-spacer" />
+        <div className="filter-item">
+          <span>状态</span>
+          <Segmented
+            value={failedOnly ? 'failed' : 'all'}
+            onChange={(value) => setFailedOnly(value === 'failed')}
+            options={[
+              { value: 'all', label: '全部' },
+              { value: 'failed', label: '仅失败' },
+            ]}
+          />
+        </div>
         <Button onClick={resetFilters}>重置</Button>
         <Button type="primary" ghost icon={<SearchOutlined />} onClick={handleSearch}>
           查询
@@ -244,21 +364,23 @@ export default function Logs() {
             <h3 className="panel-title">
               <span className="seq">01</span>日志明细
             </h3>
-            <div className="panel-sub">覆盖登录、条目、用户、导入与 Agent 管理操作</div>
+            <div className="panel-sub">
+              覆盖登录、条目、用户、导入与 Agent 管理操作 · 统计窗口最近 {ANALYSIS_WINDOW} 条
+            </div>
           </div>
           <span className="panel-note">按 ID 倒序</span>
         </div>
         <Table<OperationLogVO>
           rowKey="id"
           columns={columns}
-          dataSource={list}
+          dataSource={visibleList}
           loading={loading}
           size="middle"
           onChange={handleTableChange}
           pagination={{
             current: page,
             pageSize,
-            total,
+            total: failedOnly ? visibleList.length : total,
             showSizeChanger: true,
             pageSizeOptions: [10, 20, 50],
             showTotal: (count) => `共 ${count} 条`,

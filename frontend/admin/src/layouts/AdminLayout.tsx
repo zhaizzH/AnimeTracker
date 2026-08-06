@@ -13,6 +13,7 @@ import {
   TeamOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { authApi } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import ThemeToggle from '../components/ThemeToggle';
 
@@ -69,8 +70,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    signOut();
-    navigate('/login');
+    authApi.logout().catch(() => {
+      // 后端登出失败也继续清理本地登录态
+    }).finally(() => {
+      signOut();
+      navigate('/login');
+    });
   };
 
   const initial = username?.slice(0, 1).toUpperCase() ?? 'A';

@@ -3,6 +3,7 @@ import {
   App,
   Button,
   DatePicker,
+  Descriptions,
   Drawer,
   Form,
   Input,
@@ -12,13 +13,30 @@ import {
   Select,
   Space,
   Table,
+  Tag,
   Tooltip,
+  Upload,
 } from 'antd';
 import type { TablePaginationConfig, TableProps } from 'antd';
-import { DeleteOutlined, EditOutlined, PlusOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import type { UploadProps } from 'antd';
+import {
+  DeleteOutlined,
+  EditOutlined,
+  EyeOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  UploadOutlined,
+} from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { subjectsApi } from '../api/subjects';
-import type { SubjectListVO, SubjectQueryParams, SubjectUpsertDTO } from '../types/api';
+import { subjectsApi, uploadCommonFile } from '../api/subjects';
+import type {
+  EpisodeVO,
+  SubjectDetailVO,
+  SubjectListVO,
+  SubjectQueryParams,
+  SubjectUpsertDTO,
+} from '../types/api';
 
 interface SubjectFormValues {
   name: string;
@@ -43,6 +61,20 @@ const typeColor: Record<number, string> = {
   6: '#2f7fe8',
 };
 
+const episodeTypeLabel: Record<number, string> = {
+  0: '本篇',
+  1: 'SP',
+  2: 'OP',
+  3: 'ED',
+  4: '预告',
+};
+
+const episodeStatusMeta: Record<string, { label: string; cls: string }> = {
+  Air: { label: '已放送', cls: 'success' },
+  Today: { label: '今日', cls: 'running' },
+  NA: { label: '未放送', cls: 'neutral' },
+};
+
 function hueOf(id: number): number {
   return Math.abs(Math.sin(id * 12.9898) * 43758.5453) % 360;
 }
@@ -63,6 +95,10 @@ export default function Subjects() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<SubjectListVO | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [detailTarget, setDetailTarget] = useState<SubjectDetailVO | null>(null);
+  const [detailEpisodes, setDetailEpisodes] = useState<EpisodeVO[]>([]);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
   const [createForm] = Form.useForm<SubjectFormValues>();
   const [editForm] = Form.useForm<SubjectFormValues>();
 
@@ -126,9 +162,9 @@ export default function Subjects() {
 
   const animatedCount = list.filter((item) => item.type === 2).length;
 
-  const openEdit = (row: SubjectListVO) => {
+  const openEdit = async (row: SubjectListVO) => {
     setEditTarget(row);
-    editForm.setFieldsValue({
+    const base = {
       name: row.name,
       nameCn: row.nameCn || row.name,
       bangumiId: undefined,
@@ -137,7 +173,56 @@ export default function Subjects() {
       airDate: row.airDate ? dayjs(row.airDate) : undefined,
       image: row.image ?? '',
       summary: '',
-    });
+    };
+    try {
+      const detail = await subjectsApi.detail(row.id);
+      editForm.setFieldsValue({
+        ...base,
+        bangumiId: detail.bangumiId ?? undefined,
+        summary: detail.summary ?? '',
+        image: detail.image ?? row.image ?? '',
+      });
+    } catch (error) {
+      editForm.setFieldsValue(base);
+      message.warning(error instanceof Error ? `详情加载失败，已按列表数据预填：${error.message}` : '详情加载失败，已按列表数据预填');
+    }
+  };
+
+  const openDetail = async (row: SubjectListVO) => {
+    setDetailLoading(true);
+    setDetailTarget(null);
+    setDetailEpisodes([]);
+    try {
+      const [detail, episodes] = await Promise.all([subjectsApi.detail(row.id), subjectsApi.episodes(row.id)]);
+      setDetailTarget(detail);
+      setDetailEpisodes(episodes ?? []);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '条目详情加载失败');
+      setDetailTarget(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const uploadCover: UploadProps['beforeUpload'] = async (file) => {
+    const isImage = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
+    if (!isImage) {
+      message.error('仅支持 JPG / PNG / WebP 图片');
+      return Upload.LIST_IGNORE;
+    }
+    setCoverUploading(true);
+    try {
+      const url = await uploadCommonFile(file as File, 'cover');
+      editTarget
+        ? editForm.setFieldValue('image', url)
+        : createForm.setFieldValue('image', url);
+      message.success('封面已上传，保存条目后生效');
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '封面上传失败');
+    } finally {
+      setCoverUploading(false);
+    }
+    return Upload.LIST_IGNORE;
   };
 
   const handleCreate = async (values: SubjectFormValues) => {
@@ -283,9 +368,12 @@ export default function Subjects() {
     },
     {
       title: '操作',
-      width: 96,
+      width: 136,
       render: (_, row) => (
         <Space size={4}>
+          <Tooltip title="查看详情">
+            <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => openDetail(row)} />
+          </Tooltip>
           <Tooltip title="编辑条目">
             <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} />
           </Tooltip>
@@ -479,8 +567,20 @@ export default function Subjects() {
           <Form.Item name="airDate" label="放送日期">
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="image" label="封面图 URL" className="span-2">
-            <Input placeholder="https://..." />
+          <Form.Item name="image" label="封面图" className="span-2" extra="可上传 JPG / PNG / WebP，或直接填写图片 URL">
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Upload.Dragger
+                accept="image/jpeg,image/png,image/webp"
+                showUploadList={false}
+                beforeUpload={uploadCover}
+                disabled={coverUploading}
+                style={{ padding: 10 }}
+              >
+                <UploadOutlined style={{ fontSize: 22, color: 'var(--cyan)' }} />
+                <div>点击或拖拽上传封面</div>
+              </Upload.Dragger>
+              <Input placeholder="https://... 或上传后自动填充" />
+            </Space>
           </Form.Item>
           <Form.Item name="summary" label="简介" className="span-2">
             <Input.TextArea rows={3} placeholder="条目简介（可选）" />
@@ -537,13 +637,173 @@ export default function Subjects() {
           <Form.Item name="airDate" label="放送日期">
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="image" label="封面图 URL" className="span-2">
-            <Input placeholder="https://..." />
+          <Form.Item name="image" label="封面图" className="span-2" extra="上传 JPG / PNG / WebP，或直接修改 URL">
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Upload.Dragger
+                accept="image/jpeg,image/png,image/webp"
+                showUploadList={false}
+                beforeUpload={uploadCover}
+                disabled={coverUploading}
+                style={{ padding: 10 }}
+              >
+                <UploadOutlined style={{ fontSize: 22, color: 'var(--cyan)' }} />
+                <div>{coverUploading ? '上传中...' : '点击或拖拽更换封面'}</div>
+              </Upload.Dragger>
+              <Input placeholder="https://..." />
+            </Space>
           </Form.Item>
           <Form.Item name="summary" label="简介" className="span-2">
             <Input.TextArea rows={4} />
           </Form.Item>
         </Form>
+      </Drawer>
+
+      <Drawer
+        title={detailTarget ? `条目详情 · ${detailTarget.nameCn || detailTarget.name}` : '条目详情'}
+        width={760}
+        open={detailLoading || !!detailTarget}
+        onClose={() => {
+          setDetailTarget(null);
+          setDetailEpisodes([]);
+        }}
+        extra={
+          detailTarget && (
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => {
+                const target = detailTarget;
+                setDetailTarget(null);
+                openEdit(target);
+              }}
+            >
+              编辑条目
+            </Button>
+          )
+        }
+      >
+        {!detailTarget ? (
+          <div className="detail-empty" style={{ color: 'var(--text-faint)', padding: '48px 0', textAlign: 'center' }}>
+            加载中...
+          </div>
+        ) : (
+          <div className="dash-stack">
+            <div className="rank-cell">
+              {detailTarget.image ? (
+                <img
+                  className="poster-thumb"
+                  src={detailTarget.image}
+                  alt={detailTarget.nameCn || detailTarget.name}
+                  style={{ width: 72, height: 100 }}
+                />
+              ) : (
+                <span
+                  className="poster-thumb"
+                  style={{
+                    width: 72,
+                    height: 100,
+                    background: `linear-gradient(135deg, hsl(${hueOf(detailTarget.id)} 42% 26%), hsl(${(hueOf(detailTarget.id) + 45) % 360} 52% 10%))`,
+                  }}
+                >
+                  {(detailTarget.nameCn || detailTarget.name).slice(0, 1)}
+                </span>
+              )}
+              <span className="subject-name">
+                <b>{detailTarget.nameCn || detailTarget.name}</b>
+                <span>{detailTarget.name}</span>
+                <span className="panel-note" style={{ marginTop: 4 }}>
+                  #ID {detailTarget.id} · Bangumi {detailTarget.bangumiId ?? '-'}
+                </span>
+              </span>
+            </div>
+
+            <Descriptions
+              bordered
+              size="small"
+              column={2}
+              items={[
+                { key: 'type', label: '类型', children: <span className="type-chip">{typeLabel[detailTarget.type] ?? `类型 ${detailTarget.type}`}</span> },
+                { key: 'airDate', label: '放送日期', children: detailTarget.airDate || '-' },
+                { key: 'eps', label: '总集数', children: detailTarget.eps ?? '-' },
+                { key: 'volumes', label: '卷数', children: detailTarget.volumes ?? '-' },
+                { key: 'nsfw', label: 'NSFW', children: detailTarget.nsfw ? <Tag color="red">是</Tag> : <Tag>否</Tag> },
+                { key: 'score', label: '评分', children: detailTarget.score > 0 ? Number(detailTarget.score).toFixed(1) : '-' },
+                { key: 'rank', label: '排名', children: detailTarget.rank > 0 ? `#${detailTarget.rank}` : '-' },
+                { key: 'collection', label: '收藏数', children: Number(detailTarget.collectionTotal ?? 0).toLocaleString() },
+                { key: 'createdAt', label: '创建时间', children: detailTarget.createdAt ?? '-' },
+                { key: 'updatedAt', label: '更新时间', children: detailTarget.updatedAt ?? '-' },
+              ]}
+            />
+
+            <section className="panel" style={{ padding: 12 }}>
+              <h4 className="panel-title">简介</h4>
+              <p style={{ marginTop: 8, color: 'var(--text-soft)', fontSize: 13, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                {detailTarget.summary || '-'}
+              </p>
+            </section>
+
+            <section className="panel" style={{ padding: 12 }}>
+              <h4 className="panel-title">标签</h4>
+              <div className="chip-row" style={{ marginTop: 8 }}>
+                {(detailTarget.tags ?? []).map((tag) => (
+                  <span key={tag.id} className="subject-chip">
+                    {tag.name} · {tag.count}
+                  </span>
+                ))}
+                {(detailTarget.tags ?? []).length === 0 && <span className="cell-muted">暂无标签</span>}
+              </div>
+            </section>
+
+            <section className="panel" style={{ padding: 12 }}>
+              <h4 className="panel-title">关联条目</h4>
+              <div className="chip-row" style={{ marginTop: 8 }}>
+                {(detailTarget.relations ?? []).map((rel, index) => (
+                  <span key={`${rel.relation}-${index}`} className="subject-chip">
+                    {rel.relation} → {rel.relatedSubject?.nameCn || rel.relatedSubject?.name || `#${rel.relatedSubject?.id}`}
+                  </span>
+                ))}
+                {(detailTarget.relations ?? []).length === 0 && <span className="cell-muted">暂无关联</span>}
+              </div>
+            </section>
+
+            <section className="panel table-panel">
+              <div className="panel-head">
+                <div>
+                  <h4 className="panel-title">剧集列表</h4>
+                  <div className="panel-sub">GET /api/user/subjects/{detailTarget.id}/episodes</div>
+                </div>
+                <span className="panel-note">共 {detailEpisodes.length} 集</span>
+              </div>
+              <Table<EpisodeVO>
+                rowKey="id"
+                size="small"
+                dataSource={detailEpisodes}
+                pagination={false}
+                scroll={{ x: 680 }}
+                columns={[
+                  { title: '序号', dataIndex: 'sort', width: 64, className: 'num', render: (v) => Number(v ?? 0).toLocaleString() },
+                  { title: '标题', render: (_, ep) => <span className="subject-name"><b>{ep.nameCn || ep.name || '-'}</b>{ep.nameCn && ep.name ? <span>{ep.name}</span> : null}</span> },
+                  { title: '类型', dataIndex: 'type', width: 76, render: (v: number) => <span className="type-chip">{episodeTypeLabel[v] ?? `类型 ${v}`}</span> },
+                  { title: '放送日', dataIndex: 'airdate', width: 104, className: 'num', render: (v) => v || '-' },
+                  { title: '时长', dataIndex: 'duration', width: 80, className: 'num', render: (v) => v || '-' },
+                  {
+                    title: '状态',
+                    dataIndex: 'status',
+                    width: 96,
+                    render: (v: string) => {
+                      const meta = episodeStatusMeta[v] ?? { label: v || '-', cls: 'neutral' };
+                      return (
+                        <span className={`status-tag ${meta.cls}`}>
+                          <span className="status-dot" />
+                          {meta.label}
+                        </span>
+                      );
+                    },
+                  },
+                ]}
+              />
+            </section>
+          </div>
+        )}
       </Drawer>
     </div>
   );
