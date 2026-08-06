@@ -11,6 +11,7 @@ import top.zhaizz.client.mapper.UserMapper;
 import top.zhaizz.client.service.VerificationService;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.ErrorType;
+import top.zhaizz.common.ratelimit.RateLimiter;
 import top.zhaizz.common.util.RedisKeys;
 import top.zhaizz.common.util.RedisUtil;
 import top.zhaizz.pojo.entity.User;
@@ -30,6 +31,7 @@ public class VerificationServiceImpl implements VerificationService {
     private final RedisUtil redisUtil;
     private final UserMapper userMapper;
     private final Resend resend;
+    private final RateLimiter rateLimiter;
 
     private static final long CODE_TTL_MINUTES = 5;
     private static final int CODE_LENGTH = 6;
@@ -73,6 +75,10 @@ public class VerificationServiceImpl implements VerificationService {
 
     @Override
     public void verifyEmail(String email, String code) {
+        String bucket = "verify:email:" + email;
+        if (!rateLimiter.allowOrCount(bucket, 5, 300)) {
+            throw new BizException(ErrorType.TOO_MANY_REQUESTS, "尝试次数过多，请 5 分钟后再试");
+        }
         // 1. 从 Redis 获取存储的验证码
         String storedCode = redisUtil.get(RedisKeys.EMAIL + email);
 
@@ -83,6 +89,7 @@ public class VerificationServiceImpl implements VerificationService {
         if (!storedCode.equalsIgnoreCase(code)) {
             throw new BizException(ErrorType.VERIFICATION_FAILED, "验证码不正确");
         }
+        rateLimiter.reset(bucket);
 
         // 2. 校验通过，删除 Redis key
         redisUtil.del(RedisKeys.EMAIL + email);
@@ -137,6 +144,11 @@ public class VerificationServiceImpl implements VerificationService {
     public void verifyEmailChangeCode(Long userId, String newEmail, String code) {
         newEmail = newEmail.toLowerCase();
 
+        String bucket = "verify:change:" + userId + ":" + newEmail;
+        if (!rateLimiter.allowOrCount(bucket, 5, 300)) {
+            throw new BizException(ErrorType.TOO_MANY_REQUESTS, "尝试次数过多，请 5 分钟后再试");
+        }
+
         // 1. 从 Redis 获取存储的验证码
         String storedCode = redisUtil.get(RedisKeys.EMAIL_CHANGE + userId + ":" + newEmail);
         if (storedCode == null) {
@@ -145,6 +157,7 @@ public class VerificationServiceImpl implements VerificationService {
         if (!storedCode.equalsIgnoreCase(code)) {
             throw new BizException(ErrorType.VERIFICATION_FAILED, "验证码不正确");
         }
+        rateLimiter.reset(bucket);
 
         // 2. 再次检查新邮箱唯一性（防并发注册占用）
         if (userMapper.existsByEmail(newEmail)) {
@@ -207,6 +220,10 @@ public class VerificationServiceImpl implements VerificationService {
 
     @Override
     public void verifyPasswordResetCode(String email, String code) {
+        String bucket = "verify:reset:" + email;
+        if (!rateLimiter.allowOrCount(bucket, 5, 300)) {
+            throw new BizException(ErrorType.TOO_MANY_REQUESTS, "尝试次数过多，请 5 分钟后再试");
+        }
         String storedCode = redisUtil.get(RedisKeys.PASSWORD_RESET + email);
 
         if (storedCode == null) {
@@ -216,5 +233,6 @@ public class VerificationServiceImpl implements VerificationService {
         if (!storedCode.equalsIgnoreCase(code)) {
             throw new BizException(ErrorType.VERIFICATION_FAILED, "验证码不正确");
         }
+        rateLimiter.reset(bucket);
     }
 }
