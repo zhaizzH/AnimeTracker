@@ -16,6 +16,8 @@ import top.zhaizz.pojo.dto.CollectionUpdateDTO;
 import top.zhaizz.pojo.dto.EpStatusDTO;
 import top.zhaizz.pojo.vo.UserCollectionVO;
 
+import java.util.Map;
+
 /**
  * 追番控制器
  */
@@ -37,6 +39,15 @@ public class CollectionController {
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
         Long userId = SecurityUtil.getCurrentUserId();
         return Result.success(collectionService.listCollections(userId, type, page, size));
+    }
+
+    /**
+     * 获取当前登录用户收藏统计（key=type 1-5，value=数量）
+     */
+    @GetMapping("/counts")
+    public Result<Map<Integer, Long>> listCounts() {
+        Long userId = SecurityUtil.getCurrentUserId();
+        return Result.success(collectionService.listCounts(userId));
     }
 
     /**

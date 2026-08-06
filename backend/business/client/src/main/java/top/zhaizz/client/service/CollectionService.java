@@ -4,11 +4,16 @@ import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.dto.CollectionUpdateDTO;
 import top.zhaizz.pojo.vo.UserCollectionVO;
 
+import java.util.Map;
+
 /** 收藏服务接口 */
 public interface CollectionService {
 
     /** 获取用户收藏列表（分页） */
     PageResult<UserCollectionVO> listCollections(Long userId, Integer type, int page, int size);
+
+    /** 获取用户各收藏类型计数（key=type 1-5） */
+    Map<Integer, Long> listCounts(Long userId);
 
     /** 获取用户对某番剧的收藏详情 */
     UserCollectionVO getCollection(Long userId, Long subjectId);

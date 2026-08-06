@@ -1,6 +1,7 @@
 package top.zhaizz.client.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,10 @@ import java.time.LocalDate;
 import top.zhaizz.pojo.entity.UserCollection;
 import top.zhaizz.pojo.vo.UserCollectionSubjectVO;
 import top.zhaizz.pojo.vo.UserCollectionVO;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 收藏服务实现
@@ -40,6 +45,18 @@ public class CollectionServiceImpl implements CollectionService {
                 (int) mpPage.getCurrent(),
                 (int) mpPage.getSize()
         );
+    }
+
+    @Override
+    public Map<Integer, Long> listCounts(Long userId) {
+        QueryWrapper<UserCollection> qw = new QueryWrapper<>();
+        qw.select("type", "COUNT(*) AS count").eq("user_id", userId).groupBy("type");
+        List<Map<String, Object>> rows = collectionMapper.selectMaps(qw);
+        Map<Integer, Long> counts = new HashMap<>();
+        for (Map<String, Object> row : rows) {
+            counts.put(((Number) row.get("type")).intValue(), ((Number) row.get("count")).longValue());
+        }
+        return counts;
     }
 
     @Override
