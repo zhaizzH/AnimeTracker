@@ -37,6 +37,25 @@ public class RedisUtil {
     }
 
     /**
+     * 自增并返回新值
+     */
+    public Long incr(String key) {
+        return stringRedisTemplate.opsForValue().increment(key);
+    }
+
+    /**
+     * 自增并设置过期时间（仅在首次创建时设置 TTL）
+     * ponytail: incr 与 expire 非原子，极端并发下窗口期可能拉长，无害
+     */
+    public Long incr(String key, long ttl, TimeUnit unit) {
+        Long value = stringRedisTemplate.opsForValue().increment(key);
+        if (value != null && value == 1) {
+            stringRedisTemplate.expire(key, ttl, unit);
+        }
+        return value;
+    }
+
+    /**
      * 通过键删除对应的值
      */
     public void del(String key) {
