@@ -18,7 +18,7 @@ class ChatService:
         self.graph = graph
         self.settings = settings
 
-    async def stream_chat(self, session_id: str, content: str, user_id: int, role: str) -> StreamingResponse:
+    async def stream_chat(self, session_id: str, content: str, user_id: int, role: str, token: str = "") -> StreamingResponse:
         await self.store.save_message(session_id, "user", content)
         history = await self.store.get_messages(session_id)
 
@@ -35,7 +35,7 @@ class ChatService:
             else:
                 history_messages.append(AIMessage(content=m.content))
 
-        user = UserInfo(user_id=user_id, username="", role=role)
+        user = UserInfo(user_id=user_id, username="", role=role, token=token)
 
         def build_initial_state() -> dict:
             return {

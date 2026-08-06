@@ -50,6 +50,7 @@ async def chat_stream(
         content=req.content,
         user_id=user.user_id,
         role=user.role,
+        token=user.token,
     )
 
 

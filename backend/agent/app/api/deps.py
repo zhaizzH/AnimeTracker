@@ -29,4 +29,5 @@ def verify_token(authorization: str | None = Header(None)) -> UserInfo:
         user_id=int(user_id),
         username="",
         role=role if role in ("USER", "ADMIN") else "USER",
+        token=token,
     )
