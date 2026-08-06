@@ -30,7 +30,7 @@ class AdminLogServiceImplTest {
         page.setRecords(List.of(e));
         when(mapper.selectPage(any(), any())).thenReturn(page);
 
-        PageResult<OperationLogVO> res = service.listLogs(null, null, null, null, null, null, 1, 20);
+        PageResult<OperationLogVO> res = service.listLogs(null, null, null, null, null, null, null, 1, 20);
 
         assertThat(res.getTotal()).isEqualTo(1);
         assertThat(res.getContent()).hasSize(1);

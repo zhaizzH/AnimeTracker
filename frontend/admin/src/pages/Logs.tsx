@@ -72,7 +72,7 @@ export default function Logs() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [detail, setDetail] = useState<OperationLogVO | null>(null);
-  const [failedOnly, setFailedOnly] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'failed'>('all');
   const [analysis, setAnalysis] = useState<OperationLogVO[]>([]);
   const [analysisLoading, setAnalysisLoading] = useState(false);
 
@@ -95,6 +95,7 @@ export default function Logs() {
           username: username.trim() || undefined,
           module: moduleFilter === 'all' ? undefined : moduleFilter,
           action: actionFilter === 'all' ? undefined : actionFilter,
+          status: statusFilter === 'all' ? undefined : statusFilter === 'success' ? 0 : 1,
           start: range?.[0] ? range[0].format('YYYY-MM-DD') : undefined,
           end: range?.[1] ? range[1].format('YYYY-MM-DD') : undefined,
         });
@@ -108,13 +109,13 @@ export default function Logs() {
         setLoading(false);
       }
     },
-    [actionFilter, message, moduleFilter, range, username],
+    [actionFilter, message, moduleFilter, range, statusFilter, username],
   );
 
   useEffect(() => {
     load(1, pageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [statusFilter]);
 
   const loadAnalysis = async () => {
     setAnalysisLoading(true);
@@ -125,6 +126,7 @@ export default function Logs() {
         username: username.trim() || undefined,
         module: moduleFilter === 'all' ? undefined : moduleFilter,
         action: actionFilter === 'all' ? undefined : actionFilter,
+        status: statusFilter === 'all' ? undefined : statusFilter === 'success' ? 0 : 1,
         start: range?.[0] ? range[0].format('YYYY-MM-DD') : undefined,
         end: range?.[1] ? range[1].format('YYYY-MM-DD') : undefined,
       });
@@ -139,16 +141,10 @@ export default function Logs() {
   useEffect(() => {
     loadAnalysis();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moduleFilter, actionFilter, range, username]);
+  }, [moduleFilter, actionFilter, range, statusFilter, username]);
 
-  const analysisRows = useMemo(
-    () => (failedOnly ? analysis.filter((log) => log.status !== 0) : analysis),
-    [analysis, failedOnly],
-  );
-  const visibleList = useMemo(
-    () => (failedOnly ? list.filter((log) => log.status !== 0) : list),
-    [failedOnly, list],
-  );
+  const analysisRows = analysis;
+  const visibleList = list;
   const failedCount = analysisRows.filter((log) => log.status !== 0).length;
   const avgDuration = analysisRows.length
     ? Math.round(analysisRows.reduce((sum, log) => sum + (log.durationMs || 0), 0) / analysisRows.length)
@@ -159,7 +155,7 @@ export default function Logs() {
     setModuleFilter('all');
     setActionFilter('all');
     setRange(null);
-    setFailedOnly(false);
+    setStatusFilter('all');
     setPage(1);
     load(1, pageSize);
     message.success('筛选条件已重置');
@@ -258,7 +254,7 @@ export default function Logs() {
     <div className="dash-stack">
       <div className="dash-toolbar">
         <div>
-          <div className="dash-toolbar-sub">接口 · GET /api/admin/logs?page=&size=&module=&action=&username=&start=&end=</div>
+          <div className="dash-toolbar-sub">接口 · GET /api/admin/logs?page=&size=&module=&action=&username=&status=&start=&end=</div>
         </div>
         <div className="dash-toolbar-actions">
           <Button icon={<DownloadOutlined />} onClick={() => exportCsv(analysisRows)}>
@@ -343,11 +339,12 @@ export default function Logs() {
         <div className="filter-item">
           <span>状态</span>
           <Segmented
-            value={failedOnly ? 'failed' : 'all'}
-            onChange={(value) => setFailedOnly(value === 'failed')}
+            value={statusFilter}
+            onChange={(value) => setStatusFilter(value as 'all' | 'success' | 'failed')}
             options={[
               { value: 'all', label: '全部' },
-              { value: 'failed', label: '仅失败' },
+              { value: 'success', label: '成功' },
+              { value: 'failed', label: '失败' },
             ]}
           />
         </div>
@@ -380,7 +377,7 @@ export default function Logs() {
           pagination={{
             current: page,
             pageSize,
-            total: failedOnly ? visibleList.length : total,
+            total,
             showSizeChanger: true,
             pageSizeOptions: [10, 20, 50],
             showTotal: (count) => `共 ${count} 条`,

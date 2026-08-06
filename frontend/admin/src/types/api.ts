@@ -151,6 +151,7 @@ export interface LogQueryParams {
   module?: string;
   username?: string;
   userId?: number;
+  status?: number;
   start?: string;
   end?: string;
   page?: number;

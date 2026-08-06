@@ -25,13 +25,14 @@ public class AdminLogServiceImpl implements AdminLogService {
     private final OperationLogMapper operationLogMapper;
 
     @Override
-    public PageResult<OperationLogVO> listLogs(String action, String module, String username, Long userId,
+    public PageResult<OperationLogVO> listLogs(String action, String module, String username, Long userId, Integer status,
                                                LocalDate start, LocalDate end, int page, int size) {
         LambdaQueryWrapper<OperationLogEntity> qw = new LambdaQueryWrapper<OperationLogEntity>()
                 .eq(StringUtils.hasText(action), OperationLogEntity::getAction, action)
                 .eq(StringUtils.hasText(module), OperationLogEntity::getModule, module)
                 .like(StringUtils.hasText(username), OperationLogEntity::getUsername, username)
                 .eq(userId != null, OperationLogEntity::getUserId, userId)
+                .eq(status != null, OperationLogEntity::getStatus, status)
                 .ge(start != null, OperationLogEntity::getCreatedAt, start != null ? start.atStartOfDay() : null)
                 .lt(end != null, OperationLogEntity::getCreatedAt, end != null ? end.plusDays(1).atStartOfDay() : null)
                 .orderByDesc(OperationLogEntity::getCreatedAt);

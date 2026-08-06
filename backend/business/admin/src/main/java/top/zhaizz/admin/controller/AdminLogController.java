@@ -36,10 +36,11 @@ public class AdminLogController {
             @RequestParam(required = false) String module,
             @RequestParam(required = false) String username,
             @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) Integer status,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end,
             @RequestParam(defaultValue = "1") @Min(1) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-        return Result.success(adminLogService.listLogs(action, module, username, userId, start, end, page, size));
+        return Result.success(adminLogService.listLogs(action, module, username, userId, status, start, end, page, size));
     }
 }

@@ -2441,6 +2441,13 @@ paths:
         schema:
           type: "integer"
           nullable: false
+      - name: "status"
+        in: "query"
+        description: "0=成功, 1=失败"
+        required: false
+        schema:
+          type: "integer"
+          nullable: false
       - name: "start"
         in: "query"
         description: ""

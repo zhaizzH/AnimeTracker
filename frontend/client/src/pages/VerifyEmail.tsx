@@ -1,17 +1,26 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Form, Input, Button, message } from 'antd';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
 import AuthShell from '@/components/AuthShell';
 
+const RESEND_INTERVAL = 60;
+
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const email = searchParams.get('email') || '';
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const navigate = useNavigate();
   const login = useAuthStore(s => s.login);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setInterval(() => setCountdown((c) => c - 1), 1000);
+    return () => clearInterval(timer);
+  }, [countdown]);
 
   const onFinish = async (values: { code: string }) => {
     setLoading(true);
@@ -28,6 +37,7 @@ export default function VerifyEmail() {
   };
 
   const resendCode = async () => {
+    setCountdown(RESEND_INTERVAL);
     setResending(true);
     try {
       await authApi.resendCode({ email });
@@ -48,7 +58,9 @@ export default function VerifyEmail() {
         <Form.Item>
           <Button type="primary" htmlType="submit" loading={loading} block>验证</Button>
         </Form.Item>
-        <Button type="link" onClick={resendCode} loading={resending} block>重新发送验证码</Button>
+        <Button type="link" onClick={resendCode} loading={resending} disabled={countdown > 0} block>
+          {countdown > 0 ? `重新发送验证码（${countdown}s）` : '重新发送验证码'}
+        </Button>
       </Form>
     </AuthShell>
   );
