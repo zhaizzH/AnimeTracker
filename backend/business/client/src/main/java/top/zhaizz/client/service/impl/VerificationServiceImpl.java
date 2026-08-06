@@ -29,9 +29,7 @@ public class VerificationServiceImpl implements VerificationService {
 
     private final RedisUtil redisUtil;
     private final UserMapper userMapper;
-
-    @Value("${resend.api-key}")
-    private String resendApiKey;
+    private final Resend resend;
 
     private static final long CODE_TTL_MINUTES = 5;
     private static final int CODE_LENGTH = 6;
@@ -57,7 +55,6 @@ public class VerificationServiceImpl implements VerificationService {
         redisUtil.set(RedisKeys.EMAIL + email, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
 
         // 3. 通过 Resend 发送邮件
-        Resend resend = new Resend(resendApiKey);
         CreateEmailOptions params = CreateEmailOptions.builder()
                 .from(resendSendEmail)
                 .to(email)
@@ -119,7 +116,6 @@ public class VerificationServiceImpl implements VerificationService {
         redisUtil.set(RedisKeys.EMAIL_CHANGE + userId + ":" + newEmail, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
 
         // 4. 通过 Resend 发送邮件
-        Resend resend = new Resend(resendApiKey);
         CreateEmailOptions params = CreateEmailOptions.builder()
                 .from(resendSendEmail)
                 .to(newEmail)
@@ -174,7 +170,6 @@ public class VerificationServiceImpl implements VerificationService {
         // 6. 通知旧邮箱（失败不抛异常，不回滚）
         if (oldEmail != null && !oldEmail.isEmpty()) {
             try {
-                Resend resend = new Resend(resendApiKey);
                 CreateEmailOptions params = CreateEmailOptions.builder()
                         .from(resendSendEmail)
                         .to(oldEmail)
@@ -194,7 +189,6 @@ public class VerificationServiceImpl implements VerificationService {
         String code = generateCode();
         redisUtil.set(RedisKeys.PASSWORD_RESET + email, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
 
-        Resend resend = new Resend(resendApiKey);
         CreateEmailOptions params = CreateEmailOptions.builder()
                 .from(resendSendEmail)
                 .to(email)
