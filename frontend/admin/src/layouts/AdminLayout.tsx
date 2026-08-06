@@ -46,7 +46,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const username = useAuthStore((s) => s.username);
-  const role = useAuthStore((s) => s.role);
   const signOut = useAuthStore((s) => s.signOut);
   const [now, setNow] = useState(dayjs());
   const [syncing, setSyncing] = useState(false);
@@ -104,17 +103,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             </div>
           ))}
         </nav>
-        <div className="sidebar-foot">
-          <div className="foot-user">
-            <span className="foot-avatar">{initial}</span>
-            <div>
-              <div>{username ?? 'admin'}</div>
-              <div className="foot-role">角色：{role === 'ADMIN' ? '管理员' : '普通用户'}</div>
-            </div>
-          </div>
-          <div className="foot-text">会话：JWT</div>
-          <div className="foot-text">节点：API /api</div>
-        </div>
       </aside>
       <div className="admin-main">
         <header className="admin-header">
@@ -125,7 +113,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <div className="admin-header-right">
             <span className="header-status">
               <span className="status-dot" />
-              API 已连接
             </span>
             <span className="header-clock">{now.format('YYYY-MM-DD HH:mm:ss')}</span>
             <ThemeToggle />

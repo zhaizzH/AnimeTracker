@@ -29,10 +29,4 @@ public class BizException extends RuntimeException {
         this.code = errorType.getCode();
         this.data = data;
     }
-
-    public BizException(int code, String message) {
-        super(message);
-        this.code = code;
-        this.data = null;
-    }
 }

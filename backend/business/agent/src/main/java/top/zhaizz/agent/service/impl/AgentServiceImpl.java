@@ -79,8 +79,10 @@ public class AgentServiceImpl implements AgentService {
             return restTemplate.exchange(url, method, entity, String.class);
         } catch (HttpStatusCodeException e) {
             String errBody = e.getResponseBodyAsString();
-            throw new BizException(e.getStatusCode().value(),
-                    "Agent 请求失败: " + (errBody == null || errBody.isEmpty() ? "无响应" : errBody));
+            String detail = errBody == null || errBody.isEmpty() ? "无响应" : errBody;
+            throw new BizException(e.getStatusCode().is5xxServerError()
+                            ? ErrorType.INTERNAL_ERROR : ErrorType.BAD_REQUEST,
+                    "Agent 请求失败: " + detail);
         } catch (ResourceAccessException e) {
             log.error("Agent 服务连接失败: {}", url, e);
             throw new BizException(ErrorType.INTERNAL_ERROR, "Agent 服务连接失败");

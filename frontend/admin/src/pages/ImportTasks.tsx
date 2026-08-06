@@ -19,6 +19,18 @@ const statusMeta: Record<ImportRecordVO['status'], { label: string; cls: string 
   FAILED: { label: '失败', cls: 'failed' },
 };
 
+function formatElapsed(startedAt?: string | null): string {
+  if (!startedAt) return '-';
+  const start = new Date(startedAt).getTime();
+  if (Number.isNaN(start)) return '-';
+  const minutes = Math.max(0, Math.floor((Date.now() - start) / 60000));
+  if (minutes < 1) return '不到 1 分钟';
+  if (minutes < 60) return `${minutes} 分钟`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest > 0 ? `${hours} 小时 ${rest} 分钟` : `${hours} 小时`;
+}
+
 export default function ImportTasks() {
   const { message } = App.useApp();
   const [status, setStatus] = useState<ImportStatusVO>({
@@ -255,10 +267,20 @@ export default function ImportTasks() {
                 </div>
                 <div className="current-task-meta">
                   <span>#ID {runningRecord.id}</span>
-                  <span>{runningRecord.startedAt ?? '-'}</span>
                 </div>
-                <div className="progress-track">
-                  <div className="progress-fill" style={{ width: '72%' }} />
+                <div className="current-task-detail">
+                  <div className="task-detail-cell">
+                    <span>开始时间</span>
+                    <strong>{runningRecord.startedAt ?? '-'}</strong>
+                  </div>
+                  <div className="task-detail-cell">
+                    <span>已抓取条目</span>
+                    <strong>{Number(runningRecord.subjectCount ?? 0).toLocaleString()}</strong>
+                  </div>
+                  <div className="task-detail-cell">
+                    <span>已运行</span>
+                    <strong>{formatElapsed(runningRecord.startedAt)}</strong>
+                  </div>
                 </div>
                 <div className="progress-note">正在抓取 Bangumi 数据，状态每 5 秒自动刷新</div>
               </div>

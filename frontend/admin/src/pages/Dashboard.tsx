@@ -20,7 +20,6 @@ import type {
   CollectionStatsVO,
   DashboardOverviewVO,
   HotSubjectVO,
-  ImportRecordVO,
   ImportStatusVO,
   SubjectStatsVO,
   TrendPointVO,
@@ -84,12 +83,6 @@ const emptyImportStatus: ImportStatusVO = {
   lastImportedAt: null,
   totalSubjects: 0,
   recentRecords: [],
-};
-
-const statusLabel: Record<string, string> = {
-  RUNNING: '运行中',
-  COMPLETED: '已完成',
-  FAILED: '失败',
 };
 
 export default function Dashboard() {
@@ -173,14 +166,19 @@ export default function Dashboard() {
       })),
     [subjectStats],
   );
-  const importStatusItems = useMemo(
+  const importRecordItems = useMemo(
     () =>
-      (subjectStats.importStatuses ?? []).map((item) => ({
-        label: item.importStatus === 1 ? '已导入' : '待导入',
-        value: item.count,
-        color: item.importStatus === 1 ? 'var(--green)' : 'var(--text-faint)',
+      (importStatus.recentRecords ?? []).map((record) => ({
+        label: record.startedAt ?? record.season ?? '-',
+        value: Number(record.subjectCount ?? 0),
+        color:
+          record.status === 'FAILED'
+            ? 'var(--red)'
+            : record.status === 'RUNNING'
+              ? 'var(--cyan)'
+              : 'var(--green)',
       })),
-    [subjectStats],
+    [importStatus],
   );
   const ratings = subjectStats.scoreCounts ?? [];
   const records = importStatus.recentRecords ?? [];
@@ -316,24 +314,15 @@ export default function Dashboard() {
               <h3 className="panel-title">
                 <span className="seq">05</span>导入状态
               </h3>
-              <div className="panel-sub">条目导入状态统计</div>
+              <div className="panel-sub">导入记录 · 时间与数量</div>
             </div>
+            <span className="panel-note">
+              <ThunderboltOutlined /> 共 {records.length} 条记录
+            </span>
           </div>
-          <div className="import-metrics">
-            <div className="import-metric running">
-              <span>总数</span>
-              <strong>{subjectStats.importStat?.importTotal ?? 0}</strong>
-            </div>
-            <div className="import-metric success">
-              <span>成功</span>
-              <strong>{subjectStats.importStat?.importSucceeded ?? 0}</strong>
-            </div>
-            <div className="import-metric failed">
-              <span>失败</span>
-              <strong>{subjectStats.importStat?.importFailed ?? 0}</strong>
-            </div>
+          <div className="import-list">
+            <BarList items={importRecordItems} />
           </div>
-          <BarList items={importStatusItems} />
         </section>
 
         <section className="panel chart-lg">
@@ -399,56 +388,6 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <section className="panel chart-md">
-          <div className="panel-head">
-            <div>
-              <h3 className="panel-title">
-                <span className="seq">07</span>最近导入
-              </h3>
-              <div className="panel-sub">
-                {records.length} 条任务记录 · 最近 {importStatus.lastImportedAt ?? '-'}
-              </div>
-            </div>
-            <span className="panel-note">
-              <ThunderboltOutlined /> {Number(importStatus.totalSubjects ?? 0).toLocaleString()}
-            </span>
-          </div>
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>季度</th>
-                  <th>状态</th>
-                  <th>条目</th>
-                  <th>开始</th>
-                </tr>
-              </thead>
-              <tbody>
-                {records.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="empty-cell">
-                      暂无导入记录
-                    </td>
-                  </tr>
-                ) : (
-                  records.slice(0, 4).map((record: ImportRecordVO) => (
-                    <tr key={record.id}>
-                      <td className="num">{record.season || '-'}</td>
-                      <td>
-                        <span className={`status-tag ${record.status.toLowerCase()}`}>
-                          <span className={`status-dot${record.status === 'RUNNING' ? ' running' : ''}`} />
-                          {statusLabel[record.status]}
-                        </span>
-                      </td>
-                      <td className="num">{Number(record.subjectCount ?? 0).toLocaleString()}</td>
-                      <td className="num">{record.startedAt ?? '-'}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
       </div>
     </div>
   );

@@ -939,6 +939,22 @@ a {
   text-align: right;
 }
 
+.import-list .bar-row {
+  grid-template-columns: minmax(0, 1fr) 96px 44px;
+}
+
+.import-list .bar-label {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.import-list .bar-track {
+  width: 96px;
+}
+
 .donut-wrap {
   display: flex;
   align-items: center;
@@ -1670,18 +1686,38 @@ a {
   margin-top: 10px;
 }
 
-.progress-track {
-  height: 8px;
-  overflow: hidden;
-  border-radius: 4px;
-  background: var(--track);
+.current-task-detail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
 }
 
-.progress-fill {
-  height: 100%;
-  border-radius: 4px;
-  background: linear-gradient(90deg, var(--cyan), var(--cyan-light));
-  transition: width 0.4s ease;
+.task-detail-cell {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--cyan-line);
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.task-detail-cell span {
+  display: block;
+  color: var(--text-faint);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-detail-cell strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .progress-note {

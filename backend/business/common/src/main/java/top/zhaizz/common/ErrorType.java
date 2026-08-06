@@ -4,6 +4,9 @@ import lombok.Getter;
 
 /**
  * 错误码枚举
+ * <p>
+ * 业务错误码即 HTTP 状态码（code == status），BizException 只接受该枚举，
+ * 禁止通过裸 int 构造绕过。
  */
 @Getter
 public enum ErrorType {

@@ -3,6 +3,7 @@ package top.zhaizz.client.controller;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -44,8 +45,7 @@ public class CollectionController {
     @GetMapping("/{subjectId}")
     public Result<UserCollectionVO> getCollection(@PathVariable Long subjectId) {
         Long userId = SecurityUtil.getCurrentUserId();
-        UserCollectionVO vo = collectionService.getCollection(userId, subjectId);
-        return vo != null ? Result.success(vo) : Result.success(null);
+        return Result.success(collectionService.getCollection(userId, subjectId));
     }
 
     /**
@@ -76,8 +76,8 @@ public class CollectionController {
     @GetMapping("/schedule")
     public Result<PageResult<UserCollectionVO>> listSchedule(
             @RequestParam(defaultValue = "-1") @Min(-1) @Max(6) int weekday,
-            @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) String quarter,
+            @RequestParam(required = false) @Min(1970) @Max(2100) Integer year,
+            @RequestParam(required = false) @Pattern(regexp = "spring|summer|autumn|winter", message = "季度仅允许: spring/summer/autumn/winter") String quarter,
             @RequestParam(defaultValue = "1") @Min(1) int page,
             @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size) {
         Long userId = SecurityUtil.getCurrentUserId();
