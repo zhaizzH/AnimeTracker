@@ -2,7 +2,7 @@ from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage
 
 from app.agent.client.domain.user_collections_tools import get_my_collections
-from app.agent.client.state import AgentState
+from app.agent.state import AgentState
 from app.schemas.auth import UserInfo
 from tests.fake_models import ToolCallingFakeModel
 

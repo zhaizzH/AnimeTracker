@@ -7,7 +7,7 @@ from app.agent.client.domain.discover.node import discover_agent
 from app.agent.client.domain.recommend.node import recommend_agent
 from app.agent.client.domain.router.gateway_node import gateway_router
 from app.agent.client.domain.search.node import search_agent
-from app.agent.client.state import AgentState
+from app.agent.state import AgentState
 
 _ALLOWED_TARGETS = ("search_agent", "discover_agent", "recommend_agent")
 

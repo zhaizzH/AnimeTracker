@@ -4,7 +4,7 @@ from typing import Any
 from langchain.agents import create_agent
 from langchain_core.messages import SystemMessage
 
-from app.agent.client.state import AgentState
+from app.agent.state import AgentState
 from app.agent.time_tool import _build_current_time_info
 from app.config import AgentChatModelSlot, create_agent_chat_llm
 from app.core.agent_runtime import agent_invoke

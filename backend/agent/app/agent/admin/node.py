@@ -2,7 +2,7 @@ from typing import Any
 
 from langchain_core.messages import AIMessage
 
-from app.agent.client.state import AgentState
+from app.agent.state import AgentState
 
 _DENIED_MESSAGE = "管理功能正在开发中，请直接在管理后台操作。"
 
