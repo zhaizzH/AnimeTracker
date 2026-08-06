@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import chat as chat_api
 from app.api import admin_config as admin_config_api
-from app.agent.client.workflow import build_graph
+from app.agent.graph import build_graph
 from app.config import settings
 from app.core.prompt_sync import initialize_agent_prompt_snapshot
 from app.db.redis_store import RedisStore
