@@ -13,5 +13,5 @@ public class SubjectTag {
     private Long id;
     private Long subjectId;
     private String name;
-    private Integer count;
+    private Integer count;   // 该标签关联条目数
 }

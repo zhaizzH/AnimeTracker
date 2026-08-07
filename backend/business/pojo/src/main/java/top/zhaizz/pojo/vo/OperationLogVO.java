@@ -18,7 +18,7 @@ public class OperationLogVO {
     private String path;
     private String ip;
     private String userAgent;
-    private Integer status;
+    private Integer status;   // 0=成功, 1=失败
     private String errorMsg;
     private Long durationMs;
     private LocalDateTime createdAt;
