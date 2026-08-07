@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
+import top.zhaizz.common.ErrorType;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.common.security.JwtAuthenticationFilter;
 
@@ -44,9 +45,9 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) ->
-                                writeJson(response, 401, "未认证或登录已过期"))
+                                writeJson(response, ErrorType.UNAUTHORIZED))
                         .accessDeniedHandler((request, response, accessDeniedException) ->
-                                writeJson(response, 403, "无权限")))
+                                writeJson(response, ErrorType.FORBIDDEN)))
                 .authorizeHttpRequests(auth -> auth
                         // 公开接口：无需认证（注册、登录、邮箱验证）
                         .requestMatchers("/api/user/auth/register", "/api/user/auth/login",
@@ -77,9 +78,9 @@ public class SecurityConfig {
     }
 
     /** 安全层统一 JSON 响应（绕过 @RestControllerAdvice，直接写 Result） */
-    private void writeJson(HttpServletResponse response, int code, String message) throws IOException {
-        response.setStatus(code);
+    private void writeJson(HttpServletResponse response, ErrorType errorType) throws IOException {
+        response.setStatus(errorType.getCode());
         response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write(objectMapper.writeValueAsString(Result.error(code, message)));
+        response.getWriter().write(objectMapper.writeValueAsString(Result.error(errorType.getCode(), errorType.getMessage())));
     }
 }
