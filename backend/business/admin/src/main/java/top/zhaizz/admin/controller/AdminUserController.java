@@ -21,7 +21,7 @@ public class AdminUserController {
     private final AdminUserService adminUserService;
 
     /**
-     * 分页查看所有注册用户（不返回密码字段）
+     * 分页查看所有注册用户（不返回密码字段），管理后台用户列表加载时触发
      */
     @GetMapping
     public Result<PageResult<UserVO>> listUsers(
@@ -31,7 +31,7 @@ public class AdminUserController {
     }
 
     /**
-     * 修改指定用户的角色
+     * 修改指定用户的角色，管理后台角色变更提交时触发
      */
     @OperationLog(action = "ROLE_CHANGE", module = "ADMIN")
     @PostMapping("/{id}/update-role")

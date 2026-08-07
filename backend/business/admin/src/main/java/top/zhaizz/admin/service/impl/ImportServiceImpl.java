@@ -114,6 +114,7 @@ public class ImportServiceImpl implements ImportService {
         }
     }
 
+    /** 取当前最大导入记录 id，作为识别本次新任务记录的基准 beforeId。 */
     private long maxRecordId() {
         return importRecordMapper.selectList(new LambdaQueryWrapper<ImportRecord>()
                         .orderByDesc(ImportRecord::getId)

@@ -28,7 +28,7 @@ public class AdminLogController {
     private final AdminLogService adminLogService;
 
     /**
-     * 分页查询操作/登录日志
+     * 分页查询操作/登录日志，管理后台日志页筛选查询时触发
      */
     @GetMapping
     public Result<PageResult<OperationLogVO>> listLogs(

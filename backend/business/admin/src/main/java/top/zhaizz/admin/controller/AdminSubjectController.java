@@ -23,7 +23,7 @@ public class AdminSubjectController {
     private final AdminSubjectService adminSubjectService;
 
     /**
-     * 创建新番剧
+     * 创建新番剧，管理后台新建表单提交时触发
      */
     @OperationLog(action = "SUBJECT_CREATE", module = "SUBJECT")
     @PostMapping
@@ -32,7 +32,7 @@ public class AdminSubjectController {
     }
 
     /**
-     * 更新指定番剧的信息
+     * 更新指定番剧的信息，管理后台编辑表单提交时触发
      */
     @OperationLog(action = "SUBJECT_UPDATE", module = "SUBJECT")
     @PostMapping("/{id}/update")
@@ -43,7 +43,7 @@ public class AdminSubjectController {
     }
 
     /**
-     * 删除指定番剧
+     * 删除指定番剧，管理后台删除操作确认时触发
      */
     @OperationLog(action = "SUBJECT_DELETE", module = "SUBJECT")
     @PostMapping("/{id}/remove")
