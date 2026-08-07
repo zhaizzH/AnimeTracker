@@ -19,6 +19,9 @@ public enum ErrorType {
     TOO_MANY_REQUESTS(429, "请求太频繁"),
     VERIFICATION_FAILED(400, "验证失败"),
     EMAIL_NOT_VERIFIED(403, "邮箱未验证"),
+    METHOD_NOT_ALLOWED(405, "请求方法不允许"),
+    UNSUPPORTED_MEDIA_TYPE(415, "不支持的 Content-Type"),
+    PAYLOAD_TOO_LARGE(413, "上传文件大小超过限制"),
     INTERNAL_ERROR(500, "服务器内部错误");
 
     private final int code;
