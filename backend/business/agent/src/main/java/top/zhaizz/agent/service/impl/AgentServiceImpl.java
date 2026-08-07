@@ -24,6 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+/**
+ * AgentService 实现：转发请求到 Python agent，统一归类上游错误
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -32,6 +35,7 @@ public class AgentServiceImpl implements AgentService {
     private final RestTemplate restTemplate;
     private final AgentProperties agentProperties;
     private final ObjectMapper objectMapper;
+    // SSE 流式转发专用模板（懒加载，双检锁保证单例）
     private volatile RestTemplate streamRestTemplate;
 
     @Override
@@ -48,7 +52,7 @@ public class AgentServiceImpl implements AgentService {
         return agentProperties.getBaseUrl() + "/api/agent" + path;
     }
 
-    /** SSE 流式转发专用:不设读超时,思考模型响应可能远超普通接口的 30s 读超时。 */
+    /** SSE 流式转发专用：不设读超时，思考模型响应可能远超普通接口的 30s 读超时。 */
     private RestTemplate getStreamRestTemplate() {
         if (streamRestTemplate == null) {
             synchronized (this) {
@@ -80,6 +84,7 @@ public class AgentServiceImpl implements AgentService {
         } catch (HttpStatusCodeException e) {
             String errBody = e.getResponseBodyAsString();
             String detail = errBody == null || errBody.isEmpty() ? "无响应" : errBody;
+            // 5xx 归为服务端错误，4xx 归为客户端请求错误
             throw new BizException(e.getStatusCode().is5xxServerError()
                             ? ErrorType.INTERNAL_ERROR : ErrorType.BAD_REQUEST,
                     "Agent 请求失败: " + detail);
@@ -120,6 +125,7 @@ public class AgentServiceImpl implements AgentService {
     @Override
     public Result<?> wrapResult(String agentBody) {
         try {
+            // Agent 响应可能是列表或对象，解析失败时回退原文透传
             if (agentBody.trim().startsWith("[")) {
                 List<?> list = objectMapper.readValue(agentBody, List.class);
                 return Result.success(list);

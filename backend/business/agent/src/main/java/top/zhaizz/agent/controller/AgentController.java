@@ -14,7 +14,7 @@ import java.io.PrintWriter;
 import java.util.Map;
 
 /**
- * Agent 控制器
+ * Agent 对话控制器（转发至 Python agent）
  */
 @RestController
 @RequestMapping("/api/agent")
@@ -33,10 +33,11 @@ public class AgentController {
     }
 
     /**
-     * Agent 流式对话
+     * Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）
      */
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public void stream(@RequestHeader("Authorization") String auth, @RequestBody Map<String, Object> body, HttpServletResponse response) throws IOException {
+        // 兼容前端用 message 字段传消息的场景
         if (!body.containsKey("content") && body.containsKey("message")) {
             body.put("content", body.remove("message"));
         }
