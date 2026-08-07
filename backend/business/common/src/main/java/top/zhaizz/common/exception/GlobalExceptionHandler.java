@@ -119,7 +119,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
     public Result<Void> handleHttpMediaTypeNotSupported(HttpMediaTypeNotSupportedException e) {
         log.warn("不支持的 Content-Type: {}", e.getContentType());
-        return Result.error(ErrorType.UNSUPPORTED_MEDIA_TYPE.getCode(), "不支持的 Content-Type");
+        return Result.error(ErrorType.UNSUPPORTED_MEDIA_TYPE.getCode(), ErrorType.UNSUPPORTED_MEDIA_TYPE.getMessage());
     }
 
     /**

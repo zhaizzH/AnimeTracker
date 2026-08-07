@@ -59,7 +59,7 @@ String tokenHash = DigestUtils.sha256Hex(token);
 统一 `{code, message, data}`:
 
 ```json
-{ "code": 404, "message": "接口不存在", "data": null }
+{ "code": 404, "message": "接口不存在" }
 ```
 
 - `code` = HTTP 状态码;`data` 仅业务异常携带(如参数校验字段错误映射),成功时 `data` 为业务数据。

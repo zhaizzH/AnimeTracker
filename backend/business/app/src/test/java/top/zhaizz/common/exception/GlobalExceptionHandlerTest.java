@@ -4,11 +4,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import top.zhaizz.common.ErrorType;
 import top.zhaizz.common.result.Result;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,6 +47,15 @@ class GlobalExceptionHandlerTest {
         assertThat(body.getCode()).isEqualTo(404);
         assertThat(body.getMessage()).isEqualTo("接口不存在");
         assertThat(body.getMessage()).doesNotContain("/secret");
+    }
+
+    @Test
+    void mediaTypeNotSupportedHidesContentType() {
+        Result<Void> body = handler.handleHttpMediaTypeNotSupported(
+                new HttpMediaTypeNotSupportedException(new MediaType("text", "html"), List.of(MediaType.APPLICATION_JSON)));
+        assertThat(body.getCode()).isEqualTo(415);
+        assertThat(body.getMessage()).isEqualTo("不支持的 Content-Type");
+        assertThat(body.getMessage()).doesNotContain("html");
     }
 
     @Test

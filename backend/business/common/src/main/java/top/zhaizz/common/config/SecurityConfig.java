@@ -78,8 +78,9 @@ public class SecurityConfig {
 
     /** 安全层统一 JSON 响应（绕过 @RestControllerAdvice，直接写 Result） */
     private void writeJson(HttpServletResponse response, ErrorType errorType) throws IOException {
-        response.setStatus(errorType.getCode());
+        int code = errorType.getCode();
+        response.setStatus(code);
         response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write(objectMapper.writeValueAsString(Result.error(errorType.getCode(), errorType.getMessage())));
+        response.getWriter().write(objectMapper.writeValueAsString(Result.error(code, errorType.getMessage())));
     }
 }
