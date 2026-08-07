@@ -23,6 +23,7 @@ public class OperationLogCleanupTask {
 
     private final OperationLogMapper operationLogMapper;
 
+    /** 每日清理超过保留期（90 天）的操作日志 */
     @Scheduled(cron = "0 30 3 * * ?") // 每天 03:30
     public void cleanup() {
         int deleted = operationLogMapper.delete(new LambdaQueryWrapper<OperationLogEntity>()

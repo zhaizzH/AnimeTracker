@@ -8,6 +8,9 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
 
+/**
+ * RestTemplate 配置：调用 Agent 服务用，连接 10s / 读取 30s
+ */
 @Configuration
 @EnableConfigurationProperties(AgentProperties.class)
 public class RestTemplateConfig {

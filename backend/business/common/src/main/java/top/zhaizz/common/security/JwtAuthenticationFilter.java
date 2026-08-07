@@ -42,7 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (StringUtils.hasText(token)) {
             if (jwtTokenProvider.validateToken(token)) {
-                // 计算 SHA256 摘要，检查 Redis 白名单
+                // 先算 SHA256 摘要,防止明文 token 进 Redis 键
                 String tokenHash = DigestUtils.sha256Hex(token);
                 Boolean exists = redisUtil.exists(RedisKeys.TOKEN + tokenHash);
 
@@ -64,9 +64,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 
-    /**
-     * 从请求头中提取 Bearer Token
-     */
     private String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)) {

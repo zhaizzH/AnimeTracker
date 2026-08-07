@@ -10,11 +10,12 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * CORS 跨域配置
+ * CORS 跨域配置：允许任意来源携带凭证访问 /api/**
  */
 @Configuration
 public class CorsConfig {
 
+    /** 注册 CORS 配置源，仅对 /api/** 生效 */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

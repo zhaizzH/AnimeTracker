@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Redis客户端
+ * Redis 常用操作封装，统一走 StringRedisTemplate（String 值 + Set 成员）
  */
 @Component
 public class RedisUtil {

@@ -29,6 +29,7 @@ public class OperationLogAspect {
     private final OperationLogMapper operationLogMapper;
     private final ObjectMapper objectMapper;
 
+    /** 环绕增强：执行业务并记录操作日志，日志写入失败仅告警不阻断业务 */
     @Around("@annotation(annotation)")
     public Object around(ProceedingJoinPoint pjp, OperationLog annotation) throws Throwable {
         long start = System.currentTimeMillis();
@@ -42,6 +43,7 @@ public class OperationLogAspect {
         }
     }
 
+    /** 组装日志实体（成功/失败状态、耗时、请求上下文）并入库 */
     private void record(ProceedingJoinPoint pjp, OperationLog ann, boolean success, String error, long start) {
         try {
             OperationLogEntity entity = new OperationLogEntity();
