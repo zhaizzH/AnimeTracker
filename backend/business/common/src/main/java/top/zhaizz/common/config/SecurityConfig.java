@@ -23,20 +23,20 @@ import top.zhaizz.common.security.JwtAuthenticationFilter;
 import java.io.IOException;
 
 /**
- * 安全配置类
+ * Spring Security 配置：无状态 JWT 认证、接口放行与角色鉴权
  */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-    // JWT 认证过滤器
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    // CORS 配置源
     private final CorsConfigurationSource corsConfigurationSource;
-    // 统一 JSON 序列化
     private final ObjectMapper objectMapper;
 
+    /**
+     * 配置无状态 JWT 安全过滤链：CORS、CSRF 关闭、接口放行与角色鉴权
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -49,7 +49,7 @@ public class SecurityConfig {
                         .accessDeniedHandler((request, response, accessDeniedException) ->
                                 writeJson(response, ErrorType.FORBIDDEN)))
                 .authorizeHttpRequests(auth -> auth
-                        // 公开接口：无需认证（注册、登录、邮箱验证）
+                        // 认证流程接口须先公开，否则无法登录注册
                         .requestMatchers("/api/user/auth/register", "/api/user/auth/login",
                                 "/api/user/auth/verify-email", "/api/user/auth/resend-code",
                                 "/api/user/auth/refresh",
@@ -57,13 +57,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/user/subjects/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/user/tags/**").permitAll()
 
-                        // 管理接口：需 ADMIN 角色
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        // 用户接口：需认证
                         .requestMatchers("/api/user/**").authenticated()
-                        // 文件上传：需认证
                         .requestMatchers("/api/common/files/**").authenticated()
-                        // Agent 代理：需认证
                         .requestMatchers("/api/agent/**").authenticated()
                         .anyRequest().permitAll()
                 )
@@ -72,6 +68,9 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * 密码加密器（BCrypt）
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

@@ -29,9 +29,7 @@ import java.util.stream.Collectors;
 /**
  * 全局异常处理，捕获 BizException、参数校验异常、Spring MVC 异常等
  * <p>
- * 统一拦截所有 Controller 抛出的异常，并按定义好的处理逻辑返回统一的 JSON 响应结构
- * <p>
- * 异常范围从小到大
+ * 统一返回 {code, message, data}，异常按范围从小到大逐级匹配，兜底未知异常 500
  */
 @Slf4j
 @RestControllerAdvice
