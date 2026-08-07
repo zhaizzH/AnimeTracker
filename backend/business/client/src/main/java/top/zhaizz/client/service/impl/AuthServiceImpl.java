@@ -181,9 +181,6 @@ public class AuthServiceImpl implements AuthService {
         return new LoginVO(accessToken, refreshToken, UserConverter.toUserVO(user));
     }
 
-    /**
-     * 生成 64 位十六进制随机 Refresh Token
-     */
     private String generateRefreshToken() {
         byte[] bytes = new byte[32];
         SECURE_RANDOM.nextBytes(bytes);
