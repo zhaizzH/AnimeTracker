@@ -12,6 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SubjectRelationVO {
 
-    private String relation;
+    private String relation;  // prequel, sequel, side_story 等
     private SubjectListVO relatedSubject;
 }

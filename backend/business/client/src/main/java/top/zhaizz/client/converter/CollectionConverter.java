@@ -38,7 +38,7 @@ public class CollectionConverter {
         return result;
     }
 
-    /** 列表转换 */
+    /** 收藏列表转换（空列表返回空集合） */
     public static List<UserCollectionVO> toUserCollectionVOList(List<UserCollectionSubjectVO> list) {
         if (list == null) return List.of();
         return list.stream()

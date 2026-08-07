@@ -3,9 +3,11 @@ package top.zhaizz.common.exception;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import top.zhaizz.common.ErrorType;
 import top.zhaizz.common.result.Result;
 
 import java.util.HashMap;
@@ -26,9 +29,7 @@ import java.util.stream.Collectors;
 /**
  * 全局异常处理，捕获 BizException、参数校验异常、Spring MVC 异常等
  * <p>
- * 统一拦截所有 Controller 抛出的异常，并按定义好的处理逻辑返回统一的 JSON 响应结构
- * <p>
- * 异常范围从小到大
+ * 统一返回 {code, message, data}，异常按范围从小到大逐级匹配，兜底未知异常 500
  */
 @Slf4j
 @RestControllerAdvice
@@ -45,6 +46,26 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 处理方法级鉴权失败（@PreAuthorize / 角色校验）
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Result<Void> handleAccessDenied(AccessDeniedException e) {
+        log.warn("无权限: {}", e.getMessage());
+        return Result.error(ErrorType.FORBIDDEN.getCode(), ErrorType.FORBIDDEN.getMessage());
+    }
+
+    /**
+     * 处理数据库约束冲突（唯一键 / 外键等）
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Result<Void> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        log.warn("数据库约束冲突: {}", e.getMessage());
+        return Result.error(ErrorType.CONFLICT.getCode(), ErrorType.CONFLICT.getMessage());
+    }
+
+    /**
      * 处理 @Valid 参数校验失败
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -55,7 +76,7 @@ public class GlobalExceptionHandler {
             errors.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
         log.warn("Valid 参数校验失败: {}", errors);
-        return Result.error(400, "请求参数错误", errors);
+        return Result.error(ErrorType.BAD_REQUEST.getCode(), "请求参数错误", errors);
     }
 
     /**
@@ -68,7 +89,7 @@ public class GlobalExceptionHandler {
                 .map(ConstraintViolation::getMessage)
                 .collect(Collectors.joining(", "));
         log.warn("Validated 参数校验失败: {}", message);
-        return Result.error(400, message);
+        return Result.error(ErrorType.BAD_REQUEST.getCode(), message);
     }
 
     /**
@@ -78,7 +99,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
         log.warn("请求体解析失败: {}", e.getMessage());
-        return Result.error(400, "请求体格式错误");
+        return Result.error(ErrorType.BAD_REQUEST.getCode(), "请求体格式错误");
     }
 
     /**
@@ -88,7 +109,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handleBadRequestParams(Exception e) {
         log.warn("请求参数错误: {}", e.getMessage());
-        return Result.error(400, "请求参数错误");
+        return Result.error(ErrorType.BAD_REQUEST.getCode(), "请求参数错误");
     }
 
     /**
@@ -98,7 +119,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
     public Result<Void> handleHttpMediaTypeNotSupported(HttpMediaTypeNotSupportedException e) {
         log.warn("不支持的 Content-Type: {}", e.getContentType());
-        return Result.error(415, "不支持的 Content-Type: " + e.getContentType());
+        return Result.error(ErrorType.UNSUPPORTED_MEDIA_TYPE.getCode(), ErrorType.UNSUPPORTED_MEDIA_TYPE.getMessage());
     }
 
     /**
@@ -108,7 +129,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
     public Result<Void> handleHttpRequestMethodNotSupported(HttpRequestMethodNotSupportedException e) {
         log.warn("不支持的请求方法: {}", e.getMethod());
-        return Result.error(405, "不支持的请求方法: " + e.getMethod());
+        return Result.error(ErrorType.METHOD_NOT_ALLOWED.getCode(), "不支持的请求方法: " + e.getMethod());
     }
 
     /**
@@ -118,7 +139,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.PAYLOAD_TOO_LARGE)
     public Result<Void> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException e) {
         log.warn("上传文件超限: {}", e.getMessage());
-        return Result.error(413, "上传文件大小超过限制");
+        return Result.error(ErrorType.PAYLOAD_TOO_LARGE.getCode(), "上传文件大小超过限制");
     }
 
     /**
@@ -127,7 +148,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Result<Void> handleNoResourceFound(NoResourceFoundException e) {
-        return Result.error(404, "接口不存在: " + e.getResourcePath());
+        return Result.error(ErrorType.NOT_FOUND.getCode(), "接口不存在");
     }
 
     /**
@@ -137,6 +158,6 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Void> handleException(Exception e) {
         log.error("服务器内部错误", e);
-        return Result.error(500, "服务器内部错误");
+        return Result.error(ErrorType.INTERNAL_ERROR.getCode(), ErrorType.INTERNAL_ERROR.getMessage());
     }
 }

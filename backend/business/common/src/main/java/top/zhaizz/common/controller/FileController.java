@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 文件控制器
+ * 文件上传控制器：图片存 MinIO，返回可访问 URL
  */
 @Slf4j
 @RestController
@@ -30,25 +30,22 @@ public class FileController {
     private static final List<String> ALLOWED_CATEGORIES = List.of("avatar", "cover");
 
     /**
-     * 上传文件
+     * 上传图片到 MinIO 并返回访问 URL；type 限定 avatar/cover，仅接受 JPG/PNG/WebP
      */
     @PostMapping("/upload")
     public Result<String> upload(
             @RequestParam("file") MultipartFile file,
             @RequestParam(defaultValue = "avatar") String type) {
 
-        // 校验分类
         if (!ALLOWED_CATEGORIES.contains(type)) {
             throw new BizException(ErrorType.BAD_REQUEST, "无效的上传分类: " + type);
         }
 
-        // 校验文件类型
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
             throw new BizException(ErrorType.BAD_REQUEST, "仅支持 JPG/PNG/WebP 格式的图片");
         }
 
-        // 推断扩展名
         String ext = switch (contentType) {
             case "image/jpeg" -> "jpg";
             case "image/png" -> "png";
@@ -56,8 +53,8 @@ public class FileController {
             default -> throw new IllegalStateException("Unexpected content type: " + contentType);
         };
 
-        // 生成对象路径
-        String dir = type + "s"; // avatar → avatars, cover → covers
+        // type 复数化拼对象路径：avatar → avatars, cover → covers
+        String dir = type + "s";
         String objectName = dir + "/" + UUID.randomUUID() + "." + ext;
 
         try {

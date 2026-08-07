@@ -13,6 +13,7 @@ import java.util.List;
  * 番剧 Mapper
  */
 public interface SubjectMapper extends BaseMapper<Subject> {
+    /** 多维条件搜索番剧（分页）：关键字/标签/评分/年份/周 + 排序 */
     IPage<Subject> searchWithFilters(
             Page<?> page,
             @Param("keyword") String keyword,

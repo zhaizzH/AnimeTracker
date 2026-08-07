@@ -10,5 +10,5 @@ public class TagVO {
 
     private Long id;
     private String name;
-    private Integer count;
+    private Integer count;   // 该标签关联条目数
 }

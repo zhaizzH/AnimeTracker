@@ -3,7 +3,7 @@ package top.zhaizz.client.util;
 import java.time.LocalDate;
 
 /**
- * 季度工具类
+ * 季度工具类：季度字符串与年份日期范围换算，并提供当前季度/年份
  */
 public class SeasonUtil {
     private SeasonUtil() {}

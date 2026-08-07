@@ -30,6 +30,9 @@ public class MinioConfig {
                 .build();
     }
 
+    /**
+     * 检查并创建 Bucket、设置公开读策略；失败（如 MinIO 未启动）时返回 false 不阻断启动
+     */
     @Bean
     public boolean initMinioBucket(MinioClient minioClient) {
         try {

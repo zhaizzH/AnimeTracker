@@ -13,6 +13,9 @@ import top.zhaizz.common.exception.BizException;
 
 import java.lang.reflect.Method;
 
+/**
+ * 限流切面：@RateLimit 各规则逐条校验，超限抛 429
+ */
 @Aspect
 @Component
 @RequiredArgsConstructor
@@ -20,6 +23,7 @@ public class RateLimitAspect {
 
     private final RateLimiter rateLimiter;
 
+    /** 环绕增强：按 @RateLimit 全部规则校验通过才放行业务 */
     @Around("@annotation(rateLimit)")
     public Object around(ProceedingJoinPoint pjp, RateLimit rateLimit) throws Throwable {
         for (RateLimit.Rule rule : rateLimit.value()) {

@@ -30,7 +30,7 @@ public class AdminDashboardController {
     private final DashboardService dashboardService;
 
     /**
-     * 看板总览
+     * 看板总览，管理后台进入看板页时加载核心运营指标
      */
     @GetMapping("/overview")
     public Result<DashboardOverviewVO> overview() {
@@ -38,7 +38,7 @@ public class AdminDashboardController {
     }
 
     /**
-     * 每日趋势（新增用户/收藏/登录）
+     * 每日趋势（新增用户/收藏/登录），看板趋势图展示时触发
      */
     @GetMapping("/trends")
     public Result<List<TrendPointVO>> trends(
@@ -47,7 +47,7 @@ public class AdminDashboardController {
     }
 
     /**
-     * 收藏类型与评分分布
+     * 收藏类型与评分分布，看板分布图加载时触发
      */
     @GetMapping("/collection-stats")
     public Result<CollectionStatsVO> collectionStats() {
@@ -55,7 +55,7 @@ public class AdminDashboardController {
     }
 
     /**
-     * 番剧季度数量、导入状态与导入记录统计
+     * 番剧季度数量、导入状态与导入记录统计，看板内容面板加载时触发
      */
     @GetMapping("/subject-stats")
     public Result<SubjectStatsVO> subjectStats() {
@@ -63,7 +63,7 @@ public class AdminDashboardController {
     }
 
     /**
-     * 本站收藏最多 Top N 热门榜
+     * 本站收藏最多 Top N 热门榜，看板热门排行加载时触发
      */
     @GetMapping("/hot")
     public Result<List<HotSubjectVO>> hot(

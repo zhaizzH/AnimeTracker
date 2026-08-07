@@ -55,7 +55,7 @@ public class UserController {
     }
 
     /**
-     * 发送邮箱修改验证码
+     * 发送邮箱修改验证码（修改绑定邮箱前调用，校验新邮箱未被占用）
      */
     @PostMapping("/send-email-code")
     public Result<Void> sendEmailCode(@Valid @RequestBody SendEmailCodeRequest request) {
@@ -65,7 +65,7 @@ public class UserController {
     }
 
     /**
-     * 校验邮箱修改验证码
+     * 校验邮箱修改验证码（通过后更新绑定邮箱并通知旧邮箱）
      */
     @PostMapping("/verify-email-code")
     public Result<Void> verifyEmailCode(@Valid @RequestBody VerifyEmailCodeRequest request) {

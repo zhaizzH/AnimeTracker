@@ -18,7 +18,7 @@ public class ImportController {
     private final ImportService importService;
 
     /**
-     * 运行番剧导入
+     * 运行番剧导入，供管理后台手动触发数据同步
      *
      * @param mode    导入模式：full / season / recent / since
      * @param key     季度标识（season 模式必填），如 "2026-summer"
@@ -36,7 +36,7 @@ public class ImportController {
     }
 
     /**
-     * 获取番剧导入状态
+     * 获取番剧导入状态，供管理后台导入进度轮询触发
      */
     @GetMapping("/status")
     public Result<ImportStatusVO> getImportStatus() {

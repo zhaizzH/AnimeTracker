@@ -10,6 +10,9 @@ public class LogConverter {
     private LogConverter() {
     }
 
+    /**
+     * OperationLogEntity 实体转操作日志 VO
+     */
     public static OperationLogVO toVO(OperationLogEntity e) {
         OperationLogVO vo = new OperationLogVO();
         vo.setId(e.getId());

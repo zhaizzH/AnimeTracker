@@ -39,6 +39,7 @@ public class UserPrincipal implements Authentication {
         return null;
     }
 
+    /** 返回当前用户 ID（principal 直接存 userId 而非包装对象） */
     @Override
     public Object getPrincipal() {
         return userId;

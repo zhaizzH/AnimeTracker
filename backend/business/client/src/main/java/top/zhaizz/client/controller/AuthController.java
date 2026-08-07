@@ -52,7 +52,7 @@ public class AuthController {
     }
 
     /**
-     * 重新发送验证码
+     * 重新发送验证码（验证码邮件未收到或已过期时重发）
      */
     @RateLimit({
             @RateLimit.Rule(key = RateLimit.LimitKey.EMAIL, limit = 1, windowSeconds = 60),
@@ -65,7 +65,7 @@ public class AuthController {
     }
 
     /**
-     * 用户登录
+     * 用户登录（邮箱已验证，支持用户名或邮箱 + 密码）
      */
     @OperationLog(action = "LOGIN", module = "AUTH")
     @PostMapping("/login")
@@ -75,7 +75,7 @@ public class AuthController {
     }
 
     /**
-     * 忘记密码 — 发送重置验证码
+     * 忘记密码 — 发送重置验证码（邮箱不存在时静默成功，防枚举）
      */
     @RateLimit({
             @RateLimit.Rule(key = RateLimit.LimitKey.EMAIL, limit = 1, windowSeconds = 60),
@@ -88,7 +88,7 @@ public class AuthController {
     }
 
     /**
-     * 忘记密码 — 重置密码
+     * 忘记密码 — 重置密码（验证码校验通过后重置并踢出所有设备）
      */
     @OperationLog(action = "RESET_PASSWORD", module = "AUTH")
     @PostMapping("/reset-password")
@@ -108,7 +108,7 @@ public class AuthController {
     }
 
     /**
-     * 用户退出登录
+     * 用户退出登录（当前 token 立即失效）
      */
     @OperationLog(action = "LOGOUT", module = "AUTH")
     @PostMapping("/logout")
