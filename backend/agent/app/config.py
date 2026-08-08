@@ -8,7 +8,8 @@ from app.llm.models import create_llm
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    # importer 的 DB_*/BANGUMI_*/MINIO_* 共用本 .env，但不进 Settings，仅 importer 侧 load_dotenv+os.getenv 读取
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # LLM
     dashscope_api_key: str = ""

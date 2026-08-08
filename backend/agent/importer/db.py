@@ -290,3 +290,15 @@ def complete_import_record(session: Session, record_id: int, subject_count: int,
             "error_message": error_message,
         },
     )
+
+
+def fail_stale_running_records(session: Session, message: str = "导入进程提前退出"):
+    """把未正常结束的 RUNNING 导入记录翻为 FAILED（进程硬退兜底）。"""
+    session.execute(
+        text("""
+            UPDATE import_record
+            SET status = 'FAILED', completed_at = :now, error_message = :message
+            WHERE status = 'RUNNING'
+        """),
+        {"now": datetime.now(), "message": message},
+    )
