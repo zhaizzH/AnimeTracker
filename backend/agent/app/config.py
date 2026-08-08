@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     llm_max_tokens: int = 4096
     llm_thinking_budget: int = 2048
 
+    # opencode-go 网关(可选 LLM provider;模型名带 opencode-go/ 前缀即启用)
+    opencode_api_key: str = ""
+    opencode_base_url: str = "https://opencode.ai/zen/go/v1"
+
     # Server
     agent_host: str = "0.0.0.0"
     agent_port: int = 8090

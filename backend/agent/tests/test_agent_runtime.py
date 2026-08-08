@@ -58,3 +58,20 @@ def test_agent_stream_default_has_no_initial_state():
     a = _CaptureStreamAgent()
     agent_stream(a, [])
     assert "user" not in a.payload
+
+
+def test_extract_reasoning_content_reads_anthropic_thinking_block():
+    from app.core.agent_runtime import _extract_reasoning_content_from_chunk
+    chunk = AIMessageChunk(content=[
+        {"type": "thinking", "thinking": "先拆需求", "signature": "sig1"},
+        {"type": "text", "text": "回答"},
+    ])
+    assert _extract_reasoning_content_from_chunk(chunk) == "先拆需求"
+
+
+def test_extract_reasoning_content_merges_openai_and_anthropic():
+    from app.core.agent_runtime import _extract_reasoning_content_from_chunk
+    chunk = AIMessageChunk(content=[{"type": "thinking", "thinking": "思考B"}])
+    chunk.additional_kwargs["reasoning_content"] = "思考A"
+    out = _extract_reasoning_content_from_chunk(chunk)
+    assert "思考A" in out and "思考B" in out

@@ -126,6 +126,8 @@ backend/agent/
 | `llm_temperature` | `0.3` | 默认温度（route slot 固定 0.0） |
 | `llm_max_tokens` | `4096` | 最大 token |
 | `llm_thinking_budget` | `2048` | 思考预算 |
+| `opencode_api_key` | 空 | opencode-go 网关 Key（可选；模型名带 `opencode-go/` 前缀即走此 provider，例如 `opencode-go/kimi-k3`） |
+| `opencode_base_url` | `https://opencode.ai/zen/go/v1` | opencode-go 网关地址（OpenAI 兼容端点） |
 | `agent_host` / `agent_port` | `0.0.0.0` / `8090` | 服务监听 |
 | `backend_base_url` | `http://localhost:8080` | 业务后端地址 |
 | `redis_url` | `redis://localhost:6379/0` | Redis 地址（会话 / 消息 / 提示词 / 运行时模型配置） |

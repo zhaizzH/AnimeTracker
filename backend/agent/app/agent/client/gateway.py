@@ -7,7 +7,7 @@ from langchain_core.messages import SystemMessage
 from app.agent.state import AgentState
 from app.agent.time_tool import _build_current_time_info
 from app.config import AgentChatModelSlot, create_agent_chat_llm
-from app.core.agent_runtime import agent_invoke
+from app.core.agent_runtime import agent_invoke, extract_text
 from app.core.prompt_sync import load_managed_prompt
 
 _ALLOWED_TARGETS = ("search_agent", "discover_agent", "recommend_agent")
@@ -34,9 +34,10 @@ def _resolve_routing_result(raw_payload: Any) -> dict[str, str]:
     messages = raw_payload.get("messages") or []
     if not messages:
         raise ValueError("gateway payload messages cannot be empty")
-    content = getattr(messages[-1], "content", None)
-    if not isinstance(content, str):
-        raise ValueError("gateway last message content must be a string")
+    # Anthropic 端点模型返回 content 块列表(thinking+text),用 extract_text 统一抽取文本
+    content = extract_text(messages[-1])
+    if not content.strip():
+        raise ValueError("gateway last message content is empty")
     try:
         data = json.loads(content.strip())
     except json.JSONDecodeError as exc:
