@@ -15,7 +15,7 @@ AnimeTracker 是一个面向个人的动漫追番管理工具。它提供番剧�
 - **放送时间表**：按时间线查看番剧更新安排。
 - **AI 对话 Agent**：自然语言搜索番剧、发现新番、获取推荐，支持流式输出（思考过程 + 回答 + 工具调用状态）。
 - **数据导入**：从 Bangumi（bgm.tv）拉取番剧元数据并清洗入库。
-- **运营后台（预览版）**：仪表盘、番剧管理、用户管理、导入任务、操作日志、Agent 配置等管理端界面（前端预览版已就绪，登录当前为演示模式）。
+- **运营后台（预览版）**：仪表盘、番剧管理、用户管理、导入任务、操作日志、Agent 配置等管理端界面（前端预览版已就绪，登录与仪表盘已接入真实 API，其余页面陆续接入中）。
 
 ---
 
@@ -50,9 +50,9 @@ AnimeTracker 是一个面向个人的动漫追番管理工具。它提供番剧�
 │       业务后端 business (Spring Boot :8080)   │
 │  common / pojo / admin / client / agent / app │
 │                                               │
-│  ├─ /api/user/*       直接处理业务请求         │
+│  ├─ /api/client/*      直接处理业务请求       │
 │  ├─ /api/admin/*      管理端 API               │
-│  └─ /api/agent/*  ──► 转发到 Python Agent      │
+│  └─ /api/client/agent/* ──► 转发到 Python Agent │
 └───────────────────────┬──────────────────────┘
                          │  HTTP 转发
                          ▼
@@ -153,7 +153,7 @@ mvn -pl app spring-boot:run -Dspring-boot.run.profiles.active=local
 
 - 配置项：`zzz.datasource`（MySQL）、`zzz.data.redis`、`jwt.secret` / `jwt.expiration`、`minio.*`、`resend.api-key`、`at.agent.host` / `at.agent.port`。
 - API 文档（Knife4j）：http://localhost:8080/doc.html
-- 该模块内置 `agent` 转发层，对外暴露 `/api/agent/*`，将请求转发至 Python Agent。
+- 该模块内置 `agent` 转发层，对外暴露 `/api/client/agent/*`（用户端）与 `/api/admin/agent/*`（管理端），将请求转发至 Python Agent。
 
 ### 4. AI Agent（Python，端口 8090）
 
@@ -168,7 +168,7 @@ uvicorn main:app --reload --port 8090
 
 - 通过 `BACKEND_BASE_URL`（默认 `http://localhost:8080`）回查业务 API。
 - 会话与提示词存储于 Redis；Redis 不可用时仅告警，会话功能不可用。
-- 交互接口：`POST /api/agent/stream`（SSE 流式）、`GET /api/agent/sessions`、`GET /docs`（Swagger）。
+- 交互接口：`POST /api/client/agent/stream`（SSE 流式）、`GET /api/client/agent/sessions`、`GET /docs`（Swagger）。
 
 ### 5. 数据导入（Bangumi）
 
@@ -204,7 +204,7 @@ npm run dev                   # 开发服务器 http://localhost:5174
 ```
 
 - 与用户端共用同一套 `/api` 代理（指向 `http://localhost:8080`）。
-- 当前为**预览版**：登录页与仪表盘可交互，其余页面（番剧 / 用户 / 导入 / 日志 / Agent 配置）骨架已就位、陆续接入中；登录暂为演示模式。
+- 当前为**预览版**：登录页与仪表盘已接入真实 API，其余页面（番剧 / 用户 / 导入 / 日志 / Agent 配置）陆续接入中；登录调用真实 `/api/client/auth/login` 并校验 `ADMIN` 角色。
 
 ---
 
@@ -255,13 +255,13 @@ npm run dev                   # 开发服务器 http://localhost:5174
 
 | 分组 | 路径前缀 | 说明 |
 |------|----------|------|
-| 认证 | `/api/user/auth` | 注册 / 登录 / 登出 / 邮箱验证 / 找回密码 |
-| 用户 | `/api/user` | 个人信息获取与修改 |
-| 番剧 | `/api/user/subjects` | 列表 / 搜索 / 季度筛选 / 详情 / 剧集 |
-| 标签 | `/api/user/tags` | 标签列表与标签下番剧 |
-| 收藏 | `/api/user/collections` | 收藏与观看进度 |
+| 认证 | `/api/client/auth` | 注册 / 登录 / 登出 / 邮箱验证 / 找回密码 |
+| 用户 | `/api/client` | 个人信息获取与修改 |
+| 番剧 | `/api/client/subjects` | 列表 / 搜索 / 季度筛选 / 详情 / 剧集 |
+| 标签 | `/api/client/tags` | 标签列表与标签下番剧 |
+| 收藏 | `/api/client/collections` | 收藏与观看进度 |
 | 管理 | `/api/admin/*` | 条目 CRUD、用户管理、导入任务、操作日志、Agent 配置 |
-| Agent | `/api/agent/*` | 会话管理与 SSE 流式对话（转发至 Python Agent） |
+| Agent | `/api/client/agent/*` | 会话管理与 SSE 流式对话（转发至 Python Agent） |
 
 ---
 
@@ -333,5 +333,5 @@ npm run dev                   # 开发服务器 http://localhost:5174
 
 - ✅ 用户端前端（`frontend/client`）：功能完整，可生产构建。
 - ✅ 业务后端、AI Agent、数据导入：可用。
-- 🟡 管理端前端（`frontend/admin`）：预览版已就绪（登录 + 仪表盘可交互，番剧 / 用户 / 导入 / 日志 / Agent 配置页面骨架就位，陆续接入中；登录现为演示模式）。
+- 🟡 管理端前端（`frontend/admin`）：预览版已就绪（登录与仪表盘已接入真实 API，番剧 / 用户 / 导入 / 日志 / Agent 配置页面陆续接入中）。
 - 🚧 容器化 / CI 流水线：尚未提供（欢迎贡献 `docker-compose.yml` 与 CI 配置）。

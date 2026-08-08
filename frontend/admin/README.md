@@ -142,7 +142,7 @@ src/
 
 ### 鉴权流程
 
-- 登录调用真实 `POST /api/user/auth/login` 接口
+- 登录调用真实 `POST /api/client/auth/login` 接口
 - 登录成功后检查 `user.role === 'ADMIN'`，非管理员拒绝进入
 - Token / RefreshToken 存入 `localStorage` + `authStore`
 - Axios 拦截器自动附加 JWT，401 时自动刷新 Token
@@ -153,7 +153,7 @@ src/
 - **Axios 实例**：`baseURL: '/api'`，`timeout: 30s`
 - **请求拦截器**：自动附加 `Authorization: Bearer <token>`
 - **响应拦截器**：解包 `Result<T>`，code 非 0/200 时 reject
-- **Token 刷新**：401 时调用 `POST /api/user/auth/refresh`，失败则登出
+- **Token 刷新**：401 时调用 `POST /api/client/auth/refresh`，失败则登出
 - 接口分组对应后端 `/api/admin/*`：dashboard、subjects、users、imports、logs、agent
 
 ### 状态管理

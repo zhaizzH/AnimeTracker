@@ -156,7 +156,7 @@ React.StrictMode
 - **Axios 实例**：`baseURL: '/api'`，`timeout: 30s`
 - **请求拦截器**：自动从 localStorage 读取 `token`，附加 `Authorization: Bearer <token>`
 - **响应拦截器**：解包 `Result<T>`（`{ code, message, data }`），code 非 0/200 视为错误
-- **Token 自动刷新**：401 时尝试 `refreshAccessToken()`（调用 `POST /api/user/auth/refresh`），成功则重试请求，失败则登出并跳转 `/login`
+- **Token 自动刷新**：401 时尝试 `refreshAccessToken()`（调用 `POST /api/client/auth/refresh`），成功则重试请求，失败则登出并跳转 `/login`
 - **便捷方法**：`http.get<T>()` / `http.post<T>()`
 
 ### 状态管理
