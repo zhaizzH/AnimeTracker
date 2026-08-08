@@ -20,7 +20,7 @@
 | 位置 | 要求 |
 |------|------|
 | 类 | public / 关键类加 Javadoc,一行概述;需补一句细节时用 `<p>` |
-| 方法 | public 方法加 Javadoc,一句话说明"做什么";controller 端点 doc 补充触发条件(如"注册后需 verify-email") |
+| 方法 | public 方法加 Javadoc,一句话说明"做什么",然后依次解释各参数和返回值;controller 端点 doc 补充触发条件(如"注册后需 verify-email");需补一句细节时用 `<p>`|
 | `@param` / `@return` | 仅当参数 / 返回非显然时写,不机械堆 |
 | private 方法 | 逻辑非显然才加,否则不加 |
 | 行内注释 | 只解释 why / 隐藏约束 / 已知坑,不解释 what |

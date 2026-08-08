@@ -29,7 +29,7 @@ AnimeTracker 是一个面向个人的动漫追番管理工具。它提供番剧�
 | AI Agent | FastAPI + LangGraph + 通义千问（DashScope / Qwen） | `backend/agent`（Python，端口 `8090`） |
 | Agent 代理层 | Spring Boot Web（轻量转发） | `backend/business/agent` 模块 |
 | 数据层 | MySQL 8 + Redis + MinIO | 业务数据 / 缓存与会话 / 对象存储 |
-| 数据导入 | Python 3.10+ + SQLAlchemy + Requests | `backend/data/importer`（数据源：Bangumi） |
+| 数据导入 | Python 3.10+ + SQLAlchemy + Requests（与 Agent 共用 venv） | `backend/agent/importer`（数据源：Bangumi） |
 
 > ⚠️ 说明：前端技术栈为 **React 生态**（非 Vue）。两个前端（`client` / `admin`）开发态均通过 Vite 代理将 `/api` 转发至 `http://localhost:8080`。业务后端的 `agent` 模块是一个 Java 转发层，真正的大模型推理由独立的 Python FastAPI 服务（`backend/agent`，端口 `8090`）完成。
 
@@ -86,8 +86,9 @@ AnimeTracker/
 │   │   ├── agent/         # Agent 代理模块（转发至 Python Agent）
 │   │   └── app/           # 启动模块：聚合 admin + client，Spring Boot 入口
 │   ├── agent/             # AI Agent（FastAPI + LangGraph，端口 8090）
-│   └── data/
-│       └── importer/      # 番剧数据导入器（Bangumi 数据源）
+│   │   ├── app/           # FastAPI 应用
+│   │   ├── importer/      # 番剧数据导入器（Bangumi 数据源）
+│   │   └── main.py        # FastAPI 入口
 └── docs/                  # 项目级文档与数据库脚本
     ├── db-schema.sql      # 建表脚本（含 operation_log 等操作审计表）
     └── openapi.yaml       # OpenAPI 规范
@@ -172,14 +173,11 @@ uvicorn main:app --reload --port 8090
 ### 5. 数据导入（Bangumi）
 
 ```bash
-cd backend/data/importer
-cp .env.example .env          # 填入 DB_* 与 BANGUMI_ACCESS_TOKEN（可选）
-
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+cd backend/agent/importer   # 依赖与环境变量与 Agent 共用（backend/agent/.env）
 python main.py --mode season --key 2026-summer
 ```
 
+- 与 Agent 共用 `backend/agent` 的 venv 与 `.env`，无需单独安装环境。
 - 数据源为 Bangumi（`api.bgm.tv`），客户端自动限流与重试。支持 `full` / `season` / `recent` / `since` 多种模式。
 
 ### 6. 用户端前端（端口 5173）
@@ -237,7 +235,7 @@ npm run dev                   # 开发服务器 http://localhost:5174
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis 地址 |
 | `CORS_ORIGINS` | `["http://localhost:5173"]` | 前端跨域来源 |
 
-### 数据导入 `backend/data/importer/.env`
+### 数据导入（`backend/agent/importer`，环境变量并入 `backend/agent/.env`）
 
 | 变量 | 说明 |
 |------|------|
@@ -307,7 +305,7 @@ npm run dev                   # 开发服务器 http://localhost:5174
 - 后端整体：[`backend/README.md`](backend/README.md)
 - 业务后端详解：[`backend/business/README.md`](backend/business/README.md)
 - AI Agent 详解：[`backend/agent/README.md`](backend/agent/README.md)
-- 数据导入器：[`backend/data/importer/README.md`](backend/data/importer/README.md)
+- 数据导入器：[`backend/agent/importer/README.md`](backend/agent/importer/README.md)
 - 文档目录：[`docs/README.md`](docs/README.md)
 - 数据库脚本：[`docs/db-schema.sql`](docs/db-schema.sql)
 - OpenAPI 规范：[`docs/openapi.yaml`](docs/openapi.yaml)

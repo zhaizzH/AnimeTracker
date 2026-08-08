@@ -16,13 +16,7 @@
 ## 快速开始
 
 ```bash
-cd backend/agent/importer   # 或 cd backend/agent 后 python importer/main.py
-cp .env.example .env          # 填入 DB_*（可选：BANGUMI_ACCESS_TOKEN / MINIO_*）
-
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-
-# 示例：导入 2026 年夏季番
+cd backend/agent/importer    # 依赖与环境变量与 Agent 共用（backend/agent/.env）
 python main.py --mode season --key 2026-summer
 ```
 
@@ -76,6 +70,7 @@ python main.py --mode since --since 2025-10-01 --resume
 importer/
 ├── main.py        # CLI 入口：模式分发、并发编排、进度与 import_record
 ├── client.py      # Bangumi API 客户端（限流 + 重试）
-├── db.py          # SQLAlchemy 引擎与 upsert 逻辑
-└── requirements.txt
+└── db.py          # SQLAlchemy 引擎与 upsert 逻辑
 ```
+
+> 依赖并入 `../requirements.txt`（与 Agent 共用 venv）。

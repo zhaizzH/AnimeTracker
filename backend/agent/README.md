@@ -57,6 +57,7 @@ backend/agent/
 ├── requirements.txt
 ├── .env.example             # 配置模板（需 REDIS_URL）
 ├── tests/                   # pytest 测试（test_*.py）
+├── importer/                # 番剧数据导入器（Bangumi，独立 CLI）
 └── app/
     ├── config.py            # pydantic-settings 配置 + AgentChatModelSlot + create_agent_chat_llm
     ├── api/
@@ -133,6 +134,21 @@ backend/agent/
 | `redis_url` | `redis://localhost:6379/0` | Redis 地址（会话 / 消息 / 提示词 / 运行时模型配置） |
 | `jwt_secret` | 开发占位密钥 | 与 Spring Boot 共享的 JWT 签名密钥——agent 本地验签，不回调业务后端 |
 | `cors_origins` | `["http://localhost:5173"]` | 前端跨域来源（用户端 client :5173；如需联调管理端 admin :5174，追加 `http://localhost:5174`） |
+
+> `DB_*` / `BANGUMI_*` / `MINIO_*` 等数据导入变量并入本 `.env`，仅供 `importer/` 侧 `load_dotenv()+os.getenv` 读取，不进入上表 pydantic Settings。详见 [importer/README.md](importer/README.md)。
+
+## 数据导入 importer
+
+`importer/` 是 Bangumi 数据导入器，与 Agent 共用本模块的 venv 与 `.env`（`DB_*` / `BANGUMI_*` / `MINIO_*`）。
+
+手动触发：
+
+```bash
+cd backend/agent
+python importer/main.py --mode season --key 2026-summer
+```
+
+通过管理后台触发的请求由 Java 转发到本模块的 `POST /api/admin/agent/import/run`，进程由 Agent 后台托管（单实例约束）。
 
 ## 本地运行
 

@@ -1,10 +1,9 @@
 # AnimeTracker Backend
 
-AnimeTracker 后端由三个独立子模块组成，分别负责业务 API、AI 对话与数据导入：
+AnimeTracker 后端由两个独立子模块组成，分别负责业务 API 与 AI 对话（含数据导入）：
 
 - **business**：Spring Boot 多模块工程（Java 21，端口 `8080`），提供番剧、用户、收藏、标签等核心 API，并内置 `agent` 代理层将 AI 对话请求转发至 Python Agent。
-- **agent**：基于 FastAPI + LangGraph 的 AI 对话服务（Python，端口 `8090`），调用业务 API 获取实时数据并以 SSE 流式输出。
-- **data/importer**：番剧数据导入脚本（Python），从 Bangumi 拉取元数据并写入业务库。
+- **agent**：基于 FastAPI + LangGraph 的 AI 对话服务（Python，端口 `8090`），调用业务 API 获取实时数据并以 SSE 流式输出；内含 `importer`（Bangumi 数据导入器），导入任务由管理端经 agent 触发。
 
 > 前端由 `frontend/client`（用户端，端口 `5173`）与 `frontend/admin`（运营后台，端口 `5174`，预览版）两个独立 React 工程组成，二者均通过 Vite 代理将 `/api` 转发至本后端的 `8080` 端口。详见 [前端总览](../frontend/README.md) 及各自子目录 README。
 
@@ -22,8 +21,8 @@ backend/
 │   ├── agent/    # Agent 代理模块（转发至 Python Agent）
 │   └── app/      # 启动模块：聚合 admin + client，Spring Boot 入口
 ├── agent/        # AI Agent (FastAPI + LangGraph, 端口 8090)
-└── data/
-    └── importer/ # 番剧数据导入脚本 (Python, 数据源: Bangumi)
+│   ├── app/      # FastAPI 应用
+│   └── importer/ # 番剧数据导入脚本 (Python, 数据源: Bangumi)
 ```
 
 ## 技术栈
@@ -81,16 +80,16 @@ API 文档（Swagger）：http://localhost:8090/docs
 ### 4. 数据导入器
 
 ```bash
-cd backend/data/importer
-cp .env.example .env          # 填入 DB_* 与 BANGUMI_ACCESS_TOKEN（可选）
-pip install -r requirements.txt
-python main.py --mode season --key 2026-summer
+cd backend/agent              # 与 Agent 共用 venv 与 .env
+python importer/main.py --mode season --key 2026-summer
 ```
 
-详见 [data/importer/README.md](data/importer/README.md)。
+- 与 Agent 共用 `backend/agent` 的 venv 与 `.env`，无需单独安装环境。
+
+详见 [agent/importer/README.md](agent/importer/README.md)。
 
 ## 模块说明
 
 - **business**：核心业务 API，详见 [business/README.md](business/README.md)。
 - **agent**：基于 LangGraph 的多轮对话 Agent，详见 [agent/README.md](agent/README.md)。
-- **data/importer**：从 Bangumi 抓取 / 清洗番剧信息并写入业务库，详见 [data/importer/README.md](data/importer/README.md)。
+- **agent/importer**：从 Bangumi 抓取 / 清洗番剧信息并写入业务库，详见 [agent/importer/README.md](agent/importer/README.md)。
