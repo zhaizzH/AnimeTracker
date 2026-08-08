@@ -8,7 +8,6 @@
 
 | 文件 | 说明 |
 |------|------|
-| [`backend.md`](backend.md) | 后端 API 文档（接口路径、请求/响应格式、认证说明） |
 | [`db-schema.sql`](db-schema.sql) | 数据库建表脚本（含 `operation_log` 等操作审计表） |
 | [`openapi.yaml`](openapi.yaml) | OpenAPI 3.0 规范（完整接口定义） |
 

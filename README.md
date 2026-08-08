@@ -89,7 +89,6 @@ AnimeTracker/
 │   └── data/
 │       └── importer/      # 番剧数据导入器（Bangumi 数据源）
 └── docs/                  # 项目级文档与数据库脚本
-    ├── backend.md         # 后端 API 文档
     ├── db-schema.sql      # 建表脚本（含 operation_log 等操作审计表）
     └── openapi.yaml       # OpenAPI 规范
 ```
@@ -251,7 +250,7 @@ npm run dev                   # 开发服务器 http://localhost:5174
 
 ## API 概览
 
-完整定义见 `docs/backend.md` 与 `docs/openapi.yaml`。主要分组：
+完整定义见 `docs/openapi.yaml`。主要分组：
 
 | 分组 | 路径前缀 | 说明 |
 |------|----------|------|
@@ -310,7 +309,6 @@ npm run dev                   # 开发服务器 http://localhost:5174
 - AI Agent 详解：[`backend/agent/README.md`](backend/agent/README.md)
 - 数据导入器：[`backend/data/importer/README.md`](backend/data/importer/README.md)
 - 文档目录：[`docs/README.md`](docs/README.md)
-- 后端 API 文档：[`docs/backend.md`](docs/backend.md)
 - 数据库脚本：[`docs/db-schema.sql`](docs/db-schema.sql)
 - OpenAPI 规范：[`docs/openapi.yaml`](docs/openapi.yaml)
 

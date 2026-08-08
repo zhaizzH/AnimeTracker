@@ -28,4 +28,4 @@ cd frontend/admin  && npm install && npm run dev   # http://localhost:5174
 - 管理端前端：[`admin/README.md`](admin/README.md)
 - 后端总览：[`../backend/README.md`](../backend/README.md)
 - 项目总览：[`../README.md`](../README.md)
-- 后端 API 文档：[`../docs/backend.md`](../docs/backend.md)
+- 后端 API 文档：[`../docs/openapi.yaml`](../docs/openapi.yaml)
