@@ -157,6 +157,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
 
     private SFunction<Subject, ?> buildSortField(String sort) {
         return switch (sort) {
+            case "id" -> Subject::getId;
             case "name" -> Subject::getName;
             case "air_date" -> Subject::getAirDate;
             case "rank" -> Subject::getRank;
@@ -167,6 +168,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
 
     private String buildSortFieldRaw(String sort) {
         return switch (sort) {
+            case "id" -> "s.id";
             case "name" -> "s.name";
             case "air_date" -> "s.air_date";
             case "rank" -> "s.rank";

@@ -549,7 +549,7 @@ export default function Subjects() {
           <Form.Item name="nameCn" label="中文名">
             <Input placeholder="中文标题（可选）" />
           </Form.Item>
-          <Form.Item name="bangumiId" label="Bangumi ID">
+          <Form.Item name="bangumiId" label="Bangumi ID" rules={[{ required: true, message: '请输入 Bangumi ID' }]}>
             <InputNumber min={1} style={{ width: '100%' }} placeholder="482901" />
           </Form.Item>
           <Form.Item name="type" label="条目类型" initialValue={2}>
@@ -619,7 +619,7 @@ export default function Subjects() {
           <Form.Item name="nameCn" label="中文名">
             <Input />
           </Form.Item>
-          <Form.Item name="bangumiId" label="Bangumi ID">
+          <Form.Item name="bangumiId" label="Bangumi ID" rules={[{ required: true, message: '请输入 Bangumi ID' }]}>
             <InputNumber min={1} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="type" label="条目类型">

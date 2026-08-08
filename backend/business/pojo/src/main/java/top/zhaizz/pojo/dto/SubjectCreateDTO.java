@@ -1,6 +1,7 @@
 package top.zhaizz.pojo.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -11,6 +12,8 @@ import java.time.LocalDate;
 @Data
 public class SubjectCreateDTO {
 
+    // DB 列为 NOT NULL UNIQUE，必填
+    @NotNull(message = "Bangumi ID 不能为空")
     private Integer bangumiId;      // Bangumi API 条目ID
 
     @NotBlank(message = "条目名称不能为空")

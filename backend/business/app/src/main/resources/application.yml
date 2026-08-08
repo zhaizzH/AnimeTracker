@@ -53,6 +53,9 @@ spring:
 mybatis-plus:
   mapper-locations: classpath*:mapper/*.xml
   type-aliases-package: top.zhaizz.pojo.entity
+  global-config:
+    db-config:
+      id-type: auto
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
@@ -61,12 +64,6 @@ mybatis-plus:
 at:
   agent:
     base-url: http://${at.agent.host}:${at.agent.port}
-
-  # 番剧数据导入
-  importer:
-    python-command: python
-    script-dir: backend/data/importer
-    script-name: main.py
 
   # 管理端
   admin:
