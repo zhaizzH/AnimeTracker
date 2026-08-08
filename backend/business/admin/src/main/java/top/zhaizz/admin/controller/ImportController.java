@@ -27,11 +27,12 @@ public class ImportController {
      */
     @OperationLog(action = "IMPORT_RUN", module = "IMPORT")
     @PostMapping("/run")
-    public Result<Void> runImport(@RequestParam String mode,
+    public Result<Void> runImport(@RequestHeader(value = "Authorization", required = false) String auth,
+                                  @RequestParam String mode,
                                   @RequestParam(required = false) String key,
                                   @RequestParam(required = false) String since,
                                   @RequestParam(required = false) Integer workers) {
-        importService.runImport(mode, key, since, workers);
+        importService.runImport(auth, mode, key, since, workers);
         return Result.success();
     }
 
