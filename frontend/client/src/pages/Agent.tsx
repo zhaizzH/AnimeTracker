@@ -127,10 +127,11 @@ export default function Agent() {
 
       const decoder = new TextDecoder();
       let fullContent = '';
+      let streamEnded = false;
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done || streamEnded) break;
 
         const chunk = decoder.decode(value, { stream: true });
         const lines = chunk.split('\n');
@@ -152,7 +153,10 @@ export default function Agent() {
             } else if (json.type === 'function_call' && json.content?.state === 'end') {
               setToolStatus('');
             } else if (json.is_end) {
+              // is_end 是服务端最后一条事件；以它终止而非等 EOF，
+              // 避免连接半关闭/上游 socket 不关闭时永久卡「发送中」
               setToolStatus('');
+              streamEnded = true;
             }
           } catch { /* 忽略流式中的解析错误 */ }
         }
