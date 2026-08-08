@@ -7,6 +7,6 @@ import lombok.Data;
  */
 @Data
 public class RatingCountVO {
-    private Integer rate;   // 1~10
-    private long count;
+    private Integer rate;   // 评分值 1~10
+    private long count;     // 该评分数量
 }

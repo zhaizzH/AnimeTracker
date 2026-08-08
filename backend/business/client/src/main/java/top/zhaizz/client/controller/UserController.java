@@ -74,6 +74,9 @@ public class UserController {
         return Result.success(null);
     }
 
+    /**
+     * 发送邮箱修改验证码请求体
+     */
     @Data
     public static class SendEmailCodeRequest {
         @NotBlank(message = "新邮箱不能为空")
@@ -82,6 +85,9 @@ public class UserController {
         private String newEmail;
     }
 
+    /**
+     * 校验邮箱修改验证码请求体
+     */
     @Data
     public static class VerifyEmailCodeRequest {
         @NotBlank(message = "新邮箱不能为空")

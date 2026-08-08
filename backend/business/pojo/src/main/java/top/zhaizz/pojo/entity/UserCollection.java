@@ -12,12 +12,12 @@ import java.time.LocalDateTime;
 @TableName("user_collection")
 public class UserCollection {
 
-    private Long id;
-    private Long userId;
-    private Long subjectId;
-    private Integer type;       // 1=想看 2=看过 3=在看 4=搁置 5=抛弃
-    private Integer rate;       // 0-10，0 未评分
-    private Integer epStatus;   // 剧集进度
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private Long id;                    // 收藏ID
+    private Long userId;                // 用户ID
+    private Long subjectId;             // 条目ID
+    private Integer type;               // 收藏状态: 1=想看, 2=看过, 3=在看, 4=搁置, 5=抛弃
+    private Integer rate;               // 评分（0~10, 0 表示未评分）
+    private Integer epStatus;           // 看到第几集
+    private LocalDateTime createdAt;    // 创建时间
+    private LocalDateTime updatedAt;    // 更新时间
 }

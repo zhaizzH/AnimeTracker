@@ -45,7 +45,7 @@ public class AdminSubjectServiceImpl implements AdminSubjectService {
 
         Subject subject = SubjectConverter.toEntityFromCreate(request);
         subject.setNsfw(false);
-        subject.setImportStatus(0);
+        subject.setImportStatus(0); // 手动创建默认为待导入
         subject.setCreatedAt(LocalDateTime.now());
         subject.setUpdatedAt(LocalDateTime.now());
 

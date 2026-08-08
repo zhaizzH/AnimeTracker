@@ -35,6 +35,7 @@ public class VerificationServiceImpl implements VerificationService {
 
     private static final long CODE_TTL_MINUTES = 5;
     private static final int CODE_LENGTH = 6;
+    // 字符集刻意剔除易混淆的 0/O/1/l/I，降低人工输入错误率
     private static final String ALPHANUMERIC = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
     private static final SecureRandom RANDOM = new SecureRandom();
     @Value("${resend.send-email}")
@@ -50,7 +51,7 @@ public class VerificationServiceImpl implements VerificationService {
 
     @Override
     public void sendVerificationCode(String email) {
-        // 1. 生成6位字母数字验证码（排除易混淆字符 0/O/1/l/I）
+        // 生成6位字母数字验证码（字符集见 ALPHANUMERIC 常量）
         String code = generateCode();
 
         // 2. 存入 Redis（5分钟 TTL）
@@ -76,7 +77,7 @@ public class VerificationServiceImpl implements VerificationService {
     @Override
     public void verifyEmail(String email, String code) {
         String bucket = "verify:email:" + email;
-        if (!rateLimiter.allowOrCount(bucket, 5, 300)) {
+        if (!rateLimiter.allowOrCount(bucket, 5, 300)) { // 防爆破：同一邮箱 5 分钟最多尝试 5 次
             throw new BizException(ErrorType.TOO_MANY_REQUESTS, "尝试次数过多，请 5 分钟后再试");
         }
         // 1. 从 Redis 获取存储的验证码
@@ -145,7 +146,7 @@ public class VerificationServiceImpl implements VerificationService {
         newEmail = newEmail.toLowerCase();
 
         String bucket = "verify:change:" + userId + ":" + newEmail;
-        if (!rateLimiter.allowOrCount(bucket, 5, 300)) {
+        if (!rateLimiter.allowOrCount(bucket, 5, 300)) { // 防爆破：同一目标 5 分钟最多尝试 5 次
             throw new BizException(ErrorType.TOO_MANY_REQUESTS, "尝试次数过多，请 5 分钟后再试");
         }
 
@@ -221,7 +222,7 @@ public class VerificationServiceImpl implements VerificationService {
     @Override
     public void verifyPasswordResetCode(String email, String code) {
         String bucket = "verify:reset:" + email;
-        if (!rateLimiter.allowOrCount(bucket, 5, 300)) {
+        if (!rateLimiter.allowOrCount(bucket, 5, 300)) { // 防爆破：同一邮箱 5 分钟最多尝试 5 次
             throw new BizException(ErrorType.TOO_MANY_REQUESTS, "尝试次数过多，请 5 分钟后再试");
         }
         String storedCode = redisUtil.get(RedisKeys.PASSWORD_RESET + email);

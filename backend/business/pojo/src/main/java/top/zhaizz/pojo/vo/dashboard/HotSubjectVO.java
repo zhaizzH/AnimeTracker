@@ -7,9 +7,9 @@ import lombok.Data;
  */
 @Data
 public class HotSubjectVO {
-    private Long id;
-    private String name;
-    private String nameCn;
-    private String image;
-    private long collectionCount;
+    private Long id;                // 条目ID
+    private String name;            // 日文/英文名
+    private String nameCn;          // 中文名
+    private String image;           // 封面图URL
+    private long collectionCount;   // 收藏数
 }

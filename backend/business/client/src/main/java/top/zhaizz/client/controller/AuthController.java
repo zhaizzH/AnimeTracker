@@ -32,6 +32,7 @@ public class AuthController {
      * 用户注册
      * <p>创建用户并发送验证码邮件，注册成功后需调用 verify-email 完成验证</p>
      */
+    // 注册防刷：同一 IP 5 分钟最多 10 次
     @RateLimit(@RateLimit.Rule(key = RateLimit.LimitKey.IP, limit = 10, windowSeconds = 300))
     @OperationLog(action = "REGISTER", module = "AUTH")
     @PostMapping("/register")
@@ -54,6 +55,7 @@ public class AuthController {
     /**
      * 重新发送验证码（验证码邮件未收到或已过期时重发）
      */
+    // 验证码防刷：同一邮箱 60 秒 1 次、同一 IP 60 秒 5 次
     @RateLimit({
             @RateLimit.Rule(key = RateLimit.LimitKey.EMAIL, limit = 1, windowSeconds = 60),
             @RateLimit.Rule(key = RateLimit.LimitKey.IP, limit = 5, windowSeconds = 60)
@@ -77,6 +79,7 @@ public class AuthController {
     /**
      * 忘记密码 — 发送重置验证码（邮箱不存在时静默成功，防枚举）
      */
+    // 验证码防刷：同一邮箱 60 秒 1 次、同一 IP 60 秒 5 次
     @RateLimit({
             @RateLimit.Rule(key = RateLimit.LimitKey.EMAIL, limit = 1, windowSeconds = 60),
             @RateLimit.Rule(key = RateLimit.LimitKey.IP, limit = 5, windowSeconds = 60)

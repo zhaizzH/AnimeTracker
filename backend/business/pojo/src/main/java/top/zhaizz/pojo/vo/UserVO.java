@@ -10,11 +10,11 @@ import java.time.LocalDateTime;
 @Data
 public class UserVO {
 
-    private Long id;
-    private String username;
-    private String email;
-    private String nickname;
-    private String avatar;
-    private String role;        // USER / ADMIN
-    private LocalDateTime createdAt;
+    private Long id;            // 用户ID
+    private String username;    // 用户名（唯一）
+    private String email;       // 邮箱
+    private String nickname;    // 昵称
+    private String avatar;      // 头像URL
+    private String role;        // 角色: USER=普通用户, ADMIN=管理员
+    private LocalDateTime createdAt;    // 创建时间
 }

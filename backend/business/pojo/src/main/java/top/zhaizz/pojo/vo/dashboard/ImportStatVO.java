@@ -7,7 +7,7 @@ import lombok.Data;
  */
 @Data
 public class ImportStatVO {
-    private long importTotal;
-    private long importSucceeded;
-    private long importFailed;
+    private long importTotal;       // 导入总次数
+    private long importSucceeded;   // 成功次数
+    private long importFailed;      // 失败次数
 }

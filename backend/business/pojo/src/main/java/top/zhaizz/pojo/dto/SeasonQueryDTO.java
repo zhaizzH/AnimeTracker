@@ -13,8 +13,7 @@ public class SeasonQueryDTO {
 
     @Min(value = 1970, message = "年份不能早于1970")
     @Max(value = 2100, message = "年份不能晚于2100")
-    private int year;
-
+    private int year;           // 年份
     @Pattern(regexp = "spring|summer|autumn|winter", message = "季度仅允许: spring/summer/autumn/winter")
     private String quarter;     // 季度: spring/summer/autumn/winter
 }

@@ -7,6 +7,6 @@ import lombok.Data;
  */
 @Data
 public class SubjectStatusCountVO {
-    private Integer importStatus;   // 0=待导入, 1=已导入
-    private long count;
+    private Integer importStatus;   // 导入状态: 0=待导入, 1=已导入
+    private long count;             // 该状态条目数
 }

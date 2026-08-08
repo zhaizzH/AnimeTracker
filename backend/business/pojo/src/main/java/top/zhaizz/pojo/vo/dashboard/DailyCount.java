@@ -9,6 +9,6 @@ import java.time.LocalDate;
  */
 @Data
 public class DailyCount {
-    private LocalDate statDate;
-    private long cnt;
+    private LocalDate statDate;     // 统计日期
+    private long cnt;               // 该日期数量
 }

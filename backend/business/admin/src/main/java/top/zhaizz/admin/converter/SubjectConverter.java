@@ -25,7 +25,7 @@ public class SubjectConverter {
         entity.setName(request.getName());
         entity.setNameCn(request.getNameCn());
         entity.setSummary(request.getSummary());
-        entity.setType(request.getType() != null ? request.getType() : 2);
+        entity.setType(request.getType() != null ? request.getType() : 2); // 未指定时默认动画类型 2
         entity.setEps(request.getEps());
         entity.setAirDate(request.getAirDate());
         entity.setImage(request.getImage());

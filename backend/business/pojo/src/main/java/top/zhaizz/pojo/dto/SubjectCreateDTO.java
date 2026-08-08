@@ -11,15 +11,15 @@ import java.time.LocalDate;
 @Data
 public class SubjectCreateDTO {
 
-    private Integer bangumiId;
+    private Integer bangumiId;      // Bangumi API 条目ID
 
     @NotBlank(message = "条目名称不能为空")
-    private String name;
+    private String name;            // 日文/英文名
 
-    private String nameCn;
-    private String summary;
+    private String nameCn;          // 中文名
+    private String summary;         // 简介/描述
     private Integer type;           // 条目类型（2=动画）
     private Integer eps;            // 总集数
-    private LocalDate airDate;
-    private String image;
+    private LocalDate airDate;      // 播出日期
+    private String image;           // 封面图URL
 }

@@ -9,5 +9,5 @@ import lombok.Data;
 @Data
 public class RefreshTokenDTO {
     @NotBlank(message = "refreshToken 不能为空")
-    private String refreshToken;
+    private String refreshToken;    // Refresh Token（轮换）
 }

@@ -9,5 +9,5 @@ import lombok.Data;
 @Data
 public class EpStatusDTO {
     @Min(value = 0, message = "剧集进度不能为负")
-    private int epStatus;
+    private int epStatus;       // 看到第几集
 }

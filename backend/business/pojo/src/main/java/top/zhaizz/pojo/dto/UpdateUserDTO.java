@@ -10,9 +10,9 @@ import lombok.Data;
 public class UpdateUserDTO {
 
     @Size(max = 64, message = "昵称长度不能超过64")
-    private String nickname;
+    private String nickname;    // 昵称
 
     @Size(max = 512, message = "头像URL长度不能超过512")
-    private String avatar;
+    private String avatar;      // 头像URL
 
 }

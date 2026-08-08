@@ -10,13 +10,13 @@ import java.time.LocalDateTime;
 @Data
 @TableName("import_record")
 public class ImportRecord {
-    private Long id;
-    private String mode;            // 导入模式（BANGUMI）
-    private String seasonKey;       // 季度标识，如 "2026-spring"
-    private LocalDateTime startedAt;
-    private LocalDateTime completedAt;
-    private String status;          // RUNNING / COMPLETED / FAILED
-    private int subjectCount;
-    private String errorMessage;
-    private LocalDateTime createdAt;
+    private Long id;                    // 记录ID
+    private String mode;                // 导入模式: full, recent, season, since
+    private String seasonKey;           // 季度标识（如 2026-spring）
+    private LocalDateTime startedAt;    // 开始时间
+    private LocalDateTime completedAt;  // 完成时间
+    private String status;              // 状态: RUNNING, COMPLETED, FAILED
+    private int subjectCount;           // 本次导入的条目数
+    private String errorMessage;        // 错误信息（失败时记录）
+    private LocalDateTime createdAt;    // 创建时间
 }

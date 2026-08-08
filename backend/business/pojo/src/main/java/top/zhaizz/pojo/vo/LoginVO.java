@@ -13,7 +13,7 @@ import lombok.Data;
 @AllArgsConstructor
 public class LoginVO {
 
-    private String token;
-    private String refreshToken;
-    private UserVO user;
+    private String token;           // Access Token
+    private String refreshToken;    // Refresh Token（轮换）
+    private UserVO user;            // 用户信息
 }

@@ -7,6 +7,6 @@ import lombok.Data;
  */
 @Data
 public class SeasonCountVO {
-    private String seasonKey;   // 如 2026-summer
-    private long count;
+    private String seasonKey;   // 季度标识（如 2026-summer）
+    private long count;         // 该季度条目数
 }

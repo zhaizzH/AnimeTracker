@@ -9,6 +9,6 @@ import java.util.List;
  */
 @Data
 public class CollectionStatsVO {
-    private List<TypeCountVO> types;
-    private List<RatingCountVO> ratings;
+    private List<TypeCountVO> types;        // 各收藏类型数量分布
+    private List<RatingCountVO> ratings;    // 各评分数量分布
 }
