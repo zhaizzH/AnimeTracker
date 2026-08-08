@@ -13,7 +13,7 @@ interface LoginFormValues {
 
 const feedLines = [
   { tag: '启动', text: 'animetracker-admin 预览版 0.1.0', tone: '' },
-  { tag: '认证', text: 'POST /api/user/auth/login -> 200 OK', tone: 'feed-ok' },
+  { tag: '认证', text: 'POST /api/client/auth/login -> 200 OK', tone: 'feed-ok' },
   { tag: '系统', text: '看板数据已就绪，等待操作员...', tone: '' },
   { tag: '提示', text: '请使用管理员账号登录', tone: 'feed-warn' },
 ];

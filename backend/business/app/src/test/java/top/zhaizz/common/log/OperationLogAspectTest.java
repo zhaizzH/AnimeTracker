@@ -34,7 +34,7 @@ class OperationLogAspectTest {
         target = factory.getProxy();
         SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(1L, null));
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(
-                new MockHttpServletRequest("POST", "/api/user/auth/login")));
+                new MockHttpServletRequest("POST", "/api/client/auth/login")));
     }
 
     @AfterEach
@@ -54,7 +54,7 @@ class OperationLogAspectTest {
         assertThat(e.getUserId()).isEqualTo(1L);
         assertThat(e.getUsername()).isEqualTo("bob");
         assertThat(e.getParams()).doesNotContain("secret123");
-        assertThat(e.getPath()).isEqualTo("/api/user/auth/login");
+        assertThat(e.getPath()).isEqualTo("/api/client/auth/login");
     }
 
     @Test

@@ -3,15 +3,15 @@ import type { UserCollectionVO, CollectionUpdateDTO, EpStatusDTO, PageResult } f
 
 export const collectionsApi = {
   list: (params?: { type?: number; page?: number; size?: number }) =>
-    http.get<PageResult<UserCollectionVO>>('/user/collections', { params }),
+    http.get<PageResult<UserCollectionVO>>('/client/collections', { params }),
   get: (subjectId: number) =>
-    http.get<UserCollectionVO>(`/user/collections/${subjectId}`),
+    http.get<UserCollectionVO>(`/client/collections/${subjectId}`),
   save: (subjectId: number, data: CollectionUpdateDTO) =>
-    http.post(`/user/collections/${subjectId}/save`, data),
+    http.post(`/client/collections/${subjectId}/save`, data),
   remove: (subjectId: number) =>
-    http.post(`/user/collections/${subjectId}/remove`),
+    http.post(`/client/collections/${subjectId}/remove`),
   schedule: (params?: { weekday?: number; year?: number; quarter?: number; page?: number; size?: number }) =>
-    http.get<PageResult<UserCollectionVO>>('/user/collections/schedule', { params }),
+    http.get<PageResult<UserCollectionVO>>('/client/collections/schedule', { params }),
   updateEpStatus: (subjectId: number, data: EpStatusDTO) =>
-    http.post(`/user/collections/${subjectId}/ep-status`, data),
+    http.post(`/client/collections/${subjectId}/ep-status`, data),
 };

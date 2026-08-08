@@ -24,4 +24,4 @@ def test_full_turn_injects_user_and_calls_with_token(monkeypatch):
     })
 
     assert captured["token"] == "tok999"
-    assert captured["path"] == "/api/user/collections"
+    assert captured["path"] == "/api/client/collections"

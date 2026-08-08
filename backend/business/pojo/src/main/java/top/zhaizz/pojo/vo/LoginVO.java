@@ -7,7 +7,7 @@ import lombok.Data;
  * 登录/注册结果 VO（token + 用户信息）
  * <p>
  * 注册和登录统一返回此结构，前端一次拿到 Token 和用户信息，
- * 无需额外调用 {@code GET /api/user/me}。
+ * 无需额外调用 {@code GET /api/client/me}。
  */
 @Data
 @AllArgsConstructor

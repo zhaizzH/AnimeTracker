@@ -20,7 +20,7 @@ export async function refreshAccessToken(): Promise<string | null> {
     return null;
   }
   try {
-    const res = await axios.post('/api/user/auth/refresh', { refreshToken });
+    const res = await axios.post('/api/client/auth/refresh', { refreshToken });
     const data = res.data?.data as { token?: string; refreshToken?: string } | undefined;
     if (data?.token && data?.refreshToken) {
       localStorage.setItem('token', data.token);

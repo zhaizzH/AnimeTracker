@@ -17,7 +17,7 @@ import java.util.List;
  * 标签控制器
  */
 @RestController
-@RequestMapping("/api/user/tags")
+@RequestMapping("/api/client/tags")
 @RequiredArgsConstructor
 @Validated
 public class TagController {

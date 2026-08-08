@@ -33,7 +33,7 @@ class RateLimitAspectTest {
         factory.addAspect(aspect);
         target = factory.getProxy();
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(
-                new MockHttpServletRequest("POST", "/api/user/auth/resend-code")));
+                new MockHttpServletRequest("POST", "/api/client/auth/resend-code")));
     }
 
     @AfterEach

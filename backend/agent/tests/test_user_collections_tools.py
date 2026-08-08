@@ -19,7 +19,7 @@ def test_get_my_collections_sends_token_and_type(monkeypatch):
 
     assert result["total"] == 1
     assert captured["token"] == "tok123"
-    assert captured["path"] == "/api/user/collections"
+    assert captured["path"] == "/api/client/collections"
     assert captured["params"]["type"] == 2
 
 

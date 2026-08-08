@@ -22,7 +22,7 @@ class SubjectScheduleValidationTest {
 
     @Test
     void invalidQuarterReturns400() throws Exception {
-        mockMvc.perform(get("/api/user/subjects/schedule")
+        mockMvc.perform(get("/api/client/subjects/schedule")
                         .param("year", "2026")
                         .param("quarter", "invalid"))
                 .andExpect(status().isBadRequest());

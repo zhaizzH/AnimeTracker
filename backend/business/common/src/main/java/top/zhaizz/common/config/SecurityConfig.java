@@ -50,17 +50,16 @@ public class SecurityConfig {
                                 writeJson(response, ErrorType.FORBIDDEN)))
                 .authorizeHttpRequests(auth -> auth
                         // 认证流程接口须先公开，否则无法登录注册
-                        .requestMatchers("/api/user/auth/register", "/api/user/auth/login",
-                                "/api/user/auth/verify-email", "/api/user/auth/resend-code",
-                                "/api/user/auth/refresh",
-                                "/api/user/auth/forgot-password", "/api/user/auth/reset-password").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/user/subjects/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/user/tags/**").permitAll()
+                        .requestMatchers("/api/client/auth/register", "/api/client/auth/login",
+                                "/api/client/auth/verify-email", "/api/client/auth/resend-code",
+                                "/api/client/auth/refresh",
+                                "/api/client/auth/forgot-password", "/api/client/auth/reset-password").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/client/subjects/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/client/tags/**").permitAll()
 
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/user/**").authenticated()
+                        .requestMatchers("/api/client/**").authenticated()
                         .requestMatchers("/api/common/files/**").authenticated()
-                        .requestMatchers("/api/client/agent/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

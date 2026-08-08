@@ -5,8 +5,8 @@ info:
 paths:
   /api/common/files/upload:
     post:
-      summary: "上传文件"
-      description: "上传文件"
+      summary: "上传图片到 MinIO 并返回访问 URL；type 限定 avatar/cover，仅接受 JPG/PNG/WebP"
+      description: "上传图片到 MinIO 并返回访问 URL；type 限定 avatar/cover，仅接受 JPG/PNG/WebP"
       parameters:
       - name: "type"
         in: "query"
@@ -46,7 +46,7 @@ paths:
                   data:
                     type: "string"
                     description: ""
-  /api/user/tags:
+  /api/client/tags:
     get:
       summary: "获取标签列表"
       description: "获取标签列表"
@@ -79,9 +79,9 @@ paths:
                           description: ""
                         count:
                           type: "integer"
-                          description: ""
+                          description: "该标签关联条目数"
                       description: "标签信息 VO"
-  /api/user/tags/{tag}/subjects:
+  /api/client/tags/{tag}/subjects:
     get:
       summary: "获取标签下的番剧列表"
       description: "获取标签下的番剧列表"
@@ -177,7 +177,7 @@ paths:
                         type: "integer"
                         description: ""
                     description: ""
-  /api/user/auth/register:
+  /api/client/auth/register:
     post:
       summary: "用户注册"
       description: "用户注册"
@@ -224,7 +224,7 @@ paths:
                   data:
                     type: "string"
                     description: ""
-  /api/user/auth/verify-email:
+  /api/client/auth/verify-email:
     post:
       summary: "验证邮箱"
       description: "验证邮箱"
@@ -297,10 +297,10 @@ paths:
                             description: ""
                         description: ""
                     description: ""
-  /api/user/auth/resend-code:
+  /api/client/auth/resend-code:
     post:
-      summary: "重新发送验证码"
-      description: "重新发送验证码"
+      summary: "重新发送验证码（验证码邮件未收到或已过期时重发）"
+      description: "重新发送验证码（验证码邮件未收到或已过期时重发）"
       requestBody:
         content:
           application/json:
@@ -331,10 +331,10 @@ paths:
                   data:
                     type: "string"
                     description: ""
-  /api/user/auth/login:
+  /api/client/auth/login:
     post:
-      summary: "用户登录"
-      description: "用户登录"
+      summary: "用户登录（邮箱已验证，支持用户名或邮箱 + 密码）"
+      description: "用户登录（邮箱已验证，支持用户名或邮箱 + 密码）"
       requestBody:
         content:
           application/json:
@@ -401,10 +401,10 @@ paths:
                             description: ""
                         description: ""
                     description: ""
-  /api/user/auth/forgot-password:
+  /api/client/auth/forgot-password:
     post:
-      summary: "忘记密码 — 发送重置验证码"
-      description: "忘记密码 — 发送重置验证码"
+      summary: "忘记密码 — 发送重置验证码（邮箱不存在时静默成功，防枚举）"
+      description: "忘记密码 — 发送重置验证码（邮箱不存在时静默成功，防枚举）"
       requestBody:
         content:
           application/json:
@@ -435,10 +435,10 @@ paths:
                   data:
                     type: "string"
                     description: ""
-  /api/user/auth/reset-password:
+  /api/client/auth/reset-password:
     post:
-      summary: "忘记密码 — 重置密码"
-      description: "忘记密码 — 重置密码"
+      summary: "忘记密码 — 重置密码（验证码校验通过后重置并踢出所有设备）"
+      description: "忘记密码 — 重置密码（验证码校验通过后重置并踢出所有设备）"
       requestBody:
         content:
           application/json:
@@ -481,7 +481,7 @@ paths:
                   data:
                     type: "string"
                     description: ""
-  /api/user/auth/refresh:
+  /api/client/auth/refresh:
     post:
       summary: "刷新 Token"
       description: "刷新 Token"
@@ -547,10 +547,10 @@ paths:
                             description: ""
                         description: ""
                     description: ""
-  /api/user/auth/logout:
+  /api/client/auth/logout:
     post:
-      summary: "用户退出登录"
-      description: "用户退出登录"
+      summary: "用户退出登录（当前 token 立即失效）"
+      description: "用户退出登录（当前 token 立即失效）"
       responses:
         "200":
           description: ""
@@ -568,7 +568,7 @@ paths:
                   data:
                     type: "string"
                     description: ""
-  /api/user/me:
+  /api/client/me:
     get:
       summary: "获取当前登录用户信息"
       description: "获取当前登录用户信息"
@@ -612,7 +612,7 @@ paths:
                         type: "string"
                         description: ""
                     description: ""
-  /api/user/me/update:
+  /api/client/me/update:
     post:
       summary: "修改当前登录用户信息"
       description: "修改当前登录用户信息"
@@ -671,7 +671,7 @@ paths:
                         type: "string"
                         description: ""
                     description: ""
-  /api/user/me/update-password:
+  /api/client/me/update-password:
     post:
       summary: "修改当前登录用户密码"
       description: "修改当前登录用户密码"
@@ -710,10 +710,10 @@ paths:
                   data:
                     type: "string"
                     description: ""
-  /api/user/me/send-email-code:
+  /api/client/me/send-email-code:
     post:
-      summary: "发送邮箱修改验证码"
-      description: "发送邮箱修改验证码"
+      summary: "发送邮箱修改验证码（修改绑定邮箱前调用，校验新邮箱未被占用）"
+      description: "发送邮箱修改验证码（修改绑定邮箱前调用，校验新邮箱未被占用）"
       requestBody:
         content:
           application/json:
@@ -745,10 +745,10 @@ paths:
                   data:
                     type: "string"
                     description: ""
-  /api/user/me/verify-email-code:
+  /api/client/me/verify-email-code:
     post:
-      summary: "校验邮箱修改验证码"
-      description: "校验邮箱修改验证码"
+      summary: "校验邮箱修改验证码（通过后更新绑定邮箱并通知旧邮箱）"
+      description: "校验邮箱修改验证码（通过后更新绑定邮箱并通知旧邮箱）"
       requestBody:
         content:
           application/json:
@@ -786,7 +786,7 @@ paths:
                   data:
                     type: "string"
                     description: ""
-  /api/user/subjects:
+  /api/client/subjects:
     get:
       summary: "获取番剧列表"
       description: "获取番剧列表"
@@ -892,7 +892,7 @@ paths:
                         type: "integer"
                         description: ""
                     description: ""
-  /api/user/subjects/search:
+  /api/client/subjects/search:
     get:
       summary: "搜索番剧"
       description: "搜索番剧"
@@ -1042,7 +1042,7 @@ paths:
                         type: "integer"
                         description: ""
                     description: ""
-  /api/user/subjects/season:
+  /api/client/subjects/season:
     get:
       summary: "按季度筛选用户番剧"
       description: "按季度筛选用户番剧"
@@ -1146,7 +1146,7 @@ paths:
                         type: "integer"
                         description: ""
                     description: ""
-  /api/user/subjects/schedule:
+  /api/client/subjects/schedule:
     get:
       summary: "每周追番列表"
       description: "每周追番列表"
@@ -1258,7 +1258,7 @@ paths:
                         type: "integer"
                         description: ""
                     description: ""
-  /api/user/subjects/{id}:
+  /api/client/subjects/{id}:
     get:
       summary: "获取番剧详情"
       description: "获取番剧详情"
@@ -1347,7 +1347,7 @@ paths:
                               description: ""
                             count:
                               type: "integer"
-                              description: ""
+                              description: "该标签关联条目数"
                           description: "标签信息 VO"
                       relations:
                         type: "array"
@@ -1357,7 +1357,7 @@ paths:
                           properties:
                             relation:
                               type: "string"
-                              description: ""
+                              description: "prequel, sequel, side_story 等"
                             relatedSubject:
                               type: "object"
                               properties:
@@ -1405,7 +1405,7 @@ paths:
                         type: "string"
                         description: ""
                     description: ""
-  /api/user/subjects/{id}/episodes:
+  /api/client/subjects/{id}/episodes:
     get:
       summary: "获取番剧剧集列表"
       description: "获取番剧剧集列表"
@@ -1469,7 +1469,7 @@ paths:
                           type: "string"
                           description: "Air / Today / NA"
                       description: "剧集信息 VO"
-  /api/user/collections:
+  /api/client/collections:
     get:
       summary: "获取当前登录用户收藏列表"
       description: "获取当前登录用户收藏列表"
@@ -1587,7 +1587,31 @@ paths:
                         type: "integer"
                         description: ""
                     description: ""
-  /api/user/collections/{subjectId}:
+  /api/client/collections/counts:
+    get:
+      summary: "获取当前登录用户收藏统计（key=type 1-5，value=数量）"
+      description: "获取当前登录用户收藏统计（key=type 1-5，value=数量）"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      "0":
+                        type: "integer"
+                    description: ""
+  /api/client/collections/{subjectId}:
     get:
       summary: "获取当前登录用户收藏详情"
       description: "获取当前登录用户收藏详情"
@@ -1671,7 +1695,7 @@ paths:
                             description: ""
                         description: ""
                     description: ""
-  /api/user/collections/{subjectId}/save:
+  /api/client/collections/{subjectId}/save:
     post:
       summary: "新增或修改收藏"
       description: "新增或修改收藏"
@@ -1722,7 +1746,7 @@ paths:
                   data:
                     type: "string"
                     description: ""
-  /api/user/collections/{subjectId}/remove:
+  /api/client/collections/{subjectId}/remove:
     post:
       summary: "删除收藏"
       description: "删除收藏"
@@ -1750,7 +1774,7 @@ paths:
                   data:
                     type: "string"
                     description: ""
-  /api/user/collections/schedule:
+  /api/client/collections/schedule:
     get:
       summary: "登录用户每周追番列表"
       description: "登录用户每周追番列表"
@@ -1883,7 +1907,7 @@ paths:
                         type: "integer"
                         description: ""
                     description: ""
-  /api/user/collections/{subjectId}/ep-status:
+  /api/client/collections/{subjectId}/ep-status:
     post:
       summary: "更新剧集进度"
       description: "更新剧集进度"
@@ -1905,185 +1929,6 @@ paths:
                   type: "integer"
                   description: ""
               description: ""
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "string"
-                    description: ""
-  /api/client/agent/health:
-    get:
-      summary: "健康检查"
-      description: "健康检查"
-      parameters:
-      - name: "Authorization"
-        in: "header"
-        description: ""
-        required: true
-        schema: {}
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "string"
-                    description: ""
-  /api/client/agent/stream:
-    post:
-      summary: "Agent 流式对话"
-      description: "Agent 流式对话"
-      parameters:
-      - name: "Authorization"
-        in: "header"
-        description: ""
-        required: true
-        schema: {}
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: "object"
-              properties:
-                key:
-                  type: "object"
-                  properties: {}
-              description: ""
-      responses:
-        "200":
-          description: "No Content"
-  /api/client/agent/sessions:
-    get:
-      summary: "获取会话列表"
-      description: "获取会话列表"
-      parameters:
-      - name: "Authorization"
-        in: "header"
-        description: ""
-        required: true
-        schema: {}
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "string"
-                    description: ""
-    post:
-      summary: "创建新会话"
-      description: "创建新会话"
-      parameters:
-      - name: "Authorization"
-        in: "header"
-        description: ""
-        required: true
-        schema: {}
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: "object"
-              properties:
-                key:
-                  type: "object"
-                  properties: {}
-              description: ""
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "string"
-                    description: ""
-  /api/client/agent/sessions/{sessionId}/history:
-    get:
-      summary: "获取会话历史"
-      description: "获取会话历史"
-      parameters:
-      - name: "sessionId"
-        in: "path"
-        description: ""
-        required: true
-        schema:
-          type: "string"
-      - name: "Authorization"
-        in: "header"
-        description: ""
-        required: true
-        schema: {}
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "string"
-                    description: ""
-  /api/client/agent/sessions/{sessionId}/remove:
-    post:
-      summary: "删除会话"
-      description: "删除会话"
-      parameters:
-      - name: "sessionId"
-        in: "path"
-        description: ""
-        required: true
-        schema:
-          type: "string"
-      - name: "Authorization"
-        in: "header"
-        description: ""
-        required: true
-        schema: {}
       responses:
         "200":
           description: ""
@@ -2301,10 +2146,189 @@ paths:
                   data:
                     type: "string"
                     description: ""
+  /api/client/agent/health:
+    get:
+      summary: "健康检查"
+      description: "健康检查"
+      parameters:
+      - name: "Authorization"
+        in: "header"
+        description: ""
+        required: true
+        schema: {}
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
+  /api/client/agent/stream:
+    post:
+      summary: "Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）"
+      description: "Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）"
+      parameters:
+      - name: "Authorization"
+        in: "header"
+        description: ""
+        required: true
+        schema: {}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                key:
+                  type: "object"
+                  properties: {}
+              description: ""
+      responses:
+        "200":
+          description: "No Content"
+  /api/client/agent/sessions:
+    get:
+      summary: "获取会话列表"
+      description: "获取会话列表"
+      parameters:
+      - name: "Authorization"
+        in: "header"
+        description: ""
+        required: true
+        schema: {}
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
+    post:
+      summary: "创建新会话"
+      description: "创建新会话"
+      parameters:
+      - name: "Authorization"
+        in: "header"
+        description: ""
+        required: true
+        schema: {}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                key:
+                  type: "object"
+                  properties: {}
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
+  /api/client/agent/sessions/{sessionId}/history:
+    get:
+      summary: "获取会话历史"
+      description: "获取会话历史"
+      parameters:
+      - name: "sessionId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      - name: "Authorization"
+        in: "header"
+        description: ""
+        required: true
+        schema: {}
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
+  /api/client/agent/sessions/{sessionId}/remove:
+    post:
+      summary: "删除会话"
+      description: "删除会话"
+      parameters:
+      - name: "sessionId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      - name: "Authorization"
+        in: "header"
+        description: ""
+        required: true
+        schema: {}
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
   /api/admin/import/run:
     post:
-      summary: "运行番剧导入"
-      description: "运行番剧导入"
+      summary: "运行番剧导入，供管理后台手动触发数据同步"
+      description: "运行番剧导入，供管理后台手动触发数据同步"
       parameters:
       - name: "mode"
         in: "query"
@@ -2353,8 +2377,8 @@ paths:
                     description: ""
   /api/admin/import/status:
     get:
-      summary: "获取番剧导入状态"
-      description: "获取番剧导入状态"
+      summary: "获取番剧导入状态，供管理后台导入进度轮询触发"
+      description: "获取番剧导入状态，供管理后台导入进度轮询触发"
       responses:
         "200":
           description: ""
@@ -2410,8 +2434,8 @@ paths:
                     description: ""
   /api/admin/logs:
     get:
-      summary: "分页查询操作/登录日志"
-      description: "分页查询操作/登录日志"
+      summary: "分页查询操作/登录日志，管理后台日志页筛选查询时触发"
+      description: "分页查询操作/登录日志，管理后台日志页筛选查询时触发"
       parameters:
       - name: "action"
         in: "query"
@@ -2443,7 +2467,7 @@ paths:
           nullable: false
       - name: "status"
         in: "query"
-        description: "0=成功, 1=失败"
+        description: ""
         required: false
         schema:
           type: "integer"
@@ -2532,7 +2556,7 @@ paths:
                               description: ""
                             status:
                               type: "integer"
-                              description: ""
+                              description: "0=成功, 1=失败"
                             errorMsg:
                               type: "string"
                               description: ""
@@ -2557,8 +2581,8 @@ paths:
                     description: ""
   /api/admin/users:
     get:
-      summary: "分页查看所有注册用户（不返回密码字段）"
-      description: "分页查看所有注册用户（不返回密码字段）"
+      summary: "分页查看所有注册用户（不返回密码字段），管理后台用户列表加载时触发"
+      description: "分页查看所有注册用户（不返回密码字段），管理后台用户列表加载时触发"
       parameters:
       - name: "page"
         in: "query"
@@ -2635,8 +2659,8 @@ paths:
                     description: ""
   /api/admin/users/{id}/update-role:
     post:
-      summary: "修改指定用户的角色"
-      description: "修改指定用户的角色"
+      summary: "修改指定用户的角色，管理后台角色变更提交时触发"
+      description: "修改指定用户的角色，管理后台角色变更提交时触发"
       parameters:
       - name: "id"
         in: "path"
@@ -2699,8 +2723,8 @@ paths:
                     description: ""
   /api/admin/subjects:
     post:
-      summary: "创建新番剧"
-      description: "创建新番剧"
+      summary: "创建新番剧，管理后台新建表单提交时触发"
+      description: "创建新番剧，管理后台新建表单提交时触发"
       requestBody:
         content:
           application/json:
@@ -2812,7 +2836,7 @@ paths:
                               description: ""
                             count:
                               type: "integer"
-                              description: ""
+                              description: "该标签关联条目数"
                           description: "标签信息 VO"
                       relations:
                         type: "array"
@@ -2822,7 +2846,7 @@ paths:
                           properties:
                             relation:
                               type: "string"
-                              description: ""
+                              description: "prequel, sequel, side_story 等"
                             relatedSubject:
                               type: "object"
                               properties:
@@ -2872,8 +2896,8 @@ paths:
                     description: ""
   /api/admin/subjects/{id}/update:
     post:
-      summary: "更新指定番剧的信息"
-      description: "更新指定番剧的信息"
+      summary: "更新指定番剧的信息，管理后台编辑表单提交时触发"
+      description: "更新指定番剧的信息，管理后台编辑表单提交时触发"
       parameters:
       - name: "id"
         in: "path"
@@ -2987,7 +3011,7 @@ paths:
                               description: ""
                             count:
                               type: "integer"
-                              description: ""
+                              description: "该标签关联条目数"
                           description: "标签信息 VO"
                       relations:
                         type: "array"
@@ -2997,7 +3021,7 @@ paths:
                           properties:
                             relation:
                               type: "string"
-                              description: ""
+                              description: "prequel, sequel, side_story 等"
                             relatedSubject:
                               type: "object"
                               properties:
@@ -3047,8 +3071,8 @@ paths:
                     description: ""
   /api/admin/subjects/{id}/remove:
     post:
-      summary: "删除指定番剧"
-      description: "删除指定番剧"
+      summary: "删除指定番剧，管理后台删除操作确认时触发"
+      description: "删除指定番剧，管理后台删除操作确认时触发"
       parameters:
       - name: "id"
         in: "path"
@@ -3075,8 +3099,8 @@ paths:
                     description: ""
   /api/admin/dashboard/overview:
     get:
-      summary: "看板总览"
-      description: "看板总览"
+      summary: "看板总览，管理后台进入看板页时加载核心运营指标"
+      description: "看板总览，管理后台进入看板页时加载核心运营指标"
       responses:
         "200":
           description: ""
@@ -3129,8 +3153,8 @@ paths:
                     description: ""
   /api/admin/dashboard/trends:
     get:
-      summary: "每日趋势（新增用户/收藏/登录）"
-      description: "每日趋势（新增用户/收藏/登录）"
+      summary: "每日趋势（新增用户/收藏/登录），看板趋势图展示时触发"
+      description: "每日趋势（新增用户/收藏/登录），看板趋势图展示时触发"
       parameters:
       - name: "days"
         in: "query"
@@ -3178,8 +3202,8 @@ paths:
                       description: "每日趋势点 VO"
   /api/admin/dashboard/collection-stats:
     get:
-      summary: "收藏类型与评分分布"
-      description: "收藏类型与评分分布"
+      summary: "收藏类型与评分分布，看板分布图加载时触发"
+      description: "收藏类型与评分分布，看板分布图加载时触发"
       responses:
         "200":
           description: ""
@@ -3228,8 +3252,8 @@ paths:
                     description: ""
   /api/admin/dashboard/subject-stats:
     get:
-      summary: "番剧季度数量、导入状态与导入记录统计"
-      description: "番剧季度数量、导入状态与导入记录统计"
+      summary: "番剧季度数量、导入状态与导入记录统计，看板内容面板加载时触发"
+      description: "番剧季度数量、导入状态与导入记录统计，看板内容面板加载时触发"
       responses:
         "200":
           description: ""
@@ -3308,8 +3332,8 @@ paths:
                     description: ""
   /api/admin/dashboard/hot:
     get:
-      summary: "本站收藏最多 Top N 热门榜"
-      description: "本站收藏最多 Top N 热门榜"
+      summary: "本站收藏最多 Top N 热门榜，看板热门排行加载时触发"
+      description: "本站收藏最多 Top N 热门榜，看板热门排行加载时触发"
       parameters:
       - name: "limit"
         in: "query"
@@ -3371,7 +3395,7 @@ components:
           description: ""
         count:
           type: "integer"
-          description: ""
+          description: "该标签关联条目数"
       description: "标签信息 VO"
     条目列表视图（摘要信息）:
       type: "object"
@@ -3438,7 +3462,7 @@ components:
           description: ""
       description: ""
     ? "登录/注册结果 VO（token + 用户信息）\n<p>\n注册和登录统一返回此结构，前端一次拿到 Token 和用户信息，\n无需额外调用{@code\
-      \ GET /api/user/me}。"
+      \ GET /api/client/me}。"
     : type: "object"
       properties:
         token:
@@ -3479,7 +3503,7 @@ components:
       properties:
         relation:
           type: "string"
-          description: ""
+          description: "prequel, sequel, side_story 等"
         relatedSubject:
           type: "object"
           properties:
@@ -3583,7 +3607,7 @@ components:
                 description: ""
               count:
                 type: "integer"
-                description: ""
+                description: "该标签关联条目数"
             description: "标签信息 VO"
         relations:
           type: "array"
@@ -3593,7 +3617,7 @@ components:
             properties:
               relation:
                 type: "string"
-                description: ""
+                description: "prequel, sequel, side_story 等"
               relatedSubject:
                 type: "object"
                 properties:
@@ -3835,7 +3859,7 @@ components:
           description: ""
         status:
           type: "integer"
-          description: ""
+          description: "0=成功, 1=失败"
         errorMsg:
           type: "string"
           description: ""

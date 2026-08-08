@@ -24,7 +24,7 @@ import java.util.List;
  * 番剧控制器
  */
 @RestController
-@RequestMapping("/api/user/subjects")
+@RequestMapping("/api/client/subjects")
 @RequiredArgsConstructor
 @Validated
 public class SubjectController {

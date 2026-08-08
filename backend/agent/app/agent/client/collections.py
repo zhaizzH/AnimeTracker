@@ -25,7 +25,7 @@ def get_my_collections(type: int = 0, page: int = 1, size: int = 20,
     params = {"page": page, "size": size}
     if type:
         params["type"] = type
-    return call_api("GET", "/api/user/collections", params=params, token=user.token)
+    return call_api("GET", "/api/client/collections", params=params, token=user.token)
 
 
 @tool
@@ -36,7 +36,7 @@ def get_my_collection(subject_id: int,
     err = _require_user(user)
     if err:
         return err
-    return call_api("GET", f"/api/user/collections/{subject_id}", token=user.token)
+    return call_api("GET", f"/api/client/collections/{subject_id}", token=user.token)
 
 
 @tool
@@ -46,7 +46,7 @@ def get_my_stats(user: Annotated[UserInfo | None, InjectedState("user")] = None)
     err = _require_user(user)
     if err:
         return err
-    return call_api("GET", "/api/user/collections/counts", token=user.token)
+    return call_api("GET", "/api/client/collections/counts", token=user.token)
 
 
 @tool
@@ -57,7 +57,7 @@ def get_my_watch_profile(cap: int = 50,
     err = _require_user(user)
     if err:
         return err
-    data = call_api("GET", "/api/user/collections", params={"page": 1, "size": cap}, token=user.token)
+    data = call_api("GET", "/api/client/collections", params={"page": 1, "size": cap}, token=user.token)
     if isinstance(data, dict) and data.get("error"):
         return data
     items = data.get("content") if isinstance(data, dict) else []

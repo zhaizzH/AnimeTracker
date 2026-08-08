@@ -13,11 +13,11 @@ def test_call_api_sends_bearer_header_and_unwraps_data(monkeypatch):
 
     monkeypatch.setattr(http.httpx, "request", fake_request)
 
-    result = http.call_api("GET", "/api/user/collections", params={"page": 1}, token="tok123")
+    result = http.call_api("GET", "/api/client/collections", params={"page": 1}, token="tok123")
 
     assert result == {"total": 1}
     assert captured["headers"]["Authorization"] == "Bearer tok123"
-    assert captured["url"].endswith("/api/user/collections")
+    assert captured["url"].endswith("/api/client/collections")
 
 
 def test_call_api_maps_401_to_login_expired(monkeypatch):

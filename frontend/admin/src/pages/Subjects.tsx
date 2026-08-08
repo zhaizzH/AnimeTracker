@@ -397,7 +397,7 @@ export default function Subjects() {
     <div className="dash-stack">
       <div className="dash-toolbar">
         <div>
-          <div className="dash-toolbar-sub">接口 · GET /api/user/subjects/search?q=&tag=&year=&weekday=&scoreMin=&scoreMax=</div>
+          <div className="dash-toolbar-sub">接口 · GET /api/client/subjects/search?q=&tag=&year=&weekday=&scoreMin=&scoreMax=</div>
         </div>
         <div className="dash-toolbar-actions">
           <Tooltip title="刷新条目数据">
@@ -769,7 +769,7 @@ export default function Subjects() {
               <div className="panel-head">
                 <div>
                   <h4 className="panel-title">剧集列表</h4>
-                  <div className="panel-sub">GET /api/user/subjects/{detailTarget.id}/episodes</div>
+                  <div className="panel-sub">GET /api/client/subjects/{detailTarget.id}/episodes</div>
                 </div>
                 <span className="panel-note">共 {detailEpisodes.length} 集</span>
               </div>

@@ -16,13 +16,13 @@ export interface SubjectSearchParams {
 
 export const subjectsApi = {
   list: (params?: { page?: number; size?: number; sort?: string; order?: string }) =>
-    http.get<PageResult<SubjectListVO>>('/user/subjects', { params }),
+    http.get<PageResult<SubjectListVO>>('/client/subjects', { params }),
   search: (params: SubjectSearchParams) =>
-    http.get<PageResult<SubjectListVO>>('/user/subjects/search', { params }),
+    http.get<PageResult<SubjectListVO>>('/client/subjects/search', { params }),
   season: (year: number, quarter: string, page?: number, size?: number) =>
-    http.get<PageResult<SubjectListVO>>('/user/subjects/season', { params: { year, quarter, page, size } }),
+    http.get<PageResult<SubjectListVO>>('/client/subjects/season', { params: { year, quarter, page, size } }),
   schedule: (params?: { weekday?: number; year?: number; quarter?: string; page?: number; size?: number }) =>
-    http.get<PageResult<SubjectListVO>>('/user/subjects/schedule', { params }),
+    http.get<PageResult<SubjectListVO>>('/client/subjects/schedule', { params }),
   scheduleAll: async (params?: { weekday?: number; year?: number; quarter?: string }) => {
     const pageSize = 100;
     const content: SubjectListVO[] = [];
@@ -45,6 +45,6 @@ export const subjectsApi = {
 
     return { content, total, page: 1, size: pageSize };
   },
-  detail: (id: number) => http.get<SubjectDetailVO>(`/user/subjects/${id}`),
-  episodes: (id: number) => http.get<EpisodeVO[]>(`/user/subjects/${id}/episodes`),
+  detail: (id: number) => http.get<SubjectDetailVO>(`/client/subjects/${id}`),
+  episodes: (id: number) => http.get<EpisodeVO[]>(`/client/subjects/${id}/episodes`),
 };

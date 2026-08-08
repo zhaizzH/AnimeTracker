@@ -22,7 +22,7 @@ import top.zhaizz.pojo.vo.LoginVO;
  * 认证控制器
  */
 @RestController
-@RequestMapping("/api/user/auth")
+@RequestMapping("/api/client/auth")
 @RequiredArgsConstructor
 public class AuthController {
 

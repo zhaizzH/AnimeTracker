@@ -22,7 +22,7 @@ import java.util.Map;
  * 追番控制器
  */
 @RestController
-@RequestMapping("/api/user/collections")
+@RequestMapping("/api/client/collections")
 @RequiredArgsConstructor
 @Validated
 public class CollectionController {

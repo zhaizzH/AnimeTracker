@@ -10,9 +10,9 @@ import type {
 
 export const subjectsApi = {
   search: (params: SubjectQueryParams) =>
-    http.get<PageResult<SubjectListVO>>('/user/subjects/search', { params }),
-  detail: (id: number) => http.get<SubjectDetailVO>(`/user/subjects/${id}`),
-  episodes: (id: number) => http.get<EpisodeVO[]>(`/user/subjects/${id}/episodes`),
+    http.get<PageResult<SubjectListVO>>('/client/subjects/search', { params }),
+  detail: (id: number) => http.get<SubjectDetailVO>(`/client/subjects/${id}`),
+  episodes: (id: number) => http.get<EpisodeVO[]>(`/client/subjects/${id}/episodes`),
   create: (data: SubjectUpsertDTO) => http.post<SubjectDetailVO>('/admin/subjects', data),
   update: (id: number, data: SubjectUpsertDTO) =>
     http.post<SubjectDetailVO>(`/admin/subjects/${id}/update`, data),

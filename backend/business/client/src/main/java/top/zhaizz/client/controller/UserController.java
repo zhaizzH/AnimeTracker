@@ -19,7 +19,7 @@ import top.zhaizz.pojo.vo.UserVO;
  * 个人信息控制器
  */
 @RestController
-@RequestMapping("/api/user/me")
+@RequestMapping("/api/client/me")
 @RequiredArgsConstructor
 public class UserController {
 
