@@ -128,9 +128,6 @@ backend/business/app/src/main/resources/application-local.yml
 backend/agent/.env
 backend/agent/agent.db*
 
-# Python data-importer local env
-backend/data/importer/.env
-
 frontend\client\.workbuddy
 
 docs/superpowers
