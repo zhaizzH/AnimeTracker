@@ -63,7 +63,7 @@ mvn -pl app spring-boot:run -Dspring-boot.run.profiles.active=local
 
 API 文档（Knife4j）：http://localhost:8080/doc.html
 
-> 该模块内置 `agent` 代理层，对外暴露 `/api/agent/*`。Agent 类请求经此后被转发至 Python Agent（默认 `http://localhost:8090`），由 `at.agent.host` / `at.agent.port` 配置。
+> 该模块内置 `agent` 代理层，对外暴露 `/api/client/agent/*`（用户端）与 `/api/admin/agent/*`（管理端）。Agent 类请求经此后被转发至 Python Agent（默认 `http://localhost:8090`），由 `at.agent.host` / `at.agent.port` 配置。
 
 ### 3. AI Agent（Python）
 

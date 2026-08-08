@@ -13,7 +13,7 @@ from app.core.runtime_config import MODEL_CONFIG_KEY, get_runtime_model_config, 
 from app.schemas.admin_config import ModelConfig, PromptOut, PromptUpdateRequest
 from app.schemas.auth import UserInfo
 
-router = APIRouter(prefix="/api/agent/admin")
+router = APIRouter(prefix="/api/admin/agent")
 
 # 托管 key -> 本地默认提示词文件（reset 后回退）
 LOCAL_PROMPT_PATHS = {

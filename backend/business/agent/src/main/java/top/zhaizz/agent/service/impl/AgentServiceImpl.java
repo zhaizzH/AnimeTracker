@@ -49,7 +49,7 @@ public class AgentServiceImpl implements AgentService {
     }
 
     private String agentUrl(String path) {
-        return agentProperties.getBaseUrl() + "/api/agent" + path;
+        return agentProperties.getBaseUrl() + path;
     }
 
     /** SSE 流式转发专用：不设读超时，思考模型响应可能远超普通接口的 30s 读超时。 */

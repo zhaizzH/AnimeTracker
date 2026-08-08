@@ -17,7 +17,7 @@ from app.schemas.session import (
 )
 from app.service.chat import ChatService
 
-router = APIRouter(prefix="/api/agent")
+router = APIRouter(prefix="/api/client/agent")
 
 chat_store: RedisStore | None = None
 chat_service: ChatService | None = None

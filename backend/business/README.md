@@ -16,7 +16,7 @@ business/
 ├── pojo/            # 实体 / DTO / VO（entity、dto、vo 包）
 ├── admin/           # 管理端：条目 CRUD、用户管理、数据导入、仪表盘统计、操作审计日志
 ├── client/          # 用户端：浏览/搜索、认证、收藏、标签、剧集进度
-├── agent/           # Agent 代理层：转发 /api/agent/* 至 Python Agent 服务
+├── agent/           # Agent 代理层：转发 /api/client/agent/* 与 /api/admin/agent/* 至 Python Agent 服务
 └── app/             # 启动模块：聚合 admin + client + agent，Spring Boot 入口
 ```
 
@@ -28,7 +28,7 @@ business/
 | pojo | `animetracker-pojo` | `entity`（Subject、Episode、User、UserCollection…）、`dto`（入参）、`vo`（出参） |
 | admin | `animetracker-admin` | `AdminSubjectController`/`AdminDashboardController`/`AdminUserController`/`ImportController`/`AdminLogController` + Service/Converter/Mapper |
 | client | `animetracker-client` | `Auth`/`Subject`/`Collection`/`Tag`/`User` Controller + Service/Mapper/Converter |
-| agent | `animetracker-agent` | `AgentController`（用户端）+ `AdminAgentController`（管理端）+ `AgentService`：将 `/api/agent/*` 转发至 Python Agent（默认 `http://localhost:8090`），SSE 流式透传 |
+| agent | `animetracker-agent` | `AgentController`（用户端 `/api/client/agent/*`）+ `AdminAgentController`（管理端 `/api/admin/agent/*`）+ `AgentService`：将请求转发至 Python Agent（默认 `http://localhost:8090`），SSE 流式透传 |
 | app | `animetracker-app` | 聚合 admin + client + agent，含主类 `top.zhaizz.app.AppApplication`（`@MapperScan("top.zhaizz.**.mapper")`、`@EnableScheduling`） |
 
 > **操作审计日志**：common 模块提供 `@OperationLog` 注解 + `OperationLogAspect` AOP 切面，自动记录后台操作（登录、注册、条目增删改、角色变更、导入等）到 `operation_log` 表（含操作人、动作、模块、IP、耗时、成败状态）；admin 模块通过 `AdminLogController` / `AdminLogService` 提供查询接口，供运营后台「日志」页审计追溯。定时清理由 `OperationLogCleanupTask` 负责。

@@ -1922,7 +1922,7 @@ paths:
                   data:
                     type: "string"
                     description: ""
-  /api/agent/health:
+  /api/client/agent/health:
     get:
       summary: "健康检查"
       description: "健康检查"
@@ -1949,7 +1949,7 @@ paths:
                   data:
                     type: "string"
                     description: ""
-  /api/agent/stream:
+  /api/client/agent/stream:
     post:
       summary: "Agent 流式对话"
       description: "Agent 流式对话"
@@ -1972,7 +1972,7 @@ paths:
       responses:
         "200":
           description: "No Content"
-  /api/agent/sessions:
+  /api/client/agent/sessions:
     get:
       summary: "获取会话列表"
       description: "获取会话列表"
@@ -2035,7 +2035,7 @@ paths:
                   data:
                     type: "string"
                     description: ""
-  /api/agent/sessions/{sessionId}/history:
+  /api/client/agent/sessions/{sessionId}/history:
     get:
       summary: "获取会话历史"
       description: "获取会话历史"
@@ -2068,7 +2068,7 @@ paths:
                   data:
                     type: "string"
                     description: ""
-  /api/agent/sessions/{sessionId}/remove:
+  /api/client/agent/sessions/{sessionId}/remove:
     post:
       summary: "删除会话"
       description: "删除会话"

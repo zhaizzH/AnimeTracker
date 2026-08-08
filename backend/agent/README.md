@@ -8,10 +8,10 @@
 
 ## 在整体架构中的位置
 
-本服务是真正的**大模型推理层**。业务后端 `backend/business` 内置 `agent` 代理模块（Maven 模块 `anime-tracker-agent`），在 `8080` 端口对外暴露 `/api/agent/*`，并将请求转发到本服务：
+本服务是真正的**大模型推理层**。业务后端 `backend/business` 内置 `agent` 代理模块（Maven 模块 `anime-tracker-agent`），在 `8080` 端口对外暴露 `/api/client/agent/*`（用户端）与 `/api/admin/agent/*`（管理端），并将请求转发到本服务：
 
 ```
-前端 (5173) ──/api/agent/*──► business :8080 (agent 代理层) ──HTTP 转发──► 本服务 :8090
+前端 (5173) ──/api/client/agent/*──► business :8080 (agent 代理层) ──HTTP 转发──► 本服务 :8090
                                                                           │
                                                                           └─工具调用─► business API（获取番剧实时数据）
 ```
@@ -60,8 +60,8 @@ backend/agent/
 └── app/
     ├── config.py            # pydantic-settings 配置 + AgentChatModelSlot + create_agent_chat_llm
     ├── api/
-    │   ├── chat.py          # /api/agent/* 路由（流式对话 / 会话管理）
-    │   ├── admin_config.py  # /api/agent/admin/* 管理端（提示词 / 运行时模型配置）
+    │   ├── chat.py          # /api/client/agent/* 路由（流式对话 / 会话管理）
+    │   ├── admin_config.py  # /api/admin/agent/* 管理端（提示词 / 运行时模型配置）
     │   └── deps.py          # verify_token：本地 JWT 验签（共享业务后端密钥）
     ├── agent/
     │   ├── state.py         # AgentState / RoutingState（graph 级共享状态）
@@ -95,7 +95,7 @@ backend/agent/
 
 ## SSE 协议
 
-流式接口 `POST /api/agent/stream` 返回 `text/event-stream`，每条消息 `data: {json}\n\n`，序列化 `exclude_none=True`、`ensure_ascii=False`。
+流式接口 `POST /api/client/agent/stream` 返回 `text/event-stream`，每条消息 `data: {json}\n\n`，序列化 `exclude_none=True`、`ensure_ascii=False`。
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
@@ -145,13 +145,13 @@ uvicorn main:app --reload --port 8090
 
 交互接口：
 
-- `POST /api/agent/stream` —— SSE 流式对话
-- `GET /api/agent/sessions` / `POST /api/agent/sessions` —— 会话列表 / 新建
-- `GET /api/agent/sessions/{id}/history` —— 历史消息
-- `POST /api/agent/sessions/{id}` —— 删除会话
-- `GET /api/agent/health` —— 健康检查
-- `GET /api/agent/admin/prompts` / `GET /{key}` / `POST /{key}/update` / `POST /{key}/reset` —— 托管提示词查询 / 更新 / 重置
-- `GET /api/agent/admin/config` / `POST /api/agent/admin/config/update` —— 运行时模型配置读写
+- `POST /api/client/agent/stream` —— SSE 流式对话
+- `GET /api/client/agent/sessions` / `POST /api/client/agent/sessions` —— 会话列表 / 新建
+- `GET /api/client/agent/sessions/{id}/history` —— 历史消息
+- `POST /api/client/agent/sessions/{id}` —— 删除会话
+- `GET /api/client/agent/health` —— 健康检查
+- `GET /api/admin/agent/prompts` / `GET /{key}` / `POST /{key}/update` / `POST /{key}/reset` —— 托管提示词查询 / 更新 / 重置
+- `GET /api/admin/agent/config` / `POST /api/admin/agent/config/update` —— 运行时模型配置读写
 - `GET /docs` —— Swagger 文档
 
-> `/api/agent/admin/*` 为管理端接口，需 ADMIN 角色（本地验签）；管理端前端「Agent 配置」页即对接这些端点。
+> `/api/admin/agent/*` 为管理端接口，需 ADMIN 角色（本地验签）；管理端前端「Agent 配置」页即对接这些端点。

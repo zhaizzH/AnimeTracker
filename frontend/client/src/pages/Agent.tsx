@@ -104,17 +104,8 @@ export default function Agent() {
     setMessages(prev => [...prev, aiMsg]);
 
     try {
-      const streamMessage = (accessToken: string) => fetch('/api/agent/stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ session_id: sessionId, content: userMessage.content }),
-      });
-
       let accessToken = localStorage.getItem('token') || '';
-      let response = await streamMessage(accessToken);
+      let response = await agentApi.stream(sessionId!, userMessage.content, accessToken);
 
       // 流式请求不走 axios 拦截器，401 时自行刷新 token 并重试一次
       if (response.status === 401) {
@@ -124,7 +115,7 @@ export default function Agent() {
           return;
         }
         accessToken = newToken;
-        response = await streamMessage(accessToken);
+        response = await agentApi.stream(sessionId!, userMessage.content, accessToken);
       }
 
       if (!response.ok) {

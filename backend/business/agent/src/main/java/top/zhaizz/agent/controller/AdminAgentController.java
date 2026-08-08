@@ -23,7 +23,7 @@ public class AdminAgentController {
      */
     @GetMapping("/prompts")
     public Result<?> listPrompts(@RequestHeader("Authorization") String auth) {
-        return agentService.wrapResult(agentService.forward("/admin/prompts", HttpMethod.GET, auth, null).getBody());
+        return agentService.wrapResult(agentService.forward("/api/admin/agent/prompts", HttpMethod.GET, auth, null).getBody());
     }
 
     /**
@@ -31,7 +31,7 @@ public class AdminAgentController {
      */
     @GetMapping("/prompts/{key}")
     public Result<?> getPrompt(@PathVariable String key, @RequestHeader("Authorization") String auth) {
-        return agentService.wrapResult(agentService.forward("/admin/prompts/" + key, HttpMethod.GET, auth, null).getBody());
+        return agentService.wrapResult(agentService.forward("/api/admin/agent/prompts/" + key, HttpMethod.GET, auth, null).getBody());
     }
 
     /**
@@ -41,7 +41,7 @@ public class AdminAgentController {
     public Result<?> updatePrompt(@PathVariable String key, @RequestBody Map<String, Object> body,
                                   @RequestHeader("Authorization") String auth) {
         return agentService.wrapResult(agentService.forward(
-                "/admin/prompts/" + key + "/update", HttpMethod.POST, auth, agentService.toJson(body)).getBody());
+                "/api/admin/agent/prompts/" + key + "/update", HttpMethod.POST, auth, agentService.toJson(body)).getBody());
     }
 
     /**
@@ -50,7 +50,7 @@ public class AdminAgentController {
     @PostMapping("/prompts/{key}/reset")
     public Result<?> resetPrompt(@PathVariable String key, @RequestHeader("Authorization") String auth) {
         return agentService.wrapResult(agentService.forward(
-                "/admin/prompts/" + key + "/reset", HttpMethod.POST, auth, null).getBody());
+                "/api/admin/agent/prompts/" + key + "/reset", HttpMethod.POST, auth, null).getBody());
     }
 
     /**
@@ -58,7 +58,7 @@ public class AdminAgentController {
      */
     @GetMapping("/config")
     public Result<?> getConfig(@RequestHeader("Authorization") String auth) {
-        return agentService.wrapResult(agentService.forward("/admin/config", HttpMethod.GET, auth, null).getBody());
+        return agentService.wrapResult(agentService.forward("/api/admin/agent/config", HttpMethod.GET, auth, null).getBody());
     }
 
     /**
@@ -67,6 +67,6 @@ public class AdminAgentController {
     @PostMapping("/config/update")
     public Result<?> updateConfig(@RequestBody Map<String, Object> body, @RequestHeader("Authorization") String auth) {
         return agentService.wrapResult(agentService.forward(
-                "/admin/config/update", HttpMethod.POST, auth, agentService.toJson(body)).getBody());
+                "/api/admin/agent/config/update", HttpMethod.POST, auth, agentService.toJson(body)).getBody());
     }
 }

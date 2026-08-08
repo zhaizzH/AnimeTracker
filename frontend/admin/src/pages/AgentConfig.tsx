@@ -283,7 +283,7 @@ export default function AgentConfig() {
             <h3 className="panel-title">
               <span className="seq">03</span>模型配置
             </h3>
-            <div className="panel-sub">GET /api/agent/health · POST /api/admin/agent/config/update</div>
+            <div className="panel-sub">GET /api/client/agent/health · POST /api/admin/agent/config/update</div>
           </div>
           <Space>
             <Button icon={<ExperimentOutlined />} loading={testing} onClick={testConfig}>
