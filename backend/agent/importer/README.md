@@ -16,7 +16,7 @@
 ## 快速开始
 
 ```bash
-cd backend/data/importer
+cd backend/agent/importer   # 或 cd backend/agent 后 python importer/main.py
 cp .env.example .env          # 填入 DB_*（可选：BANGUMI_ACCESS_TOKEN / MINIO_*）
 
 python -m venv .venv && source .venv/bin/activate
