@@ -40,7 +40,7 @@ public class ImportController {
      * 获取番剧导入状态，供管理后台导入进度轮询触发
      */
     @GetMapping("/status")
-    public Result<ImportStatusVO> getImportStatus() {
-        return Result.success(importService.getImportStatus());
+    public Result<ImportStatusVO> getImportStatus(@RequestHeader(value = "Authorization", required = false) String auth) {
+        return Result.success(importService.getImportStatus(auth));
     }
 }

@@ -1,6 +1,5 @@
 package top.zhaizz.admin.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -13,20 +12,16 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
-import top.zhaizz.admin.converter.SubjectConverter;
-import top.zhaizz.admin.mapper.ImportRecordMapper;
 import top.zhaizz.admin.service.ImportService;
 import top.zhaizz.common.ErrorType;
 import top.zhaizz.common.config.AgentProperties;
 import top.zhaizz.common.exception.BizException;
-import top.zhaizz.pojo.entity.ImportRecord;
 import top.zhaizz.pojo.vo.ImportStatusVO;
 
-import java.util.List;
 import java.util.Set;
 
 /**
- * 番剧导入服务实现 — 触发转发至 Python Agent 导入端点，进程管理由 agent 侧负责。
+ * 番剧导入服务实现 — 触发与状态均转发至 Python Agent 导入端点，进程与记录状态由 agent 侧统一负责。
  */
 @Slf4j
 @Service
@@ -34,10 +29,10 @@ import java.util.Set;
 public class ImportServiceImpl implements ImportService {
     private static final Set<String> MODES = Set.of("full", "season", "recent", "since");
     private static final String RUN_PATH = "/api/admin/agent/import/run";
+    private static final String STATUS_PATH = "/api/admin/agent/import/status";
 
     private final RestTemplate restTemplate;
     private final AgentProperties agentProperties;
-    private final ImportRecordMapper importRecordMapper;
 
     @Override
     public void runImport(String authorization, String mode, String key, String since, Integer workers) {
@@ -74,16 +69,23 @@ public class ImportServiceImpl implements ImportService {
     }
 
     @Override
-    public ImportStatusVO getImportStatus() {
-        List<ImportRecord> records = importRecordMapper.selectList(
-                new LambdaQueryWrapper<ImportRecord>()
-                        .orderByDesc(ImportRecord::getStartedAt)
-                        .last("LIMIT 10"));
-        ImportStatusVO vo = new ImportStatusVO();
-        vo.setLastImportedAt(records.isEmpty() ? null : records.getFirst().getCompletedAt());
-        vo.setTotalSubjects(records.size());
-        vo.setRecentRecords(SubjectConverter.toImportRecordVOList(records));
-        return vo;
+    public ImportStatusVO getImportStatus(String authorization) {
+        HttpHeaders headers = new HttpHeaders();
+        if (authorization != null && !authorization.isEmpty()) {
+            headers.set(HttpHeaders.AUTHORIZATION, authorization);
+        }
+        String url = agentProperties.getBaseUrl() + STATUS_PATH;
+        try {
+            return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), ImportStatusVO.class).getBody();
+        } catch (HttpStatusCodeException e) {
+            String detail = e.getResponseBodyAsString();
+            throw new BizException(
+                    e.getStatusCode().is5xxServerError() ? ErrorType.INTERNAL_ERROR : ErrorType.BAD_REQUEST,
+                    "导入状态获取失败: " + (detail == null || detail.isEmpty() ? e.getStatusText() : detail));
+        } catch (ResourceAccessException e) {
+            log.error("Agent 导入服务连接失败: {}", url, e);
+            throw new BizException(ErrorType.INTERNAL_ERROR, "Agent 导入服务连接失败");
+        }
     }
 
     private void validate(String mode, String key, String since) {

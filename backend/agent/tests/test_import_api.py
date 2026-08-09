@@ -1,4 +1,5 @@
 import sys
+from datetime import datetime
 
 import pytest
 from fastapi import HTTPException
@@ -97,3 +98,54 @@ def test_sweep_clears_dead_process_and_flips_records(monkeypatch):
 
     assert flipped  # 进程死亡后触发了兜底翻 FAILED
     assert import_api._proc is not None  # 门禁已释放并启动了新进程
+
+
+class FakeResult:
+    def __init__(self, rows=None, scalar_value=None):
+        self._rows = rows or []
+        self._scalar_value = scalar_value
+
+    def scalar(self):
+        return self._scalar_value
+
+    def mappings(self):
+        return self
+
+    def all(self):
+        return self._rows
+
+
+def test_status_sweeps_then_returns_aggregate(monkeypatch):
+    swept = []
+    monkeypatch.setattr(import_api, "_sweep", lambda: swept.append(1))
+
+    class FakeSession:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def execute(self, stmt):
+            if "COUNT" in str(stmt):
+                return FakeResult(scalar_value=42)
+            return FakeResult([{
+                "id": 3,
+                "season_key": "2026-summer",
+                "status": "COMPLETED",
+                "subject_count": 7,
+                "started_at": datetime(2026, 8, 1, 10, 0, 0),
+                "completed_at": datetime(2026, 8, 1, 10, 5, 0),
+                "error_message": None,
+            }])
+
+    monkeypatch.setattr(import_api, "_db_session", lambda: FakeSession())
+
+    payload = import_api.import_status()
+
+    assert swept  # 状态轮询也触发孤儿清扫
+    assert payload["totalSubjects"] == 42  # 真实条目总数，而非记录条数
+    records = payload["recentRecords"]
+    assert records[0]["season"] == "2026-summer"
+    assert records[0]["completedAt"] == "2026-08-01T10:05:00"  # ISO-T，Java LocalDateTime 可解析
+    assert payload["lastImportedAt"] == "2026-08-01T10:05:00"

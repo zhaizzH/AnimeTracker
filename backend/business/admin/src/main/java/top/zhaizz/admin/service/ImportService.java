@@ -19,7 +19,9 @@ public interface ImportService {
     void runImport(String authorization, String mode, String key, String since, Integer workers);
 
     /**
-     * 获取导入状态
+     * 获取导入状态（转发至 Python Agent 导入端点）
+     *
+     * @param authorization 调用方 JWT（透传给 agent 做 ADMIN 校验）
      */
-    ImportStatusVO getImportStatus();
+    ImportStatusVO getImportStatus(String authorization);
 }

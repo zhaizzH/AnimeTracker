@@ -53,6 +53,7 @@ _db_lock = threading.Lock()
 # ponytail: 模块级单例，避免层层传递
 _minio_client = None
 _start_time = None
+_done_count = 0  # 已处理成功条目数，后台线程周期刷到 import_record.subject_count
 
 EXT_MAP = {
     "image/jpeg": "jpg",
@@ -79,6 +80,42 @@ def _fmt_duration(secs: float) -> str:
     return f"{m}m{s:02d}s"
 
 
+def _start_count_flusher(record_id: int, engine, every: float = 3.0):
+    """后台守护线程：周期把已处理数刷到 import_record.subject_count。
+
+    前端每 5s 轮询 /status，3s 刷新足够实时且写库次数有限（full 全程仅几十次）。
+    返回 stop Event；导入结束先 set()+join() 再写最终值，避免与 complete 竞态。
+    """
+    stop = threading.Event()
+
+    def _flush(db):
+        n = _done_count
+        try:
+            db.execute(
+                text("UPDATE import_record SET subject_count = :n WHERE id = :id"),
+                {"n": n, "id": record_id},
+            )
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            logger.warning("刷新 import_record.subject_count 失败: %s", e)
+
+    def _loop():
+        db = Session(engine)
+        try:
+            while not stop.wait(every):
+                _flush(db)
+        finally:
+            db.close()
+
+    threading.Thread(target=_loop, daemon=True).start()
+    return stop
+
+
+def _minio_secure() -> bool:
+    return os.getenv("MINIO_SECURE", "false").lower() == "true"
+
+
 def _get_minio_client():
     global _minio_client
     if _minio_client is None:
@@ -86,7 +123,7 @@ def _get_minio_client():
             os.getenv("MINIO_ENDPOINT", "localhost:9000"),
             access_key=os.getenv("MINIO_ACCESS_KEY", "minioadmin"),
             secret_key=os.getenv("MINIO_SECRET_KEY", "minioadmin"),
-            secure=False,
+            secure=_minio_secure(),
         )
     return _minio_client
 
@@ -103,8 +140,9 @@ def upload_cover(subject_id: int, image_url: str) -> str:
     """下载封面 → 上传 MinIO → 返回 MinIO 公开 URL；失败重试 2 次后回退。"""
     if not image_url:
         return image_url
+    proxy = os.getenv("BANGUMI_IMAGE_PROXY_URL", "https://proxy.8000150.xyz").rstrip("/")
+    image_url = f"{proxy}/{image_url}"
     for attempt in range(3):
-        image_url="https://proxy.8000150.xyz/"+image_url
         try:
             resp = requests.get(image_url, timeout=15, stream=True)
             resp.raise_for_status()
@@ -119,7 +157,8 @@ def upload_cover(subject_id: int, image_url: str) -> str:
 
             mc.put_object(bucket, object_name, resp.raw, length=-1, part_size=10 * 1024 * 1024,
                           content_type=content_type or "image/jpeg")
-            public_url = os.getenv("MINIO_PUBLIC_URL", "http://localhost:9000").rstrip("/")
+            scheme = "https" if _minio_secure() else "http"
+            public_url = f"{scheme}://{os.getenv('MINIO_ENDPOINT', 'localhost:9000')}".rstrip("/")
             return f"{public_url}/{bucket}/{object_name}"
         except Exception as e:
             if attempt < 2:
@@ -153,6 +192,7 @@ def _stagger(ids, workers):
 def _run_batch(bangumi_ids, resume, access_token, user_agent,
                host, port, user, password, db_name, max_workers=MAX_WORKERS):
     """并行导入一批 subject_id，返回成功数。"""
+    global _done_count
     total = len(bangumi_ids)
     if not total:
         return 0
@@ -167,6 +207,7 @@ def _run_batch(bangumi_ids, resume, access_token, user_agent,
         for future in as_completed(futures):
             if future.result():
                 done += 1
+            _done_count = done
             _safe_progress(done, total)
     return done
 
@@ -466,6 +507,7 @@ def main():
 
     record_id = create_import_record(db, args.mode, getattr(args, "key", None))
     db.commit()
+    stop_flusher = _start_count_flusher(record_id, engine)
 
     global _start_time
     _start_time = time.time()
@@ -498,6 +540,8 @@ def main():
         else:
             raise ValueError(f"Unknown mode: {args.mode}")
 
+        stop_flusher.set()
+        stop_flusher.join(timeout=5)
         complete_import_record(db, record_id, count, "COMPLETED")
         db.commit()
         elapsed = _fmt_duration(time.time() - _start_time)

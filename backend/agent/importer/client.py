@@ -1,20 +1,24 @@
 """Bangumi API HTTP 客户端，自动限流 + 重试"""
 
-import time
 import logging
+import os
+import time
 from typing import Any, Optional
 
 import requests
 
 logger = logging.getLogger(__name__)
 
-BASE_URL = "https://proxy.8000150.xyz/https%3A%2F%2Fapi.bgm.tv"
+DEFAULT_BASE_URL = "https://proxy.8000150.xyz/https%3A%2F%2Fapi.bgm.tv"
 
 
 class BangumiClient:
     """对 Bangumi v0 API 的轻量封装。"""
 
-    def __init__(self, access_token: str = "", user_agent: str = "zhaizzH/AnimeTracker", request_delay: float = 0):
+    def __init__(self, access_token: str = "", user_agent: str = "zhaizzH/AnimeTracker",
+                 request_delay: float = 0, base_url: str | None = None):
+        # ponytail: 惰性读 env——client 在 load_dotenv() 前就被 import，模块级读取会拿默认值
+        self._base_url = base_url or os.getenv("BANGUMI_BASE_URL", DEFAULT_BASE_URL)
         self._session = requests.Session()
         self._session.headers.update({
             "User-Agent": user_agent,
@@ -26,7 +30,7 @@ class BangumiClient:
 
     def _request(self, method: str, path: str, **kwargs) -> Any:
         """发送请求，自动处理限流和重试。"""
-        url = f"{BASE_URL}{path}"
+        url = f"{self._base_url}{path}"
         timeout = kwargs.pop("timeout", 30)
 
         for attempt in range(3):
