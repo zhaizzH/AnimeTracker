@@ -3,9 +3,10 @@ import time
 from pathlib import Path
 
 # importer/main.py 用平铺 `from client import ...`（脚本式运行），需把 importer 目录挂进 path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "importer"))
-
+_IMPORTER_DIR = str(Path(__file__).resolve().parents[1] / "importer")
+sys.path.insert(0, _IMPORTER_DIR)
 from importer import main as importer_main
+sys.path.remove(_IMPORTER_DIR)
 
 
 def test_count_flusher_writes_subject_count_and_stops(monkeypatch):
