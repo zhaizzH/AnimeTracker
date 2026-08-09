@@ -26,6 +26,10 @@ at:
     host: <agent-host>
     port: 8090
 
+  # 管理端
+  admin:
+    superadmin-id: <superadmin-user-id>  # 管理员用户 ID（必填，无默认值）
+
 # JWT 配置
 jwt:
   secret: dev-secret-key-not-for-production-use-change-it

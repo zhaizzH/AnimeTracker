@@ -9,17 +9,17 @@ import org.springframework.web.client.RestTemplate;
 import java.time.Duration;
 
 /**
- * RestTemplate 配置：调用 Agent 服务用，连接 10s / 读取 30s
+ * RestTemplate 配置：调用 Agent 服务用，连接/读超时取自 at.agent.*
  */
 @Configuration
 @EnableConfigurationProperties(AgentProperties.class)
 public class RestTemplateConfig {
 
     @Bean
-    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+    public RestTemplate restTemplate(RestTemplateBuilder builder, AgentProperties agentProperties) {
         return builder
-                .setConnectTimeout(Duration.ofSeconds(10))
-                .setReadTimeout(Duration.ofSeconds(30))
+                .setConnectTimeout(Duration.ofMillis(agentProperties.getConnectTimeout()))
+                .setReadTimeout(Duration.ofMillis(agentProperties.getReadTimeout()))
                 .build();
     }
 }

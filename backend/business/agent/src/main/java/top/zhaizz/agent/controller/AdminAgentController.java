@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.*;
 import top.zhaizz.agent.service.AgentService;
 import top.zhaizz.common.result.Result;
 
+import static top.zhaizz.common.config.AgentApiPaths.*;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Map;
@@ -28,7 +30,7 @@ public class AdminAgentController {
      */
     @GetMapping("/prompts")
     public Result<?> listPrompts(@RequestHeader("Authorization") String auth) {
-        return agentService.wrapResult(agentService.forward("/api/admin/agent/prompts", HttpMethod.GET, auth, null).getBody());
+        return agentService.wrapResult(agentService.forward(ADMIN_PROMPTS, HttpMethod.GET, auth, null).getBody());
     }
 
     /**
@@ -36,7 +38,7 @@ public class AdminAgentController {
      */
     @GetMapping("/prompts/{key}")
     public Result<?> getPrompt(@PathVariable String key, @RequestHeader("Authorization") String auth) {
-        return agentService.wrapResult(agentService.forward("/api/admin/agent/prompts/" + key, HttpMethod.GET, auth, null).getBody());
+        return agentService.wrapResult(agentService.forward(ADMIN_PROMPTS + "/" + key, HttpMethod.GET, auth, null).getBody());
     }
 
     /**
@@ -46,7 +48,7 @@ public class AdminAgentController {
     public Result<?> updatePrompt(@PathVariable String key, @RequestBody Map<String, Object> body,
                                   @RequestHeader("Authorization") String auth) {
         return agentService.wrapResult(agentService.forward(
-                "/api/admin/agent/prompts/" + key + "/update", HttpMethod.POST, auth, agentService.toJson(body)).getBody());
+                ADMIN_PROMPTS + "/" + key + "/update", HttpMethod.POST, auth, agentService.toJson(body)).getBody());
     }
 
     /**
@@ -55,7 +57,7 @@ public class AdminAgentController {
     @PostMapping("/prompts/{key}/reset")
     public Result<?> resetPrompt(@PathVariable String key, @RequestHeader("Authorization") String auth) {
         return agentService.wrapResult(agentService.forward(
-                "/api/admin/agent/prompts/" + key + "/reset", HttpMethod.POST, auth, null).getBody());
+                ADMIN_PROMPTS + "/" + key + "/reset", HttpMethod.POST, auth, null).getBody());
     }
 
     /**
@@ -63,7 +65,7 @@ public class AdminAgentController {
      */
     @GetMapping("/config")
     public Result<?> getConfig(@RequestHeader("Authorization") String auth) {
-        return agentService.wrapResult(agentService.forward("/api/admin/agent/config", HttpMethod.GET, auth, null).getBody());
+        return agentService.wrapResult(agentService.forward(ADMIN_CONFIG, HttpMethod.GET, auth, null).getBody());
     }
 
     /**
@@ -72,7 +74,7 @@ public class AdminAgentController {
     @PostMapping("/config/update")
     public Result<?> updateConfig(@RequestBody Map<String, Object> body, @RequestHeader("Authorization") String auth) {
         return agentService.wrapResult(agentService.forward(
-                "/api/admin/agent/config/update", HttpMethod.POST, auth, agentService.toJson(body)).getBody());
+                ADMIN_CONFIG + "/update", HttpMethod.POST, auth, agentService.toJson(body)).getBody());
     }
 
     /**
@@ -84,7 +86,7 @@ public class AdminAgentController {
         response.setContentType(MediaType.TEXT_EVENT_STREAM_VALUE);
         response.setCharacterEncoding("UTF-8");
         PrintWriter writer = response.getWriter();
-        agentService.forwardStream("/api/admin/agent/chat/stream", HttpMethod.POST, auth, jsonBody, line -> {
+        agentService.forwardStream(ADMIN_CHAT_STREAM, HttpMethod.POST, auth, jsonBody, line -> {
             writer.write(line + "\n");
             writer.flush();
         });
@@ -96,7 +98,7 @@ public class AdminAgentController {
      */
     @GetMapping("/chat/sessions")
     public Result<?> listSessions(@RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward("/api/admin/agent/chat/sessions", HttpMethod.GET, auth, null);
+        ResponseEntity<String> resp = agentService.forward(ADMIN_CHAT_SESSIONS, HttpMethod.GET, auth, null);
         return agentService.wrapResult(resp.getBody());
     }
 
@@ -106,7 +108,7 @@ public class AdminAgentController {
     @PostMapping("/chat/sessions")
     public Result<?> createSession(@RequestHeader("Authorization") String auth, @RequestBody(required = false) Map<String, Object> body) {
         String jsonBody = agentService.toJson(body != null ? body : Map.of());
-        ResponseEntity<String> resp = agentService.forward("/api/admin/agent/chat/sessions", HttpMethod.POST, auth, jsonBody);
+        ResponseEntity<String> resp = agentService.forward(ADMIN_CHAT_SESSIONS, HttpMethod.POST, auth, jsonBody);
         return agentService.wrapResult(resp.getBody());
     }
 
@@ -115,7 +117,7 @@ public class AdminAgentController {
      */
     @GetMapping("/chat/sessions/{sessionId}/history")
     public Result<?> getHistory(@PathVariable String sessionId, @RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward("/api/admin/agent/chat/sessions/" + sessionId + "/history", HttpMethod.GET, auth, null);
+        ResponseEntity<String> resp = agentService.forward(ADMIN_CHAT_SESSIONS + "/" + sessionId + "/history", HttpMethod.GET, auth, null);
         return agentService.wrapResult(resp.getBody());
     }
 
@@ -124,7 +126,7 @@ public class AdminAgentController {
      */
     @PostMapping("/chat/sessions/{sessionId}/remove")
     public Result<?> deleteSession(@PathVariable String sessionId, @RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward("/api/admin/agent/chat/sessions/" + sessionId, HttpMethod.POST, auth, null);
+        ResponseEntity<String> resp = agentService.forward(ADMIN_CHAT_SESSIONS + "/" + sessionId, HttpMethod.POST, auth, null);
         return agentService.wrapResult(resp.getBody());
     }
 }

@@ -64,6 +64,8 @@ mybatis-plus:
 at:
   agent:
     base-url: http://${at.agent.host}:${at.agent.port}
+    connect-timeout: 10000
+    read-timeout: 30000
 
   # 管理端
   admin:

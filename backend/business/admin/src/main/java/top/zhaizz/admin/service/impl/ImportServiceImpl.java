@@ -12,6 +12,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import top.zhaizz.admin.service.ImportService;
 import top.zhaizz.common.ErrorType;
+import top.zhaizz.common.config.AgentApiPaths;
 import top.zhaizz.common.config.AgentProperties;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.pojo.vo.ImportStatusVO;
@@ -26,8 +27,6 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ImportServiceImpl implements ImportService {
     private static final Set<String> MODES = Set.of("full", "season", "recent", "since");
-    private static final String RUN_PATH = "/api/admin/agent/import/run";
-    private static final String STATUS_PATH = "/api/admin/agent/import/status";
 
     private final RestTemplate restTemplate;
     private final AgentProperties agentProperties;
@@ -41,7 +40,7 @@ public class ImportServiceImpl implements ImportService {
             headers.set(HttpHeaders.AUTHORIZATION, authorization);
         }
         UriComponentsBuilder builder = UriComponentsBuilder
-                .fromUriString(agentProperties.getBaseUrl() + RUN_PATH)
+                .fromUriString(agentProperties.getBaseUrl() + AgentApiPaths.ADMIN_IMPORT_RUN)
                 .queryParam("mode", mode);
         if (key != null) builder.queryParam("key", key);
         if (since != null) builder.queryParam("since", since);
@@ -72,7 +71,7 @@ public class ImportServiceImpl implements ImportService {
         if (authorization != null && !authorization.isEmpty()) {
             headers.set(HttpHeaders.AUTHORIZATION, authorization);
         }
-        String url = agentProperties.getBaseUrl() + STATUS_PATH;
+        String url = agentProperties.getBaseUrl() + AgentApiPaths.ADMIN_IMPORT_STATUS;
         try {
             return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), ImportStatusVO.class).getBody();
         } catch (HttpStatusCodeException e) {

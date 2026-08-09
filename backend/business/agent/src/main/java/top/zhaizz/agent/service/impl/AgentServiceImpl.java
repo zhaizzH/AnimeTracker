@@ -58,7 +58,7 @@ public class AgentServiceImpl implements AgentService {
             synchronized (this) {
                 if (streamRestTemplate == null) {
                     SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-                    factory.setConnectTimeout(10_000);
+                    factory.setConnectTimeout((int) agentProperties.getConnectTimeout());
                     factory.setReadTimeout(0);
                     streamRestTemplate = new RestTemplate(factory);
                 }

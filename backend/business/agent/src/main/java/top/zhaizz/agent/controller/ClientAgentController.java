@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.*;
 import top.zhaizz.agent.service.AgentService;
 import top.zhaizz.common.result.Result;
 
+import static top.zhaizz.common.config.AgentApiPaths.*;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Map;
@@ -28,7 +30,7 @@ public class ClientAgentController {
      */
     @GetMapping("/health")
     public Result<?> health(@RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward("/api/client/agent/health", HttpMethod.GET, auth, null);
+        ResponseEntity<String> resp = agentService.forward(CLIENT_HEALTH, HttpMethod.GET, auth, null);
         return agentService.wrapResult(resp.getBody());
     }
 
@@ -43,7 +45,7 @@ public class ClientAgentController {
         response.setCharacterEncoding("UTF-8");
         PrintWriter writer = response.getWriter();
 
-        agentService.forwardStream("/api/client/agent/stream", HttpMethod.POST, auth, jsonBody, line -> {
+        agentService.forwardStream(CLIENT_STREAM, HttpMethod.POST, auth, jsonBody, line -> {
             writer.write(line + "\n");
             writer.flush();
         });
@@ -56,7 +58,7 @@ public class ClientAgentController {
      */
     @GetMapping("/sessions")
     public Result<?> listSessions(@RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward("/api/client/agent/sessions", HttpMethod.GET, auth, null);
+        ResponseEntity<String> resp = agentService.forward(CLIENT_SESSIONS, HttpMethod.GET, auth, null);
         return agentService.wrapResult(resp.getBody());
     }
 
@@ -66,7 +68,7 @@ public class ClientAgentController {
     @PostMapping("/sessions")
     public Result<?> createSession(@RequestHeader("Authorization") String auth, @RequestBody(required = false) Map<String, Object> body) {
         String jsonBody = agentService.toJson(body != null ? body : Map.of());
-        ResponseEntity<String> resp = agentService.forward("/api/client/agent/sessions", HttpMethod.POST, auth, jsonBody);
+        ResponseEntity<String> resp = agentService.forward(CLIENT_SESSIONS, HttpMethod.POST, auth, jsonBody);
         return agentService.wrapResult(resp.getBody());
     }
 
@@ -75,7 +77,7 @@ public class ClientAgentController {
      */
     @GetMapping("/sessions/{sessionId}/history")
     public Result<?> getHistory(@PathVariable String sessionId, @RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward("/api/client/agent/sessions/" + sessionId + "/history", HttpMethod.GET, auth, null);
+        ResponseEntity<String> resp = agentService.forward(CLIENT_SESSIONS + "/" + sessionId + "/history", HttpMethod.GET, auth, null);
         return agentService.wrapResult(resp.getBody());
     }
 
@@ -84,7 +86,7 @@ public class ClientAgentController {
      */
     @PostMapping("/sessions/{sessionId}/remove")
     public Result<?> deleteSession(@PathVariable String sessionId, @RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward("/api/client/agent/sessions/" + sessionId, HttpMethod.POST, auth, null);
+        ResponseEntity<String> resp = agentService.forward(CLIENT_SESSIONS + "/" + sessionId, HttpMethod.POST, auth, null);
         return agentService.wrapResult(resp.getBody());
     }
 }

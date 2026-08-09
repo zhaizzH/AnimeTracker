@@ -26,8 +26,8 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     private final AdminUserMapper userMapper;
 
-    // 内置超级管理员账号 ID，禁止任何操作修改其角色
-    @Value("${at.admin.superadmin-id:1}")
+    // 超级管理员账号 ID
+    @Value("${at.admin.superadmin-id}")
     private long superadminId;
 
     @Override
