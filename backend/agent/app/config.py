@@ -47,6 +47,7 @@ class AgentChatModelSlot(str, Enum):
     CLIENT_SEARCH = "client_search"
     CLIENT_DISCOVER = "client_discover"
     CLIENT_RECOMMEND = "client_recommend"
+    ADMIN_NODE = "admin_node"
 
 
 # None 表示继承 settings.llm_temperature
@@ -56,6 +57,7 @@ _SLOT_DEFAULTS: dict[AgentChatModelSlot, dict[str, Any]] = {
     AgentChatModelSlot.CLIENT_SEARCH: {},
     AgentChatModelSlot.CLIENT_DISCOVER: {},
     AgentChatModelSlot.CLIENT_RECOMMEND: {},
+    AgentChatModelSlot.ADMIN_NODE: {},
 }
 
 

@@ -21,6 +21,7 @@ LOCAL_PROMPT_PATHS = {
     "client_search_agent_prompt": "client/search_agent_prompt.md",
     "client_discover_agent_prompt": "client/discover_agent_prompt.md",
     "client_recommend_agent_prompt": "client/recommend_agent_prompt.md",
+    "admin_agent_prompt": "admin/admin_agent_prompt.md",
 }
 
 

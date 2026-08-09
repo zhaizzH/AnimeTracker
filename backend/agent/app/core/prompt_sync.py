@@ -12,6 +12,7 @@ MANAGED_PROMPT_KEYS = (
     "client_search_agent_prompt",
     "client_discover_agent_prompt",
     "client_recommend_agent_prompt",
+    "admin_agent_prompt",
 )
 PROMPT_REDIS_KEY_TEMPLATE = "agent:prompt:{}"
 

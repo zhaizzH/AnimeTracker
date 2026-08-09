@@ -34,3 +34,22 @@ def test_admin_registry_keeps_import_resident():
 
 def test_admin_registry_business_domains_dormant():
     assert ADMIN_TOOL_REGISTRY.get_business_tool_catalog() == {}
+
+
+from app.agent.admin.agent_node import admin_agent
+from app.config import AgentChatModelSlot
+from app.core.prompt_sync import load_managed_prompt
+
+
+def test_admin_agent_node_callable():
+    assert callable(admin_agent)
+
+
+def test_admin_model_slot_exists():
+    assert AgentChatModelSlot.ADMIN_NODE.value == "admin_node"
+
+
+def test_admin_prompt_loads():
+    content = load_managed_prompt("admin_agent_prompt", "admin/admin_agent_prompt.md")
+    assert "recent" in content
+    assert "数据导入" in content
