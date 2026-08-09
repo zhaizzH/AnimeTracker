@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import chat as chat_api
+from app.api import admin_chat as admin_chat_api
 from app.api import admin_config as admin_config_api
 from app.api import import_api as import_api_api
 from app.agent.graph import build_graph
@@ -52,6 +53,7 @@ app.add_middleware(
 
 app.include_router(chat_api.router)
 app.include_router(admin_config_api.router)
+app.include_router(admin_chat_api.router)
 app.include_router(import_api_api.router)
 
 
