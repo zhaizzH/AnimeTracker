@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import AdminLayout from './layouts/AdminLayout';
+import AgentChat from './pages/AgentChat';
 import AgentConfig from './pages/AgentConfig';
 import Dashboard from './pages/Dashboard';
 import ImportTasks from './pages/ImportTasks';
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/import" element={<ImportTasks />} />
         <Route path="/logs" element={<Logs />} />
         <Route path="/agent" element={<AgentConfig />} />
+        <Route path="/agent-chat" element={<AgentChat />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

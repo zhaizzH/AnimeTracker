@@ -1947,3 +1947,132 @@ a {
     flex-direction: column;
   }
 }
+
+/* Agent chat */
+.agent-book {
+  display: flex;
+  height: calc(100vh - 126px);
+  min-height: 540px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  overflow: hidden;
+}
+
+.agent-book .ant-layout-sider {
+  background: var(--panel) !important;
+  border-right: 1px solid var(--line-strong);
+}
+
+.agent-sider-head {
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.agent-sider-head h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.agent-session-list {
+  padding: 8px 0;
+}
+
+.agent-session-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 9px 14px;
+  border-bottom: 1px dotted var(--line);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.agent-session-item:hover,
+.agent-session-item.active {
+  background: var(--hover);
+}
+
+.agent-session-item .session-no {
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.agent-chat {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  background: var(--panel-soft);
+}
+
+.agent-chat-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 20px 24px;
+}
+
+.agent-empty {
+  margin-top: 90px;
+  text-align: center;
+  color: var(--text-faint);
+}
+
+.agent-message {
+  display: flex;
+  margin-bottom: 18px;
+}
+
+.agent-message.user {
+  justify-content: flex-end;
+}
+
+.agent-bubble {
+  max-width: 72%;
+  padding: 10px 14px;
+  border-radius: 6px;
+}
+
+.agent-bubble.user {
+  border: 1px solid var(--cyan-line-strong);
+  background: var(--cyan);
+  color: #fff;
+}
+
+.agent-bubble.assistant {
+  border: 1px solid var(--line-strong);
+  border-left: 4px solid var(--cyan);
+  background: var(--panel-soft);
+  color: var(--text);
+}
+
+.agent-bubble.assistant > :first-child {
+  margin-top: 0;
+}
+
+.agent-bubble.assistant > :last-child {
+  margin-bottom: 0;
+}
+
+.agent-markdown code {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  background: var(--code-bg);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.agent-markdown pre {
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid var(--line);
+  background: var(--code-bg);
+}
+
+.agent-input-bar {
+  padding: 12px 16px;
+  border-top: 1px solid var(--line-strong);
+  background: var(--panel);
+}
