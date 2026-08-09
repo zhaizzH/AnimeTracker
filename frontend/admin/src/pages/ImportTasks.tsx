@@ -19,6 +19,10 @@ const statusMeta: Record<ImportRecordVO['status'], { label: string; cls: string 
   FAILED: { label: '失败', cls: 'failed' },
 };
 
+function formatTime(value?: string | null): string {
+  return value ? value.replace('T', ' ') : '-';
+}
+
 function formatElapsed(startedAt?: string | null): string {
   if (!startedAt) return '-';
   const start = new Date(startedAt).getTime();
@@ -100,6 +104,7 @@ export default function ImportTasks() {
       });
       message.success('导入任务已提交，正在后台执行');
       await loadStatus(true);
+      setRunning(true);
     } catch (error) {
       message.error(error instanceof Error ? error.message : '导入任务提交失败');
     } finally {
@@ -143,14 +148,14 @@ export default function ImportTasks() {
       dataIndex: 'startedAt',
       width: 164,
       className: 'num',
-      render: (value: string) => value ?? '-',
+      render: (value: string) => formatTime(value),
     },
     {
       title: '完成时间',
       dataIndex: 'completedAt',
       width: 164,
       className: 'num',
-      render: (value?: string | null) => value ?? '-',
+      render: (value?: string | null) => formatTime(value),
     },
     {
       title: '错误信息',
@@ -196,7 +201,7 @@ export default function ImportTasks() {
         <div className="mini-stat tone-amber">
           <div>
             <div className="mini-stat-label">最近导入</div>
-            <div className="mini-stat-value mini-value-sm">{status.lastImportedAt ?? '-'}</div>
+            <div className="mini-stat-value mini-value-sm">{formatTime(status.lastImportedAt)}</div>
           </div>
         </div>
       </div>
@@ -277,7 +282,7 @@ export default function ImportTasks() {
                 <div className="current-task-detail">
                   <div className="task-detail-cell">
                     <span>开始时间</span>
-                    <strong>{runningRecord.startedAt ?? '-'}</strong>
+                    <strong>{formatTime(runningRecord.startedAt)}</strong>
                   </div>
                   <div className="task-detail-cell">
                     <span>已抓取条目</span>
@@ -296,7 +301,7 @@ export default function ImportTasks() {
                   <span className="status-dot" />
                   空闲
                 </span>
-                <p className="panel-sub">当前无运行中的导入任务，最近一次完成于 {status.lastImportedAt ?? '-'}。</p>
+                <p className="panel-sub">当前无运行中的导入任务，最近一次完成于 {formatTime(status.lastImportedAt)}。</p>
               </div>
             )}
           </section>

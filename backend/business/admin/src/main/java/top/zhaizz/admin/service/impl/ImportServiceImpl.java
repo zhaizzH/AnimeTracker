@@ -5,13 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 import top.zhaizz.admin.service.ImportService;
 import top.zhaizz.common.ErrorType;
 import top.zhaizz.common.config.AgentProperties;
@@ -39,18 +37,18 @@ public class ImportServiceImpl implements ImportService {
         validate(mode, key, since);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         if (authorization != null && !authorization.isEmpty()) {
             headers.set(HttpHeaders.AUTHORIZATION, authorization);
         }
-        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-        form.add("mode", mode);
-        if (key != null) form.add("key", key);
-        if (since != null) form.add("since", since);
-        if (workers != null) form.add("workers", workers.toString());
+        UriComponentsBuilder builder = UriComponentsBuilder
+                .fromUriString(agentProperties.getBaseUrl() + RUN_PATH)
+                .queryParam("mode", mode);
+        if (key != null) builder.queryParam("key", key);
+        if (since != null) builder.queryParam("since", since);
+        if (workers != null) builder.queryParam("workers", workers.toString());
 
-        String url = agentProperties.getBaseUrl() + RUN_PATH;
-        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(form, headers);
+        String url = builder.build().encode().toUriString();
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
         try {
             restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
             log.info("已触发导入: mode={} key={} since={}", mode, key, since);

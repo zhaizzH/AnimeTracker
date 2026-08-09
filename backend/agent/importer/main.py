@@ -108,8 +108,9 @@ def _start_count_flusher(record_id: int, engine, every: float = 3.0):
         finally:
             db.close()
 
-    threading.Thread(target=_loop, daemon=True).start()
-    return stop
+    thread = threading.Thread(target=_loop, daemon=True)
+    thread.start()
+    return stop, thread
 
 
 def _minio_secure() -> bool:
@@ -507,7 +508,7 @@ def main():
 
     record_id = create_import_record(db, args.mode, getattr(args, "key", None))
     db.commit()
-    stop_flusher = _start_count_flusher(record_id, engine)
+    stop_flusher, flusher_thread = _start_count_flusher(record_id, engine)
 
     global _start_time
     _start_time = time.time()
@@ -541,7 +542,7 @@ def main():
             raise ValueError(f"Unknown mode: {args.mode}")
 
         stop_flusher.set()
-        stop_flusher.join(timeout=5)
+        flusher_thread.join(timeout=5)
         complete_import_record(db, record_id, count, "COMPLETED")
         db.commit()
         elapsed = _fmt_duration(time.time() - _start_time)
