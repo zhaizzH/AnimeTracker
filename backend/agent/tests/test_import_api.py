@@ -5,6 +5,7 @@ import pytest
 from fastapi import HTTPException
 
 import app.api.import_api as import_api
+import app.core.import_runner as runner
 
 
 class FakeProc:
@@ -26,8 +27,8 @@ class FakeSubprocess:
 
 
 def _reset_gate(monkeypatch):
-    import_api._proc = None
-    monkeypatch.setattr(import_api, "_sweep_stale_records", lambda: None)
+    runner._proc = None
+    monkeypatch.setattr(runner, "_sweep_stale_records", lambda: None)
 
 
 def test_invalid_mode_rejected(monkeypatch):
@@ -52,8 +53,8 @@ def test_since_requires_since(monkeypatch):
 
 
 def test_spawns_importer_with_args(monkeypatch):
-    import_api._proc = None
-    monkeypatch.setattr(import_api, "_sweep_stale_records", lambda: None)
+    runner._proc = None
+    monkeypatch.setattr(runner, "_sweep_stale_records", lambda: None)
     spawned = []
 
     class FakePopen(FakeProc):
@@ -64,23 +65,23 @@ def test_spawns_importer_with_args(monkeypatch):
     class FakeSub(FakeSubprocess):
         Popen = FakePopen
 
-    monkeypatch.setattr(import_api, "subprocess", FakeSub())
+    monkeypatch.setattr(runner, "subprocess", FakeSub())
 
     import_api.run_import(mode="season", key="2026-summer", workers=5)
 
     cmd, kw = spawned[0]
     assert cmd[0] == sys.executable
-    assert cmd[1] == str(import_api.IMPORTER_SCRIPT)
+    assert cmd[1] == str(runner.IMPORTER_SCRIPT)
     assert "--mode" in cmd and cmd[cmd.index("--mode") + 1] == "season"
     assert cmd[cmd.index("--key") + 1] == "2026-summer"
     assert cmd[cmd.index("--workers") + 1] == "5"
-    assert kw["cwd"] == import_api.AGENT_ROOT
+    assert kw["cwd"] == runner.AGENT_ROOT
 
 
 def test_second_run_conflicts_while_alive(monkeypatch):
-    import_api._proc = None
-    monkeypatch.setattr(import_api, "_sweep_stale_records", lambda: None)
-    monkeypatch.setattr(import_api, "subprocess", FakeSubprocess())
+    runner._proc = None
+    monkeypatch.setattr(runner, "_sweep_stale_records", lambda: None)
+    monkeypatch.setattr(runner, "subprocess", FakeSubprocess())
 
     import_api.run_import(mode="recent")
     with pytest.raises(HTTPException) as exc:
@@ -89,15 +90,15 @@ def test_second_run_conflicts_while_alive(monkeypatch):
 
 
 def test_sweep_clears_dead_process_and_flips_records(monkeypatch):
-    import_api._proc = FakeProc(exit_code=0)  # 上一进程已退出
+    runner._proc = FakeProc(exit_code=0)  # 上一进程已退出
     flipped = []
-    monkeypatch.setattr(import_api, "_sweep_stale_records", lambda: flipped.append(1))
-    monkeypatch.setattr(import_api, "subprocess", FakeSubprocess())
+    monkeypatch.setattr(runner, "_sweep_stale_records", lambda: flipped.append(1))
+    monkeypatch.setattr(runner, "subprocess", FakeSubprocess())
 
     import_api.run_import(mode="recent")
 
     assert flipped  # 进程死亡后触发了兜底翻 FAILED
-    assert import_api._proc is not None  # 门禁已释放并启动了新进程
+    assert runner._proc is not None  # 门禁已释放并启动了新进程
 
 
 class FakeResult:
@@ -117,7 +118,7 @@ class FakeResult:
 
 def test_status_sweeps_then_returns_aggregate(monkeypatch):
     swept = []
-    monkeypatch.setattr(import_api, "_sweep", lambda: swept.append(1))
+    monkeypatch.setattr(import_api, "sweep_dead_processes", lambda: swept.append(1))
 
     class FakeSession:
         def __enter__(self):
@@ -139,7 +140,7 @@ def test_status_sweeps_then_returns_aggregate(monkeypatch):
                 "error_message": None,
             }])
 
-    monkeypatch.setattr(import_api, "_db_session", lambda: FakeSession())
+    monkeypatch.setattr(import_api, "db_session", lambda: FakeSession())
 
     payload = import_api.import_status()
 

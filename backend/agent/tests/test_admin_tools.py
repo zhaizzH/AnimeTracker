@@ -1,23 +1,23 @@
 from app.agent.admin.tools import ADMIN_TOOL_REGISTRY
 from app.agent.admin.tools.import_tool import trigger_recent_import
-from app.api import import_api
+from app.core import import_runner
 
 
 def test_trigger_recent_calls_run_import_recent(monkeypatch):
     calls = []
-    monkeypatch.setattr(import_api, "run_import", lambda **kw: calls.append(kw) or {"ok": True})
+    monkeypatch.setattr(import_runner, "run_import", lambda **kw: calls.append(kw))
     out = trigger_recent_import.invoke({})
     assert calls == [{"mode": "recent"}]
     assert "已触发" in out
 
 
 def test_trigger_recent_conflict_returns_friendly(monkeypatch):
-    from fastapi import HTTPException
+    from app.core.import_runner import ImportAlreadyRunning
 
     def boom(**kw):
-        raise HTTPException(status_code=409, detail="已有导入任务运行中")
+        raise ImportAlreadyRunning()
 
-    monkeypatch.setattr(import_api, "run_import", boom)
+    monkeypatch.setattr(import_runner, "run_import", boom)
     out = trigger_recent_import.invoke({})
     assert "已有导入任务" in out
     assert "409" not in out
