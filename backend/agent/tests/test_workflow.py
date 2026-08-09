@@ -10,10 +10,10 @@ def test_graph_builds():
     assert graph is not None
 
 
-def test_entry_router_routes_admin_to_denied():
+def test_entry_router_routes_admin_to_admin_agent():
     from app.agent.graph import _route_from_entry
     state = {"user": UserInfo(user_id=1, username="a", role="ADMIN"), "history_messages": [], "routing": None, "result": ""}
-    assert _route_from_entry(state) == "admin_denied"
+    assert _route_from_entry(state) == "admin_agent"
 
 
 def test_entry_router_routes_user_to_gateway():

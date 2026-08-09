@@ -2,7 +2,7 @@ from typing import Any
 
 from langgraph.graph import END, START, StateGraph
 
-from app.agent.admin.node import admin_denied
+from app.agent.admin.agent_node import admin_agent
 from app.agent.client.discover import discover_agent
 from app.agent.client.recommend import recommend_agent
 from app.agent.client.gateway import gateway_router
@@ -19,7 +19,7 @@ def _entry_router(_: AgentState) -> dict:
 def _route_from_entry(state: AgentState) -> str:
     user = state.get("user")
     if user is not None and getattr(user, "role", None) == "ADMIN":
-        return "admin_denied"
+        return "admin_agent"
     return "gateway_router"
 
 
@@ -38,13 +38,13 @@ def build_graph() -> Any:
     graph.add_node("search_agent", search_agent)
     graph.add_node("discover_agent", discover_agent)
     graph.add_node("recommend_agent", recommend_agent)
-    graph.add_node("admin_denied", admin_denied)
+    graph.add_node("admin_agent", admin_agent)
 
     graph.add_edge(START, "entry_router")
     graph.add_conditional_edges(
         "entry_router",
         _route_from_entry,
-        {"gateway_router": "gateway_router", "admin_denied": "admin_denied"},
+        {"gateway_router": "gateway_router", "admin_agent": "admin_agent"},
     )
     graph.add_conditional_edges(
         "gateway_router",
@@ -54,5 +54,5 @@ def build_graph() -> Any:
     graph.add_edge("search_agent", END)
     graph.add_edge("discover_agent", END)
     graph.add_edge("recommend_agent", END)
-    graph.add_edge("admin_denied", END)
+    graph.add_edge("admin_agent", END)
     return graph.compile()
