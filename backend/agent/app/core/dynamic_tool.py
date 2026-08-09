@@ -244,8 +244,8 @@ def create_load_tools_tool(*, get_allowed_tool_keys, text_config) -> Any:
 
         state = runtime.state if isinstance(runtime.state, Mapping) else {}
         merged = merge_unique_loaded_tool_keys(
-            existing_tool_keys=normalize_loaded_tool_keys(state) or [],
-            requested_tool_keys=normalized,
+            existing=normalize_loaded_tool_keys(state) or [],
+            requested=normalized,
         )
         message = ToolMessage(
             content=f"{text_config.load_success_prefix}{', '.join(normalized)}\n{text_config.load_completion_message}",

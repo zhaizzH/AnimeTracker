@@ -1,3 +1,4 @@
+from langchain.messages import ToolMessage
 from langchain_core.tools import tool
 
 from app.core.dynamic_tool import (
@@ -106,3 +107,17 @@ def test_dynamic_middleware_filters_request_tools():
     names = {t.name for t in seen[0].tools}
     assert "order_list" not in names
     assert "base_ping" in names
+
+
+def test_load_tools_path_updates_loaded_tool_keys():
+    reg = _registry(business={"a": (order_list,)}, extra=(base_ping,))
+    load_tool = next(t for t in reg.all_tools if t.name == "load_tools")
+
+    class StubRuntime:
+        state = {}
+        tool_call_id = "call_dynamic_1"
+
+    result = load_tool.func(tool_keys=["order_list"], runtime=StubRuntime())
+    assert result.update["loaded_tool_keys"] == ["order_list"]
+    messages = result.update["messages"]
+    assert isinstance(messages[0], ToolMessage)
