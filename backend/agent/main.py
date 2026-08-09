@@ -8,9 +8,10 @@ load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import chat as chat_api
-from app.api import admin_chat as admin_chat_api
 from app.api import admin_config as admin_config_api
 from app.api import import_api as import_api_api
+from app.api.admin_config import require_admin
+from app.api.deps import verify_token
 from app.agent.graph import build_graph
 from app.config import settings
 from app.core.prompt_sync import initialize_agent_prompt_snapshot
@@ -29,7 +30,7 @@ async def lifespan(app: FastAPI):
         await store.init_db()
     except Exception as exc:
         logger.warning("Redis 连接失败,启动继续(会话功能将不可用): %s", repr(exc))
-    chat_api.chat_store = store
+    app.state.store = store
 
     logger.info("初始化托管提示词快照...")
     initialize_agent_prompt_snapshot()
@@ -38,7 +39,7 @@ async def lifespan(app: FastAPI):
     graph = build_graph()
 
     logger.info("创建聊天服务...")
-    chat_api.chat_service = ChatService(store=store, graph=graph, settings=settings)
+    app.state.chat_service = ChatService(store=store, graph=graph, settings=settings)
 
     yield
     logger.info("正在关闭应用...")
@@ -54,9 +55,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(chat_api.router)
+app.include_router(chat_api.create_chat_router(
+    prefix="/api/client/agent",
+    auth_dep=verify_token,
+    include_health=True,
+))
+app.include_router(chat_api.create_chat_router(
+    prefix="/api/admin/agent/chat",
+    auth_dep=require_admin,
+))
 app.include_router(admin_config_api.router)
-app.include_router(admin_chat_api.router)
 app.include_router(import_api_api.router)
 
 
