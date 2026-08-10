@@ -14,6 +14,10 @@ def _require_user(user: UserInfo | None) -> dict | None:
     return None
 
 
+# 收藏类型映射（与后端 /api/client/collections 返回的 type 数字一致）
+_TYPE_LABELS = {0: "全部", 1: "想看", 2: "看过", 3: "在看", 4: "搁置", 5: "抛弃"}
+
+
 @tool
 @tool_call_status(display_name="查看我的追番列表")
 def get_my_collections(type: int = 0, page: int = 1, size: int = 20,
@@ -73,6 +77,7 @@ def _compact(item: dict) -> dict:
         "eps": sub.get("eps"),
         "my_progress": item.get("epStatus"),
         "collection_type": item.get("type"),
+        "collection_type_label": _TYPE_LABELS.get(item.get("type"), "未知"),
     }
 
 
