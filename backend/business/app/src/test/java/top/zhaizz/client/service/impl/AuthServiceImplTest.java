@@ -2,6 +2,7 @@ package top.zhaizz.client.service.impl;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 import top.zhaizz.client.mapper.UserMapper;
 import top.zhaizz.client.service.VerificationService;
 import top.zhaizz.common.ErrorType;
@@ -43,6 +44,9 @@ class AuthServiceImplTest {
 
     @Test
     void locksAccountAfterFiveFailedAttempts() {
+        // 纯 mockito 构造的 service 未注入 @Value 字段，这里手动赋默认配置值 5
+        ReflectionTestUtils.setField(service, "LOGIN_FAIL_WINDOW_MINUTES", 5L);
+
         User user = new User();
         user.setPassword("encoded");
         when(userMapper.selectOne(any())).thenReturn(user);
