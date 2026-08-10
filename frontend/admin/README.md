@@ -216,5 +216,5 @@ src/
 - 用户端前端：[`../client/README.md`](../client/README.md)
 - 前端总览：[`../README.md`](../README.md)
 - 项目总览：[`../../README.md`](../../README.md)
-- 后端 API 文档：[`../../docs/openapi.yaml`](../../docs/openapi.yaml)
+- 后端 API 文档：[`../../docs/spec/openapi.yaml`](../../docs/spec/openapi.yaml)
 - 业务后端详解：[`../../backend/business/README.md`](../../backend/business/README.md)

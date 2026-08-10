@@ -6,10 +6,7 @@
 
 ## 文件清单
 
-| 文件 | 说明 |
-|------|------|
-| [`db-schema.sql`](db-schema.sql) | 数据库建表脚本（含 `operation_log` 等操作审计表） |
-| [`openapi.yaml`](openapi.yaml) | OpenAPI 3.0 规范（完整接口定义） |
+各文件按类别存放在下列子目录中。
 
 ---
 
@@ -17,6 +14,11 @@
 
 | 目录 | 说明 |
 |------|------|
+| [`conventions/`](conventions/) | 项目规范（[`backend-conventions.md`](conventions/backend-conventions.md) 等） |
+| [`database/`](database/) | 数据库脚本（[`db-schema.sql`](database/db-schema.sql)，含 `operation_log` 等操作审计表） |
+| [`spec/`](spec/) | API 规范（[`openapi.yaml`](spec/openapi.yaml)，OpenAPI 3.0 完整接口定义） |
+| [`retrospective/`](retrospective/) | 项目复盘 |
+| [`test/`](test/) | 测试计划编写方案、测试计划与执行报告 |
 | `api/` | 第三方 API 文档工具（独立 Git 仓库，已被 `.gitignore` 忽略，不属于本项目源码） |
 | `superpowers/` | 项目规划与设计文档（`plans/`、`specs/`） |
 
@@ -24,7 +26,7 @@
 
 ## 数据库
 
-数据库名统一为 `anime_tracker`，建表脚本位于 `db-schema.sql`。核心表：
+数据库名统一为 `anime_tracker`，建表脚本位于 `database/db-schema.sql`。核心表：
 
 | 表 | 说明 |
 |----|------|
@@ -42,7 +44,7 @@
 ```bash
 mysql -u root -p
 CREATE DATABASE anime_tracker DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-mysql -u root -p anime_tracker < docs/db-schema.sql
+mysql -u root -p anime_tracker < docs/database/db-schema.sql
 ```
 
 ---

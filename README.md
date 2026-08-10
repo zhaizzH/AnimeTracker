@@ -132,10 +132,10 @@ mysql -u root -p
 CREATE DATABASE anime_tracker DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 # 另开会话导入表结构
-mysql -u root -p anime_tracker < docs/db-schema.sql
+mysql -u root -p anime_tracker < docs/database/db-schema.sql
 ```
 
-> 数据库名统一为 `anime_tracker`。建表脚本位于 `docs/db-schema.sql`（含 `operation_log` 等操作审计表）。
+> 数据库名统一为 `anime_tracker`。建表脚本位于 `docs/database/db-schema.sql`（含 `operation_log` 等操作审计表）。
 
 ### 3. 业务后端（business，端口 8080）
 
@@ -248,7 +248,7 @@ npm run dev                   # 开发服务器 http://localhost:5174
 
 ## API 概览
 
-完整定义见 `docs/openapi.yaml`。主要分组：
+完整定义见 `docs/spec/openapi.yaml`。主要分组：
 
 | 分组 | 路径前缀 | 说明 |
 |------|----------|------|
@@ -264,7 +264,7 @@ npm run dev                   # 开发服务器 http://localhost:5174
 
 ## 数据库 Schema
 
-建表脚本：`docs/db-schema.sql`。核心表：
+建表脚本：`docs/database/db-schema.sql`。核心表：
 
 | 表 | 说明 |
 |----|------|
@@ -307,8 +307,8 @@ npm run dev                   # 开发服务器 http://localhost:5174
 - AI Agent 详解：[`backend/agent/README.md`](backend/agent/README.md)
 - 数据导入器：[`backend/agent/importer/README.md`](backend/agent/importer/README.md)
 - 文档目录：[`docs/README.md`](docs/README.md)
-- 数据库脚本：[`docs/db-schema.sql`](docs/db-schema.sql)
-- OpenAPI 规范：[`docs/openapi.yaml`](docs/openapi.yaml)
+- 数据库脚本：[`docs/database/db-schema.sql`](docs/database/db-schema.sql)
+- OpenAPI 规范：[`docs/spec/openapi.yaml`](docs/spec/openapi.yaml)
 
 ---
 

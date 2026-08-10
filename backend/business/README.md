@@ -97,7 +97,7 @@ mvn -pl app spring-boot:run -Dspring-boot.run.profiles.active=local
 
 ## 数据库
 
-建表脚本见项目根 [`../../docs/db-schema.sql`](../../docs/db-schema.sql)。
+建表脚本见项目根 [`../../docs/database/db-schema.sql`](../../docs/database/db-schema.sql)。
 
 ## MyBatis XML Mapper
 

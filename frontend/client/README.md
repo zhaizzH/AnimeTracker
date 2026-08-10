@@ -237,4 +237,4 @@ React.StrictMode
 - 管理端前端：[`../admin/README.md`](../admin/README.md)
 - 前端总览：[`../README.md`](../README.md)
 - 项目总览：[`../../README.md`](../../README.md)
-- 后端 API 文档：[`../../docs/openapi.yaml`](../../docs/openapi.yaml)
+- 后端 API 文档：[`../../docs/spec/openapi.yaml`](../../docs/spec/openapi.yaml)

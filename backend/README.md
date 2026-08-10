@@ -7,7 +7,7 @@ AnimeTracker 后端由两个独立子模块组成，分别负责业务 API 与 A
 
 > 前端由 `frontend/client`（用户端，端口 `5173`）与 `frontend/admin`（运营后台，端口 `5174`，预览版）两个独立 React 工程组成，二者均通过 Vite 代理将 `/api` 转发至本后端的 `8080` 端口。详见 [前端总览](../frontend/README.md) 及各自子目录 README。
 
-> 数据库名统一为 **`anime_tracker`**。建表脚本位于项目根 [`../docs/db-schema.sql`](../docs/db-schema.sql)，文档目录说明见 [`../docs/README.md`](../docs/README.md)。
+> 数据库名统一为 **`anime_tracker`**。建表脚本位于项目根 [`../docs/database/db-schema.sql`](../docs/database/db-schema.sql)，文档目录说明见 [`../docs/README.md`](../docs/README.md)。
 
 ## 目录结构
 
@@ -47,10 +47,10 @@ mysql -u root -p
 CREATE DATABASE anime_tracker DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 # 另开会话导入表结构
-mysql -u root -p anime_tracker < ../docs/db-schema.sql
+mysql -u root -p anime_tracker < ../docs/database/db-schema.sql
 ```
 
-> 建表脚本为项目根 `docs/db-schema.sql`（非 `backend/docs/sql`）。
+> 建表脚本为项目根 `docs/database/db-schema.sql`（非 `backend/docs/sql`）。
 
 ### 2. Java 业务后端（business）
 
