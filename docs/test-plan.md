@@ -1,8 +1,8 @@
 # AnimeTracker「番组手账」测试计划
 
-> 版本：v1.0（2026-08-10）
+> 版本：v1.1（2026-08-10）
 > 制定方：Hermes Agent 主导，融合 Claude Code 与 OpenAI Codex 双 AI 评审意见（三方协作产出）
-> 适用：本地回归测试（local profile，物理机 debian-13-zhaizz）
+> 适用：测试专用笔记本（16GB 内存），源码方式运行全部服务（local profile）
 
 ---
 
@@ -24,25 +24,34 @@
 | API | curl 冒烟全链路 | 压测、性能基准 |
 | E2E | 关键链路浏览器实测 | 多用户并发、全量数据导入 |
 
-## 3. 环境与前置条件（实测现状 2026-08-10）
+## 3. 环境与前置条件
 
-| 依赖 | 端口 | 现状 | 检查命令 |
+**测试机**：另一台笔记本（16GB 内存），**源码方式**运行服务（非 jar），local profile。
+
+| 依赖 | 端口 | 启动方式 | 检查命令 |
 |---|---|---|---|
-| MySQL 8.4.9 (Docker) | 3306 | ✅ 运行中 | `docker ps \| grep mysql` |
-| Redis (Docker) | 6379 | ✅ 运行中 | `redis-cli ping` |
-| MinIO (Docker) | 9000 | ✅ 运行中 | `docker ps \| grep minio` |
-| business 后端 (jar) | 8080 | ✅ 运行中（profile local，配置 /etc/animetracker/） | `curl -s http://localhost:8080/doc.html` |
-| agent 服务 (uvicorn) | 8090 | ✅ 运行中（zhaizz 用户，venv backend/agent/venv） | `curl -s http://localhost:8090/docs` |
+| MySQL 8 (Docker) | 3306 | Docker | `docker ps \| grep mysql` |
+| Redis (Docker) | 6379 | Docker | `redis-cli ping` |
+| MinIO (Docker) | 9000 | Docker | `docker ps \| grep minio` |
+| business 后端 | 8080 | `mvn -pl app spring-boot:run -Dspring-boot.run.profiles.active=local` | `curl -s http://localhost:8080/doc.html` |
+| agent 服务 | 8090 | `venv/bin/uvicorn main:app --host 0.0.0.0 --port 8090`（backend/agent 下） | `curl -s http://localhost:8090/docs` |
+| client 前端 | 5173 | `cd frontend/client && npm run dev` | 浏览器访问 |
+| admin 前端 | 5174 | `cd frontend/admin && npm run dev` | 浏览器访问 |
+
+**测试账号（已提供，测试专用）**
+
+| 端 | 账号 | 密码 | 角色 |
+|---|---|---|---|
+| client | test1 | 123456 | 普通用户 |
+| admin | admin | 123456 | 管理员（role=ADMIN） |
 
 **准备清单**
 
-- [ ] 测试账号（**开工第一步准备，避免中途注册撞限流**）：
-  - `normal_user`：邮箱已验证，普通用户（可先查数据库现有账号）
-  - `admin_user`：`role=ADMIN`，用于管理端登录与导入
-  - 密码从环境变量读取，**不写入本文件/报告**
+- [ ] 测试账号：test1 / admin 已就绪（如上表；如登录失败，先查库确认账号存在且邮箱已验证）
 - [ ] 测试数据：至少 1 部带剧集的番剧（subject + episode）
 - [ ] 端口预检：`ss -ltn | grep -E ':(8080|8090)'` 确认服务可用
 - [ ] Agent 侧配置：`backend/agent/.env`（DASHSCOPE_API_KEY、REDIS_URL）存在性确认
+- [ ] 数据库已按 `docs/db-schema.sql` 建表
 
 ## 4. 分层测试策略
 
@@ -50,7 +59,7 @@
 
 ```bash
 cd /home/zhaizz/projects/AnimeTracker/backend/business
-export MAVEN_OPTS="-Xmx1g"          # 3.8G 内存，限堆防 OOM
+export MAVEN_OPTS="-Xmx1g"          # 限堆，避免与 Docker 依赖争内存
 mvn test                             # 全模块单测，产物 target/surefire-reports/
 ```
 
@@ -92,10 +101,10 @@ BASE=http://localhost:8080
 # 1 未授权访问 → 期望 code=401
 curl -s $BASE/api/client/subjects | jq '.code'
 
-# 2 登录成功 → 200 且 data 含 token
+# 2 登录成功（测试账号 test1/123456）→ 200 且 data 含 token
 TOKEN=$(curl -s -X POST $BASE/api/client/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"username":"'$USERNAME'","password":"'$PASSWORD'"}' | jq -r '.data.token')
+  -d '{"username":"test1","password":"123456"}' | jq -r '.data.token')
 
 # 3 带 token 访问列表 → 200，data 含 records
 curl -s $BASE/api/client/subjects -H "Authorization: Bearer $TOKEN" | jq '.code'
@@ -185,9 +194,9 @@ curl -sN $BASE/api/client/agent/stream -H "Authorization: Bearer $TOKEN" \
 
 | 风险 | 影响 | 对策 |
 |---|---|---|
-| 内存 3.8G 上限 | MySQL+Redis+MinIO + Java + Python + 双 Node 同时跑易 OOM | 分层串行执行；`MAVEN_OPTS=-Xmx1g`；Node dev server 用完即关；冒烟阶段 MinIO 可暂不开 |
+| 内存 16GB | MySQL+Redis+MinIO + Java + Python + 双 Node dev server 同时跑仍可能吃紧 | 分层串行执行；`MAVEN_OPTS=-Xmx1g`；Node dev server 用完即关 |
 | Resend 外部邮件依赖 | 无 api-key → 注册/验证码全链路不可测 | 用预置已验证账号绕开发码；发码用例标记「可选」 |
-| 测试账号准备 | 中途注册会撞限流（邮箱+IP 计数） | 开工第一步备好 normal_user / admin_user；密码走环境变量 |
+| 测试账号 | 中途注册会撞限流（邮箱+IP 计数） | 已提供 test1 / admin 预置账号，避免注册；登录失败先查库确认账号状态 |
 | DASHSCOPE_API_KEY | 无 Key → SSE 真实回答不可用 | 降级为「建连+会话+错误兜底」验证 |
 | Redis 不可用 | 登录（JWT 白名单）与 Agent 会话全挂 | 冒烟前 `redis-cli ping`；Redis 挂视为环境失败 |
 | 认证接口限流误伤 | 测试脚本高频请求被限流 | auth 端点控制频率 |
