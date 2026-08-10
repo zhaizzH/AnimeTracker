@@ -82,6 +82,11 @@ public class CollectionServiceImpl implements CollectionService {
                         .eq(UserCollection::getUserId, userId)
                         .eq(UserCollection::getSubjectId, subjectId));
 
+        // 重复收藏（同条目同收藏类型）视为冲突，返回 409；换收藏类型不算重复
+        if (existing != null && existing.getType() != null && existing.getType().equals(dto.getType())) {
+            throw new BizException(ErrorType.CONFLICT, "该条目已收藏，请勿重复收藏");
+        }
+
         if (existing == null) {
             UserCollection entity = new UserCollection();
             entity.setUserId(userId);

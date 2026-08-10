@@ -29,7 +29,8 @@ class ImportServiceImplTest {
     private final AgentProperties agentProperties = new AgentProperties();
     private final ImportServiceImpl service = new ImportServiceImpl(restTemplate, agentProperties);
 
-    private static final String URL = "http://agent-base/api/admin/agent/import/run";
+    private static final String URL = "http://agent-base/api/admin/agent/import/run?mode=season&key=2026-summer&workers=3";
+    private static final String URL_RECENT = "http://agent-base/api/admin/agent/import/run?mode=recent";
     private static final String STATUS_URL = "http://agent-base/api/admin/agent/import/status";
 
     @Test
@@ -53,7 +54,7 @@ class ImportServiceImplTest {
     @Test
     void mapsConflictToBizException() {
         agentProperties.setBaseUrl("http://agent-base");
-        when(restTemplate.exchange(eq(URL), eq(HttpMethod.POST), any(), eq(String.class)))
+        when(restTemplate.exchange(eq(URL_RECENT), eq(HttpMethod.POST), any(), eq(String.class)))
                 .thenThrow(new HttpClientErrorException(HttpStatus.CONFLICT, "已有导入任务运行中"));
         assertThatThrownBy(() -> service.runImport("Bearer t", "recent", null, null, null))
                 .isInstanceOf(BizException.class)
@@ -64,7 +65,7 @@ class ImportServiceImplTest {
     @Test
     void mapsConnectionFailureToInternalError() {
         agentProperties.setBaseUrl("http://agent-base");
-        when(restTemplate.exchange(eq(URL), eq(HttpMethod.POST), any(), eq(String.class)))
+        when(restTemplate.exchange(eq(URL_RECENT), eq(HttpMethod.POST), any(), eq(String.class)))
                 .thenThrow(new ResourceAccessException("connect refused"));
         assertThatThrownBy(() -> service.runImport("Bearer t", "recent", null, null, null))
                 .isInstanceOf(BizException.class)

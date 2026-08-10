@@ -215,5 +215,5 @@ export interface PromptUpdateDTO {
 
 export interface AgentHealthVO {
   status: string;
-  llmConfigured: boolean;
+  llm_configured: boolean;
 }

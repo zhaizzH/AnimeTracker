@@ -165,7 +165,7 @@ export default function AgentConfig() {
   const testConfig = async () => {
     const result = await checkHealth();
     if (result) {
-      message.success(`Agent 服务在线：${result.status}${result.llmConfigured ? '' : '（LLM 未配置）'}`);
+      message.success(`Agent 服务在线：${result.status}${result.llm_configured ? '' : '（LLM 未配置）'}`);
     } else {
       message.error('连接测试失败：Agent 服务不可达');
     }
@@ -191,7 +191,7 @@ export default function AgentConfig() {
         <span className={`status-dot${health ? ' running' : ' warn'}`} />
         <span>
           {health
-            ? `Agent 服务在线（${health.status}）${health.llmConfigured ? '，LLM 已配置' : '，LLM 未配置，需要先设置模型'}`
+            ? `Agent 服务在线（${health.status}）${health.llm_configured ? '，LLM 已配置' : '，LLM 未配置，需要先设置模型'}`
             : `Agent 服务不可达${healthError ? `：${healthError}` : ''}`}
           {healthCheckedAt && ` · 上次检查 ${healthCheckedAt}`}
         </span>

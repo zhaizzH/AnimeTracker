@@ -47,6 +47,10 @@ public class AuthServiceImpl implements AuthService {
     private long jwtRefreshExpiration; // Refresh Token 过期时间，单位毫秒
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    @Value("${jwt.max-login-fails}")
+    private int MAX_LOGIN_FAILS;
+    @Value("${jwt.login-fail-window-minutes}")
+    private long LOGIN_FAIL_WINDOW_MINUTES;
 
     @Override
     public void register(RegisterDTO request) {
@@ -91,25 +95,34 @@ public class AuthServiceImpl implements AuthService {
         // 2. 查找用户
         User user = userMapper.selectOne(
                 new LambdaQueryWrapper<User>()
-                        .eq(User::getEmail, email)
-        );
+                        .eq(User::getEmail, email));
 
         return generateLoginVO(user);
     }
 
     @Override
     public LoginVO login(LoginDTO request) {
+        // 0. 防爆破：失败计数达到阈值则锁定（5 分钟内第 6 次起直接拒绝，含正确密码）
+        String failKey = RedisKeys.LOGIN_FAIL + request.getUsername();
+        String failCount = redisUtil.get(failKey);
+        if (failCount != null && Long.parseLong(failCount) >= MAX_LOGIN_FAILS) {
+            throw new BizException(ErrorType.UNAUTHORIZED, "登录失败次数过多，请5分钟后再试");
+        }
+
         // 1. 查找用户（支持用户名或邮箱登录）
         User user = userMapper.selectOne(
                 new LambdaQueryWrapper<User>()
                         .eq(User::getUsername, request.getUsername())
                         .or()
-                        .eq(User::getEmail, request.getUsername())
-        );
+                        .eq(User::getEmail, request.getUsername()));
 
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            redisUtil.incr(failKey, LOGIN_FAIL_WINDOW_MINUTES, TimeUnit.MINUTES);
             throw new BizException(ErrorType.UNAUTHORIZED, "用户名或密码错误");
         }
+
+        // 登录成功，清零失败计数
+        redisUtil.del(failKey);
 
         // 2. 检查邮箱是否已验证
         if (Boolean.FALSE.equals(user.getEmailVerified())) {
@@ -139,9 +152,13 @@ public class AuthServiceImpl implements AuthService {
 
     /**
      * 刷新 Token
-     * <p>校验 refresh token 有效性，轮换（删除旧 token），签发新的 access + refresh 对</p>
-     * <p>ponytail: 并发 refresh 竞态——两线程同时用同一 refresh token refresh 都会成功。
-     * 如需重用检测，升级为 Redis GETDEL 或 Lua 脚本原子操作。</p>
+     * <p>
+     * 校验 refresh token 有效性，轮换（删除旧 token），签发新的 access + refresh 对
+     * </p>
+     * <p>
+     * ponytail: 并发 refresh 竞态——两线程同时用同一 refresh token refresh 都会成功。
+     * 如需重用检测，升级为 Redis GETDEL 或 Lua 脚本原子操作。
+     * </p>
      */
     @Override
     public LoginVO refresh(String refreshToken) {
@@ -176,7 +193,8 @@ public class AuthServiceImpl implements AuthService {
 
         String refreshToken = generateRefreshToken();
         String refreshTokenHash = DigestUtils.sha256Hex(refreshToken);
-        redisUtil.set(RedisKeys.REFRESH + refreshTokenHash, user.getId().toString(), jwtRefreshExpiration, TimeUnit.MILLISECONDS);
+        redisUtil.set(RedisKeys.REFRESH + refreshTokenHash, user.getId().toString(), jwtRefreshExpiration,
+                TimeUnit.MILLISECONDS);
 
         return new LoginVO(accessToken, refreshToken, UserConverter.toUserVO(user));
     }
@@ -194,8 +212,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void forgotPassword(String email) {
         User user = userMapper.selectOne(
-                new LambdaQueryWrapper<User>().eq(User::getEmail, email)
-        );
+                new LambdaQueryWrapper<User>().eq(User::getEmail, email));
         if (user == null) {
             // 静默返回，防止邮箱枚举
             return;
@@ -210,8 +227,7 @@ public class AuthServiceImpl implements AuthService {
 
         // 2. 查用户
         User user = userMapper.selectOne(
-                new LambdaQueryWrapper<User>().eq(User::getEmail, request.getEmail())
-        );
+                new LambdaQueryWrapper<User>().eq(User::getEmail, request.getEmail()));
         if (user == null) {
             throw new BizException(ErrorType.NOT_FOUND, "用户不存在");
         }

@@ -31,9 +31,10 @@ def test_count_flusher_writes_subject_count_and_stops(monkeypatch):
     monkeypatch.setattr(importer_main, "Session", FakeSession)
     monkeypatch.setattr(importer_main, "_done_count", 7)
 
-    stop = importer_main._start_count_flusher(record_id=123, engine=object(), every=0.02)
+    stop, thread = importer_main._start_count_flusher(record_id=123, engine=object(), every=0.02)
     time.sleep(0.08)
     stop.set()
+    thread.join(timeout=1.0)
 
     assert executed, "flusher 应至少向 import_record 写入一次 subject_count"
     stmt, params = executed[-1]

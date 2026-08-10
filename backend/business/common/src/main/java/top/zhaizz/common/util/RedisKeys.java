@@ -10,5 +10,6 @@ public final class RedisKeys {
     public static final String EMAIL = "auth:email:";
     public static final String EMAIL_CHANGE = "auth:email-change:";
     public static final String PASSWORD_RESET = "auth:password-reset:";
+    public static final String LOGIN_FAIL = "auth:login-fail:";
     public static final String RATE_LIMIT = "auth:rate-limit:";
 }

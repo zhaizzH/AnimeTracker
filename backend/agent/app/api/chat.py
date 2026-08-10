@@ -98,6 +98,6 @@ def create_chat_router(*, prefix: str, auth_dep, include_health: bool = False) -
     if include_health:
         @router.get("/health")
         async def health():
-            return {"status": "ok", "llm_configured": bool(settings.dashscope_api_key)}
+            return {"status": "ok", "llm_configured": bool(settings.dashscope_api_key or settings.opencode_api_key)}
 
     return router
