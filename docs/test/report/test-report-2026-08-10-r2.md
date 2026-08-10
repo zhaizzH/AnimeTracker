@@ -32,8 +32,11 @@
 | 编号 | 分层 | 用例 | 期望 | 实际 | 严重度 |
 |---|---|---|---|---|---|
 | 6 | L0 | `AuthServiceImplTest.locksAccountAfterFiveFailedAttempts` | verify `incr(FAIL_KEY, 5L, MINUTES)` | 实际 `LOGIN_FAIL_WINDOW_MINUTES` 为 @Value 注入字段，单测未赋值=0，与 5L 不匹配 | P2（测试代码缺陷，产品代码正确） |
+| 7 | L3/L4 | 收藏类型语义四方不一致 | type 语义统一为 `1=想看 2=看过 3=在看 4=搁置 5=抛弃` | db-schema.sql、admin Dashboard.tsx、agent collections.py、openapi.yaml 4 处把 2/3 写反（写成 2=在看 3=看过），导致 admin 仪表盘把「在看」4 条显示为「看过」、agent 分类查询错乱 | P1（数据语义错乱） |
 
-处理：codex（新窗口）诊断 → 应用 `ReflectionTestUtils.setField(service, "LOGIN_FAIL_WINDOW_MINUTES", 5L)` 补丁 → 回归 **33/33 全过**。产品代码未改动。
+处理：
+- 6：codex（新窗口）诊断 → 应用 `ReflectionTestUtils.setField(service, "LOGIN_FAIL_WINDOW_MINUTES", 5L)` 补丁 → 回归 **33/33 全过**。产品代码未改动。
+- 7：hermes 直接修复 4 文件 6 处注释/标签（db-schema.sql ×1、Dashboard.tsx ×1、collections.py ×2、openapi.yaml ×3），admin tsc + build 通过，仪表盘显示「在看 4」验证正确，agent pytest 100 passed 无回归。client 前端与后端 Java VO 本就正确（2=看过 3=在看），未改动。
 
 ## 四、环境受限项
 

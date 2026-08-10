@@ -27,8 +27,8 @@ import type {
 
 const typeLabel: Record<number, string> = {
   1: '想看',
-  2: '在看',
-  3: '看过',
+  2: '看过',
+  3: '在看',
   4: '搁置',
   5: '抛弃',
 };

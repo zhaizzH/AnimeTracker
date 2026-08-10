@@ -3229,7 +3229,7 @@ paths:
                           properties:
                             type:
                               type: "integer"
-                              description: "1=想看, 2=在看, 3=看过, 4=搁置, 5=抛弃"
+                              description: "1=想看, 2=看过, 3=在看, 4=搁置, 5=抛弃"
                             count:
                               type: "integer"
                               description: ""
@@ -3931,7 +3931,7 @@ components:
       properties:
         type:
           type: "integer"
-          description: "1=想看, 2=在看, 3=看过, 4=搁置, 5=抛弃"
+          description: "1=想看, 2=看过, 3=在看, 4=搁置, 5=抛弃"
         count:
           type: "integer"
           description: ""
@@ -3959,7 +3959,7 @@ components:
             properties:
               type:
                 type: "integer"
-                description: "1=想看, 2=在看, 3=看过, 4=搁置, 5=抛弃"
+                description: "1=想看, 2=看过, 3=在看, 4=搁置, 5=抛弃"
               count:
                 type: "integer"
                 description: ""

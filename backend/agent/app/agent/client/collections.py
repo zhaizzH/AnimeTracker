@@ -18,7 +18,7 @@ def _require_user(user: UserInfo | None) -> dict | None:
 @tool_call_status(display_name="查看我的追番列表")
 def get_my_collections(type: int = 0, page: int = 1, size: int = 20,
                        user: Annotated[UserInfo | None, InjectedState("user")] = None) -> dict:
-    """查看当前用户的追番收藏列表。type: 0=全部 1=想看 2=在看 3=看过 4=搁置 5=抛弃；page: 页码；size: 每页数量"""
+    """查看当前用户的追番收藏列表。type: 0=全部 1=想看 2=看过 3=在看 4=搁置 5=抛弃；page: 页码；size: 每页数量"""
     err = _require_user(user)
     if err:
         return err
@@ -42,7 +42,7 @@ def get_my_collection(subject_id: int,
 @tool
 @tool_call_status(display_name="查看我的收藏统计")
 def get_my_stats(user: Annotated[UserInfo | None, InjectedState("user")] = None) -> dict:
-    """查看当前用户各类收藏数量统计（1=想看 2=在看 3=看过 4=搁置 5=抛弃）"""
+    """查看当前用户各类收藏数量统计（1=想看 2=看过 3=在看 4=搁置 5=抛弃）"""
     err = _require_user(user)
     if err:
         return err
