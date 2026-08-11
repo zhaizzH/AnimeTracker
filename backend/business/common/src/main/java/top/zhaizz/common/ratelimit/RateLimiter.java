@@ -2,7 +2,7 @@ package top.zhaizz.common.ratelimit;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import top.zhaizz.common.util.RedisKeys;
+import top.zhaizz.common.constant.RedisKeys;
 import top.zhaizz.common.util.RedisUtil;
 
 import java.util.concurrent.TimeUnit;

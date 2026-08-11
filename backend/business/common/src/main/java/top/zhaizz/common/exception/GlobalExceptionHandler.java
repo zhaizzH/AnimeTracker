@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-import top.zhaizz.common.ErrorType;
+import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.result.Result;
 
 import java.util.HashMap;

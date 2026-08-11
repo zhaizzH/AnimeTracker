@@ -12,7 +12,7 @@ import top.zhaizz.client.mapper.SubjectMapper;
 import top.zhaizz.client.service.CollectionService;
 import top.zhaizz.client.util.SeasonUtil;
 import top.zhaizz.common.exception.BizException;
-import top.zhaizz.common.ErrorType;
+import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.dto.CollectionUpdateDTO;
 import java.time.LocalDate;

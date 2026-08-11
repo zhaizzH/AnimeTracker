@@ -9,7 +9,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import top.zhaizz.admin.mapper.AdminSubjectMapper;
 import top.zhaizz.admin.mapper.ImportRecordMapper;
-import top.zhaizz.common.ErrorType;
+import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.config.AgentProperties;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.result.PageResult;

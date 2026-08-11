@@ -3,7 +3,7 @@ package top.zhaizz.client.service.impl;
 import org.junit.jupiter.api.Test;
 import top.zhaizz.client.mapper.CollectionMapper;
 import top.zhaizz.client.mapper.SubjectMapper;
-import top.zhaizz.common.ErrorType;
+import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.pojo.dto.CollectionUpdateDTO;
 import top.zhaizz.pojo.entity.Subject;

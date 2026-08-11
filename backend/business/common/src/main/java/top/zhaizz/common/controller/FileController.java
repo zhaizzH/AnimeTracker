@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import top.zhaizz.common.ErrorType;
+import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.config.MinioProperties;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.result.Result;

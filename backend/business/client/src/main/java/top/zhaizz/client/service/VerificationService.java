@@ -17,7 +17,6 @@ public interface VerificationService {
      * 校验邮箱验证码
      * <p>校验成功后标记 user.email_verified = true</p>
      *
-     * @param email 邮箱
      * @param code  用户输入的验证码
      * @throws top.zhaizz.common.exception.BizException 验证码过期或错误时抛出
      */

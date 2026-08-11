@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import top.zhaizz.admin.converter.UserConverter;
 import top.zhaizz.admin.mapper.AdminUserMapper;
 import top.zhaizz.admin.service.AdminUserService;
-import top.zhaizz.common.ErrorType;
+import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.entity.User;

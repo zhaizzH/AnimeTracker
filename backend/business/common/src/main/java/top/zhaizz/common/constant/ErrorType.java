@@ -1,4 +1,4 @@
-package top.zhaizz.common;
+package top.zhaizz.common.constant;
 
 import lombok.Getter;
 

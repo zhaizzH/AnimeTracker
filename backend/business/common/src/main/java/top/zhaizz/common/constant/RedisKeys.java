@@ -1,4 +1,4 @@
-package top.zhaizz.common.util;
+package top.zhaizz.common.constant;
 
 /** Redis Key 前缀常量集中管理 */
 public final class RedisKeys {

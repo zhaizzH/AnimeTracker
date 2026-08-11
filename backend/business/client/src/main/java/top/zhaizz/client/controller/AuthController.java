@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.client.service.AuthService;
+import top.zhaizz.common.constant.OperationLogConstants;
 import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.ratelimit.RateLimit;
 import top.zhaizz.common.result.Result;
@@ -34,7 +35,7 @@ public class AuthController {
      */
     // 注册防刷：同一 IP 5 分钟最多 10 次
     @RateLimit(@RateLimit.Rule(key = RateLimit.LimitKey.IP, limit = 10, windowSeconds = 300))
-    @OperationLog(action = "REGISTER", module = "AUTH")
+    @OperationLog(action = OperationLogConstants.ACTION_REGISTER, module = OperationLogConstants.MODULE_AUTH)
     @PostMapping("/register")
     public Result<Void> register(@Valid @RequestBody RegisterDTO request) {
         authService.register(request);
@@ -45,7 +46,7 @@ public class AuthController {
      * 验证邮箱
      * <p>校验验证码，通过后标记邮箱已验证并返回 JWT Token 和用户信息</p>
      */
-    @OperationLog(action = "VERIFY_EMAIL", module = "AUTH")
+    @OperationLog(action = OperationLogConstants.ACTION_VERIFY_EMAIL, module = OperationLogConstants.MODULE_AUTH)
     @PostMapping("/verify-email")
     public Result<LoginVO> verifyEmail(@Valid @RequestBody VerifyEmailDTO request) {
         LoginVO loginVO = authService.verifyEmail(request.getEmail(), request.getCode());
@@ -69,7 +70,7 @@ public class AuthController {
     /**
      * 用户登录（邮箱已验证，支持用户名或邮箱 + 密码）
      */
-    @OperationLog(action = "LOGIN", module = "AUTH")
+    @OperationLog(action = OperationLogConstants.ACTION_LOGIN, module = OperationLogConstants.MODULE_AUTH)
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO request) {
         LoginVO loginVO = authService.login(request);
@@ -93,7 +94,7 @@ public class AuthController {
     /**
      * 忘记密码 — 重置密码（验证码校验通过后重置并踢出所有设备）
      */
-    @OperationLog(action = "RESET_PASSWORD", module = "AUTH")
+    @OperationLog(action = OperationLogConstants.ACTION_RESET_PASSWORD, module = OperationLogConstants.MODULE_AUTH)
     @PostMapping("/reset-password")
     public Result<Void> resetPassword(@Valid @RequestBody ResetPasswordDTO request) {
         authService.resetPassword(request);
@@ -113,7 +114,7 @@ public class AuthController {
     /**
      * 用户退出登录（当前 token 立即失效）
      */
-    @OperationLog(action = "LOGOUT", module = "AUTH")
+    @OperationLog(action = OperationLogConstants.ACTION_LOGOUT, module = OperationLogConstants.MODULE_AUTH)
     @PostMapping("/logout")
     public Result<Void> logout(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");

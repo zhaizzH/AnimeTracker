@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.admin.service.ImportService;
+import top.zhaizz.common.constant.OperationLogConstants;
 import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
@@ -31,7 +32,7 @@ public class ImportController {
      * @param since   起始日期（since 模式必填），如 "2026-01-01"
      * @param workers 并发线程数，为空使用 Python 侧默认值
      */
-    @OperationLog(action = "IMPORT_RUN", module = "IMPORT")
+    @OperationLog(action = OperationLogConstants.ACTION_IMPORT_RUN, module = OperationLogConstants.MODULE_IMPORT)
     @PostMapping("/run")
     public Result<Void> runImport(@RequestHeader(value = "Authorization", required = false) String auth,
                                   @RequestParam String mode,

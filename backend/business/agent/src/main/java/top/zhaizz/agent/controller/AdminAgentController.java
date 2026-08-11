@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import top.zhaizz.agent.service.AgentService;
 import top.zhaizz.common.result.Result;
 
-import static top.zhaizz.common.config.AgentApiPaths.*;
+import static top.zhaizz.common.constant.AgentApiPaths.*;
 
 import java.io.IOException;
 import java.io.PrintWriter;

@@ -1,4 +1,4 @@
-package top.zhaizz.common.config;
+package top.zhaizz.common.constant;
 
 /**
  * 上游 Python agent 服务路由（单一来源）。

@@ -10,9 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 import top.zhaizz.client.mapper.UserMapper;
 import top.zhaizz.client.service.VerificationService;
 import top.zhaizz.common.exception.BizException;
-import top.zhaizz.common.ErrorType;
+import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.ratelimit.RateLimiter;
-import top.zhaizz.common.util.RedisKeys;
+import top.zhaizz.common.constant.RedisKeys;
 import top.zhaizz.common.util.RedisUtil;
 import top.zhaizz.pojo.entity.User;
 

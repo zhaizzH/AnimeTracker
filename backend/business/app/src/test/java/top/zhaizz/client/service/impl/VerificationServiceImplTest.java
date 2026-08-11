@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import top.zhaizz.client.mapper.UserMapper;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.ratelimit.RateLimiter;
-import top.zhaizz.common.util.RedisKeys;
+import top.zhaizz.common.constant.RedisKeys;
 import top.zhaizz.common.util.RedisUtil;
 import top.zhaizz.pojo.entity.User;
 

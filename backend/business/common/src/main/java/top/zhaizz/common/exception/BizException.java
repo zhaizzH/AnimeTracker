@@ -1,7 +1,7 @@
 package top.zhaizz.common.exception;
 
 import lombok.Getter;
-import top.zhaizz.common.ErrorType;
+import top.zhaizz.common.constant.ErrorType;
 
 /**
  * 业务异常基类，包含 code 和 message

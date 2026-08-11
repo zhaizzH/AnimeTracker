@@ -12,7 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
-import top.zhaizz.common.util.RedisKeys;
+import top.zhaizz.common.constant.RedisKeys;
 import top.zhaizz.common.util.RedisUtil;
 
 import java.io.IOException;

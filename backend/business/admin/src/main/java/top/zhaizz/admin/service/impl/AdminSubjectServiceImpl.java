@@ -8,7 +8,7 @@ import top.zhaizz.admin.converter.SubjectConverter;
 import top.zhaizz.admin.mapper.AdminSubjectMapper;
 import top.zhaizz.admin.mapper.AdminSubjectTagMapper;
 import top.zhaizz.admin.service.AdminSubjectService;
-import top.zhaizz.common.ErrorType;
+import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.converter.SubjectVoConverter;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.pojo.dto.SubjectCreateDTO;

@@ -63,3 +63,11 @@ String tokenHash = DigestUtils.sha256Hex(token);
 ```
 
 - `code` = HTTP 状态码;`data` 仅业务异常携带(如参数校验字段错误映射),成功时 `data` 为业务数据。
+
+## 四、常量存放规范
+
+1. **跨模块共享**的常量 → `top.zhaizz.common.constant`(如 `RedisKeys`、`AgentApiPaths`、`ErrorType`、`OperationLogConstants`)。
+2. **模块私有**的常量 → 各自模块的 `top.zhaizz.<module>.constant`(如 `admin.constant.ImportConstants`)。
+3. 一个领域一个常量类,`private` 构造 + `public static final` 字段。
+4. 单次使用、就地可读的魔法值(`LIMIT 10`、分页默认值等)**不提取**。
+5. 封闭值集合优先用常量类收敛;契约类常量(操作日志 module/action、agent 路由)改动需与前端 / Python 侧同步。

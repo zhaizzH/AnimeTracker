@@ -7,7 +7,7 @@ import top.zhaizz.client.mapper.EpisodeMapper;
 import top.zhaizz.client.mapper.SubjectMapper;
 import top.zhaizz.client.service.EpisodeService;
 import top.zhaizz.common.exception.BizException;
-import top.zhaizz.common.ErrorType;
+import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.pojo.entity.Episode;
 import top.zhaizz.pojo.vo.EpisodeVO;
 

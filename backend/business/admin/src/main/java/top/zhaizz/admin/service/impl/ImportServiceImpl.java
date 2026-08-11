@@ -13,12 +13,13 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import top.zhaizz.admin.constant.ImportConstants;
 import top.zhaizz.admin.converter.SubjectConverter;
 import top.zhaizz.admin.mapper.AdminSubjectMapper;
 import top.zhaizz.admin.mapper.ImportRecordMapper;
 import top.zhaizz.admin.service.ImportService;
-import top.zhaizz.common.ErrorType;
-import top.zhaizz.common.config.AgentApiPaths;
+import top.zhaizz.common.constant.AgentApiPaths;
+import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.config.AgentProperties;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.result.PageResult;
@@ -28,7 +29,6 @@ import top.zhaizz.pojo.vo.ImportStatusVO;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * 番剧导入服务实现 — 触发转发至 Python Agent；状态与记录直接查库。
@@ -37,8 +37,6 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class ImportServiceImpl implements ImportService {
-    private static final Set<String> MODES = Set.of("full", "season", "recent", "since");
-
     private final RestTemplate restTemplate;
     private final AgentProperties agentProperties;
     private final ImportRecordMapper importRecordMapper;
@@ -111,13 +109,13 @@ public class ImportServiceImpl implements ImportService {
     }
 
     private void validate(String mode, String key, String since) {
-        if (mode == null || !MODES.contains(mode)) {
+        if (mode == null || !ImportConstants.MODES.contains(mode)) {
             throw new BizException(ErrorType.BAD_REQUEST, "mode 必须是 full / season / recent / since");
         }
-        if ("season".equals(mode) && (key == null || key.isBlank())) {
+        if (ImportConstants.MODE_SEASON.equals(mode) && (key == null || key.isBlank())) {
             throw new BizException(ErrorType.BAD_REQUEST, "season 模式需要 key");
         }
-        if ("since".equals(mode) && (since == null || since.isBlank())) {
+        if (ImportConstants.MODE_SINCE.equals(mode) && (since == null || since.isBlank())) {
             throw new BizException(ErrorType.BAD_REQUEST, "since 模式需要 since");
         }
     }

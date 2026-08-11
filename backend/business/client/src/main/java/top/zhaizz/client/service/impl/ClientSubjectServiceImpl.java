@@ -14,7 +14,7 @@ import top.zhaizz.client.service.ClientSubjectService;
 import top.zhaizz.client.util.SeasonUtil;
 import top.zhaizz.common.converter.SubjectVoConverter;
 import top.zhaizz.common.exception.BizException;
-import top.zhaizz.common.ErrorType;
+import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.entity.Subject;
 import top.zhaizz.pojo.entity.SubjectRelation;
