@@ -20,7 +20,7 @@ export const lightTheme: ThemeConfig = {
     colorBorderSecondary: '#e7edf3',
     colorText: '#17232e',
     colorTextSecondary: '#4c5c6a',
-    colorTextTertiary: '#6b7c8b',
+    colorTextTertiary: '#5c6c7a',
     borderRadius: 6,
     fontSize: 15,
     controlHeight: 34,
