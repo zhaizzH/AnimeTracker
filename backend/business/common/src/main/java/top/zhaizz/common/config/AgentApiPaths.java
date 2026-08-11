@@ -12,7 +12,6 @@ public final class AgentApiPaths {
     public static final String ADMIN_CHAT_STREAM = "/api/admin/agent/chat/stream";
     public static final String ADMIN_CHAT_SESSIONS = "/api/admin/agent/chat/sessions";
     public static final String ADMIN_IMPORT_RUN = "/api/admin/agent/import/run";
-    public static final String ADMIN_IMPORT_STATUS = "/api/admin/agent/import/status";
 
     public static final String CLIENT_HEALTH = "/api/client/agent/health";
     public static final String CLIENT_STREAM = "/api/client/agent/stream";

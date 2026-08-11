@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 AGENT_ROOT = Path(__file__).resolve().parents[2]
 IMPORTER_SCRIPT = AGENT_ROOT / "importer" / "main.py"
+IMPORTER_PID_FILE = IMPORTER_SCRIPT.parent / "importer.pid"
 
 MODES = ("full", "season", "recent", "since")
 
@@ -39,6 +40,44 @@ def db_session() -> Session:
     ))
 
 
+def _pid_alive(pid: int) -> bool:
+    """pid 对应进程是否存活。Windows 用 OpenProcess+GetExitCodeProcess；os.kill(pid,0) 在 win 上不可靠。"""
+    if os.name == "nt":
+        import ctypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        h = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            return ctypes.get_last_error() == 5  # ERROR_ACCESS_DENIED -> 进程存在但无权打开
+        try:
+            code = ctypes.c_ulong()
+            if not kernel32.GetExitCodeProcess(h, ctypes.byref(code)):
+                return True
+            return code.value == 259  # STILL_ACTIVE
+        finally:
+            kernel32.CloseHandle(h)
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+
+
+def _read_import_pid() -> int | None:
+    try:
+        return int(IMPORTER_PID_FILE.read_text().strip())
+    except (OSError, ValueError):
+        return None
+
+
+def _orphan_import_running() -> bool:
+    """worker 重启丢失 _proc 后，用 PID 文件判断导入子进程是否仍存活。"""
+    pid = _read_import_pid()
+    return pid is not None and _pid_alive(pid)
+
+
 def _sweep_stale_records():
     """无存活导入进程时，把遗留 RUNNING 记录翻 FAILED（进程硬退兜底）。"""
     try:
@@ -54,7 +93,7 @@ def sweep_dead_processes():
     with _lock:
         if _proc is not None and _proc.poll() is not None:
             _proc = None
-        if _proc is None:
+        if _proc is None and not _orphan_import_running():
             _sweep_stale_records()
 
 
@@ -89,6 +128,8 @@ def run_import(mode: str, key: str | None = None, since: str | None = None,
 
     with _lock:
         if _proc is not None and _proc.poll() is None:
+            raise ImportAlreadyRunning("已有导入任务运行中")
+        if _proc is None and _orphan_import_running():
             raise ImportAlreadyRunning("已有导入任务运行中")
         _spawn(args)
 

@@ -1,10 +1,15 @@
 package top.zhaizz.admin.controller;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.admin.service.ImportService;
 import top.zhaizz.common.log.OperationLog;
+import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
+import top.zhaizz.pojo.vo.ImportRecordVO;
 import top.zhaizz.pojo.vo.ImportStatusVO;
 
 /**
@@ -13,6 +18,7 @@ import top.zhaizz.pojo.vo.ImportStatusVO;
 @RestController
 @RequestMapping("/api/admin/import")
 @RequiredArgsConstructor
+@Validated
 public class ImportController {
 
     private final ImportService importService;
@@ -40,7 +46,18 @@ public class ImportController {
      * 获取番剧导入状态，供管理后台导入进度轮询触发
      */
     @GetMapping("/status")
-    public Result<ImportStatusVO> getImportStatus(@RequestHeader(value = "Authorization", required = false) String auth) {
-        return Result.success(importService.getImportStatus(auth));
+    public Result<ImportStatusVO> getImportStatus() {
+        return Result.success(importService.getImportStatus());
+    }
+
+    /**
+     * 分页查询导入记录，供管理后台导入历史表格展示全部记录
+     */
+    @GetMapping("/records")
+    public Result<PageResult<ImportRecordVO>> getImportRecords(
+            @RequestParam(defaultValue = "1") @Min(1) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(1000) int size,
+            @RequestParam(required = false) String status) {
+        return Result.success(importService.getImportRecords(page, size, status));
     }
 }

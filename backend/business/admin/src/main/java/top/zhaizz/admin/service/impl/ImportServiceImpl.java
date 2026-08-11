@@ -1,26 +1,37 @@
 package top.zhaizz.admin.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import top.zhaizz.admin.converter.SubjectConverter;
+import top.zhaizz.admin.mapper.AdminSubjectMapper;
+import top.zhaizz.admin.mapper.ImportRecordMapper;
 import top.zhaizz.admin.service.ImportService;
 import top.zhaizz.common.ErrorType;
 import top.zhaizz.common.config.AgentApiPaths;
 import top.zhaizz.common.config.AgentProperties;
 import top.zhaizz.common.exception.BizException;
+import top.zhaizz.common.result.PageResult;
+import top.zhaizz.pojo.entity.ImportRecord;
+import top.zhaizz.pojo.vo.ImportRecordVO;
 import top.zhaizz.pojo.vo.ImportStatusVO;
 
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
- * 番剧导入服务实现 — 触发与状态均转发至 Python Agent 导入端点，进程与记录状态由 agent 侧统一负责。
+ * 番剧导入服务实现 — 触发转发至 Python Agent；状态与记录直接查库。
  */
 @Slf4j
 @Service
@@ -30,6 +41,8 @@ public class ImportServiceImpl implements ImportService {
 
     private final RestTemplate restTemplate;
     private final AgentProperties agentProperties;
+    private final ImportRecordMapper importRecordMapper;
+    private final AdminSubjectMapper subjectMapper;
 
     @Override
     public void runImport(String authorization, String mode, String key, String since, Integer workers) {
@@ -66,23 +79,35 @@ public class ImportServiceImpl implements ImportService {
     }
 
     @Override
-    public ImportStatusVO getImportStatus(String authorization) {
-        HttpHeaders headers = new HttpHeaders();
-        if (authorization != null && !authorization.isEmpty()) {
-            headers.set(HttpHeaders.AUTHORIZATION, authorization);
-        }
-        String url = agentProperties.getBaseUrl() + AgentApiPaths.ADMIN_IMPORT_STATUS;
-        try {
-            return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), ImportStatusVO.class).getBody();
-        } catch (HttpStatusCodeException e) {
-            String detail = e.getResponseBodyAsString();
-            throw new BizException(
-                    e.getStatusCode().is5xxServerError() ? ErrorType.INTERNAL_ERROR : ErrorType.BAD_REQUEST,
-                    "导入状态获取失败: " + (detail == null || detail.isEmpty() ? e.getStatusText() : detail));
-        } catch (ResourceAccessException e) {
-            log.error("Agent 导入服务连接失败: {}", url, e);
-            throw new BizException(ErrorType.INTERNAL_ERROR, "Agent 导入服务连接失败");
-        }
+    public ImportStatusVO getImportStatus() {
+        Long totalSubjects = subjectMapper.selectCount(null);
+        List<ImportRecord> recent = importRecordMapper.selectList(
+                new LambdaQueryWrapper<ImportRecord>()
+                        .orderByDesc(ImportRecord::getStartedAt)
+                        .last("LIMIT 10"));
+        List<ImportRecordVO> recordVOs = SubjectConverter.toImportRecordVOList(recent);
+        ImportStatusVO vo = new ImportStatusVO();
+        vo.setTotalSubjects(totalSubjects == null ? 0 : totalSubjects.intValue());
+        vo.setRecentRecords(recordVOs);
+        vo.setLastImportedAt(recordVOs.stream()
+                .map(ImportRecordVO::getCompletedAt)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null));
+        return vo;
+    }
+
+    @Override
+    public PageResult<ImportRecordVO> getImportRecords(int page, int size, String status) {
+        LambdaQueryWrapper<ImportRecord> qw = new LambdaQueryWrapper<ImportRecord>()
+                .eq(StringUtils.hasText(status), ImportRecord::getStatus, status)
+                .orderByDesc(ImportRecord::getStartedAt);
+        Page<ImportRecord> p = importRecordMapper.selectPage(new Page<>(page, size), qw);
+        return PageResult.of(
+                SubjectConverter.toImportRecordVOList(p.getRecords()),
+                p.getTotal(),
+                (int) p.getCurrent(),
+                (int) p.getSize());
     }
 
     private void validate(String mode, String key, String since) {

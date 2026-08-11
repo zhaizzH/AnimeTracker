@@ -23,6 +23,7 @@ import top.zhaizz.pojo.vo.UserCollectionVO;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 收藏服务实现
@@ -82,8 +83,11 @@ public class CollectionServiceImpl implements CollectionService {
                         .eq(UserCollection::getUserId, userId)
                         .eq(UserCollection::getSubjectId, subjectId));
 
-        // 重复收藏（同条目同收藏类型）视为冲突，返回 409；换收藏类型不算重复
-        if (existing != null && existing.getType() != null && existing.getType().equals(dto.getType())) {
+        // 仅当完全无变化的重复提交（同类型且评分/进度均未改动）才视为冲突返回 409；修改评分、进度或换类型都是合法更新
+        if (existing != null
+                && Objects.equals(existing.getType(), dto.getType())
+                && (dto.getRate() == null || Objects.equals(existing.getRate(), dto.getRate()))
+                && (dto.getEpStatus() == null || Objects.equals(existing.getEpStatus(), dto.getEpStatus()))) {
             throw new BizException(ErrorType.CONFLICT, "该条目已收藏，请勿重复收藏");
         }
 

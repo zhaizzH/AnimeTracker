@@ -20,7 +20,7 @@ import type {
   CollectionStatsVO,
   DashboardOverviewVO,
   HotSubjectVO,
-  ImportStatusVO,
+  ImportRecordVO,
   SubjectStatsVO,
   TrendPointVO,
 } from '../types/api';
@@ -79,12 +79,6 @@ const emptyOverview: DashboardOverviewVO = {
   todayLogins: 0,
 };
 
-const emptyImportStatus: ImportStatusVO = {
-  lastImportedAt: null,
-  totalSubjects: 0,
-  recentRecords: [],
-};
-
 export default function Dashboard() {
   const { message } = App.useApp();
   const [range, setRange] = useState<7 | 30>(7);
@@ -102,19 +96,19 @@ export default function Dashboard() {
     scoreCounts: [],
   });
   const [hotSubjects, setHotSubjects] = useState<HotSubjectVO[]>([]);
-  const [importStatus, setImportStatus] = useState<ImportStatusVO>(emptyImportStatus);
+  const [importRecords, setImportRecords] = useState<ImportRecordVO[]>([]);
 
   const load = useCallback(
     async (silent = false) => {
       if (!silent) setLoading(true);
       try {
-        const [ov, trend, collection, subject, hot, importInfo] = await Promise.all([
+        const [ov, trend, collection, subject, hot, importPage] = await Promise.all([
           dashboardApi.overview(),
           dashboardApi.trends(range),
           dashboardApi.collectionStats(),
           dashboardApi.subjectStats(),
           dashboardApi.hot(5),
-          importsApi.status(),
+          importsApi.records({ page: 1, size: 1000 }),
         ]);
         setOverview(ov ?? emptyOverview);
         setTrends(
@@ -133,7 +127,7 @@ export default function Dashboard() {
           },
         );
         setHotSubjects(hot ?? []);
-        setImportStatus(importInfo ?? emptyImportStatus);
+        setImportRecords(importPage?.content ?? []);
       } catch (error) {
         if (!silent) message.error(error instanceof Error ? error.message : '看板数据加载失败');
       } finally {
@@ -168,7 +162,7 @@ export default function Dashboard() {
   );
   const importRecordItems = useMemo(
     () =>
-      (importStatus.recentRecords ?? []).map((record) => ({
+      importRecords.map((record) => ({
         label: record.startedAt ?? record.season ?? '-',
         value: Number(record.subjectCount ?? 0),
         color:
@@ -178,10 +172,10 @@ export default function Dashboard() {
               ? 'var(--cyan)'
               : 'var(--green)',
       })),
-    [importStatus],
+    [importRecords],
   );
   const ratings = subjectStats.scoreCounts ?? [];
-  const records = importStatus.recentRecords ?? [];
+  const records = importRecords;
 
   const maxScore = Math.max(1, ...ratings.map((r) => r.count));
   const maxHot = Math.max(1, ...hotSubjects.map((h) => h.collectionCount));

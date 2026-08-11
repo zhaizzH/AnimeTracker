@@ -18,6 +18,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
+from pathlib import Path
 from urllib.parse import urlparse
 
 import requests
@@ -61,6 +62,9 @@ EXT_MAP = {
     "image/webp": "webp",
 }
 
+# import_runner 靠这个 PID 文件跨 worker 重启识别仍存活的导入子进程
+PID_FILE = Path(__file__).with_name("importer.pid")
+
 
 def _safe_progress(done: int, total: int | None = None):
     with _progress_lock:
@@ -83,7 +87,7 @@ def _fmt_duration(secs: float) -> str:
 def _start_count_flusher(record_id: int, engine, every: float = 3.0):
     """后台守护线程：周期把已处理数刷到 import_record.subject_count。
 
-    前端每 5s 轮询 /status，3s 刷新足够实时且写库次数有限（full 全程仅几十次）。
+    3s 刷新足够实时且写库次数有限（full 全程仅几十次）。
     返回 stop Event；导入结束先 set()+join() 再写最终值，避免与 complete 竞态。
     """
     stop = threading.Event()
@@ -506,6 +510,7 @@ def main():
         max_workers=min(args.workers, MAX_WORKERS_LIMIT),
     )
 
+    PID_FILE.write_text(str(os.getpid()))
     record_id = create_import_record(db, args.mode, getattr(args, "key", None))
     db.commit()
     stop_flusher, flusher_thread = _start_count_flusher(record_id, engine)
@@ -560,6 +565,7 @@ def main():
         db.commit()
         sys.exit(1)
     finally:
+        PID_FILE.unlink(missing_ok=True)
         db.close()
 
 

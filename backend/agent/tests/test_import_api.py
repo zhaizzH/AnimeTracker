@@ -1,5 +1,4 @@
 import sys
-from datetime import datetime
 
 import pytest
 from fastapi import HTTPException
@@ -29,6 +28,7 @@ class FakeSubprocess:
 def _reset_gate(monkeypatch):
     runner._proc = None
     monkeypatch.setattr(runner, "_sweep_stale_records", lambda: None)
+    monkeypatch.setattr(runner, "_orphan_import_running", lambda: False)
 
 
 def test_invalid_mode_rejected(monkeypatch):
@@ -55,6 +55,7 @@ def test_since_requires_since(monkeypatch):
 def test_spawns_importer_with_args(monkeypatch):
     runner._proc = None
     monkeypatch.setattr(runner, "_sweep_stale_records", lambda: None)
+    monkeypatch.setattr(runner, "_orphan_import_running", lambda: False)
     spawned = []
 
     class FakePopen(FakeProc):
@@ -81,6 +82,7 @@ def test_spawns_importer_with_args(monkeypatch):
 def test_second_run_conflicts_while_alive(monkeypatch):
     runner._proc = None
     monkeypatch.setattr(runner, "_sweep_stale_records", lambda: None)
+    monkeypatch.setattr(runner, "_orphan_import_running", lambda: False)
     monkeypatch.setattr(runner, "subprocess", FakeSubprocess())
 
     import_api.run_import(mode="recent")
@@ -93,6 +95,7 @@ def test_sweep_clears_dead_process_and_flips_records(monkeypatch):
     runner._proc = FakeProc(exit_code=0)  # 上一进程已退出
     flipped = []
     monkeypatch.setattr(runner, "_sweep_stale_records", lambda: flipped.append(1))
+    monkeypatch.setattr(runner, "_orphan_import_running", lambda: False)
     monkeypatch.setattr(runner, "subprocess", FakeSubprocess())
 
     import_api.run_import(mode="recent")
@@ -101,52 +104,14 @@ def test_sweep_clears_dead_process_and_flips_records(monkeypatch):
     assert runner._proc is not None  # 门禁已释放并启动了新进程
 
 
-class FakeResult:
-    def __init__(self, rows=None, scalar_value=None):
-        self._rows = rows or []
-        self._scalar_value = scalar_value
+def test_orphan_import_blocks_run_and_skips_sweep(monkeypatch):
+    """worker 重启丢失 _proc 但导入子进程仍存活：不翻 FAILED，且拒绝新任务。"""
+    runner._proc = None
+    flipped = []
+    monkeypatch.setattr(runner, "_sweep_stale_records", lambda: flipped.append(1))
+    monkeypatch.setattr(runner, "_orphan_import_running", lambda: True)
 
-    def scalar(self):
-        return self._scalar_value
-
-    def mappings(self):
-        return self
-
-    def all(self):
-        return self._rows
-
-
-def test_status_sweeps_then_returns_aggregate(monkeypatch):
-    swept = []
-    monkeypatch.setattr(import_api, "sweep_dead_processes", lambda: swept.append(1))
-
-    class FakeSession:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *exc):
-            return False
-
-        def execute(self, stmt):
-            if "COUNT" in str(stmt):
-                return FakeResult(scalar_value=42)
-            return FakeResult([{
-                "id": 3,
-                "season_key": "2026-summer",
-                "status": "COMPLETED",
-                "subject_count": 7,
-                "started_at": datetime(2026, 8, 1, 10, 0, 0),
-                "completed_at": datetime(2026, 8, 1, 10, 5, 0),
-                "error_message": None,
-            }])
-
-    monkeypatch.setattr(import_api, "db_session", lambda: FakeSession())
-
-    payload = import_api.import_status()
-
-    assert swept  # 状态轮询也触发孤儿清扫
-    assert payload["totalSubjects"] == 42  # 真实条目总数，而非记录条数
-    records = payload["recentRecords"]
-    assert records[0]["season"] == "2026-summer"
-    assert records[0]["completedAt"] == "2026-08-01T10:05:00"  # ISO-T，Java LocalDateTime 可解析
-    assert payload["lastImportedAt"] == "2026-08-01T10:05:00"
+    with pytest.raises(HTTPException) as exc:
+        import_api.run_import(mode="recent")
+    assert exc.value.status_code == 409
+    assert not flipped  # 进程仍存活，不应误翻 FAILED

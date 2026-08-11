@@ -55,6 +55,24 @@ class CollectionServiceImplTest {
     }
 
     @Test
+    void updatesRatingWhenSameTypeResubmitted() {
+        when(subjectMapper.selectById(any())).thenReturn(new Subject());
+        UserCollection existing = new UserCollection();
+        existing.setType(1);
+        existing.setRate(0);
+        existing.setEpStatus(0);
+        when(mapper.selectOne(any())).thenReturn(existing);
+
+        CollectionUpdateDTO dto = new CollectionUpdateDTO();
+        dto.setType(1);
+        dto.setRate(8); // 修改评分，同类型重提不算重复收藏
+
+        assertThatCode(() -> service.saveOrUpdate(7L, 10L, dto))
+                .doesNotThrowAnyException();
+        verify(mapper).updateById(any(UserCollection.class));
+    }
+
+    @Test
     void updatesWhenCollectionTypeDiffers() {
         when(subjectMapper.selectById(any())).thenReturn(new Subject());
         UserCollection existing = new UserCollection();

@@ -1,17 +1,24 @@
 package top.zhaizz.admin.service.impl;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
+import top.zhaizz.admin.mapper.AdminSubjectMapper;
+import top.zhaizz.admin.mapper.ImportRecordMapper;
 import top.zhaizz.common.ErrorType;
 import top.zhaizz.common.config.AgentProperties;
 import top.zhaizz.common.exception.BizException;
+import top.zhaizz.common.result.PageResult;
+import top.zhaizz.pojo.entity.ImportRecord;
+import top.zhaizz.pojo.vo.ImportRecordVO;
 import top.zhaizz.pojo.vo.ImportStatusVO;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -27,11 +34,24 @@ class ImportServiceImplTest {
 
     private final RestTemplate restTemplate = mock(RestTemplate.class);
     private final AgentProperties agentProperties = new AgentProperties();
-    private final ImportServiceImpl service = new ImportServiceImpl(restTemplate, agentProperties);
+    private final ImportRecordMapper importRecordMapper = mock(ImportRecordMapper.class);
+    private final AdminSubjectMapper subjectMapper = mock(AdminSubjectMapper.class);
+    private final ImportServiceImpl service =
+            new ImportServiceImpl(restTemplate, agentProperties, importRecordMapper, subjectMapper);
 
     private static final String URL = "http://agent-base/api/admin/agent/import/run?mode=season&key=2026-summer&workers=3";
     private static final String URL_RECENT = "http://agent-base/api/admin/agent/import/run?mode=recent";
-    private static final String STATUS_URL = "http://agent-base/api/admin/agent/import/status";
+
+    private static ImportRecord completed() {
+        ImportRecord e = new ImportRecord();
+        e.setId(1L);
+        e.setSeasonKey("2026-summer");
+        e.setStatus("COMPLETED");
+        e.setSubjectCount(7);
+        e.setStartedAt(LocalDateTime.of(2026, 8, 1, 10, 0, 0));
+        e.setCompletedAt(LocalDateTime.of(2026, 8, 1, 10, 5, 0));
+        return e;
+    }
 
     @Test
     void forwardsValidRunToAgent() {
@@ -74,24 +94,40 @@ class ImportServiceImplTest {
     }
 
     @Test
-    void forwardsStatusToAgent() {
-        agentProperties.setBaseUrl("http://agent-base");
-        ImportStatusVO vo = new ImportStatusVO();
-        vo.setTotalSubjects(42);
-        when(restTemplate.exchange(eq(STATUS_URL), eq(HttpMethod.GET), any(HttpEntity.class), eq(ImportStatusVO.class)))
-                .thenReturn(ResponseEntity.ok(vo));
-        assertThat(service.getImportStatus("Bearer t")).isSameAs(vo);
-        verify(restTemplate).exchange(eq(STATUS_URL), eq(HttpMethod.GET), any(HttpEntity.class), eq(ImportStatusVO.class));
+    void readsStatusFromDb() {
+        ImportRecord running = new ImportRecord();
+        running.setId(2L);
+        running.setStatus("RUNNING");
+        running.setStartedAt(LocalDateTime.of(2026, 8, 2, 10, 0, 0)); // 更近，排在最前
+        ImportRecord completed = completed();
+
+        when(subjectMapper.selectCount(null)).thenReturn(42L);
+        when(importRecordMapper.selectList(any())).thenReturn(List.of(running, completed));
+
+        ImportStatusVO vo = service.getImportStatus();
+
+        assertThat(vo.getTotalSubjects()).isEqualTo(42);
+        assertThat(vo.getRecentRecords()).hasSize(2);
+        assertThat(vo.getRecentRecords().get(0).getSeason()).isNull(); // running 无季度
+        assertThat(vo.getLastImportedAt()).isEqualTo(LocalDateTime.of(2026, 8, 1, 10, 5, 0));
     }
 
     @Test
-    void mapsStatusConnectionFailureToInternalError() {
-        agentProperties.setBaseUrl("http://agent-base");
-        when(restTemplate.exchange(eq(STATUS_URL), eq(HttpMethod.GET), any(HttpEntity.class), eq(ImportStatusVO.class)))
-                .thenThrow(new ResourceAccessException("connect refused"));
-        assertThatThrownBy(() -> service.getImportStatus("Bearer t"))
-                .isInstanceOf(BizException.class)
-                .extracting(e -> ((BizException) e).getCode())
-                .isEqualTo(ErrorType.INTERNAL_ERROR.getCode());
+    void readsRecordsFromDb() {
+        Page<ImportRecord> page = new Page<>(2, 10);
+        page.setRecords(List.of(completed()));
+        page.setTotal(3);
+        when(importRecordMapper.selectPage(any(), any())).thenReturn(page);
+
+        PageResult<ImportRecordVO> result = service.getImportRecords(2, 10, "FAILED");
+
+        assertThat(result.getPage()).isEqualTo(2);
+        assertThat(result.getSize()).isEqualTo(10);
+        assertThat(result.getTotal()).isEqualTo(3L);
+        assertThat(result.getContent()).hasSize(1);
+        ImportRecordVO vo = result.getContent().get(0);
+        assertThat(vo.getSeason()).isEqualTo("2026-summer");
+        assertThat(vo.getStatus()).isEqualTo("COMPLETED");
+        assertThat(vo.getSubjectCount()).isEqualTo(7);
     }
 }

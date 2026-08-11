@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { App, Button, DatePicker, Form, Input, InputNumber, Segmented, Select, Table, Tooltip } from 'antd';
-import type { TableProps } from 'antd';
+import type { TablePaginationConfig, TableProps } from 'antd';
 import { AlertOutlined, PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { importsApi } from '../api/imports';
@@ -49,16 +49,16 @@ export default function ImportTasks() {
   const mode = Form.useWatch('mode', form) ?? 'recent';
   const timerRef = useRef<number | null>(null);
 
-  const records = status.recentRecords ?? [];
-  const runningRecord = records.find((r) => r.status === 'RUNNING') ?? null;
-  const completedCount = records.filter((r) => r.status === 'COMPLETED').length;
-  const failedCount = records.filter((r) => r.status === 'FAILED').length;
-  const runningCount = records.filter((r) => r.status === 'RUNNING').length;
-  const visibleRecords = records.filter((r) => {
-    if (recordFilter === 'failed') return r.status === 'FAILED';
-    if (recordFilter === 'running') return r.status === 'RUNNING';
-    return true;
-  });
+  const [records, setRecords] = useState<ImportRecordVO[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [recordsLoading, setRecordsLoading] = useState(false);
+
+  const recentRecords = status.recentRecords ?? [];
+  const runningRecord = recentRecords.find((r) => r.status === 'RUNNING') ?? null;
+  const completedCount = recentRecords.filter((r) => r.status === 'COMPLETED').length;
+  const failedCount = recentRecords.filter((r) => r.status === 'FAILED').length;
 
   const loadStatus = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -77,15 +77,47 @@ export default function ImportTasks() {
     loadStatus();
   }, [loadStatus]);
 
+  const loadRecords = useCallback(
+    async (nextPage: number, nextSize: number, filter: 'all' | 'failed' | 'running') => {
+      setRecordsLoading(true);
+      try {
+        const result = await importsApi.records({
+          page: nextPage,
+          size: nextSize,
+          status: filter === 'all' ? undefined : filter.toUpperCase(),
+        });
+        setRecords(result.content ?? []);
+        setTotal(result.total ?? 0);
+        setPage(result.page ?? nextPage);
+        setPageSize(result.size ?? nextSize);
+      } catch (error) {
+        message.error(error instanceof Error ? error.message : '导入记录加载失败');
+      } finally {
+        setRecordsLoading(false);
+      }
+    },
+    [message],
+  );
+
+  useEffect(() => {
+    loadRecords(1, pageSize, recordFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordFilter]);
+
+  const handleTableChange = (pagination: TablePaginationConfig) => {
+    loadRecords(pagination.current ?? 1, pagination.pageSize ?? pageSize, recordFilter);
+  };
+
   useEffect(() => {
     if (!running) return undefined;
     timerRef.current = window.setInterval(() => {
       loadStatus(true);
+      loadRecords(page, pageSize, recordFilter);
     }, 5000);
     return () => {
       if (timerRef.current) window.clearInterval(timerRef.current);
     };
-  }, [running, loadStatus]);
+  }, [running, loadStatus, loadRecords, page, pageSize, recordFilter]);
 
   useEffect(() => {
     return () => {
@@ -312,24 +344,26 @@ export default function ImportTasks() {
                 <h3 className="panel-title">
                   <span className="seq">03</span>导入历史
                 </h3>
-                <div className="panel-sub">最近 {records.length} 次任务记录</div>
+                <div className="panel-sub">全部导入任务 · 分页展示</div>
               </div>
               <Segmented
                 size="small"
                 value={recordFilter}
                 onChange={(value) => setRecordFilter(value as 'all' | 'failed' | 'running')}
                 options={[
-                  { value: 'all', label: `全部 ${records.length}` },
-                  { value: 'failed', label: `失败 ${failedCount}` },
-                  { value: 'running', label: `运行中 ${runningCount}` },
+                  { value: 'all', label: '全部' },
+                  { value: 'failed', label: '失败' },
+                  { value: 'running', label: '运行中' },
                 ]}
               />
             </div>
             <Table<ImportRecordVO>
               rowKey="id"
               columns={columns}
-              dataSource={visibleRecords}
+              dataSource={records}
+              loading={recordsLoading}
               size="middle"
+              onChange={handleTableChange}
               expandable={{
                 expandedRowRender: (record) =>
                   record.status === 'FAILED' ? (
@@ -345,7 +379,11 @@ export default function ImportTasks() {
                 rowExpandable: (record) => record.status === 'FAILED',
               }}
               pagination={{
-                pageSize: 10,
+                current: page,
+                pageSize,
+                total,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50],
                 showTotal: (count) => `共 ${count} 条`,
               }}
               scroll={{ x: 900 }}
