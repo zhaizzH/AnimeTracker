@@ -79,11 +79,11 @@
     </select>
 
     <select id="hotSubjects" resultType="top.zhaizz.pojo.vo.dashboard.HotSubjectVO">
-        SELECT s.id, s.name, s.name_cn, s.image, COUNT(uc.id) AS count
+        SELECT s.id, s.name, s.name_cn, s.image, COUNT(uc.id) AS collection_count
         FROM user_collection uc
         JOIN subject s ON uc.subject_id = s.id
         GROUP BY uc.subject_id, s.id, s.name, s.name_cn, s.image
-        ORDER BY count DESC
+        ORDER BY collection_count DESC
         LIMIT #{limit}
     </select>
 
