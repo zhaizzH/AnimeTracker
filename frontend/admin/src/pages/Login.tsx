@@ -55,11 +55,11 @@ export default function Login() {
           </div>
         </div>
         <div className="login-feed">
-          {feedLines.map((line) => (
+          {feedLines.map((line, index) => (
             <div className="feed-line" key={line.tag}>
               <span className="feed-tag">[{line.tag}]</span>
               <span className={line.tone}>{line.text}</span>
-              {line.tone === '' && <span className="login-cursor" />}
+              {index === feedLines.length - 1 && <span className="login-cursor" />}
             </div>
           ))}
         </div>
