@@ -14,7 +14,6 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import top.zhaizz.admin.converter.SubjectConverter;
-import top.zhaizz.admin.mapper.AdminSubjectMapper;
 import top.zhaizz.admin.mapper.ImportRecordMapper;
 import top.zhaizz.admin.service.ImportService;
 import top.zhaizz.common.ErrorType;
@@ -42,7 +41,6 @@ public class ImportServiceImpl implements ImportService {
     private final RestTemplate restTemplate;
     private final AgentProperties agentProperties;
     private final ImportRecordMapper importRecordMapper;
-    private final AdminSubjectMapper subjectMapper;
 
     @Override
     public void runImport(String authorization, String mode, String key, String since, Integer workers) {
@@ -80,14 +78,19 @@ public class ImportServiceImpl implements ImportService {
 
     @Override
     public ImportStatusVO getImportStatus() {
-        Long totalSubjects = subjectMapper.selectCount(null);
+        // 当前导入日志数量 = import_record 全量记录数（回归: 2026-08-11 误显示条目总数）
+        Long totalLogs = importRecordMapper.selectCount(null);
         List<ImportRecord> recent = importRecordMapper.selectList(
                 new LambdaQueryWrapper<ImportRecord>()
                         .orderByDesc(ImportRecord::getStartedAt)
                         .last("LIMIT 10"));
         List<ImportRecordVO> recordVOs = SubjectConverter.toImportRecordVOList(recent);
         ImportStatusVO vo = new ImportStatusVO();
-        vo.setTotalSubjects(totalSubjects == null ? 0 : totalSubjects.intValue());
+        vo.setTotalLogs(totalLogs == null ? 0L : totalLogs);
+        vo.setCompletedCount(importRecordMapper.selectCount(
+                new LambdaQueryWrapper<ImportRecord>().eq(ImportRecord::getStatus, "COMPLETED")));
+        vo.setFailedCount(importRecordMapper.selectCount(
+                new LambdaQueryWrapper<ImportRecord>().eq(ImportRecord::getStatus, "FAILED")));
         vo.setRecentRecords(recordVOs);
         vo.setLastImportedAt(recordVOs.stream()
                 .map(ImportRecordVO::getCompletedAt)

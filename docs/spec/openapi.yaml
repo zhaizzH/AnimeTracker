@@ -2399,9 +2399,9 @@ paths:
                       lastImportedAt:
                         type: "string"
                         description: "最近导入时间（从未导入=null）"
-                      totalSubjects:
+                      totalLogs:
                         type: "integer"
-                        description: "最近导入记录条数（最多 10 条）"
+                        description: "当前导入日志数量（import_record 全量记录数）"
                       recentRecords:
                         type: "array"
                         description: "最近导入记录"
@@ -3792,9 +3792,9 @@ components:
         lastImportedAt:
           type: "string"
           description: "最近导入时间（从未导入=null）"
-        totalSubjects:
+        totalLogs:
           type: "integer"
-          description: "最近导入记录条数（最多 10 条）"
+          description: "当前导入日志数量（import_record 全量记录数）"
         recentRecords:
           type: "array"
           description: "最近导入记录"

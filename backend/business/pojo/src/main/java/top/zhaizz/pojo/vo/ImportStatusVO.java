@@ -11,7 +11,9 @@ import java.util.List;
 @Data
 public class ImportStatusVO {
 
-    private LocalDateTime lastImportedAt;   // 条目导入时间（从未导入=null）
-    private Integer totalSubjects;          // 条目总数（subject 表计数）
-    private List<ImportRecordVO> recentRecords; // 条目导入记录
+    private LocalDateTime lastImportedAt;   // 最近一次导入完成时间（从未导入=null）
+    private Long totalLogs;                 // 当前导入日志数量（import_record 全量）
+    private Long completedCount;            // 历史成功任务总数（全量）
+    private Long failedCount;               // 历史失败任务总数（全量）
+    private List<ImportRecordVO> recentRecords; // 最近条目导入记录
 }

@@ -117,7 +117,9 @@ export interface ImportRecordVO {
 
 export interface ImportStatusVO {
   lastImportedAt: string | null;
-  totalSubjects: number;
+  totalLogs: number;
+  completedCount: number;
+  failedCount: number;
   recentRecords: ImportRecordVO[];
 }
 
