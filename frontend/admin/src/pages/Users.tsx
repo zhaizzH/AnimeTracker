@@ -69,8 +69,6 @@ export default function Users() {
     });
   }, [list, keyword, roleFilter]);
 
-  const adminCount = list.filter((u) => u.role === 'ADMIN').length;
-  const userCount = list.filter((u) => u.role === 'USER').length;
   const todayNewCount = list.filter((u) => u.createdAt.startsWith('2026-08-05')).length;
 
   const openRoleModal = (user: UserVO) => {
@@ -185,18 +183,6 @@ export default function Users() {
           <div>
             <div className="mini-stat-label">今日新增</div>
             <div className="mini-stat-value">{todayNewCount}</div>
-          </div>
-        </div>
-        <div className="mini-stat tone-amber">
-          <div>
-            <div className="mini-stat-label">本页管理员</div>
-            <div className="mini-stat-value">{adminCount}</div>
-          </div>
-        </div>
-        <div className="mini-stat tone-blue">
-          <div>
-            <div className="mini-stat-label">本页普通用户</div>
-            <div className="mini-stat-value">{userCount}</div>
           </div>
         </div>
       </div>

@@ -145,8 +145,9 @@ def upload_cover(subject_id: int, image_url: str) -> str:
     """下载封面 → 上传 MinIO → 返回 MinIO 公开 URL；失败重试 2 次后回退。"""
     if not image_url:
         return image_url
-    proxy = os.getenv("BANGUMI_IMAGE_PROXY_URL", "https://proxy.8000150.xyz").rstrip("/")
-    image_url = f"{proxy}/{image_url}"
+    proxy = os.getenv("BANGUMI_IMAGE_PROXY_URL", "").rstrip("/")
+    if proxy:
+        image_url = f"{proxy}/{image_url}"
     for attempt in range(3):
         try:
             resp = requests.get(image_url, timeout=15, stream=True)
@@ -195,14 +196,17 @@ def _stagger(ids, workers):
 
 
 def _run_batch(bangumi_ids, resume, access_token, user_agent,
-               host, port, user, password, db_name, max_workers=MAX_WORKERS):
-    """并行导入一批 subject_id，返回成功数。"""
+               host, port, user, password, db_name, max_workers=MAX_WORKERS, base_done=0):
+    """并行导入一批 subject_id，返回成功数。
+
+    base_done: 扫描阶段已发现条数，导入进度从该值继续累加（full 模式页面计数连续）。
+    """
     global _done_count
     total = len(bangumi_ids)
     if not total:
         return 0
     engine = get_engine(host, port, user, password, db_name)
-    done = 0
+    done = base_done
     ordered_ids = _stagger(bangumi_ids, max_workers)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
@@ -213,8 +217,8 @@ def _run_batch(bangumi_ids, resume, access_token, user_agent,
             if future.result():
                 done += 1
             _done_count = done
-            _safe_progress(done, total)
-    return done
+            _safe_progress(done - base_done, total)
+    return done - base_done
 
 
 def _progress(done: int, total: int | None = None):
@@ -391,6 +395,7 @@ def import_single_subject(client, db, bangumi_id, resume):
 
 
 def run_full(client, db, resume, **kw):
+    global _done_count
     now = datetime.now()
     ids = []
     for year in range(2000, now.year + 1):
@@ -412,7 +417,9 @@ def run_full(client, db, resume, **kw):
                 offset += len(items)
                 if offset >= total_count:
                     break
-    return _run_batch(ids, resume, **kw)
+            # 扫描进度实时刷到 import_record.subject_count，页面可看到数量增长
+            _done_count = len(ids)
+    return _run_batch(ids, resume, base_done=len(ids), **kw)
 
 
 def run_season(client, db, key, resume, **kw):

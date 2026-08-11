@@ -4,7 +4,7 @@ import type { TablePaginationConfig, TableProps } from 'antd';
 import { DownloadOutlined, EyeOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { logsApi } from '../api/logs';
-import type { OperationLogVO } from '../types/api';
+import type { OperationLogStatsVO, OperationLogVO } from '../types/api';
 
 type DateRange = [dayjs.Dayjs, dayjs.Dayjs];
 
@@ -26,7 +26,6 @@ const knownActions = [
   'SUBJECT_DELETE',
 ];
 
-const ANALYSIS_WINDOW = 10;
 
 function csvCell(value: unknown): string {
   const text = String(value ?? '');
@@ -73,8 +72,8 @@ export default function Logs() {
   const [loading, setLoading] = useState(false);
   const [detail, setDetail] = useState<OperationLogVO | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'failed'>('all');
-  const [analysis, setAnalysis] = useState<OperationLogVO[]>([]);
-  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [stats, setStats] = useState<OperationLogStatsVO | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const modules = useMemo(
     () => ['all', ...Array.from(new Set([...knownModules, ...list.map((l) => l.module).filter(Boolean)]))],
@@ -117,12 +116,10 @@ export default function Logs() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
-  const loadAnalysis = async () => {
-    setAnalysisLoading(true);
+  const loadStats = async () => {
+    setStatsLoading(true);
     try {
-      const result = await logsApi.list({
-        page: 1,
-        size: ANALYSIS_WINDOW,
+      const result = await logsApi.stats({
         username: username.trim() || undefined,
         module: moduleFilter === 'all' ? undefined : moduleFilter,
         action: actionFilter === 'all' ? undefined : actionFilter,
@@ -130,25 +127,22 @@ export default function Logs() {
         start: range?.[0] ? range[0].format('YYYY-MM-DD') : undefined,
         end: range?.[1] ? range[1].format('YYYY-MM-DD') : undefined,
       });
-      setAnalysis(result.content ?? []);
+      setStats(result);
     } catch (error) {
       message.error(error instanceof Error ? error.message : '日志统计加载失败');
     } finally {
-      setAnalysisLoading(false);
+      setStatsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadAnalysis();
+    loadStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moduleFilter, actionFilter, range, statusFilter, username]);
 
-  const analysisRows = analysis;
-  const visibleList = list;
-  const failedCount = analysisRows.filter((log) => log.status !== 0).length;
-  const avgDuration = analysisRows.length
-    ? Math.round(analysisRows.reduce((sum, log) => sum + (log.durationMs || 0), 0) / analysisRows.length)
-    : 0;
+  const failedCount = stats?.failedCount ?? 0;
+  const successCount = stats?.successCount ?? 0;
+  const avgDuration = stats?.avgDurationMs ?? 0;
 
   const resetFilters = () => {
     setUsername('');
@@ -172,6 +166,42 @@ export default function Logs() {
     setPage(nextPage);
     setPageSize(nextSize);
     load(nextPage, nextSize);
+  };
+
+  const [exporting, setExporting] = useState(false);
+
+  /** 导出全部日志（按当前筛选条件分页拉全） */
+  const exportAll = async () => {
+    setExporting(true);
+    try {
+      const params = {
+        username: username.trim() || undefined,
+        module: moduleFilter === 'all' ? undefined : moduleFilter,
+        action: actionFilter === 'all' ? undefined : actionFilter,
+        status: statusFilter === 'all' ? undefined : statusFilter === 'success' ? 0 : 1,
+        start: range?.[0] ? range[0].format('YYYY-MM-DD') : undefined,
+        end: range?.[1] ? range[1].format('YYYY-MM-DD') : undefined,
+      };
+      let all: OperationLogVO[] = [];
+      let page = 1;
+      const pageSize = 100;
+      while (true) {
+        const result = await logsApi.list({ ...params, page, size: pageSize });
+        all = all.concat(result.content ?? []);
+        if (all.length >= (result.total ?? 0)) break;
+        page += 1;
+      }
+      if (all.length === 0) {
+        message.warning('当前筛选条件下无日志可导出');
+        return;
+      }
+      exportCsv(all);
+      message.success(`已导出 ${all.length} 条日志`);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '日志导出失败');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const columns: TableProps<OperationLogVO>['columns'] = [
@@ -257,11 +287,11 @@ export default function Logs() {
           <div className="dash-toolbar-sub">接口 · GET /api/admin/logs?page=&size=&module=&action=&username=&status=&start=&end=</div>
         </div>
         <div className="dash-toolbar-actions">
-          <Button icon={<DownloadOutlined />} onClick={() => exportCsv(analysisRows)}>
+          <Button icon={<DownloadOutlined />} loading={exporting} onClick={exportAll}>
             导出 CSV
           </Button>
-          <Tooltip title="刷新日志统计窗口">
-            <Button icon={<ReloadOutlined spin={analysisLoading} />} onClick={loadAnalysis} />
+          <Tooltip title="刷新日志统计">
+            <Button icon={<ReloadOutlined spin={statsLoading} />} onClick={loadStats} />
           </Tooltip>
           <Tooltip title="刷新日志">
             <Button icon={<ReloadOutlined spin={loading} />} onClick={() => load(page, pageSize)} />
@@ -272,26 +302,26 @@ export default function Logs() {
       <div className="mini-stats">
         <div className="mini-stat tone-cyan">
           <div>
-            <div className="mini-stat-label">统计窗口</div>
-            <div className="mini-stat-value">{analysisRows.length}</div>
+            <div className="mini-stat-label">日志总数</div>
+            <div className="mini-stat-value">{stats?.total?.toLocaleString() ?? 0}</div>
           </div>
         </div>
         <div className="mini-stat tone-red">
           <div>
             <div className="mini-stat-label">失败日志</div>
-            <div className="mini-stat-value">{failedCount}</div>
+            <div className="mini-stat-value">{failedCount.toLocaleString()}</div>
           </div>
         </div>
         <div className="mini-stat tone-green">
           <div>
             <div className="mini-stat-label">成功日志</div>
-            <div className="mini-stat-value">{analysisRows.length - failedCount}</div>
+            <div className="mini-stat-value">{successCount.toLocaleString()}</div>
           </div>
         </div>
         <div className="mini-stat tone-amber">
           <div>
             <div className="mini-stat-label">平均耗时</div>
-            <div className="mini-stat-value mini-value-sm">{avgDuration} ms</div>
+            <div className="mini-stat-value mini-value-sm">{avgDuration.toLocaleString()} ms</div>
           </div>
         </div>
       </div>
@@ -362,7 +392,7 @@ export default function Logs() {
               <span className="seq">01</span>日志明细
             </h3>
             <div className="panel-sub">
-              覆盖登录、条目、用户、导入与 Agent 管理操作 · 统计窗口最近 {ANALYSIS_WINDOW} 条
+              覆盖登录、条目、用户、导入与 Agent 管理操作 · 统计为全部日志（按当前筛选条件）
             </div>
           </div>
           <span className="panel-note">按 ID 倒序</span>
@@ -370,7 +400,7 @@ export default function Logs() {
         <Table<OperationLogVO>
           rowKey="id"
           columns={columns}
-          dataSource={visibleList}
+          dataSource={list}
           loading={loading}
           size="middle"
           onChange={handleTableChange}

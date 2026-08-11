@@ -160,6 +160,13 @@ export interface LogQueryParams {
   size?: number;
 }
 
+export interface OperationLogStatsVO {
+  total: number;
+  failedCount: number;
+  successCount: number;
+  avgDurationMs: number;
+}
+
 export interface DashboardOverviewVO {
   userCount: number;
   subjectCount: number;

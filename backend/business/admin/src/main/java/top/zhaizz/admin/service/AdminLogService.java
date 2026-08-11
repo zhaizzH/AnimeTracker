@@ -1,6 +1,7 @@
 package top.zhaizz.admin.service;
 
 import top.zhaizz.common.result.PageResult;
+import top.zhaizz.pojo.vo.OperationLogStatsVO;
 import top.zhaizz.pojo.vo.OperationLogVO;
 
 import java.time.LocalDate;
@@ -15,4 +16,10 @@ public interface AdminLogService {
      */
     PageResult<OperationLogVO> listLogs(String action, String module, String username, Long userId, Integer status,
                                         LocalDate start, LocalDate end, int page, int size);
+
+    /**
+     * 按当前筛选条件统计全部日志（总数/成功/失败/平均耗时）
+     */
+    OperationLogStatsVO stats(String action, String module, String username, Long userId, Integer status,
+                              LocalDate start, LocalDate end);
 }

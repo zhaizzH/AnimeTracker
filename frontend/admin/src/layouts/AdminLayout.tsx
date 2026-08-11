@@ -7,6 +7,7 @@ import {
   FileSearchOutlined,
   ImportOutlined,
   LogoutOutlined,
+  MenuOutlined,
   PlaySquareOutlined,
   ReloadOutlined,
   RobotOutlined,
@@ -42,6 +43,20 @@ const titleMap: Record<string, string> = {
   agent: 'Agent 配置',
 };
 
+/** 移动端断点（≤760px 抽屉式导航），与 global.css 媒体查询一致 */
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches,
+  );
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 760px)');
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+  return isMobile;
+}
+
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { message } = App.useApp();
   const navigate = useNavigate();
@@ -51,14 +66,22 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const [now, setNow] = useState(dayjs());
   const [syncing, setSyncing] = useState(false);
   const active = location.pathname.replace('/', '') || 'dashboard';
+  const isMobile = useIsMobile();
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(dayjs()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  // 路由变化时移动端自动收起导航
+  useEffect(() => {
+    if (isMobile) setNavOpen(false);
+  }, [location.pathname, isMobile]);
+
   const openNav = (item: NavItem) => {
     navigate(`/${item.key}`);
+    if (isMobile) setNavOpen(false);
   };
 
   const sync = () => {
@@ -82,7 +105,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="admin-shell">
-      <aside className="admin-sidebar">
+      {isMobile && (
+        <div
+          className={`sidebar-mask${navOpen ? ' show' : ''}`}
+          onClick={() => setNavOpen(false)}
+        />
+      )}
+      <aside className={`admin-sidebar${isMobile ? (navOpen ? ' open' : ' collapsed') : ''}`}>
         <div className="sidebar-brand">
           <span className="sidebar-brand-mark">AT</span>
           <div>
@@ -112,6 +141,15 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <div className="admin-main">
         <header className="admin-header">
           <div className="admin-header-title">
+            {isMobile && (
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                className="nav-toggle"
+                aria-label="展开导航"
+                onClick={() => setNavOpen((v) => !v)}
+              />
+            )}
             <h2>{titleMap[active] ?? '总览'}</h2>
             <span className="crumb">{titleMap[active] ?? '总览'}</span>
           </div>

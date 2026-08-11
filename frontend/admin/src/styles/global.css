@@ -1327,6 +1327,58 @@ a {
   .import-metrics {
     grid-template-columns: 1fr;
   }
+
+  /* 移动端抽屉式导航：默认收起，点击汉堡展开，跳转后收起 */
+  .admin-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 224px;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.24s ease;
+  }
+
+  .admin-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-mask {
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+    background: rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.24s ease;
+  }
+
+  .sidebar-mask.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* 抽屉内恢复完整导航项（覆盖 900px 的图标条样式） */
+  .admin-sidebar .sidebar-brand-name,
+  .admin-sidebar .sidebar-brand-sub,
+  .admin-sidebar .nav-item .nav-label,
+  .admin-sidebar .nav-item .nav-index {
+    display: inline;
+  }
+
+  .admin-sidebar .nav-item {
+    justify-content: flex-start;
+    padding: 8px 10px;
+  }
+
+  .nav-toggle {
+    margin-right: 4px;
+  }
 }
 
 @media (max-width: 520px) {

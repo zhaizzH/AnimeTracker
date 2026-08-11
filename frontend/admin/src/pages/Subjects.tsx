@@ -160,8 +160,6 @@ export default function Subjects() {
     load(1, pageSize, '');
   };
 
-  const animatedCount = list.filter((item) => item.type === 2).length;
-
   const openEdit = async (row: SubjectListVO) => {
     setEditTarget(row);
     const base = {
@@ -414,24 +412,6 @@ export default function Subjects() {
           <div>
             <div className="mini-stat-label">条目总数</div>
             <div className="mini-stat-value">{total.toLocaleString()}</div>
-          </div>
-        </div>
-        <div className="mini-stat tone-green">
-          <div>
-            <div className="mini-stat-label">当前页动画</div>
-            <div className="mini-stat-value">{animatedCount}</div>
-          </div>
-        </div>
-        <div className="mini-stat tone-amber">
-          <div>
-            <div className="mini-stat-label">当前页</div>
-            <div className="mini-stat-value">{page}</div>
-          </div>
-        </div>
-        <div className="mini-stat tone-blue">
-          <div>
-            <div className="mini-stat-label">每页条数</div>
-            <div className="mini-stat-value">{pageSize}</div>
           </div>
         </div>
       </div>
