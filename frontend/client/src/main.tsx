@@ -32,9 +32,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               colorBgContainer: '#faf7f0',
               colorBorder: '#cbbfa8',
               colorText: '#201d18',
-              colorTextSecondary: '#615a4e',
+              colorTextSecondary: '#4f4a40',
               borderRadius: 2,
-              fontSize: 14,
+              fontSize: 15,
               fontFamily: '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif',
             },
             components: {

@@ -5,8 +5,8 @@
   --paper-line: #cbbfa8;
   --paper-line-strong: #8f8572;
   --ink: #201d18;
-  --ink-soft: #615a4e;
-  --ink-faint: #8a8172;
+  --ink-soft: #4f4a40;
+  --ink-faint: #6f685c;
   --accent: #c13a24;
   --accent-dark: #9c2d1c;
   --accent-soft: #f2ddd6;
@@ -38,8 +38,8 @@ body {
     transparent 1px 4px
   );
   font-family: var(--sans);
-  font-size: 14px;
-  line-height: 1.7;
+  font-size: 15px;
+  line-height: 1.75;
 }
 
 ::selection {
