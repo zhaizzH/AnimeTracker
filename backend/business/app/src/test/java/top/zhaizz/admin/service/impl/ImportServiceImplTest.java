@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
-import top.zhaizz.admin.mapper.AdminSubjectMapper;
 import top.zhaizz.admin.mapper.ImportRecordMapper;
 import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.config.AgentProperties;
@@ -35,9 +34,8 @@ class ImportServiceImplTest {
     private final RestTemplate restTemplate = mock(RestTemplate.class);
     private final AgentProperties agentProperties = new AgentProperties();
     private final ImportRecordMapper importRecordMapper = mock(ImportRecordMapper.class);
-    private final AdminSubjectMapper subjectMapper = mock(AdminSubjectMapper.class);
     private final ImportServiceImpl service =
-            new ImportServiceImpl(restTemplate, agentProperties, importRecordMapper, subjectMapper);
+            new ImportServiceImpl(restTemplate, agentProperties, importRecordMapper);
 
     private static final String URL = "http://agent-base/api/admin/agent/import/run?mode=season&key=2026-summer&workers=3";
     private static final String URL_RECENT = "http://agent-base/api/admin/agent/import/run?mode=recent";
@@ -101,12 +99,17 @@ class ImportServiceImplTest {
         running.setStartedAt(LocalDateTime.of(2026, 8, 2, 10, 0, 0)); // 更近，排在最前
         ImportRecord completed = completed();
 
-        when(subjectMapper.selectCount(null)).thenReturn(42L);
+        when(importRecordMapper.selectCount(null)).thenReturn(3L);      // 总日志数
+        when(importRecordMapper.selectCount(any())).thenReturn(3L);     // 按状态统计（COMPLETED/FAILED）
         when(importRecordMapper.selectList(any())).thenReturn(List.of(running, completed));
 
         ImportStatusVO vo = service.getImportStatus();
 
-        assertThat(vo.getTotalSubjects()).isEqualTo(42);
+        // 卡片1: 当前导入日志数量 = import_record 全量记录数（回归: 2026-08-11 误显示 subject+episode 条目总数）
+        assertThat(vo.getTotalLogs()).isEqualTo(3L);
+        // 成功/失败任务数为全量统计，而非 recentRecords 窗口内过滤（回归: 2026-08-11 只显示最近10条内数量）
+        assertThat(vo.getCompletedCount()).isEqualTo(3L);
+        assertThat(vo.getFailedCount()).isEqualTo(3L);
         assertThat(vo.getRecentRecords()).hasSize(2);
         assertThat(vo.getRecentRecords().get(0).getSeason()).isNull(); // running 无季度
         assertThat(vo.getLastImportedAt()).isEqualTo(LocalDateTime.of(2026, 8, 1, 10, 5, 0));

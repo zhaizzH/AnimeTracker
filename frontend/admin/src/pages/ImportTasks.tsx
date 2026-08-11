@@ -39,7 +39,9 @@ export default function ImportTasks() {
   const { message } = App.useApp();
   const [status, setStatus] = useState<ImportStatusVO>({
     lastImportedAt: null,
-    totalSubjects: 0,
+    totalLogs: 0,
+    completedCount: 0,
+    failedCount: 0,
     recentRecords: [],
   });
   const [loading, setLoading] = useState(false);
@@ -57,8 +59,9 @@ export default function ImportTasks() {
 
   const recentRecords = status.recentRecords ?? [];
   const runningRecord = recentRecords.find((r) => r.status === 'RUNNING') ?? null;
-  const completedCount = recentRecords.filter((r) => r.status === 'COMPLETED').length;
-  const failedCount = recentRecords.filter((r) => r.status === 'FAILED').length;
+  // 成功/失败任务数为全量统计（后端 DB 聚合），而非 recentRecords 窗口内过滤
+  const completedCount = Number(status.completedCount ?? 0);
+  const failedCount = Number(status.failedCount ?? 0);
 
   const loadStatus = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -214,8 +217,8 @@ export default function ImportTasks() {
       <div className="mini-stats">
         <div className="mini-stat tone-cyan">
           <div>
-            <div className="mini-stat-label">当前条目总数</div>
-            <div className="mini-stat-value">{Number(status.totalSubjects ?? 0).toLocaleString()}</div>
+            <div className="mini-stat-label">任务总数</div>
+            <div className="mini-stat-value">{Number(status.totalLogs ?? 0).toLocaleString()}</div>
           </div>
         </div>
         <div className="mini-stat tone-green">

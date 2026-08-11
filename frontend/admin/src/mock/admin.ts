@@ -465,7 +465,7 @@ export const users: AdminUser[] = [
 
 export const importStatus = {
   lastImportedAt: '2026-08-05 02:41:18',
-  totalSubjects: 12068,
+  totalLogs: 21,
 };
 
 export const importRecords: ImportRecord[] = [
