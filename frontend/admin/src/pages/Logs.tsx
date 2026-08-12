@@ -73,7 +73,6 @@ export default function Logs() {
   const [detail, setDetail] = useState<OperationLogVO | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'failed'>('all');
   const [stats, setStats] = useState<OperationLogStatsVO | null>(null);
-  const [statsLoading, setStatsLoading] = useState(false);
 
   const modules = useMemo(
     () => ['all', ...Array.from(new Set([...knownModules, ...list.map((l) => l.module).filter(Boolean)]))],
@@ -102,6 +101,7 @@ export default function Logs() {
         setTotal(result.total ?? 0);
         setPage(result.page ?? nextPage);
         setPageSize(result.size ?? nextSize);
+        setStats(result.stats ?? null);
       } catch (error) {
         message.error(error instanceof Error ? error.message : '日志加载失败');
       } finally {
@@ -113,30 +113,6 @@ export default function Logs() {
 
   useEffect(() => {
     load(1, pageSize);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter]);
-
-  const loadStats = async () => {
-    setStatsLoading(true);
-    try {
-      const result = await logsApi.stats({
-        username: username.trim() || undefined,
-        module: moduleFilter === 'all' ? undefined : moduleFilter,
-        action: actionFilter === 'all' ? undefined : actionFilter,
-        status: statusFilter === 'all' ? undefined : statusFilter === 'success' ? 0 : 1,
-        start: range?.[0] ? range[0].format('YYYY-MM-DD') : undefined,
-        end: range?.[1] ? range[1].format('YYYY-MM-DD') : undefined,
-      });
-      setStats(result);
-    } catch (error) {
-      message.error(error instanceof Error ? error.message : '日志统计加载失败');
-    } finally {
-      setStatsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moduleFilter, actionFilter, range, statusFilter, username]);
 
@@ -290,9 +266,6 @@ export default function Logs() {
           <Button icon={<DownloadOutlined />} loading={exporting} onClick={exportAll}>
             导出 CSV
           </Button>
-          <Tooltip title="刷新日志统计">
-            <Button icon={<ReloadOutlined spin={statsLoading} />} onClick={loadStats} />
-          </Tooltip>
           <Tooltip title="刷新日志">
             <Button icon={<ReloadOutlined spin={loading} />} onClick={() => load(page, pageSize)} />
           </Tooltip>

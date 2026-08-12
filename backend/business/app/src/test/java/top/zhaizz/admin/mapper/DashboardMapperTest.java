@@ -5,8 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import top.zhaizz.app.AppApplication;
-import top.zhaizz.pojo.vo.dashboard.DashboardOverviewVO;
-import top.zhaizz.pojo.vo.dashboard.HotSubjectVO;
+import top.zhaizz.pojo.vo.DashboardOverviewVO;
+import top.zhaizz.pojo.vo.HotSubjectVO;
 
 import java.time.LocalDate;
 import java.util.List;

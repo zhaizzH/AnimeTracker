@@ -167,6 +167,11 @@ export interface OperationLogStatsVO {
   avgDurationMs: number;
 }
 
+export interface LogPageResult extends PageResult<OperationLogVO> {
+  /** 当前筛选条件下的全量聚合统计 */
+  stats: OperationLogStatsVO;
+}
+
 export interface DashboardOverviewVO {
   userCount: number;
   subjectCount: number;

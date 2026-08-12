@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="top.zhaizz.admin.mapper.DashboardMapper">
 
-    <select id="overview" resultType="top.zhaizz.pojo.vo.dashboard.DashboardOverviewVO">
+    <select id="overview" resultType="top.zhaizz.pojo.vo.DashboardOverviewVO">
         SELECT
             (SELECT COUNT(*) FROM user)                                        AS user_count,
             (SELECT COUNT(*) FROM subject)                                     AS subject_count,
@@ -15,36 +15,36 @@
                  AND status = 0 AND created_at >= CURDATE())                   AS today_logins
     </select>
 
-    <select id="countUsersByDay" resultType="top.zhaizz.pojo.vo.dashboard.DailyCount">
+    <select id="countUsersByDay" resultType="top.zhaizz.pojo.vo.DailyCount">
         SELECT DATE(created_at) AS stat_date, COUNT(*) AS cnt
         FROM user
         WHERE created_at >= #{since}
         GROUP BY DATE(created_at)
     </select>
 
-    <select id="countCollectionsByDay" resultType="top.zhaizz.pojo.vo.dashboard.DailyCount">
+    <select id="countCollectionsByDay" resultType="top.zhaizz.pojo.vo.DailyCount">
         SELECT DATE(created_at) AS stat_date, COUNT(*) AS cnt
         FROM user_collection
         WHERE created_at >= #{since}
         GROUP BY DATE(created_at)
     </select>
 
-    <select id="countLoginsByDay" resultType="top.zhaizz.pojo.vo.dashboard.DailyCount">
+    <select id="countLoginsByDay" resultType="top.zhaizz.pojo.vo.DailyCount">
         SELECT DATE(created_at) AS stat_date, COUNT(*) AS cnt
         FROM operation_log
         WHERE action = 'LOGIN' AND status = 0 AND created_at >= #{since}
         GROUP BY DATE(created_at)
     </select>
 
-    <select id="collectionTypeCounts" resultType="top.zhaizz.pojo.vo.dashboard.TypeCountVO">
+    <select id="collectionTypeCounts" resultType="top.zhaizz.pojo.vo.TypeCountVO">
         SELECT type, COUNT(*) AS count FROM user_collection GROUP BY type ORDER BY type
     </select>
 
-    <select id="ratingCounts" resultType="top.zhaizz.pojo.vo.dashboard.RatingCountVO">
+    <select id="ratingCounts" resultType="top.zhaizz.pojo.vo.RatingCountVO">
         SELECT rate, COUNT(*) AS count FROM user_collection WHERE rate > 0 GROUP BY rate ORDER BY rate
     </select>
 
-    <select id="subjectScoreCounts" resultType="top.zhaizz.pojo.vo.dashboard.RatingCountVO">
+    <select id="subjectScoreCounts" resultType="top.zhaizz.pojo.vo.RatingCountVO">
         SELECT FLOOR(score) AS rate, COUNT(*) AS count
         FROM subject
         WHERE score > 0
@@ -52,7 +52,7 @@
         ORDER BY rate
     </select>
 
-    <select id="seasonCounts" resultType="top.zhaizz.pojo.vo.dashboard.SeasonCountVO">
+    <select id="seasonCounts" resultType="top.zhaizz.pojo.vo.SeasonCountVO">
         SELECT CONCAT(YEAR(air_date), '-',
                CASE
                    WHEN MONTH(air_date) BETWEEN 1 AND 3 THEN 'winter'
@@ -67,18 +67,18 @@
         ORDER BY season_key DESC
     </select>
 
-    <select id="subjectStatusCounts" resultType="top.zhaizz.pojo.vo.dashboard.SubjectStatusCountVO">
+    <select id="subjectStatusCounts" resultType="top.zhaizz.pojo.vo.SubjectStatusCountVO">
         SELECT import_status, COUNT(*) AS count FROM subject GROUP BY import_status
     </select>
 
-    <select id="importStats" resultType="top.zhaizz.pojo.vo.dashboard.ImportStatVO">
+    <select id="importStats" resultType="top.zhaizz.pojo.vo.ImportStatVO">
         SELECT COUNT(*) AS import_total,
                COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END), 0) AS import_succeeded,
                COALESCE(SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END), 0) AS import_failed
         FROM import_record
     </select>
 
-    <select id="hotSubjects" resultType="top.zhaizz.pojo.vo.dashboard.HotSubjectVO">
+    <select id="hotSubjects" resultType="top.zhaizz.pojo.vo.HotSubjectVO">
         SELECT s.id, s.name, s.name_cn, s.image, COUNT(uc.id) AS collection_count
         FROM user_collection uc
         JOIN subject s ON uc.subject_id = s.id

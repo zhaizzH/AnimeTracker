@@ -1,14 +1,14 @@
 package top.zhaizz.admin.mapper;
 
 import org.apache.ibatis.annotations.Param;
-import top.zhaizz.pojo.vo.dashboard.DailyCount;
-import top.zhaizz.pojo.vo.dashboard.DashboardOverviewVO;
-import top.zhaizz.pojo.vo.dashboard.HotSubjectVO;
-import top.zhaizz.pojo.vo.dashboard.ImportStatVO;
-import top.zhaizz.pojo.vo.dashboard.RatingCountVO;
-import top.zhaizz.pojo.vo.dashboard.SeasonCountVO;
-import top.zhaizz.pojo.vo.dashboard.SubjectStatusCountVO;
-import top.zhaizz.pojo.vo.dashboard.TypeCountVO;
+import top.zhaizz.pojo.vo.DailyCount;
+import top.zhaizz.pojo.vo.DashboardOverviewVO;
+import top.zhaizz.pojo.vo.HotSubjectVO;
+import top.zhaizz.pojo.vo.ImportStatVO;
+import top.zhaizz.pojo.vo.RatingCountVO;
+import top.zhaizz.pojo.vo.SeasonCountVO;
+import top.zhaizz.pojo.vo.SubjectStatusCountVO;
+import top.zhaizz.pojo.vo.TypeCountVO;
 
 import java.time.LocalDate;
 import java.util.List;
