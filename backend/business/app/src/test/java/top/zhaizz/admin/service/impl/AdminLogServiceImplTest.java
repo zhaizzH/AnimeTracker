@@ -2,11 +2,13 @@ package top.zhaizz.admin.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.junit.jupiter.api.Test;
-import top.zhaizz.pojo.vo.LogPageResult;
+import top.zhaizz.pojo.dto.LogQueryDTO;
+import top.zhaizz.pojo.vo.LogPageVO;
 import top.zhaizz.common.mapper.OperationLogMapper;
 import top.zhaizz.pojo.entity.OperationLogEntity;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,9 +30,12 @@ class AdminLogServiceImplTest {
         e.setUsername("bob");
         page.setRecords(List.of(e));
         when(mapper.selectPage(any(), any())).thenReturn(page);
-        when(mapper.selectMaps(any())).thenReturn(List.of(java.util.Map.<String, Object>of("total", 5L, "failedCount", 2L, "avgDurationMs", 120L)));
+        when(mapper.selectMaps(any())).thenReturn(List.of(Map.<String, Object>of("total", 5L, "failedCount", 2L, "avgDurationMs", 120L)));
 
-        LogPageResult res = service.listLogs(null, null, null, null, null, null, null, 1, 20);
+        LogQueryDTO dto = new LogQueryDTO();
+        dto.setPage(1);
+        dto.setSize(20);
+        LogPageVO res = service.listLogs(dto);
 
         assertThat(res.getTotal()).isEqualTo(1);
         assertThat(res.getContent()).hasSize(1);
