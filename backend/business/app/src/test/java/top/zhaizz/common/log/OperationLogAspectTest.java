@@ -12,7 +12,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import top.zhaizz.common.mapper.OperationLogMapper;
-import top.zhaizz.pojo.entity.OperationLogEntity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -46,9 +45,9 @@ class OperationLogAspectTest {
     @Test
     void logsSuccessWithMaskedParams() {
         target.login(new LoginArg("bob", "secret123"));
-        ArgumentCaptor<OperationLogEntity> cap = ArgumentCaptor.forClass(OperationLogEntity.class);
+        ArgumentCaptor<top.zhaizz.pojo.entity.OperationLog> cap = ArgumentCaptor.forClass(top.zhaizz.pojo.entity.OperationLog.class);
         verify(mapper).insert(cap.capture());
-        OperationLogEntity e = cap.getValue();
+        top.zhaizz.pojo.entity.OperationLog e = cap.getValue();
         assertThat(e.getAction()).isEqualTo("LOGIN");
         assertThat(e.getStatus()).isZero();
         assertThat(e.getUserId()).isEqualTo(1L);
@@ -63,7 +62,7 @@ class OperationLogAspectTest {
             target.fail();
         } catch (RuntimeException ignored) {
         }
-        ArgumentCaptor<OperationLogEntity> cap = ArgumentCaptor.forClass(OperationLogEntity.class);
+        ArgumentCaptor<top.zhaizz.pojo.entity.OperationLog> cap = ArgumentCaptor.forClass(top.zhaizz.pojo.entity.OperationLog.class);
         verify(mapper).insert(cap.capture());
         assertThat(cap.getValue().getStatus()).isEqualTo(1);
         assertThat(cap.getValue().getErrorMsg()).contains("boom");
@@ -76,11 +75,11 @@ class OperationLogAspectTest {
     }
 
     static class Target {
-        @OperationLog(action = "LOGIN", module = "AUTH")
+        @top.zhaizz.common.log.OperationLog(action = "LOGIN", module = "AUTH")
         public void login(LoginArg arg) {
         }
 
-        @OperationLog(action = "SUBJECT_CREATE", module = "SUBJECT")
+        @top.zhaizz.common.log.OperationLog(action = "SUBJECT_CREATE", module = "SUBJECT")
         public void fail() {
             throw new IllegalStateException("boom");
         }

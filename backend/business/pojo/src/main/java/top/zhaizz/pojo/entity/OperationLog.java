@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
  */
 @Data
 @TableName("operation_log")
-public class OperationLogEntity {
+public class OperationLog {
     private Long id;                    // 日志ID
     private Long userId;                // 用户ID（匿名失败登录为NULL）
     private String username;            // 用户名/邮箱快照

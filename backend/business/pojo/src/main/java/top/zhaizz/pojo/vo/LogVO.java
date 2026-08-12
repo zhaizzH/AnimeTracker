@@ -8,7 +8,7 @@ import java.util.List;
  * 日志分页结果
  */
 @Data
-public class LogPageVO {
+public class LogVO {
 
     private List<OperationLogVO> content;   // 当前页日志明细
     private long total;                     // 匹配筛选条件的日志总数(分页)

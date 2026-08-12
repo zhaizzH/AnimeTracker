@@ -12,7 +12,6 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import top.zhaizz.common.mapper.OperationLogMapper;
 import top.zhaizz.common.util.SecurityUtil;
-import top.zhaizz.pojo.entity.OperationLogEntity;
 
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
@@ -31,7 +30,7 @@ public class OperationLogAspect {
 
     /** 环绕增强：执行业务并记录操作日志，日志写入失败仅告警不阻断业务 */
     @Around("@annotation(annotation)")
-    public Object around(ProceedingJoinPoint pjp, OperationLog annotation) throws Throwable {
+    public Object around(ProceedingJoinPoint pjp, top.zhaizz.common.log.OperationLog annotation) throws Throwable {
         long start = System.currentTimeMillis();
         try {
             Object result = pjp.proceed();
@@ -44,9 +43,9 @@ public class OperationLogAspect {
     }
 
     /** 组装日志实体（成功/失败状态、耗时、请求上下文）并入库 */
-    private void record(ProceedingJoinPoint pjp, OperationLog ann, boolean success, String error, long start) {
+    private void record(ProceedingJoinPoint pjp, top.zhaizz.common.log.OperationLog ann, boolean success, String error, long start) {
         try {
-            OperationLogEntity entity = new OperationLogEntity();
+            top.zhaizz.pojo.entity.OperationLog entity = new top.zhaizz.pojo.entity.OperationLog();
             entity.setAction(ann.action());
             entity.setModule(ann.module());
             entity.setStatus(success ? 0 : 1);

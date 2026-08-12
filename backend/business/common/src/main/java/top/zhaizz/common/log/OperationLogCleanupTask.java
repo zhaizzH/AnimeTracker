@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import top.zhaizz.common.mapper.OperationLogMapper;
-import top.zhaizz.pojo.entity.OperationLogEntity;
+import top.zhaizz.pojo.entity.OperationLog;
 
 import java.time.LocalDateTime;
 
@@ -26,8 +26,8 @@ public class OperationLogCleanupTask {
     /** 每日清理超过保留期（90 天）的操作日志 */
     @Scheduled(cron = "0 30 3 * * ?") // 每天 03:30
     public void cleanup() {
-        int deleted = operationLogMapper.delete(new LambdaQueryWrapper<OperationLogEntity>()
-                .lt(OperationLogEntity::getCreatedAt, LocalDateTime.now().minusDays(RETENTION_DAYS)));
+        int deleted = operationLogMapper.delete(new LambdaQueryWrapper<top.zhaizz.pojo.entity.OperationLog>()
+                .lt(OperationLog::getCreatedAt, LocalDateTime.now().minusDays(RETENTION_DAYS)));
         if (deleted > 0) {
             log.info("清理 operation_log {} 条", deleted);
         }

@@ -1,6 +1,6 @@
 package top.zhaizz.admin.converter;
 
-import top.zhaizz.pojo.entity.OperationLogEntity;
+import top.zhaizz.pojo.entity.OperationLog;
 import top.zhaizz.pojo.vo.OperationLogVO;
 
 /**
@@ -13,7 +13,7 @@ public class LogConverter {
     /**
      * OperationLogEntity 实体转操作日志 VO
      */
-    public static OperationLogVO toVO(OperationLogEntity e) {
+    public static OperationLogVO toVO(OperationLog e) {
         OperationLogVO vo = new OperationLogVO();
         vo.setId(e.getId());
         vo.setUserId(e.getUserId());
