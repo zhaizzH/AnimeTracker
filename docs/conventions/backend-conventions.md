@@ -15,16 +15,16 @@
 
 ## 二、注释规范
 
-语言:**中文**。原则:**注释解释 why,不解释 what**。
+语言:**中文**。原则:**注释解释 why,不解释 what,添加 Javadoc 注释**。
 
 | 位置 | 要求 |
 |------|------|
 | 类 | public / 关键类加 Javadoc,一行概述;需补一句细节时用 `<p>` |
 | 方法 | public 方法加 Javadoc,一句话说明"做什么",然后依次解释各参数和返回值;controller 端点 doc 补充触发条件(如"注册后需 verify-email");需补一句细节时用 `<p>`|
 | `@param` / `@return` | 仅当参数 / 返回非显然时写,不机械堆 |
-| private 方法 | 逻辑非显然才加,否则不加 |
+| private 方法 | 加 Javadoc 注释 |
 | 行内注释 | 只解释 why / 隐藏约束 / 已知坑,不解释 what |
-| 常量 / 字段 | 非显然含义才加 `//`,pojo模块除外,该模块类中所有字段都需要添加注释, entity按照docs\db-schema.sql描述添加注释,vo和dto按照业务含义和docs\db-schema.sql添加注释|
+| 常量 / 字段 | 非显然含义才加 `//`,pojo模块除外,该模块类中所有字段都需要添加注释, entity按照docs\db-schema.sql描述添加 Javadoc 注释,vo和dto按照业务含义和docs\db-schema.sql添加 Javadoc 注释|
 | 测试类 | 可不加类 doc,测试方法名自解释即可 |
 
 ### 反例
