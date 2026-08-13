@@ -1,6 +1,6 @@
 package top.zhaizz.client.converter;
 
-import top.zhaizz.pojo.dto.UpdateUserDTO;
+import top.zhaizz.pojo.dto.user.UpdateUserDTO;
 import top.zhaizz.pojo.entity.User;
 import top.zhaizz.pojo.vo.UserVO;
 

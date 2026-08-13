@@ -1,4 +1,4 @@
-package top.zhaizz.pojo.dto;
+package top.zhaizz.pojo.dto.user;
 
 import jakarta.validation.constraints.Size;
 import lombok.Data;
