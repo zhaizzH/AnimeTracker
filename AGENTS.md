@@ -48,6 +48,36 @@ cd frontend/client && npm install && npm run dev   # admin 同理
 - pojo 模块所有字段必须加注释：entity 按 `docs/db-schema.sql`，vo/dto 按业务含义
 - 反例：`int total = a + b; // 计算总数` ✗
 
+### pojo 分包（backend/business）
+
+- `pojo.entity` 扁平不动；`pojo.dto` / `pojo.vo` 下按 8 领域子包分包：auth / user / subject / collection / log / dashboard / imprt / tag（`import` 是 Java 关键字不可作包名，导入领域包名取 `imprt`）
+- 归类按业务领域语义（番剧统计归 subject、收藏统计归 collection、纯运营聚合指标归 dashboard），不按类名首业务词、不按产出模块；评分/类型分布仅在独立聚合 VO（RatingCountVO/TypeCountVO）时归 dashboard，嵌在领域统计 VO 内时随宿主归领域
+- 命名后缀：入参/请求体 `XxxDTO`、列表/查询筛选（含分页）`XxxQueryDTO`、出参 `XxxVO`；每个类文件单 public 类，禁止 controller 内嵌请求类
+- DTO 约束注解一律带中文 `message`，逐条写在注解上，不引入 zh ValidationMessages 资源束
+
+### controller 参数/返回（backend/business）
+
+- 单参 / `@PathVariable` / `@RequestHeader` / multipart / 仅 page/size 薄参 → 不折叠 DTO，校验留在方法签名，由类级 `@Validated` 触发
+- 两个及以上 query/body 字段收进一个 DTO，形参名固定 `request`；query 一律 model-attribute 绑定（QueryDTO 不加 `@RequestBody`），`@RequestBody` 仅 POST/PUT JSON body DTO
+- 返回一律 `Result<T>`，分页用 `PageResult<T>`；分页默认 page=1、size=20、上限 `@Max(100)`（导入记录例外：默认 10、上限 1000）
+- 折叠后原 required 参数必须补 `@NotBlank` 类兜底约束，避免缺参静默退化为 null 透传
+
+### 分层边界与 converter（backend/business）
+
+- controller 只做参数绑定 + `SecurityUtil` 取身份 + 调 service，无业务逻辑无 SQL；默认值/哨兵/trim 逻辑在 service
+- entity↔vo/dto 转换一律走 converter 包，禁止在 service/controller 手写转换
+- service 层抛业务异常用 `BizException`；service 变量命名：组装单个返回 VO 用 `vo`，多 VO 用角色名（`detailVO`/`statsVO`），service 层没有 `result`（`Result` 是 controller 层概念）
+
+### mapper XML（backend/business）
+
+- 位置 `<module>/src/main/resources/mapper/XxxMapper.xml`，`namespace` = mapper 接口全限定名
+- 简单 CRUD 用 MyBatis-Plus 内置方法，复杂 SQL 写 XML
+- pojo 类搬迁/改名必须同步 mapper XML 的 `resultType`（编译抓不到，靠全量 grep 核对）
+
+### agent 转发层豁免
+
+- agent 模块（Java 转发层）body 透传 `Map<String,Object>`，不建 DTO、不强制分包；仅统一 `Result<?>` 返回
+
 ## 提交规范
 
 - 格式：`类型(范围): 中文描述`，如 `feat(数据): 添加 Bangumi 数据导入器`
