@@ -3,12 +3,12 @@
 基于 **FastAPI + LangGraph + langchain create_agent** 构建的 AI 对话 Agent，面向番剧场景提供搜索、发现、推荐三类对话能力，通过工具调用后端业务 API 获取实时数据，经 SSE 流式输出。
 
 - **默认端口**：`8090`（Swagger 文档：`/docs`）
-- **LLM**：DashScope Qwen（默认 `qwen-plus`）
+- **LLM**：DashScope Qwen（默认 `qwen-plus`，可选 opencode-go 网关）
 - **存储**：Redis（会话 / 消息 + 托管提示词快照）
 
-## 在整体架构中的位置
+## 架构定位
 
-本服务是真正的**大模型推理层**。业务后端 `backend/business` 内置 `agent` 代理模块（Maven 模块 `anime-tracker-agent`），在 `8080` 端口对外暴露 `/api/client/agent/*`（用户端）与 `/api/admin/agent/*`（管理端），并将请求转发到本服务：
+本服务是真正的**大模型推理层**。业务后端 `backend/business` 内置 `agent` 代理模块（Maven 模块 `animetracker-agent`），在 `8080` 端口对外暴露 `/api/client/agent/*`（用户端）与 `/api/admin/agent/*`（管理端），并将请求转发到本服务：
 
 ```
 前端 (5173) ──/api/client/agent/*──► business :8080 (agent 代理层) ──HTTP 转发──► 本服务 :8090
@@ -18,7 +18,7 @@
 
 - 前端不直接访问 `8090`；所有 Agent 流量经 Vite 代理统一走 `8080` 的 `/api` 前缀。
 - 本服务通过 `BACKEND_BASE_URL`（默认 `http://localhost:8080`）回查业务 API。
-- 后端代理层配置见 [`../business/README.md`](../business/README.md)；项目总览见 [`../../README.md`](../../README.md)。
+- 后端代理层配置见 [`../business/README.md`](../business/README.md)；后端总览见 [`../README.md`](../README.md)；项目总览见 [`../../README.md`](../../README.md)。
 
 ## 架构：单张 StateGraph
 
@@ -49,7 +49,7 @@ search_agent  discover_agent  recommend_agent
 3. 三个 domain 节点统一走 `run_domain_agent`（`agent/run.py`）共享管道：用 `create_agent` 绑定各自工具与系统提示词，`agent_stream` 消费模型增量——思考增量走 `emit_thinking_delta`，回答增量走 `emit_answer_delta`，工具调用经中间件发 `function_call` 事件。
 4. `core/streaming.py` 消费图的 `values` 事件 + 总线事件，产出 `AssistantResponse` SSE。
 
-### 目录结构
+## 目录结构
 
 ```
 backend/agent/
@@ -173,3 +173,10 @@ uvicorn main:app --reload --port 8090
 - `GET /docs` —— Swagger 文档
 
 > `/api/admin/agent/*` 为管理端接口，需 ADMIN 角色（本地验签）；管理端前端「Agent 配置」页即对接这些端点。
+
+## 相关文档
+
+- 后端总览：[`../README.md`](../README.md)
+- 业务后端：[`../business/README.md`](../business/README.md)
+- 数据导入：[`importer/README.md`](importer/README.md)
+- 项目总览：[`../../README.md`](../../README.md)

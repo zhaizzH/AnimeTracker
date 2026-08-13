@@ -84,14 +84,16 @@ AnimeTracker/
 │   │   ├── admin/         # 管理端：条目 CRUD、用户管理、导入、日志、Agent 配置
 │   │   ├── client/        # 用户端：浏览/搜索、认证、收藏、标签、剧集进度
 │   │   ├── agent/         # Agent 代理模块（转发至 Python Agent）
-│   │   └── app/           # 启动模块：聚合 admin + client，Spring Boot 入口
+│   │   └── app/           # 启动模块：聚合 admin + client + agent，Spring Boot 入口
 │   ├── agent/             # AI Agent（FastAPI + LangGraph，端口 8090）
 │   │   ├── app/           # FastAPI 应用
 │   │   ├── importer/      # 番剧数据导入器（Bangumi 数据源）
 │   │   └── main.py        # FastAPI 入口
 └── docs/                  # 项目级文档与数据库脚本
-    ├── db-schema.sql      # 建表脚本（含 operation_log 等操作审计表）
-    └── openapi.yaml       # OpenAPI 规范
+    ├── database/
+    │   └── db-schema.sql  # 建表脚本（含 operation_log 等操作审计表）
+    └── spec/
+        └── openapi.yaml   # OpenAPI 规范
 ```
 
 > 注：`docs/api/` 为第三方 API 文档工具（独立仓库，已被 `.gitignore` 忽略），不属于本项目源码。

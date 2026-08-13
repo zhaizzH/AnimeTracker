@@ -6,6 +6,10 @@
 - **依赖**：`requests`、`sqlalchemy>=2.0`、`pymysql`、`python-dotenv`、`minio`
 - **数据源**：Bangumi v0 API（客户端见 `client.py`，自动限流 + 重试）
 
+## 架构定位
+
+本工具内置于 `backend/agent/` 下，与 Agent **共用同一 Python venv 与 `.env`**，是数据写入侧的独立 CLI。可由管理后台触发（Java 经 agent 转发到 `POST /api/admin/agent/import/run`），也可命令行手动执行。
+
 ## 工作原理
 
 1. 按模式拉取一批 Bangumi `subject_id`（type=2，即动画）。
@@ -76,3 +80,9 @@ importer/
 ```
 
 > 依赖并入 `../requirements.txt`（与 Agent 共用 venv）。
+
+## 相关文档
+
+- AI Agent 总览：[`../README.md`](../README.md)
+- 后端总览：[`../../README.md`](../../README.md)
+- 项目总览：[`../../../README.md`](../../../README.md)
