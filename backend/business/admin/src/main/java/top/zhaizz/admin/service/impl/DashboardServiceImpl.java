@@ -5,11 +5,11 @@ import org.springframework.stereotype.Service;
 import top.zhaizz.admin.mapper.DashboardMapper;
 import top.zhaizz.admin.service.DashboardService;
 import top.zhaizz.pojo.vo.collection.CollectionStatsVO;
-import top.zhaizz.pojo.vo.DailyCount;
-import top.zhaizz.pojo.vo.DashboardOverviewVO;
+import top.zhaizz.pojo.vo.dashboard.DailyCountVO;
+import top.zhaizz.pojo.vo.dashboard.DashboardOverviewVO;
 import top.zhaizz.pojo.vo.subject.HotSubjectVO;
 import top.zhaizz.pojo.vo.subject.SubjectStatsVO;
-import top.zhaizz.pojo.vo.TrendPointVO;
+import top.zhaizz.pojo.vo.dashboard.TrendPointVO;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -51,8 +51,8 @@ public class DashboardServiceImpl implements DashboardService {
         return list;
     }
 
-    private Map<LocalDate, Long> dailyMap(List<DailyCount> rows) {
-        return rows.stream().collect(Collectors.toMap(DailyCount::getStatDate, DailyCount::getCnt, (a, b) -> a));
+    private Map<LocalDate, Long> dailyMap(List<DailyCountVO> rows) {
+        return rows.stream().collect(Collectors.toMap(DailyCountVO::getStatDate, DailyCountVO::getCnt, (a, b) -> a));
     }
 
     @Override

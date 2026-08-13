@@ -1,14 +1,14 @@
 package top.zhaizz.admin.mapper;
 
 import org.apache.ibatis.annotations.Param;
-import top.zhaizz.pojo.vo.DailyCount;
-import top.zhaizz.pojo.vo.DashboardOverviewVO;
+import top.zhaizz.pojo.vo.dashboard.DailyCountVO;
+import top.zhaizz.pojo.vo.dashboard.DashboardOverviewVO;
 import top.zhaizz.pojo.vo.subject.HotSubjectVO;
 import top.zhaizz.pojo.vo.ImportStatVO;
-import top.zhaizz.pojo.vo.RatingCountVO;
+import top.zhaizz.pojo.vo.dashboard.RatingCountVO;
 import top.zhaizz.pojo.vo.subject.SeasonCountVO;
 import top.zhaizz.pojo.vo.subject.SubjectStatusCountVO;
-import top.zhaizz.pojo.vo.TypeCountVO;
+import top.zhaizz.pojo.vo.dashboard.TypeCountVO;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -26,17 +26,17 @@ public interface DashboardMapper {
     /**
      * 按日统计 since 起的每日新增用户数
      */
-    List<DailyCount> countUsersByDay(@Param("since") LocalDate since);
+    List<DailyCountVO> countUsersByDay(@Param("since") LocalDate since);
 
     /**
      * 按日统计 since 起的每日新增收藏数
      */
-    List<DailyCount> countCollectionsByDay(@Param("since") LocalDate since);
+    List<DailyCountVO> countCollectionsByDay(@Param("since") LocalDate since);
 
     /**
      * 按日统计 since 起的每日成功登录次数
      */
-    List<DailyCount> countLoginsByDay(@Param("since") LocalDate since);
+    List<DailyCountVO> countLoginsByDay(@Param("since") LocalDate since);
 
     /**
      * 统计各收藏类型的收藏数

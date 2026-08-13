@@ -1,10 +1,10 @@
 package top.zhaizz.admin.service;
 
 import top.zhaizz.pojo.vo.collection.CollectionStatsVO;
-import top.zhaizz.pojo.vo.DashboardOverviewVO;
+import top.zhaizz.pojo.vo.dashboard.DashboardOverviewVO;
 import top.zhaizz.pojo.vo.subject.HotSubjectVO;
 import top.zhaizz.pojo.vo.subject.SubjectStatsVO;
-import top.zhaizz.pojo.vo.TrendPointVO;
+import top.zhaizz.pojo.vo.dashboard.TrendPointVO;
 
 import java.util.List;
 

@@ -11,10 +11,10 @@ import org.springframework.web.bind.annotation.RestController;
 import top.zhaizz.admin.service.DashboardService;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.pojo.vo.collection.CollectionStatsVO;
-import top.zhaizz.pojo.vo.DashboardOverviewVO;
+import top.zhaizz.pojo.vo.dashboard.DashboardOverviewVO;
 import top.zhaizz.pojo.vo.subject.HotSubjectVO;
 import top.zhaizz.pojo.vo.subject.SubjectStatsVO;
-import top.zhaizz.pojo.vo.TrendPointVO;
+import top.zhaizz.pojo.vo.dashboard.TrendPointVO;
 
 import java.util.List;
 

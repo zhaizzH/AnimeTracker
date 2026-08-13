@@ -1,4 +1,4 @@
-package top.zhaizz.pojo.vo;
+package top.zhaizz.pojo.vo.dashboard;
 
 import lombok.Data;
 
