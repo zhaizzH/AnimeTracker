@@ -21,6 +21,7 @@ import top.zhaizz.pojo.entity.SubjectRelation;
 import top.zhaizz.pojo.entity.SubjectTag;
 import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
 import top.zhaizz.pojo.dto.subject.SubjectListQueryDTO;
+import top.zhaizz.pojo.dto.subject.SubjectSearchQueryDTO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
 import top.zhaizz.pojo.vo.subject.SubjectRelationVO;
@@ -92,17 +93,15 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
     }
 
     @Override
-    public PageResult<SubjectListVO> searchSubjects(String keyword, int page, int size,
-            List<String> tagList, BigDecimal scoreMin, BigDecimal scoreMax,
-            Integer year, Integer weekday, String sort, String order) {
-
-        String sortField = buildSortFieldRaw(sort);
-        String orderDir = buildOrderRaw(order);
+    public PageResult<SubjectListVO> searchSubjects(SubjectSearchQueryDTO request) {
+        String keyword = (request.getQ() != null && !request.getQ().trim().isEmpty()) ? request.getQ().trim() : null;
+        String sortField = buildSortFieldRaw(request.getSort());
+        String orderDir = buildOrderRaw(request.getOrder());
 
         IPage<Subject> mpPage = subjectMapper.searchWithFilters(
-                new Page<>(page, size),
-                keyword, tagList, scoreMin, scoreMax, year, weekday,
-                sortField, orderDir);
+                new Page<>(request.getPage(), request.getSize()),
+                keyword, request.getTag(), request.getScoreMin(), request.getScoreMax(),
+                request.getYear(), request.getWeekday(), sortField, orderDir);
 
         return PageResult.of(
                 mpPage.getRecords().stream()

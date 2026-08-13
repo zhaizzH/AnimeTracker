@@ -3,11 +3,9 @@ package top.zhaizz.client.service;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
 import top.zhaizz.pojo.dto.subject.SubjectListQueryDTO;
+import top.zhaizz.pojo.dto.subject.SubjectSearchQueryDTO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
-
-import java.math.BigDecimal;
-import java.util.List;
 
 /** 番剧查询服务接口 */
 public interface ClientSubjectService {
@@ -19,10 +17,7 @@ public interface ClientSubjectService {
     SubjectDetailVO getSubjectDetail(Long id);
 
     /** 搜索番剧（分页、多维筛选） */
-    PageResult<SubjectListVO> searchSubjects(
-            String keyword, int page, int size,
-            List<String> tagList, BigDecimal scoreMin, BigDecimal scoreMax,
-            Integer year, Integer weekday, String sort, String order);
+    PageResult<SubjectListVO> searchSubjects(SubjectSearchQueryDTO request);
 
     /** 按季度筛选番剧（分页） */
     PageResult<SubjectListVO> listBySeason(int year, String quarter, int page, int size);

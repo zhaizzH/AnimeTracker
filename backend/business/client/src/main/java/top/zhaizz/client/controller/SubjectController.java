@@ -1,8 +1,6 @@
 package top.zhaizz.client.controller;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
@@ -15,11 +13,11 @@ import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
 import top.zhaizz.pojo.dto.subject.SubjectListQueryDTO;
+import top.zhaizz.pojo.dto.subject.SubjectSearchQueryDTO;
 import top.zhaizz.pojo.vo.subject.EpisodeVO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -46,21 +44,8 @@ public class SubjectController {
      * 搜索番剧
      */
     @GetMapping("/search")
-    public Result<PageResult<SubjectListVO>> searchSubjects(
-            @RequestParam(required = false) String q,
-            @RequestParam(defaultValue = "1") @Min(1) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
-            @RequestParam(required = false) List<String> tag,
-            @RequestParam(required = false) @DecimalMin("0") @DecimalMax("10") BigDecimal scoreMin,
-            @RequestParam(required = false) @DecimalMin("0") @DecimalMax("10") BigDecimal scoreMax,
-            @RequestParam(required = false) @Min(1970) @Max(2100) Integer year,
-            @RequestParam(required = false) @Min(0) @Max(6) Integer weekday,
-            @RequestParam(defaultValue = "score") String sort,
-            @RequestParam(defaultValue = "desc") String order) {
-        String keyword = (q != null && !q.trim().isEmpty()) ? q.trim() : null;
-        return Result.success(clientSubjectService.searchSubjects(
-                keyword, page, size,
-                tag, scoreMin, scoreMax, year, weekday, sort, order));
+    public Result<PageResult<SubjectListVO>> searchSubjects(@Valid SubjectSearchQueryDTO request) {
+        return Result.success(clientSubjectService.searchSubjects(request));
     }
 
     /**
