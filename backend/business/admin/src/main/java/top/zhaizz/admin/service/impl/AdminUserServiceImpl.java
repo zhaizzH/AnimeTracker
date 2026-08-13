@@ -12,7 +12,7 @@ import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.entity.User;
-import top.zhaizz.pojo.vo.UserVO;
+import top.zhaizz.pojo.vo.user.UserVO;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;

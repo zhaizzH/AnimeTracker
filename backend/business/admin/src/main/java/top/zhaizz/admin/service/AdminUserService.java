@@ -1,7 +1,7 @@
 package top.zhaizz.admin.service;
 
 import top.zhaizz.common.result.PageResult;
-import top.zhaizz.pojo.vo.UserVO;
+import top.zhaizz.pojo.vo.user.UserVO;
 
 /**
  * 用户管理服务接口

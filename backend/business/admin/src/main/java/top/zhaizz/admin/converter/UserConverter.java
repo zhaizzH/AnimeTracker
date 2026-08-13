@@ -1,7 +1,7 @@
 package top.zhaizz.admin.converter;
 
 import top.zhaizz.pojo.entity.User;
-import top.zhaizz.pojo.vo.UserVO;
+import top.zhaizz.pojo.vo.user.UserVO;
 
 /**
  * 用户相关对象转换器

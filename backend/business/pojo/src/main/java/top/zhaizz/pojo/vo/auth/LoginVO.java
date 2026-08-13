@@ -1,7 +1,8 @@
-package top.zhaizz.pojo.vo;
+package top.zhaizz.pojo.vo.auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import top.zhaizz.pojo.vo.user.UserVO;
 
 /**
  * 登录/注册结果 VO（token + 用户信息）

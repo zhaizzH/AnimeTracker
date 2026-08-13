@@ -19,7 +19,7 @@ import top.zhaizz.pojo.dto.auth.LoginDTO;
 import top.zhaizz.pojo.dto.auth.RegisterDTO;
 import top.zhaizz.pojo.dto.auth.ResetPasswordDTO;
 import top.zhaizz.pojo.entity.User;
-import top.zhaizz.pojo.vo.LoginVO;
+import top.zhaizz.pojo.vo.auth.LoginVO;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;

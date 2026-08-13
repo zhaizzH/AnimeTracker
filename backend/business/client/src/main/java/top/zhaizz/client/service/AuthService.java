@@ -3,7 +3,7 @@ package top.zhaizz.client.service;
 import top.zhaizz.pojo.dto.auth.LoginDTO;
 import top.zhaizz.pojo.dto.auth.RegisterDTO;
 import top.zhaizz.pojo.dto.auth.ResetPasswordDTO;
-import top.zhaizz.pojo.vo.LoginVO;
+import top.zhaizz.pojo.vo.auth.LoginVO;
 
 /**
  * 认证服务接口

@@ -2,7 +2,7 @@ package top.zhaizz.client.converter;
 
 import top.zhaizz.pojo.dto.user.UpdateUserDTO;
 import top.zhaizz.pojo.entity.User;
-import top.zhaizz.pojo.vo.UserVO;
+import top.zhaizz.pojo.vo.user.UserVO;
 
 /**
  * 用户转换器

@@ -9,7 +9,7 @@ import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.pojo.dto.user.UpdateRoleDTO;
-import top.zhaizz.pojo.vo.UserVO;
+import top.zhaizz.pojo.vo.user.UserVO;
 
 /**
  * 用户管理控制器

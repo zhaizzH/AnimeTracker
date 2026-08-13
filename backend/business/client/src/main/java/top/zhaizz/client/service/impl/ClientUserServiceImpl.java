@@ -11,7 +11,7 @@ import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.pojo.dto.auth.ChangePasswordDTO;
 import top.zhaizz.pojo.dto.user.UpdateUserDTO;
 import top.zhaizz.pojo.entity.User;
-import top.zhaizz.pojo.vo.UserVO;
+import top.zhaizz.pojo.vo.user.UserVO;
 
 import java.time.LocalDateTime;
 

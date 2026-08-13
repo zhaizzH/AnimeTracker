@@ -11,7 +11,7 @@ import top.zhaizz.pojo.dto.auth.ChangeEmailSendCodeDTO;
 import top.zhaizz.pojo.dto.auth.ChangeEmailVerifyDTO;
 import top.zhaizz.pojo.dto.auth.ChangePasswordDTO;
 import top.zhaizz.pojo.dto.user.UpdateUserDTO;
-import top.zhaizz.pojo.vo.UserVO;
+import top.zhaizz.pojo.vo.user.UserVO;
 
 /**
  * 个人信息控制器
