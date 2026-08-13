@@ -1,7 +1,10 @@
 package top.zhaizz.admin.controller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.admin.service.AdminUserService;
 import top.zhaizz.common.constant.OperationLogConstants;
@@ -17,6 +20,7 @@ import top.zhaizz.pojo.vo.user.UserVO;
 @RestController
 @RequestMapping("/api/admin/users")
 @RequiredArgsConstructor
+@Validated
 public class AdminUserController {
 
     private final AdminUserService adminUserService;
@@ -26,8 +30,8 @@ public class AdminUserController {
      */
     @GetMapping
     public Result<PageResult<UserVO>> listUsers(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "1") @Min(value = 1, message = "页码不能小于1") int page,
+            @RequestParam(defaultValue = "20") @Min(value = 1, message = "每页条数不能小于1") @Max(value = 100, message = "每页条数不能超过100") int size) {
         return Result.success(adminUserService.listUsers(page, size));
     }
 
