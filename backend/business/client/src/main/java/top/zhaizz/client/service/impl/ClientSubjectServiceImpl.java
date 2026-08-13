@@ -19,6 +19,7 @@ import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.entity.Subject;
 import top.zhaizz.pojo.entity.SubjectRelation;
 import top.zhaizz.pojo.entity.SubjectTag;
+import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
 import top.zhaizz.pojo.vo.subject.SubjectRelationVO;
@@ -132,7 +133,10 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
     }
 
     @Override
-    public PageResult<SubjectListVO> listSchedule(int year, String quarter, Integer weekday, int page, int size) {
+    public PageResult<SubjectListVO> listSchedule(ScheduleQueryDTO request) {
+        int year = request.getYear() != null ? request.getYear() : SeasonUtil.getCurrentYear();
+        String quarter = request.getQuarter() != null ? request.getQuarter() : SeasonUtil.getCurrentQuarter();
+        Integer weekday = request.getWeekday() == -1 ? null : request.getWeekday();
         LocalDate[] range = SeasonUtil.getSeasonRange(year, quarter);
         LambdaQueryWrapper<Subject> wrapper = new LambdaQueryWrapper<Subject>()
                 .between(Subject::getAirDate, range[0], range[1])
@@ -143,7 +147,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
             wrapper.eq(Subject::getAirWeekday, weekday);
         }
 
-        Page<Subject> mpPage = subjectMapper.selectPage(new Page<>(page, size), wrapper);
+        Page<Subject> mpPage = subjectMapper.selectPage(new Page<>(request.getPage(), request.getSize()), wrapper);
 
         return PageResult.of(
                 mpPage.getRecords().stream()

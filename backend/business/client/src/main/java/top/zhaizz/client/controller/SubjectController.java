@@ -1,5 +1,6 @@
 package top.zhaizz.client.controller;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
@@ -10,9 +11,9 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.client.service.ClientSubjectService;
 import top.zhaizz.client.service.EpisodeService;
-import top.zhaizz.client.util.SeasonUtil;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
+import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
 import top.zhaizz.pojo.vo.subject.EpisodeVO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
@@ -81,16 +82,8 @@ public class SubjectController {
      * 每周追番列表
      */
     @GetMapping("/schedule")
-    public Result<PageResult<SubjectListVO>> listSchedule(
-            @RequestParam(defaultValue = "-1") @Min(-1) @Max(6) int weekday,
-            @RequestParam(required = false) @Min(1970) @Max(2100) Integer year,
-            @RequestParam(required = false) @Pattern(regexp = "spring|summer|autumn|winter", message = "季度仅允许: spring/summer/autumn/winter") String quarter,
-            @RequestParam(defaultValue = "1") @Min(1) int page,
-            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size) {
-        int y = year != null ? year : SeasonUtil.getCurrentYear();
-        String q = quarter != null ? quarter : SeasonUtil.getCurrentQuarter();
-        Integer wd = weekday == -1 ? null : weekday;
-        return Result.success(clientSubjectService.listSchedule(y, q, wd, page, size));
+    public Result<PageResult<SubjectListVO>> listSchedule(@Valid ScheduleQueryDTO request) {
+        return Result.success(clientSubjectService.listSchedule(request));
     }
 
     /**

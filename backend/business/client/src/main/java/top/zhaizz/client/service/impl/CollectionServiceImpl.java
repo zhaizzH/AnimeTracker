@@ -16,6 +16,7 @@ import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.dto.collection.CollectionQueryDTO;
 import top.zhaizz.pojo.dto.collection.CollectionUpdateDTO;
+import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
 import java.time.LocalDate;
 import top.zhaizz.pojo.entity.UserCollection;
 import top.zhaizz.pojo.vo.collection.UserCollectionSubjectVO;
@@ -137,10 +138,13 @@ public class CollectionServiceImpl implements CollectionService {
     }
 
     @Override
-    public PageResult<UserCollectionVO> listSchedule(Long userId, int year, String quarter, Integer weekday, int page, int size) {
+    public PageResult<UserCollectionVO> listSchedule(Long userId, ScheduleQueryDTO request) {
+        int year = request.getYear() != null ? request.getYear() : SeasonUtil.getCurrentYear();
+        String quarter = request.getQuarter() != null ? request.getQuarter() : SeasonUtil.getCurrentQuarter();
+        Integer weekday = request.getWeekday() == -1 ? null : request.getWeekday();
         LocalDate[] range = SeasonUtil.getSeasonRange(year, quarter);
         Page<UserCollectionSubjectVO> mpPage = collectionMapper.selectSchedulePage(
-                new Page<>(page, size), userId, range[0], range[1], weekday);
+                new Page<>(request.getPage(), request.getSize()), userId, range[0], range[1], weekday);
 
         return PageResult.of(
                 CollectionConverter.toUserCollectionVOList(mpPage.getRecords()),

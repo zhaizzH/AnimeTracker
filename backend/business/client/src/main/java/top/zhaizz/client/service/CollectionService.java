@@ -3,6 +3,7 @@ package top.zhaizz.client.service;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.dto.collection.CollectionQueryDTO;
 import top.zhaizz.pojo.dto.collection.CollectionUpdateDTO;
+import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
 import top.zhaizz.pojo.vo.collection.UserCollectionVO;
 
 import java.util.Map;
@@ -29,5 +30,5 @@ public interface CollectionService {
     void updateEpStatus(Long userId, Long subjectId, Integer epStatus);
 
     /** 获取用户追番日程（分页，按季/周过滤） */
-    PageResult<UserCollectionVO> listSchedule(Long userId, int year, String quarter, Integer weekday, int page, int size);
+    PageResult<UserCollectionVO> listSchedule(Long userId, ScheduleQueryDTO request);
 }
