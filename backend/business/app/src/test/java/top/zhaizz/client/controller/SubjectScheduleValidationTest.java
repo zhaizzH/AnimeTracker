@@ -27,4 +27,12 @@ class SubjectScheduleValidationTest {
                         .param("quarter", "invalid"))
                 .andExpect(status().isBadRequest());
     }
+
+    /** /season 缺 quarter 参数应返回 400（SeasonQueryDTO.quarter @NotBlank 兜底，覆盖折叠后缺参不再静默透传） */
+    @Test
+    void missingQuarterReturns400() throws Exception {
+        mockMvc.perform(get("/api/client/subjects/season")
+                        .param("year", "2026"))
+                .andExpect(status().isBadRequest());
+    }
 }
