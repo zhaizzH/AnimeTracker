@@ -1,4 +1,4 @@
-package top.zhaizz.pojo.vo;
+package top.zhaizz.pojo.vo.log;
 
 import lombok.Data;
 

@@ -10,7 +10,7 @@ import top.zhaizz.admin.service.AdminLogService;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.pojo.dto.log.LogQueryDTO;
-import top.zhaizz.pojo.vo.LogVO;
+import top.zhaizz.pojo.vo.log.LogVO;
 
 /**
  * 日志查询控制器

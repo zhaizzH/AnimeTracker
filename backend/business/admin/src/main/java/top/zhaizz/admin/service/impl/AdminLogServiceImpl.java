@@ -6,7 +6,7 @@ import top.zhaizz.admin.service.AdminLogService;
 import top.zhaizz.common.mapper.OperationLogMapper;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.dto.log.LogQueryDTO;
-import top.zhaizz.pojo.vo.LogVO;
+import top.zhaizz.pojo.vo.log.LogVO;
 
 /**
  * 日志查询服务实现

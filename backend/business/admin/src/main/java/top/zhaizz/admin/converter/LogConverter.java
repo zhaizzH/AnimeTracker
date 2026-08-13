@@ -1,7 +1,7 @@
 package top.zhaizz.admin.converter;
 
 import top.zhaizz.pojo.entity.OperationLog;
-import top.zhaizz.pojo.vo.OperationLogVO;
+import top.zhaizz.pojo.vo.log.OperationLogVO;
 
 /**
  * 操作日志转换器
