@@ -5,7 +5,7 @@ import top.zhaizz.client.mapper.CollectionMapper;
 import top.zhaizz.client.mapper.SubjectMapper;
 import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.exception.BizException;
-import top.zhaizz.pojo.dto.CollectionUpdateDTO;
+import top.zhaizz.pojo.dto.collection.CollectionUpdateDTO;
 import top.zhaizz.pojo.entity.Subject;
 import top.zhaizz.pojo.entity.UserCollection;
 

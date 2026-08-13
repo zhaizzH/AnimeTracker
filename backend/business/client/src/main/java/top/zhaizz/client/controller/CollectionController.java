@@ -12,8 +12,8 @@ import top.zhaizz.client.util.SeasonUtil;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.common.util.SecurityUtil;
-import top.zhaizz.pojo.dto.CollectionUpdateDTO;
-import top.zhaizz.pojo.dto.EpStatusDTO;
+import top.zhaizz.pojo.dto.collection.CollectionUpdateDTO;
+import top.zhaizz.pojo.dto.collection.EpisodeStatusDTO;
 import top.zhaizz.pojo.vo.UserCollectionVO;
 
 import java.util.Map;
@@ -104,7 +104,7 @@ public class CollectionController {
     @PostMapping("/{subjectId}/ep-status")
     public Result<Void> updateEpStatus(
             @PathVariable Long subjectId,
-            @RequestBody @Valid EpStatusDTO request) {
+            @RequestBody @Valid EpisodeStatusDTO request) {
         Long userId = SecurityUtil.getCurrentUserId();
         collectionService.updateEpStatus(userId, subjectId, request.getEpStatus());
         return Result.success();

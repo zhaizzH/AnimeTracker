@@ -1,7 +1,7 @@
 package top.zhaizz.client.service;
 
 import top.zhaizz.common.result.PageResult;
-import top.zhaizz.pojo.dto.CollectionUpdateDTO;
+import top.zhaizz.pojo.dto.collection.CollectionUpdateDTO;
 import top.zhaizz.pojo.vo.UserCollectionVO;
 
 import java.util.Map;

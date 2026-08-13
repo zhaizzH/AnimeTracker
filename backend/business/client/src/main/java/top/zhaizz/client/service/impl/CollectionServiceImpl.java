@@ -14,7 +14,7 @@ import top.zhaizz.client.util.SeasonUtil;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.result.PageResult;
-import top.zhaizz.pojo.dto.CollectionUpdateDTO;
+import top.zhaizz.pojo.dto.collection.CollectionUpdateDTO;
 import java.time.LocalDate;
 import top.zhaizz.pojo.entity.UserCollection;
 import top.zhaizz.pojo.vo.UserCollectionSubjectVO;
