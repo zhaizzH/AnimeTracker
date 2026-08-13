@@ -14,6 +14,7 @@ import top.zhaizz.client.util.SeasonUtil;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.result.PageResult;
+import top.zhaizz.pojo.dto.collection.CollectionQueryDTO;
 import top.zhaizz.pojo.dto.collection.CollectionUpdateDTO;
 import java.time.LocalDate;
 import top.zhaizz.pojo.entity.UserCollection;
@@ -36,9 +37,9 @@ public class CollectionServiceImpl implements CollectionService {
     private final SubjectMapper subjectMapper;
 
     @Override
-    public PageResult<UserCollectionVO> listCollections(Long userId, Integer type, int page, int size) {
+    public PageResult<UserCollectionVO> listCollections(Long userId, CollectionQueryDTO request) {
         Page<UserCollectionSubjectVO> mpPage = collectionMapper.selectCollectionPage(
-                new Page<>(page, size), userId, type);
+                new Page<>(request.getPage(), request.getSize()), userId, request.getType());
 
         return PageResult.of(
                 CollectionConverter.toUserCollectionVOList(mpPage.getRecords()),

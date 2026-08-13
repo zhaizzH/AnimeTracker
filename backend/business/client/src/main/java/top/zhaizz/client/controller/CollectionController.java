@@ -12,6 +12,7 @@ import top.zhaizz.client.util.SeasonUtil;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.common.util.SecurityUtil;
+import top.zhaizz.pojo.dto.collection.CollectionQueryDTO;
 import top.zhaizz.pojo.dto.collection.CollectionUpdateDTO;
 import top.zhaizz.pojo.dto.collection.EpisodeStatusDTO;
 import top.zhaizz.pojo.vo.collection.UserCollectionVO;
@@ -33,12 +34,9 @@ public class CollectionController {
      * 获取当前登录用户收藏列表
      */
     @GetMapping
-    public Result<PageResult<UserCollectionVO>> listCollections(
-            @RequestParam(required = false) @Min(1) @Max(5) Integer type,
-            @RequestParam(defaultValue = "1") @Min(1) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+    public Result<PageResult<UserCollectionVO>> listCollections(@Valid CollectionQueryDTO request) {
         Long userId = SecurityUtil.getCurrentUserId();
-        return Result.success(collectionService.listCollections(userId, type, page, size));
+        return Result.success(collectionService.listCollections(userId, request));
     }
 
     /**

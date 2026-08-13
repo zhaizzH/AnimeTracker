@@ -1,6 +1,7 @@
 package top.zhaizz.client.service;
 
 import top.zhaizz.common.result.PageResult;
+import top.zhaizz.pojo.dto.collection.CollectionQueryDTO;
 import top.zhaizz.pojo.dto.collection.CollectionUpdateDTO;
 import top.zhaizz.pojo.vo.collection.UserCollectionVO;
 
@@ -10,7 +11,7 @@ import java.util.Map;
 public interface CollectionService {
 
     /** 获取用户收藏列表（分页） */
-    PageResult<UserCollectionVO> listCollections(Long userId, Integer type, int page, int size);
+    PageResult<UserCollectionVO> listCollections(Long userId, CollectionQueryDTO request);
 
     /** 获取用户各收藏类型计数（key=type 1-5） */
     Map<Integer, Long> listCounts(Long userId);
