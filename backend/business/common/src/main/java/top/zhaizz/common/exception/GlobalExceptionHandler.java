@@ -24,7 +24,6 @@ import top.zhaizz.common.result.Result;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * 全局异常处理，捕获 BizException、参数校验异常、Spring MVC 异常等
@@ -66,7 +65,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理 @Valid 参数校验失败
+     * 处理 @Valid 参数校验失败 — message 取首个字段错误的具体提示，data 保留字段映射
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -75,21 +74,26 @@ public class GlobalExceptionHandler {
         for (FieldError fieldError : e.getBindingResult().getFieldErrors()) {
             errors.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(FieldError::getDefaultMessage)
+                .orElse("请求参数错误");
         log.warn("Valid 参数校验失败: {}", errors);
-        return Result.error(ErrorType.BAD_REQUEST.getCode(), "请求参数错误", errors);
+        return Result.error(ErrorType.BAD_REQUEST.getCode(), message, errors);
     }
 
     /**
-     * 处理 @Validated 参数校验失败（如查询参数）
+     * 处理 @Validated 参数校验失败（如查询参数）— message 取首个约束的具体提示，data 给空 map（方法级无字段 key）
      */
     @ExceptionHandler(ConstraintViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Result<Void> handleConstraintViolationException(ConstraintViolationException e) {
+    public Result<Map<String, String>> handleConstraintViolationException(ConstraintViolationException e) {
         String message = e.getConstraintViolations().stream()
+                .findFirst()
                 .map(ConstraintViolation::getMessage)
-                .collect(Collectors.joining(", "));
+                .orElse("请求参数错误");
         log.warn("Validated 参数校验失败: {}", message);
-        return Result.error(ErrorType.BAD_REQUEST.getCode(), message);
+        return Result.error(ErrorType.BAD_REQUEST.getCode(), message, Map.of());
     }
 
     /**
