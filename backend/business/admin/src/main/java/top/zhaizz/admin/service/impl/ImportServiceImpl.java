@@ -23,8 +23,8 @@ import top.zhaizz.common.config.AgentProperties;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.entity.ImportRecord;
-import top.zhaizz.pojo.vo.ImportRecordVO;
-import top.zhaizz.pojo.vo.ImportStatusVO;
+import top.zhaizz.pojo.vo.imprt.ImportRecordVO;
+import top.zhaizz.pojo.vo.imprt.ImportStatusVO;
 
 import java.util.List;
 import java.util.Objects;

@@ -1,8 +1,8 @@
 package top.zhaizz.admin.service;
 
 import top.zhaizz.common.result.PageResult;
-import top.zhaizz.pojo.vo.ImportRecordVO;
-import top.zhaizz.pojo.vo.ImportStatusVO;
+import top.zhaizz.pojo.vo.imprt.ImportRecordVO;
+import top.zhaizz.pojo.vo.imprt.ImportStatusVO;
 
 /**
  * 番剧导入服务接口

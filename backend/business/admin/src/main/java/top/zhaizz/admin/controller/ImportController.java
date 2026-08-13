@@ -10,8 +10,8 @@ import top.zhaizz.common.constant.OperationLogConstants;
 import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
-import top.zhaizz.pojo.vo.ImportRecordVO;
-import top.zhaizz.pojo.vo.ImportStatusVO;
+import top.zhaizz.pojo.vo.imprt.ImportRecordVO;
+import top.zhaizz.pojo.vo.imprt.ImportStatusVO;
 
 /**
  * 番剧导入控制器

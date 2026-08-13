@@ -71,7 +71,7 @@
         SELECT import_status, COUNT(*) AS count FROM subject GROUP BY import_status
     </select>
 
-    <select id="importStats" resultType="top.zhaizz.pojo.vo.ImportStatVO">
+    <select id="importStats" resultType="top.zhaizz.pojo.vo.imprt.ImportStatVO">
         SELECT COUNT(*) AS import_total,
                COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END), 0) AS import_succeeded,
                COALESCE(SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END), 0) AS import_failed

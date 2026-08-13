@@ -4,7 +4,7 @@ import top.zhaizz.pojo.dto.subject.SubjectCreateDTO;
 import top.zhaizz.pojo.dto.subject.SubjectUpdateDTO;
 import top.zhaizz.pojo.entity.ImportRecord;
 import top.zhaizz.pojo.entity.Subject;
-import top.zhaizz.pojo.vo.ImportRecordVO;
+import top.zhaizz.pojo.vo.imprt.ImportRecordVO;
 
 import java.util.List;
 import java.util.stream.Collectors;

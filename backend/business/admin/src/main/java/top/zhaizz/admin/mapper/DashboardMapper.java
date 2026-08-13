@@ -4,7 +4,7 @@ import org.apache.ibatis.annotations.Param;
 import top.zhaizz.pojo.vo.dashboard.DailyCountVO;
 import top.zhaizz.pojo.vo.dashboard.DashboardOverviewVO;
 import top.zhaizz.pojo.vo.subject.HotSubjectVO;
-import top.zhaizz.pojo.vo.ImportStatVO;
+import top.zhaizz.pojo.vo.imprt.ImportStatVO;
 import top.zhaizz.pojo.vo.dashboard.RatingCountVO;
 import top.zhaizz.pojo.vo.subject.SeasonCountVO;
 import top.zhaizz.pojo.vo.subject.SubjectStatusCountVO;
