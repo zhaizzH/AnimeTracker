@@ -20,6 +20,7 @@ import top.zhaizz.pojo.entity.Subject;
 import top.zhaizz.pojo.entity.SubjectRelation;
 import top.zhaizz.pojo.entity.SubjectTag;
 import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
+import top.zhaizz.pojo.dto.subject.SeasonQueryDTO;
 import top.zhaizz.pojo.dto.subject.SubjectListQueryDTO;
 import top.zhaizz.pojo.dto.subject.SubjectSearchQueryDTO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
@@ -114,13 +115,13 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
     }
 
     @Override
-    public PageResult<SubjectListVO> listBySeason(int year, String quarter, int page, int size) {
-        LocalDate[] range = SeasonUtil.getSeasonRange(year, quarter);
+    public PageResult<SubjectListVO> listBySeason(SeasonQueryDTO request) {
+        LocalDate[] range = SeasonUtil.getSeasonRange(request.getYear(), request.getQuarter());
         LambdaQueryWrapper<Subject> wrapper = new LambdaQueryWrapper<Subject>()
                 .between(Subject::getAirDate, range[0], range[1])
                 .orderByAsc(Subject::getAirDate);
 
-        Page<Subject> mpPage = subjectMapper.selectPage(new Page<>(page, size), wrapper);
+        Page<Subject> mpPage = subjectMapper.selectPage(new Page<>(request.getPage(), request.getSize()), wrapper);
 
         return PageResult.of(
                 mpPage.getRecords().stream()

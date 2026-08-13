@@ -2,6 +2,7 @@ package top.zhaizz.client.service;
 
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
+import top.zhaizz.pojo.dto.subject.SeasonQueryDTO;
 import top.zhaizz.pojo.dto.subject.SubjectListQueryDTO;
 import top.zhaizz.pojo.dto.subject.SubjectSearchQueryDTO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
@@ -20,7 +21,7 @@ public interface ClientSubjectService {
     PageResult<SubjectListVO> searchSubjects(SubjectSearchQueryDTO request);
 
     /** 按季度筛选番剧（分页） */
-    PageResult<SubjectListVO> listBySeason(int year, String quarter, int page, int size);
+    PageResult<SubjectListVO> listBySeason(SeasonQueryDTO request);
 
     /** 按周追番列表（分页） */
     PageResult<SubjectListVO> listSchedule(ScheduleQueryDTO request);

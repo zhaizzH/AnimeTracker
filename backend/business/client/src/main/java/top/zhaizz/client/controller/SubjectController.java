@@ -1,9 +1,6 @@
 package top.zhaizz.client.controller;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +9,7 @@ import top.zhaizz.client.service.EpisodeService;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
+import top.zhaizz.pojo.dto.subject.SeasonQueryDTO;
 import top.zhaizz.pojo.dto.subject.SubjectListQueryDTO;
 import top.zhaizz.pojo.dto.subject.SubjectSearchQueryDTO;
 import top.zhaizz.pojo.vo.subject.EpisodeVO;
@@ -52,12 +50,8 @@ public class SubjectController {
      * 按季度筛选用户番剧
      */
     @GetMapping("/season")
-    public Result<PageResult<SubjectListVO>> listBySeason(
-            @RequestParam @Min(1970) @Max(2100) int year,
-            @RequestParam @Pattern(regexp = "spring|summer|autumn|winter", message = "季度仅允许: spring/summer/autumn/winter") String quarter,
-            @RequestParam(defaultValue = "1") @Min(1) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-        return Result.success(clientSubjectService.listBySeason(year, quarter, page, size));
+    public Result<PageResult<SubjectListVO>> listBySeason(@Valid SeasonQueryDTO request) {
+        return Result.success(clientSubjectService.listBySeason(request));
     }
 
     /**
