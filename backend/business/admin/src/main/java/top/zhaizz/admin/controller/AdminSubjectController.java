@@ -8,8 +8,8 @@ import top.zhaizz.admin.service.AdminSubjectService;
 import top.zhaizz.common.constant.OperationLogConstants;
 import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.result.Result;
-import top.zhaizz.pojo.dto.SubjectCreateDTO;
-import top.zhaizz.pojo.dto.SubjectUpdateDTO;
+import top.zhaizz.pojo.dto.subject.SubjectCreateDTO;
+import top.zhaizz.pojo.dto.subject.SubjectUpdateDTO;
 import top.zhaizz.pojo.vo.SubjectDetailVO;
 
 /**

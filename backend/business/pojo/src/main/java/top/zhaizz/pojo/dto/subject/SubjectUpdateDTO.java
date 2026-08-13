@@ -1,4 +1,4 @@
-package top.zhaizz.pojo.dto;
+package top.zhaizz.pojo.dto.subject;
 
 import lombok.Data;
 

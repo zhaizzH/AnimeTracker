@@ -1,7 +1,7 @@
 package top.zhaizz.admin.converter;
 
-import top.zhaizz.pojo.dto.SubjectCreateDTO;
-import top.zhaizz.pojo.dto.SubjectUpdateDTO;
+import top.zhaizz.pojo.dto.subject.SubjectCreateDTO;
+import top.zhaizz.pojo.dto.subject.SubjectUpdateDTO;
 import top.zhaizz.pojo.entity.ImportRecord;
 import top.zhaizz.pojo.entity.Subject;
 import top.zhaizz.pojo.vo.*;

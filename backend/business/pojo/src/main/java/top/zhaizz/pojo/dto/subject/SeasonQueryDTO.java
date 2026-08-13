@@ -1,4 +1,4 @@
-package top.zhaizz.pojo.dto;
+package top.zhaizz.pojo.dto.subject;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
