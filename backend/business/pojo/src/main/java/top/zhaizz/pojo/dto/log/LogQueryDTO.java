@@ -1,4 +1,4 @@
-package top.zhaizz.pojo.dto;
+package top.zhaizz.pojo.dto.log;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -22,9 +22,9 @@ public class LogQueryDTO {
     private LocalDate start;    // 开始日期(含)
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate end;      // 结束日期(含)
-    @Min(1)
+    @Min(value = 1, message = "页码不能小于1")
     private int page = 1;       // 页码
-    @Min(1)
-    @Max(100)
+    @Min(value = 1, message = "每页条数不能小于1")
+    @Max(value = 100, message = "每页条数不能超过100")
     private int size = 20;      // 每页条数
 }

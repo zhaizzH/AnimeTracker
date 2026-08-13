@@ -1,7 +1,7 @@
 package top.zhaizz.admin.service;
 
 import top.zhaizz.common.result.PageResult;
-import top.zhaizz.pojo.dto.LogQueryDTO;
+import top.zhaizz.pojo.dto.log.LogQueryDTO;
 import top.zhaizz.pojo.vo.LogVO;
 
 /**

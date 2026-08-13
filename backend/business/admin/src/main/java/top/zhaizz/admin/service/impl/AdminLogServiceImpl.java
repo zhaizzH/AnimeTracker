@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import top.zhaizz.admin.service.AdminLogService;
 import top.zhaizz.common.mapper.OperationLogMapper;
 import top.zhaizz.common.result.PageResult;
-import top.zhaizz.pojo.dto.LogQueryDTO;
+import top.zhaizz.pojo.dto.log.LogQueryDTO;
 import top.zhaizz.pojo.vo.LogVO;
 
 /**
