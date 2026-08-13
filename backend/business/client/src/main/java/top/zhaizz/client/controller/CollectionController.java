@@ -2,7 +2,6 @@ package top.zhaizz.client.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.client.service.CollectionService;
 import top.zhaizz.common.result.PageResult;
@@ -22,7 +21,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/client/collections")
 @RequiredArgsConstructor
-@Validated
 public class CollectionController {
 
     private final CollectionService collectionService;
