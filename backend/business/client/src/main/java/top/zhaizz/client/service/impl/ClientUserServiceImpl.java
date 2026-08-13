@@ -8,7 +8,7 @@ import top.zhaizz.client.mapper.UserMapper;
 import top.zhaizz.client.service.ClientUserService;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.constant.ErrorType;
-import top.zhaizz.pojo.dto.ChangePasswordDTO;
+import top.zhaizz.pojo.dto.auth.ChangePasswordDTO;
 import top.zhaizz.pojo.dto.UpdateUserDTO;
 import top.zhaizz.pojo.entity.User;
 import top.zhaizz.pojo.vo.UserVO;

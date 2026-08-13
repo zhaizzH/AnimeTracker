@@ -10,7 +10,7 @@ import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.security.JwtTokenProvider;
 import top.zhaizz.common.constant.RedisKeys;
 import top.zhaizz.common.util.RedisUtil;
-import top.zhaizz.pojo.dto.LoginDTO;
+import top.zhaizz.pojo.dto.auth.LoginDTO;
 import top.zhaizz.pojo.entity.User;
 
 import java.util.concurrent.TimeUnit;

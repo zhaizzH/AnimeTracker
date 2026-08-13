@@ -10,13 +10,13 @@ import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.ratelimit.RateLimit;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.common.security.JwtAuthenticationFilter;
-import top.zhaizz.pojo.dto.ForgotPasswordDTO;
-import top.zhaizz.pojo.dto.LoginDTO;
-import top.zhaizz.pojo.dto.RefreshTokenDTO;
-import top.zhaizz.pojo.dto.RegisterDTO;
-import top.zhaizz.pojo.dto.ResendCodeDTO;
-import top.zhaizz.pojo.dto.ResetPasswordDTO;
-import top.zhaizz.pojo.dto.VerifyEmailDTO;
+import top.zhaizz.pojo.dto.auth.ForgotPasswordDTO;
+import top.zhaizz.pojo.dto.auth.LoginDTO;
+import top.zhaizz.pojo.dto.auth.RefreshTokenDTO;
+import top.zhaizz.pojo.dto.auth.RegisterDTO;
+import top.zhaizz.pojo.dto.auth.ResendCodeDTO;
+import top.zhaizz.pojo.dto.auth.ResetPasswordDTO;
+import top.zhaizz.pojo.dto.auth.VerifyEmailDTO;
 import top.zhaizz.pojo.vo.LoginVO;
 
 /**

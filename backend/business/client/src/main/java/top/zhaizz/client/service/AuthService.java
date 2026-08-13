@@ -1,8 +1,8 @@
 package top.zhaizz.client.service;
 
-import top.zhaizz.pojo.dto.LoginDTO;
-import top.zhaizz.pojo.dto.RegisterDTO;
-import top.zhaizz.pojo.dto.ResetPasswordDTO;
+import top.zhaizz.pojo.dto.auth.LoginDTO;
+import top.zhaizz.pojo.dto.auth.RegisterDTO;
+import top.zhaizz.pojo.dto.auth.ResetPasswordDTO;
 import top.zhaizz.pojo.vo.LoginVO;
 
 /**
