@@ -1,5 +1,6 @@
 package top.zhaizz.admin.controller;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import top.zhaizz.common.constant.OperationLogConstants;
 import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
+import top.zhaizz.pojo.dto.imprt.ImportRunDTO;
 import top.zhaizz.pojo.vo.imprt.ImportRecordVO;
 import top.zhaizz.pojo.vo.imprt.ImportStatusVO;
 
@@ -27,19 +29,14 @@ public class ImportController {
     /**
      * 运行番剧导入，供管理后台手动触发数据同步
      *
-     * @param mode    导入模式：full / season / recent / since
-     * @param key     季度标识（season 模式必填），如 "2026-summer"
-     * @param since   起始日期（since 模式必填），如 "2026-01-01"
-     * @param workers 并发线程数，为空使用 Python 侧默认值
+     * @param authorization 调用方 JWT（透传给 agent 做 ADMIN 校验）
+     * @param request       导入参数（mode/key/since/workers，query 串绑定）
      */
     @OperationLog(action = OperationLogConstants.ACTION_IMPORT_RUN, module = OperationLogConstants.MODULE_IMPORT)
     @PostMapping("/run")
-    public Result<Void> runImport(@RequestHeader(value = "Authorization", required = false) String auth,
-                                  @RequestParam String mode,
-                                  @RequestParam(required = false) String key,
-                                  @RequestParam(required = false) String since,
-                                  @RequestParam(required = false) Integer workers) {
-        importService.runImport(auth, mode, key, since, workers);
+    public Result<Void> runImport(@RequestHeader(value = "Authorization", required = false) String authorization,
+                                  @Valid ImportRunDTO request) {
+        importService.runImport(authorization, request);
         return Result.success();
     }
 

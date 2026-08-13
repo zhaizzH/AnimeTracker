@@ -22,6 +22,7 @@ import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.config.AgentProperties;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.result.PageResult;
+import top.zhaizz.pojo.dto.imprt.ImportRunDTO;
 import top.zhaizz.pojo.entity.ImportRecord;
 import top.zhaizz.pojo.vo.imprt.ImportRecordVO;
 import top.zhaizz.pojo.vo.imprt.ImportStatusVO;
@@ -41,8 +42,8 @@ public class ImportServiceImpl implements ImportService {
     private final ImportRecordMapper importRecordMapper;
 
     @Override
-    public void runImport(String authorization, String mode, String key, String since, Integer workers) {
-        validate(mode, key, since);
+    public void runImport(String authorization, ImportRunDTO request) {
+        validate(request.getMode(), request.getKey(), request.getSince());
 
         HttpHeaders headers = new HttpHeaders();
         if (authorization != null && !authorization.isEmpty()) {
@@ -50,16 +51,16 @@ public class ImportServiceImpl implements ImportService {
         }
         UriComponentsBuilder builder = UriComponentsBuilder
                 .fromUriString(agentProperties.getBaseUrl() + AgentApiPaths.ADMIN_IMPORT_RUN)
-                .queryParam("mode", mode);
-        if (key != null) builder.queryParam("key", key);
-        if (since != null) builder.queryParam("since", since);
-        if (workers != null) builder.queryParam("workers", workers.toString());
+                .queryParam("mode", request.getMode());
+        if (request.getKey() != null) builder.queryParam("key", request.getKey());
+        if (request.getSince() != null) builder.queryParam("since", request.getSince());
+        if (request.getWorkers() != null) builder.queryParam("workers", request.getWorkers().toString());
 
         String url = builder.build().encode().toUriString();
         HttpEntity<Void> entity = new HttpEntity<>(headers);
         try {
             restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
-            log.info("已触发导入: mode={} key={} since={}", mode, key, since);
+            log.info("已触发导入: mode={} key={} since={}", request.getMode(), request.getKey(), request.getSince());
         } catch (HttpStatusCodeException e) {
             if (e.getStatusCode().value() == 409) {
                 throw new BizException(ErrorType.CONFLICT, "已有导入任务运行中");

@@ -12,6 +12,7 @@ import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.config.AgentProperties;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.result.PageResult;
+import top.zhaizz.pojo.dto.imprt.ImportRunDTO;
 import top.zhaizz.pojo.entity.ImportRecord;
 import top.zhaizz.pojo.vo.imprt.ImportRecordVO;
 import top.zhaizz.pojo.vo.imprt.ImportStatusVO;
@@ -54,7 +55,11 @@ class ImportServiceImplTest {
     @Test
     void forwardsValidRunToAgent() {
         agentProperties.setBaseUrl("http://agent-base");
-        assertThatCode(() -> service.runImport("Bearer t", "season", "2026-summer", null, 3))
+        ImportRunDTO request = new ImportRunDTO();
+        request.setMode("season");
+        request.setKey("2026-summer");
+        request.setWorkers(3);
+        assertThatCode(() -> service.runImport("Bearer t", request))
                 .doesNotThrowAnyException();
         verify(restTemplate).exchange(eq(URL), eq(HttpMethod.POST), any(), eq(String.class));
     }
@@ -62,7 +67,9 @@ class ImportServiceImplTest {
     @Test
     void rejectsInvalidModeBeforeForwarding() {
         agentProperties.setBaseUrl("http://agent-base");
-        assertThatThrownBy(() -> service.runImport("Bearer t", "bogus", null, null, null))
+        ImportRunDTO request = new ImportRunDTO();
+        request.setMode("bogus");
+        assertThatThrownBy(() -> service.runImport("Bearer t", request))
                 .isInstanceOf(BizException.class)
                 .extracting(e -> ((BizException) e).getCode())
                 .isEqualTo(ErrorType.BAD_REQUEST.getCode());
@@ -74,7 +81,9 @@ class ImportServiceImplTest {
         agentProperties.setBaseUrl("http://agent-base");
         when(restTemplate.exchange(eq(URL_RECENT), eq(HttpMethod.POST), any(), eq(String.class)))
                 .thenThrow(new HttpClientErrorException(HttpStatus.CONFLICT, "已有导入任务运行中"));
-        assertThatThrownBy(() -> service.runImport("Bearer t", "recent", null, null, null))
+        ImportRunDTO request = new ImportRunDTO();
+        request.setMode("recent");
+        assertThatThrownBy(() -> service.runImport("Bearer t", request))
                 .isInstanceOf(BizException.class)
                 .extracting(e -> ((BizException) e).getCode())
                 .isEqualTo(ErrorType.CONFLICT.getCode());
@@ -85,7 +94,9 @@ class ImportServiceImplTest {
         agentProperties.setBaseUrl("http://agent-base");
         when(restTemplate.exchange(eq(URL_RECENT), eq(HttpMethod.POST), any(), eq(String.class)))
                 .thenThrow(new ResourceAccessException("connect refused"));
-        assertThatThrownBy(() -> service.runImport("Bearer t", "recent", null, null, null))
+        ImportRunDTO request = new ImportRunDTO();
+        request.setMode("recent");
+        assertThatThrownBy(() -> service.runImport("Bearer t", request))
                 .isInstanceOf(BizException.class)
                 .extracting(e -> ((BizException) e).getCode())
                 .isEqualTo(ErrorType.INTERNAL_ERROR.getCode());
