@@ -2,7 +2,6 @@ package top.zhaizz.admin.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.admin.service.ImportService;
 import top.zhaizz.common.constant.OperationLogConstants;
@@ -20,7 +19,6 @@ import top.zhaizz.pojo.vo.imprt.ImportStatusVO;
 @RestController
 @RequestMapping("/api/admin/import")
 @RequiredArgsConstructor
-@Validated
 public class ImportController {
 
     private final ImportService importService;
