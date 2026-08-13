@@ -14,6 +14,7 @@ import top.zhaizz.client.service.EpisodeService;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
+import top.zhaizz.pojo.dto.subject.SubjectListQueryDTO;
 import top.zhaizz.pojo.vo.subject.EpisodeVO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
@@ -37,12 +38,8 @@ public class SubjectController {
      * 获取番剧列表
      */
     @GetMapping
-    public Result<PageResult<SubjectListVO>> listSubjects(
-            @RequestParam(defaultValue = "1") @Min(1) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
-            @RequestParam(defaultValue = "score") String sort,
-            @RequestParam(defaultValue = "desc") String order) {
-        return Result.success(clientSubjectService.listSubjects(page, size, sort, order));
+    public Result<PageResult<SubjectListVO>> listSubjects(@Valid SubjectListQueryDTO request) {
+        return Result.success(clientSubjectService.listSubjects(request));
     }
 
     /**

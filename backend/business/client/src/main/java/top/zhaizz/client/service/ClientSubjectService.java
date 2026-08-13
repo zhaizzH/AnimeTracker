@@ -2,6 +2,7 @@ package top.zhaizz.client.service;
 
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
+import top.zhaizz.pojo.dto.subject.SubjectListQueryDTO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
 
@@ -12,7 +13,7 @@ import java.util.List;
 public interface ClientSubjectService {
 
     /** 获取番剧列表（分页、排序） */
-    PageResult<SubjectListVO> listSubjects(int page, int size, String sort, String order);
+    PageResult<SubjectListVO> listSubjects(SubjectListQueryDTO request);
 
     /** 获取番剧详情 */
     SubjectDetailVO getSubjectDetail(Long id);

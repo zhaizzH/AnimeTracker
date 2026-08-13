@@ -20,6 +20,7 @@ import top.zhaizz.pojo.entity.Subject;
 import top.zhaizz.pojo.entity.SubjectRelation;
 import top.zhaizz.pojo.entity.SubjectTag;
 import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
+import top.zhaizz.pojo.dto.subject.SubjectListQueryDTO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
 import top.zhaizz.pojo.vo.subject.SubjectRelationVO;
@@ -43,11 +44,11 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
     private final SubjectRelationMapper subjectRelationMapper;
 
     @Override
-    public PageResult<SubjectListVO> listSubjects(int page, int size, String sort, String order) {
+    public PageResult<SubjectListVO> listSubjects(SubjectListQueryDTO request) {
         LambdaQueryWrapper<Subject> wrapper = new LambdaQueryWrapper<Subject>()
-                .orderBy(true, "asc".equalsIgnoreCase(order), buildSortField(sort));
+                .orderBy(true, "asc".equalsIgnoreCase(request.getOrder()), buildSortField(request.getSort()));
 
-        Page<Subject> mpPage = subjectMapper.selectPage(new Page<>(page, size), wrapper);
+        Page<Subject> mpPage = subjectMapper.selectPage(new Page<>(request.getPage(), request.getSize()), wrapper);
 
         return PageResult.of(
                 mpPage.getRecords().stream()
