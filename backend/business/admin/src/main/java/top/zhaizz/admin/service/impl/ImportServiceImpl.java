@@ -22,6 +22,7 @@ import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.config.AgentProperties;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.result.PageResult;
+import top.zhaizz.pojo.dto.imprt.ImportRecordQueryDTO;
 import top.zhaizz.pojo.dto.imprt.ImportRunDTO;
 import top.zhaizz.pojo.entity.ImportRecord;
 import top.zhaizz.pojo.vo.imprt.ImportRecordVO;
@@ -100,11 +101,11 @@ public class ImportServiceImpl implements ImportService {
     }
 
     @Override
-    public PageResult<ImportRecordVO> getImportRecords(int page, int size, String status) {
+    public PageResult<ImportRecordVO> getImportRecords(ImportRecordQueryDTO request) {
         LambdaQueryWrapper<ImportRecord> qw = new LambdaQueryWrapper<ImportRecord>()
-                .eq(StringUtils.hasText(status), ImportRecord::getStatus, status)
+                .eq(StringUtils.hasText(request.getStatus()), ImportRecord::getStatus, request.getStatus())
                 .orderByDesc(ImportRecord::getStartedAt);
-        Page<ImportRecord> p = importRecordMapper.selectPage(new Page<>(page, size), qw);
+        Page<ImportRecord> p = importRecordMapper.selectPage(new Page<>(request.getPage(), request.getSize()), qw);
         return PageResult.of(
                 SubjectConverter.toImportRecordVOList(p.getRecords()),
                 p.getTotal(),

@@ -1,6 +1,7 @@
 package top.zhaizz.admin.service;
 
 import top.zhaizz.common.result.PageResult;
+import top.zhaizz.pojo.dto.imprt.ImportRecordQueryDTO;
 import top.zhaizz.pojo.dto.imprt.ImportRunDTO;
 import top.zhaizz.pojo.vo.imprt.ImportRecordVO;
 import top.zhaizz.pojo.vo.imprt.ImportStatusVO;
@@ -26,9 +27,7 @@ public interface ImportService {
     /**
      * 分页查询导入记录（直接查库，不经过 Python agent）
      *
-     * @param page   页码（从 1 开始）
-     * @param size   每页条数
-     * @param status 可选状态过滤：RUNNING / COMPLETED / FAILED，为空表示全部
+     * @param request 分页与状态过滤参数
      */
-    PageResult<ImportRecordVO> getImportRecords(int page, int size, String status);
+    PageResult<ImportRecordVO> getImportRecords(ImportRecordQueryDTO request);
 }

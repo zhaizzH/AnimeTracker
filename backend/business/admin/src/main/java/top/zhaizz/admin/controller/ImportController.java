@@ -1,8 +1,6 @@
 package top.zhaizz.admin.controller;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +9,7 @@ import top.zhaizz.common.constant.OperationLogConstants;
 import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
+import top.zhaizz.pojo.dto.imprt.ImportRecordQueryDTO;
 import top.zhaizz.pojo.dto.imprt.ImportRunDTO;
 import top.zhaizz.pojo.vo.imprt.ImportRecordVO;
 import top.zhaizz.pojo.vo.imprt.ImportStatusVO;
@@ -52,10 +51,7 @@ public class ImportController {
      * 分页查询导入记录，供管理后台导入历史表格展示全部记录
      */
     @GetMapping("/records")
-    public Result<PageResult<ImportRecordVO>> getImportRecords(
-            @RequestParam(defaultValue = "1") @Min(1) int page,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(1000) int size,
-            @RequestParam(required = false) String status) {
-        return Result.success(importService.getImportRecords(page, size, status));
+    public Result<PageResult<ImportRecordVO>> getImportRecords(@Valid ImportRecordQueryDTO request) {
+        return Result.success(importService.getImportRecords(request));
     }
 }

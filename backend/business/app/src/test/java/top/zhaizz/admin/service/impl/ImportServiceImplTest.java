@@ -12,6 +12,7 @@ import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.config.AgentProperties;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.result.PageResult;
+import top.zhaizz.pojo.dto.imprt.ImportRecordQueryDTO;
 import top.zhaizz.pojo.dto.imprt.ImportRunDTO;
 import top.zhaizz.pojo.entity.ImportRecord;
 import top.zhaizz.pojo.vo.imprt.ImportRecordVO;
@@ -133,7 +134,11 @@ class ImportServiceImplTest {
         page.setTotal(3);
         when(importRecordMapper.selectPage(any(), any())).thenReturn(page);
 
-        PageResult<ImportRecordVO> result = service.getImportRecords(2, 10, "FAILED");
+        ImportRecordQueryDTO request = new ImportRecordQueryDTO();
+        request.setPage(2);
+        request.setSize(10);
+        request.setStatus("FAILED");
+        PageResult<ImportRecordVO> result = service.getImportRecords(request);
 
         assertThat(result.getPage()).isEqualTo(2);
         assertThat(result.getSize()).isEqualTo(10);
