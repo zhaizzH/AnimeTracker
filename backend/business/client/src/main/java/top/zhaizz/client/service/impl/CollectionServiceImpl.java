@@ -17,8 +17,8 @@ import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.dto.collection.CollectionUpdateDTO;
 import java.time.LocalDate;
 import top.zhaizz.pojo.entity.UserCollection;
-import top.zhaizz.pojo.vo.UserCollectionSubjectVO;
-import top.zhaizz.pojo.vo.UserCollectionVO;
+import top.zhaizz.pojo.vo.collection.UserCollectionSubjectVO;
+import top.zhaizz.pojo.vo.collection.UserCollectionVO;
 
 import java.util.HashMap;
 import java.util.List;

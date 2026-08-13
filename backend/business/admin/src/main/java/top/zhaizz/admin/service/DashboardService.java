@@ -1,6 +1,6 @@
 package top.zhaizz.admin.service;
 
-import top.zhaizz.pojo.vo.CollectionStatsVO;
+import top.zhaizz.pojo.vo.collection.CollectionStatsVO;
 import top.zhaizz.pojo.vo.DashboardOverviewVO;
 import top.zhaizz.pojo.vo.subject.HotSubjectVO;
 import top.zhaizz.pojo.vo.subject.SubjectStatsVO;

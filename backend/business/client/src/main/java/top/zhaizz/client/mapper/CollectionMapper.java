@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.ibatis.annotations.Param;
 import top.zhaizz.pojo.entity.UserCollection;
-import top.zhaizz.pojo.vo.UserCollectionSubjectVO;
+import top.zhaizz.pojo.vo.collection.UserCollectionSubjectVO;
 
 import java.time.LocalDate;
 

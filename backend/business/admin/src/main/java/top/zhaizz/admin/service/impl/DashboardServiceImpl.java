@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import top.zhaizz.admin.mapper.DashboardMapper;
 import top.zhaizz.admin.service.DashboardService;
-import top.zhaizz.pojo.vo.CollectionStatsVO;
+import top.zhaizz.pojo.vo.collection.CollectionStatsVO;
 import top.zhaizz.pojo.vo.DailyCount;
 import top.zhaizz.pojo.vo.DashboardOverviewVO;
 import top.zhaizz.pojo.vo.subject.HotSubjectVO;

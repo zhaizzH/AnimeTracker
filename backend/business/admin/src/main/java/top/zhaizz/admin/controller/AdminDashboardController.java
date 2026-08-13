@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.zhaizz.admin.service.DashboardService;
 import top.zhaizz.common.result.Result;
-import top.zhaizz.pojo.vo.CollectionStatsVO;
+import top.zhaizz.pojo.vo.collection.CollectionStatsVO;
 import top.zhaizz.pojo.vo.DashboardOverviewVO;
 import top.zhaizz.pojo.vo.subject.HotSubjectVO;
 import top.zhaizz.pojo.vo.subject.SubjectStatsVO;

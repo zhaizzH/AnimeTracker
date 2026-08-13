@@ -1,8 +1,8 @@
 package top.zhaizz.client.converter;
 
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
-import top.zhaizz.pojo.vo.UserCollectionSubjectVO;
-import top.zhaizz.pojo.vo.UserCollectionVO;
+import top.zhaizz.pojo.vo.collection.UserCollectionSubjectVO;
+import top.zhaizz.pojo.vo.collection.UserCollectionVO;
 
 import java.util.List;
 import java.util.stream.Collectors;

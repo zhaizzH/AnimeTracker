@@ -14,7 +14,7 @@ import top.zhaizz.common.result.Result;
 import top.zhaizz.common.util.SecurityUtil;
 import top.zhaizz.pojo.dto.collection.CollectionUpdateDTO;
 import top.zhaizz.pojo.dto.collection.EpisodeStatusDTO;
-import top.zhaizz.pojo.vo.UserCollectionVO;
+import top.zhaizz.pojo.vo.collection.UserCollectionVO;
 
 import java.util.Map;
 
