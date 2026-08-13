@@ -1,6 +1,6 @@
 package top.zhaizz.client.service;
 
-import top.zhaizz.pojo.vo.EpisodeVO;
+import top.zhaizz.pojo.vo.subject.EpisodeVO;
 
 import java.util.List;
 

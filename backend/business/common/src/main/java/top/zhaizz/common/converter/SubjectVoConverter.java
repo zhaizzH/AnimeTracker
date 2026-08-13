@@ -2,8 +2,8 @@ package top.zhaizz.common.converter;
 
 import top.zhaizz.pojo.entity.Subject;
 import top.zhaizz.pojo.entity.SubjectTag;
-import top.zhaizz.pojo.vo.SubjectDetailVO;
-import top.zhaizz.pojo.vo.TagVO;
+import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
+import top.zhaizz.pojo.vo.tag.TagVO;
 
 import java.util.List;
 import java.util.stream.Collectors;

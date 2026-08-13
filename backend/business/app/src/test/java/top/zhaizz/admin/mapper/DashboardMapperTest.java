@@ -6,7 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import top.zhaizz.app.AppApplication;
 import top.zhaizz.pojo.vo.DashboardOverviewVO;
-import top.zhaizz.pojo.vo.HotSubjectVO;
+import top.zhaizz.pojo.vo.subject.HotSubjectVO;
 
 import java.time.LocalDate;
 import java.util.List;

@@ -2,7 +2,7 @@ package top.zhaizz.admin.service;
 
 import top.zhaizz.pojo.dto.subject.SubjectCreateDTO;
 import top.zhaizz.pojo.dto.subject.SubjectUpdateDTO;
-import top.zhaizz.pojo.vo.SubjectDetailVO;
+import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 
 /**
  * 番剧管理服务接口

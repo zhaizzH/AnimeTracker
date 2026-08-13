@@ -2,8 +2,8 @@ package top.zhaizz.admin.service;
 
 import top.zhaizz.pojo.vo.CollectionStatsVO;
 import top.zhaizz.pojo.vo.DashboardOverviewVO;
-import top.zhaizz.pojo.vo.HotSubjectVO;
-import top.zhaizz.pojo.vo.SubjectStatsVO;
+import top.zhaizz.pojo.vo.subject.HotSubjectVO;
+import top.zhaizz.pojo.vo.subject.SubjectStatsVO;
 import top.zhaizz.pojo.vo.TrendPointVO;
 
 import java.util.List;

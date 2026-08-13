@@ -1,7 +1,8 @@
-package top.zhaizz.pojo.vo;
+package top.zhaizz.pojo.vo.subject;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import top.zhaizz.pojo.vo.tag.TagVO;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

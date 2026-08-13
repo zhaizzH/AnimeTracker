@@ -10,7 +10,7 @@ import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.pojo.dto.subject.SubjectCreateDTO;
 import top.zhaizz.pojo.dto.subject.SubjectUpdateDTO;
-import top.zhaizz.pojo.vo.SubjectDetailVO;
+import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 
 /**
  * 番剧管理控制器

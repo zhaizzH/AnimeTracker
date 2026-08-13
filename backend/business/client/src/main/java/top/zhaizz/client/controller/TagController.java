@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.*;
 import top.zhaizz.client.service.TagService;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
-import top.zhaizz.pojo.vo.SubjectListVO;
-import top.zhaizz.pojo.vo.TagVO;
+import top.zhaizz.pojo.vo.subject.SubjectListVO;
+import top.zhaizz.pojo.vo.tag.TagVO;
 
 import java.util.List;
 

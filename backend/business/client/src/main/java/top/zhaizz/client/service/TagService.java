@@ -1,8 +1,8 @@
 package top.zhaizz.client.service;
 
 import top.zhaizz.common.result.PageResult;
-import top.zhaizz.pojo.vo.SubjectListVO;
-import top.zhaizz.pojo.vo.TagVO;
+import top.zhaizz.pojo.vo.subject.SubjectListVO;
+import top.zhaizz.pojo.vo.tag.TagVO;
 
 import java.util.List;
 

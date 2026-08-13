@@ -19,9 +19,9 @@ import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.entity.Subject;
 import top.zhaizz.pojo.entity.SubjectRelation;
 import top.zhaizz.pojo.entity.SubjectTag;
-import top.zhaizz.pojo.vo.SubjectDetailVO;
-import top.zhaizz.pojo.vo.SubjectListVO;
-import top.zhaizz.pojo.vo.SubjectRelationVO;
+import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
+import top.zhaizz.pojo.vo.subject.SubjectListVO;
+import top.zhaizz.pojo.vo.subject.SubjectRelationVO;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

@@ -1,8 +1,8 @@
 package top.zhaizz.client.service;
 
 import top.zhaizz.common.result.PageResult;
-import top.zhaizz.pojo.vo.SubjectDetailVO;
-import top.zhaizz.pojo.vo.SubjectListVO;
+import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
+import top.zhaizz.pojo.vo.subject.SubjectListVO;
 
 import java.math.BigDecimal;
 import java.util.List;

@@ -3,7 +3,9 @@ package top.zhaizz.client.converter;
 import top.zhaizz.pojo.entity.Episode;
 import top.zhaizz.pojo.entity.Subject;
 import top.zhaizz.pojo.entity.SubjectRelation;
-import top.zhaizz.pojo.vo.*;
+import top.zhaizz.pojo.vo.subject.EpisodeVO;
+import top.zhaizz.pojo.vo.subject.SubjectListVO;
+import top.zhaizz.pojo.vo.subject.SubjectRelationVO;
 import java.util.List;
 import java.util.stream.Collectors;
 

@@ -1,6 +1,6 @@
 package top.zhaizz.client.converter;
 
-import top.zhaizz.pojo.vo.SubjectListVO;
+import top.zhaizz.pojo.vo.subject.SubjectListVO;
 import top.zhaizz.pojo.vo.UserCollectionSubjectVO;
 import top.zhaizz.pojo.vo.UserCollectionVO;
 

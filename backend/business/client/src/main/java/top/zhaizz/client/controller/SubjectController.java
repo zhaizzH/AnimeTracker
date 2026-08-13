@@ -13,9 +13,9 @@ import top.zhaizz.client.service.EpisodeService;
 import top.zhaizz.client.util.SeasonUtil;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
-import top.zhaizz.pojo.vo.EpisodeVO;
-import top.zhaizz.pojo.vo.SubjectDetailVO;
-import top.zhaizz.pojo.vo.SubjectListVO;
+import top.zhaizz.pojo.vo.subject.EpisodeVO;
+import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
+import top.zhaizz.pojo.vo.subject.SubjectListVO;
 
 import java.math.BigDecimal;
 import java.util.List;

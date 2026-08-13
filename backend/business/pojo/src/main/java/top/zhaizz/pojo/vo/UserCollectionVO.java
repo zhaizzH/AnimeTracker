@@ -1,6 +1,7 @@
 package top.zhaizz.pojo.vo;
 
 import lombok.Data;
+import top.zhaizz.pojo.vo.subject.SubjectListVO;
 
 /**
  * 用户收藏视图

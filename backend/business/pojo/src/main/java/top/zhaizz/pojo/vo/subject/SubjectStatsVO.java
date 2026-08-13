@@ -1,6 +1,8 @@
-package top.zhaizz.pojo.vo;
+package top.zhaizz.pojo.vo.subject;
 
 import lombok.Data;
+import top.zhaizz.pojo.vo.ImportStatVO;
+import top.zhaizz.pojo.vo.RatingCountVO;
 
 import java.util.List;
 

@@ -12,8 +12,8 @@ import top.zhaizz.admin.service.DashboardService;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.pojo.vo.CollectionStatsVO;
 import top.zhaizz.pojo.vo.DashboardOverviewVO;
-import top.zhaizz.pojo.vo.HotSubjectVO;
-import top.zhaizz.pojo.vo.SubjectStatsVO;
+import top.zhaizz.pojo.vo.subject.HotSubjectVO;
+import top.zhaizz.pojo.vo.subject.SubjectStatsVO;
 import top.zhaizz.pojo.vo.TrendPointVO;
 
 import java.util.List;

@@ -15,8 +15,8 @@ import top.zhaizz.pojo.dto.subject.SubjectCreateDTO;
 import top.zhaizz.pojo.dto.subject.SubjectUpdateDTO;
 import top.zhaizz.pojo.entity.Subject;
 import top.zhaizz.pojo.entity.SubjectTag;
-import top.zhaizz.pojo.vo.SubjectDetailVO;
-import top.zhaizz.pojo.vo.TagVO;
+import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
+import top.zhaizz.pojo.vo.tag.TagVO;
 
 import java.time.LocalDateTime;
 import java.util.List;
