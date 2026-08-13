@@ -1,16 +1,14 @@
 package top.zhaizz.client.controller;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.client.service.ClientUserService;
 import top.zhaizz.client.service.VerificationService;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.common.util.SecurityUtil;
+import top.zhaizz.pojo.dto.auth.ChangeEmailSendCodeDTO;
+import top.zhaizz.pojo.dto.auth.ChangeEmailVerifyDTO;
 import top.zhaizz.pojo.dto.auth.ChangePasswordDTO;
 import top.zhaizz.pojo.dto.UpdateUserDTO;
 import top.zhaizz.pojo.vo.UserVO;
@@ -58,7 +56,7 @@ public class UserController {
      * 发送邮箱修改验证码（修改绑定邮箱前调用，校验新邮箱未被占用）
      */
     @PostMapping("/send-email-code")
-    public Result<Void> sendEmailCode(@Valid @RequestBody SendEmailCodeRequest request) {
+    public Result<Void> sendEmailCode(@Valid @RequestBody ChangeEmailSendCodeDTO request) {
         Long userId = SecurityUtil.getCurrentUserId();
         verificationService.sendEmailChangeCode(userId, request.getNewEmail());
         return Result.success(null);
@@ -68,35 +66,9 @@ public class UserController {
      * 校验邮箱修改验证码（通过后更新绑定邮箱并通知旧邮箱）
      */
     @PostMapping("/verify-email-code")
-    public Result<Void> verifyEmailCode(@Valid @RequestBody VerifyEmailCodeRequest request) {
+    public Result<Void> verifyEmailCode(@Valid @RequestBody ChangeEmailVerifyDTO request) {
         Long userId = SecurityUtil.getCurrentUserId();
         verificationService.verifyEmailChangeCode(userId, request.getNewEmail(), request.getCode());
         return Result.success(null);
-    }
-
-    /**
-     * 发送邮箱修改验证码请求体
-     */
-    @Data
-    public static class SendEmailCodeRequest {
-        @NotBlank(message = "新邮箱不能为空")
-        @Email(message = "邮箱格式不正确")
-        @Size(max = 128, message = "邮箱长度不能超过128")
-        private String newEmail;
-    }
-
-    /**
-     * 校验邮箱修改验证码请求体
-     */
-    @Data
-    public static class VerifyEmailCodeRequest {
-        @NotBlank(message = "新邮箱不能为空")
-        @Email(message = "邮箱格式不正确")
-        @Size(max = 128, message = "邮箱长度不能超过128")
-        private String newEmail;
-
-        @NotBlank(message = "验证码不能为空")
-        @Size(min = 6, max = 6, message = "验证码为6位")
-        private String code;
     }
 }
