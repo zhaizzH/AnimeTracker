@@ -27,7 +27,7 @@ public class AdminLogController {
      * 分页查询操作/登录日志并返回当前筛选条件的全量聚合统计，管理后台日志页筛选查询时触发
      */
     @GetMapping
-    public PageResult<LogVO> listLogs(@Valid LogQueryDTO request) {
+    public Result<PageResult<LogVO>> listLogs(@Valid LogQueryDTO request) {
         return Result.success(adminLogService.listLogs(request));
     }
 }
