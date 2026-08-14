@@ -34,7 +34,7 @@ def _resolve_routing_result(raw_payload: Any) -> dict[str, str]:
     messages = raw_payload.get("messages") or []
     if not messages:
         raise ValueError("gateway payload messages cannot be empty")
-    # Anthropic 端点模型返回 content 块列表(thinking+text),用 extract_text 统一抽取文本
+    # 部分模型返回 content 块列表,用 extract_text 统一抽取文本
     content = extract_text(messages[-1])
     if not content.strip():
         raise ValueError("gateway last message content is empty")

@@ -57,8 +57,8 @@ python main.py --mode since --since 2025-10-01 --resume
 | `DB_NAME` | `anime_tracker` | 目标数据库名 |
 | `BANGUMI_ACCESS_TOKEN` | 空 | Bangumi 访问令牌（可选，提升限流额度） |
 | `BANGUMI_USER_AGENT` | `zhaizzH/AnimeTracker` | 请求 UA |
-| `BANGUMI_BASE_URL` | `https://proxy.8000150.xyz/https%3A%2F%2Fapi.bgm.tv` | Bangumi API 基址（经代理访问） |
-| `BANGUMI_IMAGE_PROXY_URL` | `https://proxy.8000150.xyz` | 封面图代理前缀（转存 MinIO 前下载用） |
+| `BANGUMI_BASE_URL` | `https://api.bgm.tv` | Bangumi API 基址（直连；如走本地代理请配 `HTTPS_PROXY`） |
+| `BANGUMI_IMAGE_PROXY_URL` | 空 | 封面图代理前缀（转存 MinIO 前下载用；空则直接下载原图） |
 | `MINIO_ENDPOINT` | `localhost:9000` | MinIO 地址（封面转存；公开 URL 由 `{scheme}://{endpoint}` 推导，可选） |
 | `MINIO_SECURE` | `false` | 是否走 https，同时决定 SDK `secure` 与公开 URL scheme |
 | `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | `minioadmin` | MinIO 凭据 |

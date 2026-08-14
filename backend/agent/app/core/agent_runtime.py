@@ -50,14 +50,6 @@ def _extract_reasoning_content_from_chunk(chunk: Any) -> str:
     ):
         if isinstance(raw, str) and raw.strip() and raw.strip() not in parts:
             parts.append(raw.strip())
-    # Anthropic thinking 块(langchain-anthropic 将其并入 content 列表)
-    content = getattr(chunk, "content", None)
-    if isinstance(content, list):
-        for item in content:
-            if isinstance(item, dict) and item.get("type") == "thinking":
-                thinking = str(item.get("thinking") or "").strip()
-                if thinking and thinking not in parts:
-                    parts.append(thinking)
     return "".join(parts)
 
 

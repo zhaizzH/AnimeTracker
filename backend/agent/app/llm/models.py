@@ -1,10 +1,9 @@
 import json
 import logging
 
-from langchain_anthropic import ChatAnthropic
 from langchain_community.chat_models.tongyi import ChatTongyi
 from langchain_core.messages import AIMessageChunk
-from langchain_openai import ChatOpenAI
+from langchain_deepseek import ChatDeepSeek
 
 logger = logging.getLogger(__name__)
 
@@ -55,52 +54,31 @@ def _patch_chat_openai_reasoning():
 
     _patched.__name__ = "patched_convert_delta_to_message_chunk"
     _lc_base._convert_delta_to_message_chunk = _patched
-    logger.info("已应用 opencode reasoning_content 增量捕获补丁")
+    logger.info("已应用 deepseek reasoning_content 增量捕获补丁")
 
 
 _patch_chat_openai_reasoning()
 
 
-# opencode-go 网关模型→端点归属;表外/新增模型默认走 chat/completions,加一行即可
-_ANTHROPIC_ENDPOINT_MODELS = {
-    "minimax-m3", "minimax-m2.7", "minimax-m2.5",
-    "qwen3.8-max", "qwen3.7-max", "qwen3.7-plus", "qwen3.6-plus", "qwen3.5-plus",
-}
-_RESPONSES_ENDPOINT_MODELS = {"gpt-5.6-luna"}
-
-
-def create_opencode_llm(*, model: str, temperature: float, max_tokens: int):
+def create_deepseek_llm(*, model: str, temperature: float, max_tokens: int):
     # 延迟导入避免循环: config -> models
     from app.config import settings
 
-    base = settings.opencode_base_url
-    if model in _ANTHROPIC_ENDPOINT_MODELS:
-        # anthropic SDK 会在 base_url 后追加 /v1/messages,故需去掉末尾 /v1
-        anthropic_url = base.rstrip("/").removesuffix("/v1")
-        return ChatAnthropic(
-            model=model,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            anthropic_api_key=settings.opencode_api_key,
-            anthropic_api_url=anthropic_url,
-        )
-    # chat/completions 与 responses 共用 ChatOpenAI,openai SDK 自行追加 /chat/completions 或 /responses
-    return ChatOpenAI(
-        model_name=model,
+    return ChatDeepSeek(
+        model=model,
         max_tokens=max_tokens,
         temperature=temperature,
-        openai_api_key=settings.opencode_api_key,
-        openai_api_base=base,
-        use_responses_api=model in _RESPONSES_ENDPOINT_MODELS,
+        api_key=settings.deepseek_api_key,
+        base_url=settings.deepseek_base_url,
     )
 
 
 def create_llm(*, model: str, temperature: float, api_key: str, max_tokens: int,
                thinking_budget: int = 2048):
-    if model.startswith("opencode-go/"):
-        # provider 优先:opencode 模型一律不进 ChatTongyi 分支,避免 qwen3.8-max 误带 enable_thinking
-        return create_opencode_llm(
-            model=model.removeprefix("opencode-go/"),
+    if model.startswith("deepseek/"):
+        # provider 优先:deepseek 模型一律不进 ChatTongyi 分支
+        return create_deepseek_llm(
+            model=model.removeprefix("deepseek/"),
             temperature=temperature,
             max_tokens=max_tokens,
         )

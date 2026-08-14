@@ -12,15 +12,15 @@ class Settings(BaseSettings):
 
     # LLM
     dashscope_api_key: str = ""
-    llm_model: str = "qwen-plus"
-    llm_model_route: str = "qwen-plus"
+    llm_model: str = "qwen3.7-plus"
+    llm_model_route: str = "qwen3.7-plus"
     llm_temperature: float = 0.3
     llm_max_tokens: int = 4096
     llm_thinking_budget: int = 2048
 
-    # opencode-go 网关(可选 LLM provider;模型名带 opencode-go/ 前缀即启用)
-    opencode_api_key: str = ""
-    opencode_base_url: str = "https://opencode.ai/zen/go/v1"
+    # DeepSeek 官方直连(可选 LLM provider;模型名带 deepseek/ 前缀即启用)
+    deepseek_api_key: str = ""
+    deepseek_base_url: str = "https://api.deepseek.com"
 
     # Server
     agent_host: str = "0.0.0.0"
