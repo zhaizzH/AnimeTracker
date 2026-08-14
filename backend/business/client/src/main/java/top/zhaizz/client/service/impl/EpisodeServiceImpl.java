@@ -1,5 +1,6 @@
 package top.zhaizz.client.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import top.zhaizz.client.converter.SubjectConverter;
@@ -29,7 +30,11 @@ public class EpisodeServiceImpl implements EpisodeService {
             throw new BizException(ErrorType.NOT_FOUND, "条目不存在");
         }
 
-        List<Episode> episodes = episodeMapper.findBySubjectIdOrderBySort(subjectId);
+        List<Episode> episodes = episodeMapper.selectList(
+                new LambdaQueryWrapper<Episode>()
+                        .eq(Episode::getSubjectId, subjectId)
+                        .orderByAsc(Episode::getSort)
+        );
         return SubjectConverter.toEpisodeVOList(episodes);
     }
 }

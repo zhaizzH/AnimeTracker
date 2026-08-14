@@ -1,4 +1,4 @@
-package top.zhaizz.client.config;
+package top.zhaizz.client.util;
 
 import com.resend.Resend;
 import org.springframework.beans.factory.annotation.Value;
