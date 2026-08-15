@@ -12,6 +12,32 @@ from app.core.prompt_sync import load_managed_prompt
 
 _ALLOWED_TARGETS = ("search_agent", "discover_agent", "recommend_agent")
 
+# 保守的确认词表: 仅精确匹配的简短肯定,拒绝否定词与含糊长文本
+_CONFIRMATION_PHRASES = {
+    "确认", "确定", "是", "是的", "好", "好的", "可以", "行",
+    "执行", "按这个更新", "确认更新", "确认执行", "没问题",
+}
+_NEGATION_MARKERS = ("不", "没", "取消", "算了", "不要", "等等", "别", "否", "？", "?")
+
+
+def _is_explicit_confirmation(text: str) -> bool:
+    t = text.strip().rstrip("。.!！?？").strip()
+    if not t:
+        return False
+    if any(m in t for m in _NEGATION_MARKERS):
+        return False
+    return t in _CONFIRMATION_PHRASES
+
+
+def _resolve_forced_pending_route(state: AgentState) -> dict[str, str] | None:
+    """存在待确认动作且当前问题为明确确认时,确定性强制路由 recommend_agent。"""
+    pending = state.get("pending_action")
+    if pending is None or getattr(pending, "type", None) != "COLLECTION_PROGRESS_UPDATE":
+        return None
+    if not _is_explicit_confirmation(state.get("current_question") or ""):
+        return None
+    return {"route_target": "recommend_agent"}
+
 # 提示词含 JSON 示例花括号,不能走 str.format();仅替换占位符
 def _build_gateway_prompt(state: AgentState) -> str:
     template = load_managed_prompt("client_gateway_prompt", "client/gateway_prompt.md")
@@ -49,6 +75,9 @@ def _resolve_routing_result(raw_payload: Any) -> dict[str, str]:
 
 
 def gateway_router(state: AgentState) -> dict[str, Any]:
+    forced = _resolve_forced_pending_route(state)
+    if forced is not None:
+        return forced
     llm = create_agent_chat_llm(slot=AgentChatModelSlot.CLIENT_ROUTE)
     agent = create_agent(
         model=llm,
