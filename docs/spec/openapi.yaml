@@ -1988,6 +1988,273 @@ paths:
                   data:
                     type: "string"
                     description: ""
+  /api/client/collections/progress-preview:
+    post:
+      summary: "生成本周追番进度预览"
+      description: "生成当前登录用户本周（周一起至昨日）可推进的追番进度预览；仅生成快照并保存在 Redis，不写入任何收藏数据。"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      previewId:
+                        type: "string"
+                        description: "预览 ID，确认执行时使用"
+                      state:
+                        type: "string"
+                        description: "预览状态: PENDING=待确认"
+                      expiresAt:
+                        type: "string"
+                        description: "预览过期时间（10 分钟内需确认执行）"
+                      weekStart:
+                        type: "string"
+                        description: "本周周一日期"
+                      cutoffDate:
+                        type: "string"
+                        description: "统计截止日期（昨日）"
+                      items:
+                        type: "array"
+                        description: "可推进进度的追番列表"
+                        items:
+                          type: "object"
+                          properties:
+                            subjectId:
+                              type: "integer"
+                              description: "条目 ID"
+                              format: "int64"
+                            subjectName:
+                              type: "string"
+                              description: "条目名称"
+                            currentEpStatus:
+                              type: "integer"
+                              description: "当前看到集数"
+                            targetEpStatus:
+                              type: "integer"
+                              description: "目标推进集数"
+                            completedAfterUpdate:
+                              type: "boolean"
+                              description: "更新后是否已看完"
+                            suggestMarkAsWatched:
+                              type: "boolean"
+                              description: "是否建议标记为看过"
+                          description: "收藏进度条目 VO"
+                    description: ""
+        "401":
+          description: "未认证"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    description: ""
+                    nullable: true
+  /api/client/collections/progress-preview/{previewId}/execute:
+    post:
+      summary: "确认执行本周追番进度预览"
+      description: "确认执行预览：重新校验数据，数据变化返回 PREVIEW_CHANGED 与新预览且不写入；数据一致则逐项推进进度（每部番剧独立事务，允许部分成功）并汇总。重复确认幂等返回首次执行结果。"
+      parameters:
+      - name: "previewId"
+        in: "path"
+        description: "预览 ID"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      state:
+                        type: "string"
+                        description: "执行状态: COMPLETED=已执行完成, PREVIEW_CHANGED=数据已变化需重新确认"
+                      replayed:
+                        type: "boolean"
+                        description: "是否为重复确认的幂等重放结果"
+                      preview:
+                        type: "object"
+                        description: "PREVIEW_CHANGED 时返回的新预览，其余情况为 null"
+                        nullable: true
+                        properties:
+                          previewId:
+                            type: "string"
+                            description: "新预览 ID"
+                          state:
+                            type: "string"
+                            description: "预览状态: PREVIEW_CHANGED=数据已变化"
+                          expiresAt:
+                            type: "string"
+                            description: "新预览过期时间"
+                          weekStart:
+                            type: "string"
+                            description: "本周周一日期"
+                          cutoffDate:
+                            type: "string"
+                            description: "统计截止日期（昨日）"
+                          items:
+                            type: "array"
+                            description: "重新计算后的追番列表"
+                            items:
+                              type: "object"
+                              properties:
+                                subjectId:
+                                  type: "integer"
+                                  description: "条目 ID"
+                                  format: "int64"
+                                subjectName:
+                                  type: "string"
+                                  description: "条目名称"
+                                currentEpStatus:
+                                  type: "integer"
+                                  description: "当前看到集数"
+                                targetEpStatus:
+                                  type: "integer"
+                                  description: "目标推进集数"
+                                completedAfterUpdate:
+                                  type: "boolean"
+                                  description: "更新后是否已看完"
+                                suggestMarkAsWatched:
+                                  type: "boolean"
+                                  description: "是否建议标记为看过"
+                              description: "收藏进度条目 VO"
+                      succeeded:
+                        type: "array"
+                        description: "成功推进进度的追番"
+                        items:
+                          type: "object"
+                          properties:
+                            subjectId:
+                              type: "integer"
+                              description: "条目 ID"
+                              format: "int64"
+                            subjectName:
+                              type: "string"
+                              description: "条目名称"
+                            currentEpStatus:
+                              type: "integer"
+                              description: "更新前集数"
+                            targetEpStatus:
+                              type: "integer"
+                              description: "更新后集数"
+                            completedAfterUpdate:
+                              type: "boolean"
+                              description: "更新后是否已看完"
+                            suggestMarkAsWatched:
+                              type: "boolean"
+                              description: "是否建议标记为看过"
+                          description: "收藏进度条目 VO"
+                      skipped:
+                        type: "array"
+                        description: "因业务冲突跳过（进度已变化）的追番"
+                        items:
+                          type: "object"
+                          properties:
+                            subjectId:
+                              type: "integer"
+                              description: "条目 ID"
+                              format: "int64"
+                            subjectName:
+                              type: "string"
+                              description: "条目名称"
+                            currentEpStatus:
+                              type: "integer"
+                              description: "当前集数"
+                            targetEpStatus:
+                              type: "integer"
+                              description: "目标集数"
+                            reason:
+                              type: "string"
+                              description: "跳过原因"
+                          description: "收藏进度失败项 VO"
+                      failed:
+                        type: "array"
+                        description: "因运行时异常失败的追番"
+                        items:
+                          type: "object"
+                          properties:
+                            subjectId:
+                              type: "integer"
+                              description: "条目 ID"
+                              format: "int64"
+                            subjectName:
+                              type: "string"
+                              description: "条目名称"
+                            currentEpStatus:
+                              type: "integer"
+                              description: "当前集数"
+                            targetEpStatus:
+                              type: "integer"
+                              description: "目标集数"
+                            reason:
+                              type: "string"
+                              description: "失败原因"
+                          description: "收藏进度失败项 VO"
+                    description: ""
+        "404":
+          description: "预览不存在"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    description: ""
+                    nullable: true
+        "409":
+          description: "预览已过期/已失效/执行中/锁未取得"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    description: ""
+                    nullable: true
   /api/admin/agent/prompts:
     get:
       summary: "提示词列表"
@@ -4552,3 +4819,99 @@ components:
           description: "收藏数"
           format: "int64"
       description: "热门榜条目"
+    收藏进度条目 VO:
+      type: "object"
+      properties:
+        subjectId:
+          type: "integer"
+          description: "条目 ID"
+          format: "int64"
+        subjectName:
+          type: "string"
+          description: "条目名称"
+        currentEpStatus:
+          type: "integer"
+          description: "当前看到集数"
+        targetEpStatus:
+          type: "integer"
+          description: "目标推进集数"
+        completedAfterUpdate:
+          type: "boolean"
+          description: "更新后是否已看完"
+        suggestMarkAsWatched:
+          type: "boolean"
+          description: "是否建议标记为看过"
+      description: "收藏进度条目 VO"
+    收藏进度失败项 VO:
+      type: "object"
+      properties:
+        subjectId:
+          type: "integer"
+          description: "条目 ID"
+          format: "int64"
+        subjectName:
+          type: "string"
+          description: "条目名称"
+        currentEpStatus:
+          type: "integer"
+          description: "当前集数"
+        targetEpStatus:
+          type: "integer"
+          description: "目标集数"
+        reason:
+          type: "string"
+          description: "跳过/失败原因"
+      description: "收藏进度失败项 VO"
+    收藏进度预览 VO:
+      type: "object"
+      properties:
+        previewId:
+          type: "string"
+          description: "预览 ID，确认执行时使用"
+        state:
+          type: "string"
+          description: "预览状态: PENDING=待确认, PREVIEW_CHANGED=数据已变化"
+        expiresAt:
+          type: "string"
+          description: "预览过期时间（10 分钟内需确认执行）"
+        weekStart:
+          type: "string"
+          description: "本周周一日期"
+        cutoffDate:
+          type: "string"
+          description: "统计截止日期（昨日）"
+        items:
+          type: "array"
+          description: "可推进进度的追番列表"
+          items:
+            $ref: "#/components/schemas/收藏进度条目 VO"
+      description: "收藏进度预览 VO"
+    收藏进度执行 VO:
+      type: "object"
+      properties:
+        state:
+          type: "string"
+          description: "执行状态: COMPLETED=已执行完成, PREVIEW_CHANGED=数据已变化需重新确认"
+        replayed:
+          type: "boolean"
+          description: "是否为重复确认的幂等重放结果"
+        preview:
+          type: "object"
+          description: "PREVIEW_CHANGED 时返回的新预览，其余情况为 null"
+          $ref: "#/components/schemas/收藏进度预览 VO"
+        succeeded:
+          type: "array"
+          description: "成功推进进度的追番"
+          items:
+            $ref: "#/components/schemas/收藏进度条目 VO"
+        skipped:
+          type: "array"
+          description: "因业务冲突跳过（进度已变化）的追番"
+          items:
+            $ref: "#/components/schemas/收藏进度失败项 VO"
+        failed:
+          type: "array"
+          description: "因运行时异常失败的追番"
+          items:
+            $ref: "#/components/schemas/收藏进度失败项 VO"
+      description: "收藏进度执行 VO"

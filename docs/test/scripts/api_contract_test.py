@@ -534,6 +534,36 @@ def test_collections(ctx):
     )
 
 
+def test_collection_progress(ctx):
+    token = ctx["user_token"]
+    http, body = expect_success(
+        "API-COLL-PROGRESS-PREVIEW-001", "POST", "/api/client/collections/progress-preview", token=token,
+        checker=lambda d: isinstance(d, dict) and "previewId" in d and "state" in d and "code" not in d,
+        note="preview generation wrapper without nested code",
+    )
+    preview_id = (body.get("data") or {}).get("previewId")
+    if not preview_id:
+        limited("API-COLL-PROGRESS-EXECUTE-001", "POST",
+                "/api/client/collections/progress-preview/{previewId}/execute", http, body,
+                "preview id missing; execute not attempted")
+    else:
+        http2, body2, _ = request(
+            "POST", "/api/client/collections/progress-preview/{}/execute".format(preview_id), token=token)
+        state = ((body2.get("data") or {}).get("state")) if isinstance(body2, dict) else None
+        passed = http2 == 200 and isinstance(body2, dict) and body2.get("code") == 200 \
+            and state in {"COMPLETED", "PREVIEW_CHANGED"}
+        finish("API-COLL-PROGRESS-EXECUTE-001", "POST",
+               "/api/client/collections/progress-preview/{previewId}/execute", passed, http2, body2,
+               "HTTP 200 + code 200 + data.state in {COMPLETED, PREVIEW_CHANGED}",
+               path="/api/client/collections/progress-preview/{}/execute".format(preview_id),
+               note="execute preview (revalidate + partial success)")
+
+    expect_error(
+        "API-COLL-PROGRESS-UNAUTH-001", "POST", "/api/client/collections/progress-preview", 401,
+        note="unauthenticated preview rejected with Result error wrapper",
+    )
+
+
 def test_upload(ctx):
     token = ctx["user_token"]
     png_bytes = base64.b64decode(
@@ -753,6 +783,7 @@ def main():
     test_tags_subjects(ctx)
     test_profile(ctx)
     test_collections(ctx)
+    test_collection_progress(ctx)
     test_upload(ctx)
     test_admin(ctx)
     test_agent(ctx)
