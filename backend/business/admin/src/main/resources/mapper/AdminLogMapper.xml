@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.zhaizz.admin.mapper.AdminLogMapper">
+
+    <select id="selectStats" resultType="top.zhaizz.pojo.vo.log.OperationLogStatsVO">
+        SELECT COUNT(*) AS total,
+               COALESCE(SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END), 0) AS success_count,
+               COALESCE(SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END), 0) AS failed_count,
+               COALESCE(AVG(duration_ms), 0) AS avg_duration_ms
+        FROM operation_log
+        <where>
+            <if test="q.action != null and q.action != ''">AND action = #{q.action}</if>
+            <if test="q.module != null and q.module != ''">AND module = #{q.module}</if>
+            <if test="q.username != null and q.username != ''">AND username = #{q.username}</if>
+            <if test="q.userId != null">AND user_id = #{q.userId}</if>
+            <if test="q.status != null">AND status = #{q.status}</if>
+            <if test="q.start != null">AND created_at &gt;= #{q.start}</if>
+            <if test="q.end != null">AND created_at &lt; DATE_ADD(#{q.end}, INTERVAL 1 DAY)</if>
+        </where>
+    </select>
+
+</mapper>
