@@ -1,9 +1,9 @@
 {
   "summary": {
     "base": "http://127.0.0.1:8080",
-    "duration_s": 18.9,
-    "spec_operations": 60,
-    "executed_operations": 52,
+    "duration_s": 13.2,
+    "spec_operations": 62,
+    "executed_operations": 54,
     "missing_operations": [
       "GET /api/admin/agent/chat/sessions/{sessionId}/history",
       "GET /api/admin/agent/prompts/{key}",
@@ -14,10 +14,10 @@
       "POST /api/admin/agent/prompts/{key}/update",
       "POST /api/client/agent/sessions/{sessionId}/remove"
     ],
-    "total_cases": 85,
-    "pass": 70,
+    "total_cases": 88,
+    "pass": 77,
     "fail": 1,
-    "limited": 14
+    "limited": 10
   },
   "results": [
     {
@@ -29,7 +29,7 @@
       "http": 200,
       "code": 200,
       "expected": "login normal user",
-      "actual": "http=200 code=200 body={\"code\": 200, \"data\": {\"token\": \"eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzg2NzYwNDcxLCJleHAiOjE3ODY3NjIyNzF9.8epn1RgaXJ_kVROMvsMMm_4r_-PbPCRsxxdo2NPGbpo\", \"refreshToken\": \"5f8146286c598db10a603c",
+      "actual": "http=200 code=200 body={\"code\": 200, \"data\": {\"token\": \"eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzg2ODA4MDYxLCJleHAiOjE3ODY4MDk4NjF9.fMo1yWBX_pEba8pM40gmQ2s4O_9sXCJrz_On8mQAzJA\", \"refreshToken\": \"5537ea08526ac4a3e6a2fe",
       "note": "",
       "executed": true
     },
@@ -42,7 +42,7 @@
       "http": 200,
       "code": 200,
       "expected": "login admin",
-      "actual": "http=200 code=200 body={\"code\": 200, \"data\": {\"token\": \"eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjAsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc4Njc2MDQ3MSwiZXhwIjoxNzg2NzYyMjcxfQ.gEl8bfs3InGmDVNus33vMZlAPlOdEGhZlKrNbGfgM14\", \"refreshToken\": \"09b2dda6f54128384b05",
+      "actual": "http=200 code=200 body={\"code\": 200, \"data\": {\"token\": \"eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjAsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc4NjgwODA2MiwiZXhwIjoxNzg2ODA5ODYyfQ.py9KsoPmCofKWQXqycZzHkWBJahrxtuMBI1-OEEk0sY\", \"refreshToken\": \"d86cbc2f1398a3f61ceb",
       "note": "",
       "executed": true
     },
@@ -159,7 +159,7 @@
       "http": 200,
       "code": 200,
       "expected": "HTTP 200 + code 200 (refresh token rotation returns new pair)",
-      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": {\"token\": \"eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzg2NzYwNDcyLCJleHAiOjE3ODY3NjIyNzJ9.91fC4SJ_n8QlKZlDNTYSrtuKcoV_fnFyQ0rYCLNVLKg\", \"refreshToken\": \"",
+      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": {\"token\": \"eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjEsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzg2ODA4MDY1LCJleHAiOjE3ODY4MDk4NjV9.Gc4500GNJg8UObnEpqyQSYmUoUq2NlmW7rPlBEhYEnc\", \"refreshToken\": \"",
       "note": "refresh token rotation returns new pair",
       "executed": true
     },
@@ -445,7 +445,7 @@
       "http": 200,
       "code": 200,
       "expected": "login with new password",
-      "actual": "http=200 code=200 body={\"code\": 200, \"data\": {\"token\": \"eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjIsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzg2NzYwNDc1LCJleHAiOjE3ODY3NjIyNzV9.GdEsImG8PyQduqNBW2tvRy3vESCflfWGtO_tcqEDeLM\", \"refreshToken\": \"9286ec3fc510d2c9caee4a",
+      "actual": "http=200 code=200 body={\"code\": 200, \"data\": {\"token\": \"eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjIsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzg2ODA4MDcwLCJleHAiOjE3ODY4MDk4NzB9.JjF7q1yvBGbqf6ulX0sJ38zW_SWsZhjApIH3qIMJLAE\", \"refreshToken\": \"eb855197380c8bb2ec51d4",
       "note": "",
       "executed": true
     },
@@ -471,7 +471,7 @@
       "http": 200,
       "code": 200,
       "expected": "login after restoring test2 password",
-      "actual": "http=200 code=200 body={\"code\": 200, \"data\": {\"token\": \"eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjIsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzg2NzYwNDc2LCJleHAiOjE3ODY3NjIyNzZ9.zF4zIxg_XB3ckPcJ46uUgFi4qFLeC45Ccou77DTTZ-g\", \"refreshToken\": \"5c43b039c781cd7bb9818a",
+      "actual": "http=200 code=200 body={\"code\": 200, \"data\": {\"token\": \"eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjIsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzg2ODA4MDcxLCJleHAiOjE3ODY4MDk4NzF9.Z76ssXwWNqPoEaIU8jGDpqY-9f3VkIqvx5riR-Xfqt4\", \"refreshToken\": \"057c0c504eac64235c8d7b",
       "note": "",
       "executed": true
     },
@@ -549,7 +549,7 @@
       "http": 200,
       "code": 200,
       "expected": "HTTP 200 + code 200 (collection created)",
-      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": {\"id\": 2086092734257913871, \"subjectId\": 2086092151828480522, \"type\": 1, \"rate\": 0, \"epStatus\": 0}}",
+      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": {\"id\": 2086092734257913872, \"subjectId\": 2086092151828480522, \"type\": 1, \"rate\": 0, \"epStatus\": 0}}",
       "note": "collection created",
       "executed": true
     },
@@ -588,7 +588,7 @@
       "http": 200,
       "code": 200,
       "expected": "HTTP 200 + code 200 (collection reflects updates)",
-      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": {\"id\": 2086092734257913871, \"subjectId\": 2086092151828480522, \"type\": 2, \"rate\": 8, \"epStatus\": 2}}",
+      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": {\"id\": 2086092734257913872, \"subjectId\": 2086092151828480522, \"type\": 2, \"rate\": 8, \"epStatus\": 2}}",
       "note": "collection reflects updates",
       "executed": true
     },
@@ -645,6 +645,45 @@
       "executed": true
     },
     {
+      "id": "API-COLL-PROGRESS-PREVIEW-001",
+      "method": "POST",
+      "path": "/api/client/collections/progress-preview",
+      "path_template": "/api/client/collections/progress-preview",
+      "status": "PASS",
+      "http": 200,
+      "code": 200,
+      "expected": "HTTP 200 + code 200 (preview generation wrapper without nested code)",
+      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": {\"previewId\": \"17ee683c-c3ac-479b-b472-12225ebd2c79\", \"state\": \"PENDING\", \"expiresAt\": \"2026-08-15T23:44:32.7345911+08:00\", \"weekStart\": \"2026-08-10\", \"cutoffDate\": \"2026-08-14",
+      "note": "preview generation wrapper without nested code",
+      "executed": true
+    },
+    {
+      "id": "API-COLL-PROGRESS-EXECUTE-001",
+      "method": "POST",
+      "path": "/api/client/collections/progress-preview/17ee683c-c3ac-479b-b472-12225ebd2c79/execute",
+      "path_template": "/api/client/collections/progress-preview/{previewId}/execute",
+      "status": "PASS",
+      "http": 200,
+      "code": 200,
+      "expected": "HTTP 200 + code 200 + data.state in {COMPLETED, PREVIEW_CHANGED}",
+      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": {\"state\": \"COMPLETED\", \"replayed\": false, \"succeeded\": [{\"subjectId\": 14749, \"subjectName\": \"\\u5c3c\\u53e4\\u55b5\\u55b5\", \"currentEpStatus\": 0, \"targetEpStatus\": 7, \"completedAft",
+      "note": "execute preview (revalidate + partial success)",
+      "executed": true
+    },
+    {
+      "id": "API-COLL-PROGRESS-UNAUTH-001",
+      "method": "POST",
+      "path": "/api/client/collections/progress-preview",
+      "path_template": "/api/client/collections/progress-preview",
+      "status": "PASS",
+      "http": 401,
+      "code": 401,
+      "expected": "HTTP 401 + code 401",
+      "actual": "http=401 code=401 body={\"code\": 401, \"message\": \"\\u672a\\u8ba4\\u8bc1\"}",
+      "note": "unauthenticated preview rejected with Result error wrapper",
+      "executed": true
+    },
+    {
       "id": "API-FILE-UPLOAD-001",
       "method": "POST",
       "path": "/api/common/files/upload",
@@ -653,7 +692,7 @@
       "http": 200,
       "code": 200,
       "expected": "HTTP 200 + code 200 (upload PNG avatar)",
-      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": \"http://192.168.0.3:9000/anime-tracker/avatars/b2f855cc-1ade-4fd3-a04d-4e67409ad858.png\"}",
+      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": \"http://192.168.0.3:9000/anime-tracker/avatars/c3ad9068-8d59-42bd-bc4b-bf61a851272b.png\"}",
       "note": "upload PNG avatar",
       "executed": true
     },
@@ -718,7 +757,7 @@
       "http": 200,
       "code": 200,
       "expected": "HTTP 200 + code 200 (dashboard overview)",
-      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": {\"userCount\": 3, \"subjectCount\": 19361, \"collectionCount\": 5, \"episodeCount\": 258567, \"importCount\": 39, \"todayNewUsers\": 0, \"todayNewCollections\": 0, \"todayLogins\": 51}}",
+      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": {\"userCount\": 3, \"subjectCount\": 19361, \"collectionCount\": 5, \"episodeCount\": 258567, \"importCount\": 39, \"todayNewUsers\": 0, \"todayNewCollections\": 0, \"todayLogins\": 61}}",
       "note": "dashboard overview",
       "executed": true
     },
@@ -835,27 +874,27 @@
       "http": 200,
       "code": 200,
       "expected": "HTTP 200 + code 200 (create subject)",
-      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": {\"id\": 2086092151828480596, \"name\": \"API contract subject\", \"nameCn\": \"API contract subject CN\", \"eps\": 12, \"airDate\": \"2026-08-15\", \"type\": 2, \"bangumiId\": 90477200, \"summary\"",
+      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": {\"id\": 2086092151828480597, \"name\": \"API contract subject\", \"nameCn\": \"API contract subject CN\", \"eps\": 12, \"airDate\": \"2026-08-15\", \"type\": 2, \"bangumiId\": 98073813, \"summary\"",
       "note": "create subject",
       "executed": true
     },
     {
       "id": "API-ADMIN-SUBJECT-UPDATE-001",
       "method": "POST",
-      "path": "/api/admin/subjects/2086092151828480596/update",
+      "path": "/api/admin/subjects/2086092151828480597/update",
       "path_template": "/api/admin/subjects/{id}/update",
       "status": "PASS",
       "http": 200,
       "code": 200,
       "expected": "HTTP 200 + code 200 (update subject)",
-      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": {\"id\": 2086092151828480596, \"name\": \"API contract subject updated\", \"nameCn\": \"API contract subject CN\", \"eps\": 13, \"airDate\": \"2026-08-15\", \"type\": 2, \"bangumiId\": 90477200, \"",
+      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": {\"id\": 2086092151828480597, \"name\": \"API contract subject updated\", \"nameCn\": \"API contract subject CN\", \"eps\": 13, \"airDate\": \"2026-08-15\", \"type\": 2, \"bangumiId\": 98073813, \"",
       "note": "update subject",
       "executed": true
     },
     {
       "id": "API-ADMIN-SUBJECT-REMOVE-001",
       "method": "POST",
-      "path": "/api/admin/subjects/2086092151828480596/remove",
+      "path": "/api/admin/subjects/2086092151828480597/remove",
       "path_template": "/api/admin/subjects/{id}/remove",
       "status": "PASS",
       "http": 200,
@@ -922,12 +961,12 @@
       "method": "GET",
       "path": "/api/client/agent/sessions",
       "path_template": "/api/client/agent/sessions",
-      "status": "LIMITED",
-      "http": 500,
-      "code": 500,
-      "expected": "environment-dependent",
-      "actual": "http=500 code=500 body={\"code\": 500, \"message\": \"Agent \\u8bf7\\u6c42\\u5931\\u8d25: Internal Server Error\"}",
-      "note": "Python agent :8090 not running; business proxy returned 500",
+      "status": "PASS",
+      "http": 200,
+      "code": 200,
+      "expected": "HTTP 200",
+      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": []}",
+      "note": "agent proxy reachable",
       "executed": true
     },
     {
@@ -935,12 +974,12 @@
       "method": "POST",
       "path": "/api/client/agent/sessions",
       "path_template": "/api/client/agent/sessions",
-      "status": "LIMITED",
-      "http": 500,
-      "code": 500,
-      "expected": "environment-dependent",
-      "actual": "http=500 code=500 body={\"code\": 500, \"message\": \"Agent \\u8bf7\\u6c42\\u5931\\u8d25: Internal Server Error\"}",
-      "note": "Python agent :8090 not running; business proxy returned 500",
+      "status": "PASS",
+      "http": 200,
+      "code": 200,
+      "expected": "HTTP 200",
+      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": {\"session_id\": \"ffbfc314-43a2-4965-b7a4-1d37103f0048\"}}",
+      "note": "agent proxy reachable",
       "executed": true
     },
     {
@@ -952,7 +991,7 @@
       "http": 500,
       "code": null,
       "expected": "environment-dependent",
-      "actual": "http=500 code=None body={\"timestamp\": \"2026-08-15 10:21:21\", \"status\": 500, \"error\": \"Internal Server Error\", \"path\": \"/api/client/agent/stream\"}",
+      "actual": "http=500 code=None body={\"timestamp\": \"2026-08-15 23:34:34\", \"status\": 500, \"error\": \"Internal Server Error\", \"path\": \"/api/client/agent/stream\"}",
       "note": "Python agent :8090 not running; business proxy returned 500",
       "executed": true
     },
@@ -987,12 +1026,12 @@
       "method": "GET",
       "path": "/api/admin/agent/chat/sessions",
       "path_template": "/api/admin/agent/chat/sessions",
-      "status": "LIMITED",
-      "http": 500,
-      "code": 500,
-      "expected": "environment-dependent",
-      "actual": "http=500 code=500 body={\"code\": 500, \"message\": \"Agent \\u8bf7\\u6c42\\u5931\\u8d25: Internal Server Error\"}",
-      "note": "Python agent :8090 not running; business proxy returned 500",
+      "status": "PASS",
+      "http": 200,
+      "code": 200,
+      "expected": "HTTP 200",
+      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": []}",
+      "note": "agent proxy reachable",
       "executed": true
     },
     {
@@ -1000,12 +1039,12 @@
       "method": "POST",
       "path": "/api/admin/agent/chat/sessions",
       "path_template": "/api/admin/agent/chat/sessions",
-      "status": "LIMITED",
-      "http": 500,
-      "code": 500,
-      "expected": "environment-dependent",
-      "actual": "http=500 code=500 body={\"code\": 500, \"message\": \"Agent \\u8bf7\\u6c42\\u5931\\u8d25: Internal Server Error\"}",
-      "note": "Python agent :8090 not running; business proxy returned 500",
+      "status": "PASS",
+      "http": 200,
+      "code": 200,
+      "expected": "HTTP 200",
+      "actual": "http=200 code=200 body={\"code\": 200, \"message\": \"success\", \"data\": {\"session_id\": \"be280035-566a-4cce-9ce2-741fe1168ff9\"}}",
+      "note": "agent proxy reachable",
       "executed": true
     },
     {
@@ -1017,7 +1056,7 @@
       "http": 500,
       "code": null,
       "expected": "environment-dependent",
-      "actual": "http=500 code=None body={\"timestamp\": \"2026-08-15 10:21:28\", \"status\": 500, \"error\": \"Internal Server Error\", \"path\": \"/api/admin/agent/chat/stream\"}",
+      "actual": "http=500 code=None body={\"timestamp\": \"2026-08-15 23:34:34\", \"status\": 500, \"error\": \"Internal Server Error\", \"path\": \"/api/admin/agent/chat/stream\"}",
       "note": "Python agent :8090 not running; business proxy returned 500",
       "executed": true
     },

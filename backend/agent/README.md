@@ -76,17 +76,18 @@ backend/agent/
     │       ├── search.py    # search_agent + 搜索工具
     │       ├── discover.py  # discover_agent + 发现工具
     │       ├── recommend.py # recommend_agent
-    │       └── collections.py # user_collections_tools（InjectedState 注入用户态）
+    │       └── collections.py # user_collections_tools + 追番进度预览/执行/取消工具
     ├── core/
     │   ├── agent_runtime.py # agent_invoke / agent_stream / _run_async
     │   ├── event_bus.py     # ContextVar 事件总线
     │   ├── middleware.py    # tool_call_status 装饰器 + build_tool_status_middleware
+    │   ├── pending_action.py# PendingAction 事件收集（ContextVar set/reset + emit_*）
     │   ├── prompt_sync.py   # 托管提示词 Redis 优先本地回退
     │   ├── runtime_config.py# 运行时模型配置（Redis + 短 TTL 缓存）
     │   └── streaming.py     # 精简流式引擎 → SSE
     ├── db/
-    │   ├── base.py          # async ChatStore 抽象
-    │   ├── redis_store.py   # Redis 实现（会话 / 消息）
+    │   ├── base.py          # async ChatStore 抽象（含 get/save/delete_pending_action）
+    │   ├── redis_store.py   # Redis 实现（会话 / 消息 / 待确认动作）
     │   └── models.py
     ├── llm/models.py        # LLM 工厂（create_llm）+ ChatTongyi 流式补丁
     ├── schemas/             # auth / chat / session / sse_response / admin_config
@@ -108,6 +109,33 @@ backend/agent/
 | `meta` | 对象 | 预留扩展 |
 
 `used_tools` 的唯一权威来源是流式引擎消费方（`on_answer_completed` 回调）聚合，节点不返回。
+
+## 追番进度更新（待确认动作）
+
+用户端的「本周追番进度更新」采用**两段式确认**：预览不改库、确认才写库，中间状态在 Redis 持久化，跨对话轮次保持。
+
+### 流程
+
+```
+用户:「我把本周已经更新的追番都看完了」
+  └─► recommend_agent 调用 preview_weekly_collection_progress
+        ├─ 业务端 POST /api/client/collections/progress-preview 生成 previewId（10 分钟 TTL）
+        ├─ 本服务把 PendingAction 写入 Redis 键 agent:pending-action:{session_id}（TTL 600s）
+        └─ 向用户展示明细并询问确认
+用户:「确认」
+  └─► gateway_router 检测到待确认动作 + 明确确认 → 确定性强制路由 recommend_agent（不走 LLM 路由）
+        └─ recommend_agent 调用 execute_weekly_collection_progress（previewId 由系统注入）
+              ├─ COMPLETED         → 清理待确认状态，按 成功/跳过/失败 分类汇报
+              ├─ PREVIEW_CHANGED   → 更新 PendingAction 为新预览，先向用户展示并再次确认
+              └─ 用户含糊/否定/预览过期 → 不执行；cancel_weekly_collection_progress 仅清理本地状态
+```
+
+### 关键点
+
+- **待确认状态**：`PendingAction`（`app/db/models.py`）经 `ChatStore.save_pending_action` 持久化到 Redis，`ChatService` 在每次会话开始时注入 `pending_action` / `pending_preview_id` 到 AgentState。
+- **强制路由**：`gateway.py` 的 `_resolve_forced_pending_route` 对「待确认 + 明确确认」确定性返回 `recommend_agent`，与图路由 `_route_from_gateway` 期望的 `{"routing": {...}}` 结构一致，避免 LLM 把「确认」路由到其他 Agent。
+- **工具**：`collections.py` 追加 `preview_weekly_collection_progress` / `execute_weekly_collection_progress` / `cancel_weekly_collection_progress`，共用 `_preview_data_to_pending_action` 构造待确认状态；`execute` 的 `preview_id` 参数用 `InjectedState("pending_preview_id")` 注入，Agent 不得自行编造。
+- **提示词**：`recommend_agent_prompt.md` 增加「追番进度更新（待确认动作）」约束；`run.py` 的 `_build_pending_context` 把 previewId 与明细注入系统提示词。
 
 ## 托管提示词（Redis + 本地回退）
 

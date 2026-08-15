@@ -27,7 +27,7 @@ business/
 | common | `animetracker-common` | 统一响应 `Result`/`PageResult`、全局异常处理、`JwtTokenProvider`/`JwtAuthenticationFilter`、RedisUtil、Security/Cors/MinIO 配置、`@OperationLog` 操作审计、`@RateLimit` 限流、`FileController`（MinIO 上传） |
 | pojo | `animetracker-pojo` | `entity`（Subject、Episode、SubjectTag、SubjectRelation、User、UserCollection、ImportRecord、OperationLog）、`dto`（入参）、`vo`（出参） |
 | admin | `animetracker-admin` | `AdminSubjectController`/`AdminUserController`/`AdminDashboardController`/`ImportController`/`AdminLogController` + Service/Converter/Mapper |
-| client | `animetracker-client` | `AuthController`/`SubjectController`/`CollectionController`/`TagController`/`UserController` + Service/Converter/Mapper |
+| client | `animetracker-client` | `AuthController`/`SubjectController`/`CollectionController`/`CollectionProgressController`/`TagController`/`UserController` + Service/Converter/Mapper |
 | agent | `animetracker-agent` | `ClientAgentController`（`/api/client/agent/*`）+ `AdminAgentController`（`/api/admin/agent/*`）+ `AgentService`：转发至 Python Agent（默认 `localhost:8090`），SSE 流式透传 |
 | app | `animetracker-app` | 聚合 admin + client + agent，主类 `top.zhaizz.app.AppApplication`（`@MapperScan("top.zhaizz.**.mapper")`、`@EnableScheduling`） |
 
