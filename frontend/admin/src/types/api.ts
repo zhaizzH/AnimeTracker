@@ -140,6 +140,7 @@ export interface OperationLogVO {
   module: string;
   method: string;
   path: string;
+  params: string | null;
   ip: string;
   userAgent: string;
   status: number;
@@ -208,6 +209,13 @@ export interface HotSubjectVO {
   nameCn: string;
   image: string | null;
   collectionCount: number;
+}
+
+/** 图表展示项（由 VO 映射而来，非接口契约） */
+export interface TypeCount {
+  label: string;
+  value: number;
+  color: string;
 }
 
 export interface AgentPrompt {

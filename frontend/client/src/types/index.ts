@@ -60,10 +60,6 @@ export interface ResetPasswordDTO {
   newPassword: string;
 }
 
-export interface RefreshTokenDTO {
-  refreshToken: string;
-}
-
 export interface UpdateUserDTO {
   nickname?: string;
   avatar?: string;

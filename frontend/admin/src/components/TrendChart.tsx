@@ -1,4 +1,4 @@
-import type { TrendPoint } from '../mock/dashboard';
+import type { TrendPointVO as TrendPoint } from '../types/api';
 
 interface TrendChartProps {
   data: TrendPoint[];

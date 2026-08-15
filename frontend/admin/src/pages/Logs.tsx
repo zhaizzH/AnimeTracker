@@ -12,7 +12,7 @@ function methodCls(method: string): string {
   return method.toLowerCase();
 }
 
-const knownModules = ['AUTH', 'SUBJECT', 'IMPORT', 'ADMIN', 'AGENT', 'COLLECTION'];
+const knownModules = ['AUTH', 'SUBJECT', 'IMPORT', 'ADMIN', 'AGENT', 'USER', 'FILE'];
 const knownActions = [
   'LOGIN',
   'LOGOUT',
@@ -24,6 +24,11 @@ const knownActions = [
   'SUBJECT_CREATE',
   'SUBJECT_UPDATE',
   'SUBJECT_DELETE',
+  'PROMPT_UPDATE',
+  'PROMPT_RESET',
+  'CONFIG_UPDATE',
+  'PASSWORD_CHANGE',
+  'FILE_UPLOAD',
 ];
 
 
@@ -404,6 +409,10 @@ export default function Logs() {
             <div className="detail-item">
               <span>请求方法</span>
               <div className="mono">{detail.method}</div>
+            </div>
+            <div className="detail-item">
+              <span>请求参数</span>
+              <div className="mono">{detail.params ?? '-'}</div>
             </div>
             <div className="detail-item">
               <span>模块</span>

@@ -1,7 +1,6 @@
 import http from './client';
 
 export const agentApi = {
-  health: () => http.get('/client/agent/health'),
   sessions: () => http.get('/client/agent/sessions'),
   createSession: () => http.post('/client/agent/sessions'),
   history: (sessionId: string) => http.get(`/client/agent/sessions/${sessionId}/history`),

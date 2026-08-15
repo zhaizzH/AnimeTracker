@@ -1,5 +1,5 @@
 import http from './client';
-import type { LoginVO, LoginDTO, RegisterDTO, VerifyEmailDTO, ResendCodeDTO, ForgotPasswordDTO, ResetPasswordDTO, RefreshTokenDTO } from '@/types';
+import type { LoginVO, LoginDTO, RegisterDTO, VerifyEmailDTO, ResendCodeDTO, ForgotPasswordDTO, ResetPasswordDTO } from '@/types';
 
 export const authApi = {
   register: (data: RegisterDTO) => http.post('/client/auth/register', data),
@@ -8,6 +8,5 @@ export const authApi = {
   login: (data: LoginDTO) => http.post<LoginVO>('/client/auth/login', data),
   forgotPassword: (data: ForgotPasswordDTO) => http.post('/client/auth/forgot-password', data),
   resetPassword: (data: ResetPasswordDTO) => http.post('/client/auth/reset-password', data),
-  refresh: (data: RefreshTokenDTO) => http.post<LoginVO>('/client/auth/refresh', data),
   logout: () => http.post('/client/auth/logout'),
 };

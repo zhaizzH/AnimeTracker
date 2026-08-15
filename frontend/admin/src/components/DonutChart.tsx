@@ -1,4 +1,4 @@
-import type { TypeCount } from '../mock/dashboard';
+import type { TypeCount } from '../types/api';
 
 interface DonutChartProps {
   items: TypeCount[];

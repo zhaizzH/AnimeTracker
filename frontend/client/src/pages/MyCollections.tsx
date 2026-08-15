@@ -90,6 +90,11 @@ export default function MyCollections() {
     }),
   });
 
+  const { data: counts } = useQuery({
+    queryKey: ['collections', 'counts'],
+    queryFn: () => collectionsApi.counts(),
+  });
+
   const items: UserCollectionVO[] = (data as any)?.content || [];
   const total = (data as any)?.total || 0;
 
@@ -111,7 +116,10 @@ export default function MyCollections() {
         className="paper-tabs"
         activeKey={type}
         onChange={val => { setType(val); setPage(1); }}
-        items={typeTabs.map(t => ({ key: t.key, label: t.label }))}
+        items={typeTabs.map(t => {
+          const n = t.key === '' ? Object.values(counts ?? {}).reduce((a, b) => a + b, 0) : counts?.[t.key];
+          return { key: t.key, label: n != null ? `${t.label} ${n}` : t.label };
+        })}
       />
 
       <div className="index-result-line">
