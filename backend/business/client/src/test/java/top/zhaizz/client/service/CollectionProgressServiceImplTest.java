@@ -40,6 +40,8 @@ class CollectionProgressServiceImplTest {
     private CollectionProgressCalculator calculator;
     @Mock
     private ProgressPreviewStore store;
+    @Mock
+    private CollectionProgressItemExecutor itemExecutor;
 
     private Clock clock;
     private CollectionProgressServiceImpl service;
@@ -47,7 +49,7 @@ class CollectionProgressServiceImplTest {
     @BeforeEach
     void setUp() {
         clock = Clock.fixed(Instant.parse("2026-08-15T04:00:00Z"), SHANGHAI);
-        service = new CollectionProgressServiceImpl(calculator, store, clock);
+        service = new CollectionProgressServiceImpl(calculator, store, itemExecutor, clock);
     }
 
     @Test
@@ -79,7 +81,7 @@ class CollectionProgressServiceImplTest {
     void createPreviewOnMondayPassesCutoffBeforeWeekStartAndProducesEmptyPreview() {
         // 2026-08-16T16:00:00Z = 2026-08-17T00:00+08:00（周一）
         clock = Clock.fixed(Instant.parse("2026-08-16T16:00:00Z"), SHANGHAI);
-        service = new CollectionProgressServiceImpl(calculator, store, clock);
+        service = new CollectionProgressServiceImpl(calculator, store, itemExecutor, clock);
         when(calculator.calculate(7L, LocalDate.of(2026, 8, 17), LocalDate.of(2026, 8, 16)))
                 .thenReturn(List.of());
 
