@@ -75,7 +75,7 @@ public class CollectionServiceImpl implements CollectionService {
 
     @Override
     @Transactional
-    public void saveOrUpdate(Long userId, Long subjectId, CollectionUpdateDTO dto) {
+    public void saveOrUpdate(Long userId, Long subjectId, CollectionUpdateDTO request) {
         if (subjectMapper.selectById(subjectId) == null) {
             throw new BizException(ErrorType.NOT_FOUND, "条目不存在");
         }
@@ -87,9 +87,9 @@ public class CollectionServiceImpl implements CollectionService {
 
         // 仅当完全无变化的重复提交（同类型且评分/进度均未改动）才视为冲突返回 409；修改评分、进度或换类型都是合法更新
         if (existing != null
-                && Objects.equals(existing.getType(), dto.getType())
-                && (dto.getRate() == null || Objects.equals(existing.getRate(), dto.getRate()))
-                && (dto.getEpStatus() == null || Objects.equals(existing.getEpStatus(), dto.getEpStatus()))) {
+                && Objects.equals(existing.getType(), request.getType())
+                && (request.getRate() == null || Objects.equals(existing.getRate(), request.getRate()))
+                && (request.getEpStatus() == null || Objects.equals(existing.getEpStatus(), request.getEpStatus()))) {
             throw new BizException(ErrorType.CONFLICT, "该条目已收藏，请勿重复收藏");
         }
 
@@ -97,16 +97,16 @@ public class CollectionServiceImpl implements CollectionService {
             UserCollection entity = new UserCollection();
             entity.setUserId(userId);
             entity.setSubjectId(subjectId);
-            entity.setType(dto.getType());
-            entity.setRate(dto.getRate() != null ? dto.getRate() : 0);
-            entity.setEpStatus(dto.getEpStatus() != null ? dto.getEpStatus() : 0);
+            entity.setType(request.getType());
+            entity.setRate(request.getRate() != null ? request.getRate() : 0);
+            entity.setEpStatus(request.getEpStatus() != null ? request.getEpStatus() : 0);
             entity.setCreatedAt(java.time.LocalDateTime.now());
             entity.setUpdatedAt(entity.getCreatedAt());
             collectionMapper.insert(entity);
         } else {
-            existing.setType(dto.getType());
-            if (dto.getRate() != null) existing.setRate(dto.getRate());
-            if (dto.getEpStatus() != null) existing.setEpStatus(dto.getEpStatus());
+            existing.setType(request.getType());
+            if (request.getRate() != null) existing.setRate(request.getRate());
+            if (request.getEpStatus() != null) existing.setEpStatus(request.getEpStatus());
             existing.setUpdatedAt(java.time.LocalDateTime.now());
             collectionMapper.updateById(existing);
         }

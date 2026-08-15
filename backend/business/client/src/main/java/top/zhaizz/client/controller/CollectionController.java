@@ -58,9 +58,9 @@ public class CollectionController {
     @PostMapping("/{subjectId}/save")
     public Result<Void> saveOrUpdate(
             @PathVariable Long subjectId,
-            @Valid @RequestBody CollectionUpdateDTO dto) {
+            @Valid @RequestBody CollectionUpdateDTO request) {
         Long userId = SecurityUtil.getCurrentUserId();
-        collectionService.saveOrUpdate(userId, subjectId, dto);
+        collectionService.saveOrUpdate(userId, subjectId, request);
         return Result.success();
     }
 

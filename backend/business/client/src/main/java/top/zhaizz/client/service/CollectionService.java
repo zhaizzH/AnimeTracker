@@ -21,7 +21,7 @@ public interface CollectionService {
     UserCollectionVO getCollection(Long userId, Long subjectId);
 
     /** 新增或修改收藏 */
-    void saveOrUpdate(Long userId, Long subjectId, CollectionUpdateDTO dto);
+    void saveOrUpdate(Long userId, Long subjectId, CollectionUpdateDTO request);
 
     /** 删除收藏 */
     void deleteCollection(Long userId, Long subjectId);
