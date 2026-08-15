@@ -30,6 +30,13 @@ public class RedisUtil {
     }
 
     /**
+     * 键不存在时设置并返回 true，已存在则返回 false（SET NX，用于分布式锁）
+     */
+    public boolean setIfAbsent(String key, String value, long ttl, TimeUnit unit) {
+        return Boolean.TRUE.equals(stringRedisTemplate.opsForValue().setIfAbsent(key, value, ttl, unit));
+    }
+
+    /**
      * 通过键获取对应的值
      */
     public String get(String key) {
