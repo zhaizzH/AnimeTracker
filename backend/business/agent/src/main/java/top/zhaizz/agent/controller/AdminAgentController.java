@@ -7,6 +7,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.agent.service.AgentService;
+import top.zhaizz.common.constant.OperationLogConstants;
+import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.result.Result;
 
 import static top.zhaizz.common.constant.AgentApiPaths.*;
@@ -44,6 +46,7 @@ public class AdminAgentController {
     /**
      * 更新提示词
      */
+    @OperationLog(action = OperationLogConstants.ACTION_PROMPT_UPDATE, module = OperationLogConstants.MODULE_AGENT)
     @PostMapping("/prompts/{key}/update")
     public Result<?> updatePrompt(@PathVariable String key, @RequestBody Map<String, Object> body,
                                   @RequestHeader("Authorization") String auth) {
@@ -54,6 +57,7 @@ public class AdminAgentController {
     /**
      * 重置提示词为默认
      */
+    @OperationLog(action = OperationLogConstants.ACTION_PROMPT_RESET, module = OperationLogConstants.MODULE_AGENT)
     @PostMapping("/prompts/{key}/reset")
     public Result<?> resetPrompt(@PathVariable String key, @RequestHeader("Authorization") String auth) {
         return agentService.wrapResult(agentService.forward(
@@ -71,6 +75,7 @@ public class AdminAgentController {
     /**
      * 更新模型配置
      */
+    @OperationLog(action = OperationLogConstants.ACTION_CONFIG_UPDATE, module = OperationLogConstants.MODULE_AGENT)
     @PostMapping("/config/update")
     public Result<?> updateConfig(@RequestBody Map<String, Object> body, @RequestHeader("Authorization") String auth) {
         return agentService.wrapResult(agentService.forward(

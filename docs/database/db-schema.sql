@@ -191,7 +191,7 @@ CREATE TABLE `operation_log`  (
   `ip`          varchar(64)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '客户端 IP',
   `user_agent`  varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'User-Agent',
   `status`      tinyint      NOT NULL DEFAULT 0 COMMENT '0=成功, 1=失败',
-  `error_msg`   varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '失败原因',
+  `error_msg`   text         CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '失败原因',
   `duration_ms` bigint       NULL DEFAULT NULL COMMENT '耗时(毫秒)',
   `created_at`  datetime     NOT NULL COMMENT '创建时间',
   PRIMARY KEY (`id`) USING BTREE,

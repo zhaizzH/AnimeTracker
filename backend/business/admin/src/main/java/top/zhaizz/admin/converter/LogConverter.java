@@ -27,6 +27,7 @@ public class LogConverter {
         vo.setModule(e.getModule());
         vo.setMethod(e.getMethod());
         vo.setPath(e.getPath());
+        vo.setParams(e.getParams());
         vo.setIp(e.getIp());
         vo.setUserAgent(e.getUserAgent());
         vo.setStatus(e.getStatus());

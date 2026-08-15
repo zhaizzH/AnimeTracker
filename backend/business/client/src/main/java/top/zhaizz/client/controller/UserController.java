@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.client.service.ClientUserService;
 import top.zhaizz.client.service.VerificationService;
+import top.zhaizz.common.constant.OperationLogConstants;
+import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.common.util.SecurityUtil;
 import top.zhaizz.pojo.dto.auth.ChangeEmailSendCodeDTO;
@@ -45,6 +47,7 @@ public class UserController {
     /**
      * 修改当前登录用户密码
      */
+    @OperationLog(action = OperationLogConstants.ACTION_PASSWORD_CHANGE, module = OperationLogConstants.MODULE_USER)
     @PostMapping("/update-password")
     public Result<Void> changePassword(@Valid @RequestBody ChangePasswordDTO request) {
         Long userId = SecurityUtil.getCurrentUserId();

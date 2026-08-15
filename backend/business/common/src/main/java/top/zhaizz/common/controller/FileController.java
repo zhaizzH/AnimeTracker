@@ -7,8 +7,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import top.zhaizz.common.constant.ErrorType;
+import top.zhaizz.common.constant.OperationLogConstants;
 import top.zhaizz.common.config.MinioProperties;
 import top.zhaizz.common.exception.BizException;
+import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.result.Result;
 
 import java.util.List;
@@ -32,6 +34,7 @@ public class FileController {
     /**
      * 上传图片到 MinIO 并返回访问 URL；type 限定 avatar/cover，仅接受 JPG/PNG/WebP
      */
+    @OperationLog(action = OperationLogConstants.ACTION_FILE_UPLOAD, module = OperationLogConstants.MODULE_FILE)
     @PostMapping("/upload")
     public Result<String> upload(
             @RequestParam("file") MultipartFile file,

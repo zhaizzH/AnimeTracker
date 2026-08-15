@@ -16,6 +16,7 @@ public class OperationLogVO {
     private String module;      // 模块
     private String method;      // HTTP 方法
     private String path;        // 请求路径
+    private String params;      // 请求参数 JSON（脱敏）
     private String ip;          // 客户端 IP
     private String userAgent;   // User-Agent
     private Integer status;     // 0=成功, 1=失败
