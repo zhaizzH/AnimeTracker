@@ -4,6 +4,7 @@ import logging
 from fastapi.responses import StreamingResponse
 from langchain_core.messages import AIMessage, HumanMessage
 
+from app.core.pending_action import PendingActionEvent
 from app.core.streaming import StreamConfig, create_streaming_response
 from app.schemas.auth import UserInfo
 
@@ -37,14 +38,20 @@ class ChatService:
 
         user = UserInfo(user_id=user_id, username="", role=role, token=token)
 
+        pending_action = await self.store.get_pending_action(session_id, user_id)
+
         def build_initial_state() -> dict:
-            return {
+            state = {
                 "user": user,
                 "history_messages": history_messages,
                 "current_question": content,
                 "routing": None,
                 "result": "",
+                "session_id": session_id,
+                "pending_action": pending_action,
+                "pending_preview_id": pending_action.preview_id if pending_action is not None else None,
             }
+            return state
 
         async def on_answer_completed(answer_text: str, used_tools: list[str]) -> None:
             await self.store.save_message(
@@ -54,11 +61,18 @@ class ChatService:
                 json.dumps(used_tools) if used_tools else None,
             )
 
+        async def on_pending_action(event: PendingActionEvent) -> None:
+            if event.operation == "CLEAR":
+                await self.store.delete_pending_action(session_id, user_id)
+            elif event.action is not None:
+                await self.store.save_pending_action(session_id, event.action, ttl_seconds=600)
+
         config = StreamConfig(
             workflow=self.graph,
             build_initial_state=build_initial_state,
             extract_final_content=lambda s: str(s.get("result") or ""),
             map_exception=lambda exc: "处理请求时出错，请重试",
             on_answer_completed=on_answer_completed,
+            on_pending_action=on_pending_action,
         )
         return create_streaming_response(config)

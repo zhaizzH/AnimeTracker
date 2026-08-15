@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import redis
 
 from app.db.base import ChatStore
-from app.db.models import Message, Session
+from app.db.models import Message, PendingAction, Session
 
 # ponytail: datetime.now() has microsecond resolution; back-to-back writes can share
 # a timestamp and break "most recent first" session ordering. Guard makes updated_at
@@ -36,6 +36,9 @@ class RedisStore(ChatStore):
 
     def _user_sessions_key(self, user_id: int) -> str:
         return f"agent:user_sessions:{user_id}"
+
+    def _pending_action_key(self, session_id: str) -> str:
+        return f"agent:pending-action:{session_id}"
 
     async def init_db(self):
         await self._r.ping()
@@ -97,8 +100,30 @@ class RedisStore(ChatStore):
 
     async def delete_session(self, session_id: str, user_id: int):
         await self._r.delete(self._messages_key(session_id))
+        await self._r.delete(self._pending_action_key(session_id))
         await self._r.srem(self._user_sessions_key(user_id), session_id)
         await self._r.delete(self._session_key(session_id))
+
+    async def get_pending_action(self, session_id: str, user_id: int) -> PendingAction | None:
+        raw = await self._r.get(self._pending_action_key(session_id))
+        if not raw:
+            return None
+        action = PendingAction.model_validate_json(raw)
+        if action.user_id != user_id:
+            return None
+        return action
+
+    async def save_pending_action(self, session_id: str, action: PendingAction, ttl_seconds: int = 600):
+        await self._r.set(
+            self._pending_action_key(session_id),
+            action.model_dump_json(),
+            ex=ttl_seconds,
+        )
+
+    async def delete_pending_action(self, session_id: str, user_id: int):
+        raw = await self._r.get(self._pending_action_key(session_id))
+        if raw and PendingAction.model_validate_json(raw).user_id == user_id:
+            await self._r.delete(self._pending_action_key(session_id))
 
     async def update_session_title(self, session_id: str, title: str):
         await self._r.hset(self._session_key(session_id), "title", title)

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.db.models import Message, Session
+from app.db.models import Message, PendingAction, Session
 
 
 class ChatStore(ABC):
@@ -26,3 +26,12 @@ class ChatStore(ABC):
 
     @abstractmethod
     async def update_session_title(self, session_id: str, title: str): ...
+
+    @abstractmethod
+    async def get_pending_action(self, session_id: str, user_id: int) -> PendingAction | None: ...
+
+    @abstractmethod
+    async def save_pending_action(self, session_id: str, action: PendingAction, ttl_seconds: int = 600): ...
+
+    @abstractmethod
+    async def delete_pending_action(self, session_id: str, user_id: int): ...

@@ -6,6 +6,12 @@ from typing import Any, Awaitable, Callable
 from fastapi.responses import StreamingResponse
 
 from app.core.event_bus import reset_status_emitter, set_status_emitter
+from app.core.pending_action import (
+    PendingActionEvent,
+    get_pending_action_event,
+    reset_pending_action_collector,
+    set_pending_action_collector,
+)
 from app.schemas.sse_response import AssistantResponse, Content, MessageType, serialize_sse
 
 logger = logging.getLogger(__name__)
@@ -18,6 +24,7 @@ class StreamConfig:
     extract_final_content: Callable[[dict], str] | None = None
     map_exception: Callable[[Exception], str] | None = None
     on_answer_completed: Callable[[str, list[str]], Awaitable[None] | None] | None = None
+    on_pending_action: Callable[[PendingActionEvent], Awaitable[None] | None] | None = None
 
 
 def _build_emitted_response(payload: dict) -> AssistantResponse | None:
@@ -59,6 +66,7 @@ def create_streaming_response(config: StreamConfig) -> StreamingResponse:
                 loop.call_soon_threadsafe(queue.put_nowait, ("emitted", payload))
 
         emitter_token = set_status_emitter(emitter)
+        pending_token = set_pending_action_collector()
         latest_state: dict = {}
         aggregated_answer: list[str] = []
         used_tools: list[str] = []
@@ -115,9 +123,18 @@ def create_streaming_response(config: StreamConfig) -> StreamingResponse:
                     await config.on_answer_completed("".join(aggregated_answer), used_tools)
                 except Exception:
                     pass  # 落库失败不阻塞流结束
+
+            if config.on_pending_action is not None:
+                try:
+                    event = get_pending_action_event()
+                    if event is not None:
+                        await config.on_pending_action(event)
+                except Exception:
+                    pass  # 待确认动作持久化失败不阻塞流结束
             yield serialize_sse(AssistantResponse(content=Content(), is_end=True))
         finally:
             reset_status_emitter(emitter_token)
+            reset_pending_action_collector(pending_token)
             if not producer.done():
                 producer.cancel()
 
