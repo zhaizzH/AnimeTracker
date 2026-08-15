@@ -17,7 +17,7 @@ def _pending(preview_id="p1", user_id=7):
 
 def test_pending_confirmation_forces_recommend_agent():
     state = {"pending_action": _pending(), "current_question": "确认"}
-    assert gateway._resolve_forced_pending_route(state) == {"route_target": "recommend_agent"}
+    assert gateway._resolve_forced_pending_route(state) == {"routing": {"route_target": "recommend_agent"}}
 
 
 def test_no_pending_action_does_not_force_route():
@@ -38,7 +38,7 @@ def test_is_explicit_confirmation_rejects_negation_and_vague_text():
 
 def test_gateway_router_returns_before_llm_when_pending_confirmation():
     state = {"pending_action": _pending(), "current_question": "确认", "history_messages": []}
-    assert gateway.gateway_router(state) == {"route_target": "recommend_agent"}
+    assert gateway.gateway_router(state) == {"routing": {"route_target": "recommend_agent"}}
 
 
 def test_run_domain_agent_appends_pending_context_with_preview_id(monkeypatch):

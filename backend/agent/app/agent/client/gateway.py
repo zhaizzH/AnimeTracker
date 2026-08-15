@@ -36,7 +36,7 @@ def _resolve_forced_pending_route(state: AgentState) -> dict[str, str] | None:
         return None
     if not _is_explicit_confirmation(state.get("current_question") or ""):
         return None
-    return {"route_target": "recommend_agent"}
+    return {"routing": {"route_target": "recommend_agent"}}
 
 # 提示词含 JSON 示例花括号,不能走 str.format();仅替换占位符
 def _build_gateway_prompt(state: AgentState) -> str:
