@@ -72,6 +72,7 @@ export const copy = {
     viewAll: '查看全部',
     viewAllCollection: '查看全部追番',
     welcomeBack: '欢迎回来',
+    loadError: '首页加载失败，请稍后重试',
   },
 
   discovery: {

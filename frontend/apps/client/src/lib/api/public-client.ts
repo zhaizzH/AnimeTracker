@@ -63,15 +63,26 @@ export function createPublicApi(baseUrl: string) {
     cache: CacheOptions,
   ) => request<T>(buildUrl(baseUrl, url, params), cache);
 
+  const callWithTags =
+    (tags?: string[]) =>
+    <T>(url: string, params: object | undefined, cache: CacheOptions) =>
+      call<T>(url, params, { next: { ...cache.next, tags } });
+
   return {
-    listSubjects: (params?: QueryParams<'/api/client/subjects'>) =>
-      call<Data<'/api/client/subjects'>>('/api/client/subjects', params, { next: { revalidate: 300 } }),
+    listSubjects: (params?: QueryParams<'/api/client/subjects'>, tags?: string[]) =>
+      callWithTags(tags)<Data<'/api/client/subjects'>>('/api/client/subjects', params, {
+        next: { revalidate: 300 },
+      }),
     searchSubjects: (params?: QueryParams<'/api/client/subjects/search'>) =>
       call<Data<'/api/client/subjects/search'>>('/api/client/subjects/search', params, { next: { revalidate: 60 } }),
-    getSeason: (params?: QueryParams<'/api/client/subjects/season'>) =>
-      call<Data<'/api/client/subjects/season'>>('/api/client/subjects/season', params, { next: { revalidate: 3600 } }),
-    getSchedule: (params?: QueryParams<'/api/client/subjects/schedule'>) =>
-      call<Data<'/api/client/subjects/schedule'>>('/api/client/subjects/schedule', params, { next: { revalidate: 300 } }),
+    getSeason: (params?: QueryParams<'/api/client/subjects/season'>, tags?: string[]) =>
+      callWithTags(tags)<Data<'/api/client/subjects/season'>>('/api/client/subjects/season', params, {
+        next: { revalidate: 3600 },
+      }),
+    getSchedule: (params?: QueryParams<'/api/client/subjects/schedule'>, tags?: string[]) =>
+      callWithTags(tags)<Data<'/api/client/subjects/schedule'>>('/api/client/subjects/schedule', params, {
+        next: { revalidate: 300 },
+      }),
     getSubject: (id: number) =>
       call<Data<'/api/client/subjects/{id}'>>(`/api/client/subjects/${id}`, undefined, { next: { revalidate: 3600 } }),
     getEpisodes: (id: number) =>
@@ -81,7 +92,10 @@ export function createPublicApi(baseUrl: string) {
   };
 }
 
-/** 读取 BUSINESS_API_URL，非生产环境默认本地后端。 */
+/**
+ * 读取 BUSINESS_API_URL，非生产环境默认本地后端。
+ * 各方法可单独传入 Next 缓存标签（tags），写入该次请求的 fetch 缓存。
+ */
 export function getPublicApi() {
   return createPublicApi(process.env.BUSINESS_API_URL || DEFAULT_BASE_URL);
 }
