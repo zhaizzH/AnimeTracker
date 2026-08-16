@@ -1,0 +1,30 @@
+# ===================================================================
+# AnimeTracker 生产覆盖
+# 用法: docker compose -f compose.yml -f compose.prod.yml up -d
+# 作用: 仅 nginx 把 80/443 映射到宿主机;挂载 TLS 配置与证书;certbot
+#       通过 docker socket 平滑 reload nginx(续期后即时生效)。
+# ===================================================================
+services:
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN 未设置}
+    volumes:
+      - ./deploy/nginx/bootstrap.sh:/etc/nginx/bootstrap.sh:ro
+      - ./deploy/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - certbot-cert:/etc/letsencrypt
+      - certbot-webroot:/var/www/certbot
+    command: ["/bin/sh", "/etc/nginx/bootstrap.sh"]
+
+  certbot:
+    volumes:
+      - ./deploy/certbot/init-cert.sh:/opt/init-cert.sh:ro
+      - certbot-cert:/etc/letsencrypt
+      - certbot-webroot:/var/www/certbot
+      # 只读挂载 docker socket,用于续期成功后向 nginx 容器发送 SIGHUP
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN 未设置}
+      CERT_EMAIL: ${CERT_EMAIL:?CERT_EMAIL 未设置}
