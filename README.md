@@ -327,9 +327,58 @@ npm run dev                   # 开发服务器 http://localhost:5174
 
 ---
 
+## 生产部署与运维
+
+生产环境通过 **Docker Compose** 部署，仅 `nginx` 映射宿主机 `80/443`，其余服务走内部网络。
+部署与运维细节见 [`deploy/README.md`](deploy/README.md)，本节约略概述。
+
+### 部署文件
+
+| 文件 | 说明 |
+|------|------|
+| `compose.yml` | 基础编排（business / agent / mysql / redis / minio / nginx / certbot / demo-seeder） |
+| `compose.prod.yml` | 生产覆盖（80/443 端口、TLS 配置、certbot 平滑 reload） |
+| `.env.example` | 环境模板（复制为 `.env` 填写） |
+| `deploy/scripts/deploy.sh` | 一键部署（校验后 `git pull --ff-only` + `compose pull` + `up -d`） |
+| `deploy/scripts/backup.sh` | 每日/每周备份（MySQL 一致性转储 + MinIO 对象镜像，保留 7+4 份） |
+| `deploy/scripts/restore.sh` | 受保护恢复（先校验产物再覆盖，需交互确认或 `--yes`） |
+| `deploy/nginx/`、`deploy/certbot/` | 反向代理 / TLS 模板与证书续期 |
+| `deploy/demo-seeder/` | 演示数据写入（仅 `tools` profile 下显式运行） |
+
+### 首次部署
+
+```bash
+cp .env.example .env        # 填写必需密钥与 DOMAIN / BACKUP_PATH
+deploy/scripts/deploy.sh    # 校验通过后自动部署
+```
+
+- **必需密钥**：`MYSQL_PASSWORD`、`MYSQL_ROOT_PASSWORD`、`REDIS_PASSWORD`、`JWT_SECRET`、`MINIO_ACCESS_KEY`、`MINIO_SECRET_KEY`、`AT_ADMIN_SUPERADMIN_ID`、`DOMAIN`、`CERT_EMAIL`、`BACKUP_PATH`。
+- **LLM 密钥（至少一个）**：`DEEPSEEK_API_KEY` 或 `DASHSCOPE_API_KEY`。**优先级 DeepSeek > DashScope**，二者都为空时 Agent 启动失败。
+
+### 升级 / 回滚 / 备份恢复
+
+- 升级：重新运行 `deploy/scripts/deploy.sh`（快进合并 + 拉取镜像 + `up -d`）。
+- 回滚：`git checkout <上一版本标签>` 后再次 `deploy.sh`，或回退镜像 tag。
+- 备份：`deploy/scripts/backup.sh`（MySQL 一致性转储 + MinIO 镜像，校验和 + 7 日/4 周保留，目标目录必须位于仓库之外）。
+- 恢复：`deploy/scripts/restore.sh [--backup <目录>] [--yes]`，先校验产物、打印将被覆盖的数据，再要求确认。
+- 演练：**每月至少一次** `bash deploy/tests/test-scripts.sh` 验证恢复链路。
+
+### 可观测性与排障
+
+- 单行 JSON 结构化日志（`ts` / `level` / `service` / `traceId` / `logger` / `message`），同一请求在 Nginx → Business → Agent 各层共享 `X-Request-ID`。
+- 健康检查：Business liveness `/actuator/health/liveness`、readiness `/actuator/health/readiness`；Agent `/api/client/agent/health`。
+- **Agent 503**：仅影响 Agent 类请求，普通业务不受影响；按 `deploy/README.md` 第 13 节从 Agent 容器、Redis、LLM 配置、traceId 逐步排查。
+
+### CI / 发布
+
+- `.github/workflows/ci.yml`：PR / push 自动执行 Maven 测试、Agent pytest、两端前端构建、`docker compose config` 校验与全部镜像构建（不推送，无需真实密钥）。
+- `.github/workflows/release.yml`：仅版本标签（`v*`）触发，使用 `GITHUB_TOKEN` 构建并推送 GHCR 镜像（tag + commit SHA 双标签），记录镜像摘要；**不向任何主机 SSH**。
+
+---
+
 ## 项目状态与待办
 
 - ✅ 用户端前端（`frontend/client`）：功能完整，可生产构建。
 - ✅ 业务后端、AI Agent、数据导入：可用。
 - 🟡 管理端前端（`frontend/admin`）：预览版已就绪（登录与仪表盘已接入真实 API，番剧 / 用户 / 导入 / 日志 / Agent 配置页面陆续接入中）。
-- 🚧 容器化 / CI 流水线：尚未提供（欢迎贡献 `docker-compose.yml` 与 CI 配置）。
+- ✅ 容器化 / CI 流水线：已提供 `compose.yml` / `compose.prod.yml`、`deploy/` 运维脚本与 GitHub Actions（CI + 发布）。详见 [生产部署与运维](#生产部署与运维)。
