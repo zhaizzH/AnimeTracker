@@ -2,6 +2,8 @@ from datetime import datetime, timedelta
 
 from app.agent.client import gateway
 from app.agent import run
+from app.config import ResolvedLlmProviderConfig
+from pydantic import SecretStr
 from app.schemas.pending_action import CollectionProgressPendingAction
 
 
@@ -50,6 +52,16 @@ def test_run_domain_agent_appends_pending_context_with_preview_id(monkeypatch):
 
     monkeypatch.setattr(run, "create_agent", fake_create_agent)
     monkeypatch.setattr(run, "create_agent_chat_llm", lambda **k: object())
+    monkeypatch.setattr(
+        run,
+        "resolve_llm_provider",
+        lambda _settings: ResolvedLlmProviderConfig(
+            provider="deepseek",
+            api_key=SecretStr("test-key"),
+            model="test-model",
+            route_model="test-route-model",
+        ),
+    )
     monkeypatch.setattr(run, "agent_stream", lambda *a, **k: {"streamed_text": "已更新"})
 
     state = {"pending_action": _pending("p1"), "history_messages": []}

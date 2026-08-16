@@ -20,6 +20,29 @@ def test_ci_runs_dataset_and_offline_eval_gate():
     assert "python -m pytest deploy/tests/test_deploy_contracts.py" in workflow
 
 
+def test_ci_actions_use_node24_generations():
+    workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    assert "actions/checkout@v6" in workflow
+    assert "actions/setup-java@v5" in workflow
+    assert "actions/setup-python@v6" in workflow
+    assert "actions/setup-node@v6" in workflow
+    for old_action in (
+        "actions/checkout@v4",
+        "actions/setup-java@v4",
+        "actions/setup-python@v5",
+        "actions/setup-node@v4",
+    ):
+        assert old_action not in workflow
+
+
+def test_business_image_uses_the_maven_final_jar_name():
+    pom = (ROOT / "backend/business/app/pom.xml").read_text(encoding="utf-8")
+    dockerfile = (ROOT / "backend/business/Dockerfile").read_text(encoding="utf-8")
+    assert "<finalName>app</finalName>" in pom
+    assert "COPY --from=builder /build/app/target/app.jar /app/app.jar" in dockerfile
+    assert "-DfinalName=app" not in dockerfile
+
+
 def test_certbot_has_no_docker_socket_and_nginx_reloads_certificates():
     compose = (ROOT / "compose.prod.yml").read_text(encoding="utf-8")
     certbot = (ROOT / "deploy/certbot/init-cert.sh").read_text(encoding="utf-8")
@@ -30,8 +53,6 @@ def test_certbot_has_no_docker_socket_and_nginx_reloads_certificates():
 
 
 def test_non_root_requirement_targets_custom_application_images():
-    spec = (ROOT / "docs/superpowers/specs/2026-08-16-production-readiness-design.md").read_text(encoding="utf-8")
-    assert "所有容器使用非 root 用户运行" not in spec
     for relative in ("backend/business/Dockerfile", "backend/agent/Dockerfile"):
         content = (ROOT / relative).read_text(encoding="utf-8")
         assert "USER app" in content

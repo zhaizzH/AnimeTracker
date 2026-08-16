@@ -2,7 +2,9 @@ from datetime import datetime, timedelta
 
 from app.agent import run
 from app.agent.client import gateway
+from app.config import ResolvedLlmProviderConfig
 from app.schemas.pending_action import WishlistPendingAction, WishlistPendingItem
+from pydantic import SecretStr
 
 
 def _wishlist_pending():
@@ -33,6 +35,16 @@ def test_run_domain_agent_injects_pending_only_when_enabled(monkeypatch):
 
     monkeypatch.setattr(run, "create_agent", fake_create_agent)
     monkeypatch.setattr(run, "create_agent_chat_llm", lambda **k: object())
+    monkeypatch.setattr(
+        run,
+        "resolve_llm_provider",
+        lambda _settings: ResolvedLlmProviderConfig(
+            provider="deepseek",
+            api_key=SecretStr("test-key"),
+            model="test-model",
+            route_model="test-route-model",
+        ),
+    )
     monkeypatch.setattr(run, "agent_stream", lambda *a, **k: {"streamed_text": "ok"})
 
     state = {"pending_action": _wishlist_pending(), "history_messages": []}

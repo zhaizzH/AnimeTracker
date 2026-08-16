@@ -25,7 +25,7 @@ COPY app/src app/src
 # 离线 resolve 依赖以缓存;失败不阻塞(镜像构建时需联网拉取公共依赖)
 RUN mvn -q -pl app -am dependency:go-offline -B || true
 
-RUN mvn -pl app -am package -DskipTests -B -DfinalName=app
+RUN mvn -pl app -am package -DskipTests -B
 
 # ---------- 运行阶段 ----------
 FROM eclipse-temurin:21-jre
