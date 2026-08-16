@@ -16,7 +16,7 @@ export type SubjectCardModel = {
 };
 
 /** 从播出日期推导季度标签，如 "2023 秋"；无法解析时返回 undefined。 */
-function seasonFromAirDate(airDate?: string): string | undefined {
+export function seasonFromAirDate(airDate?: string): string | undefined {
   if (!airDate) return undefined;
   const year = airDate.slice(0, 4);
   const month = Number(airDate.slice(5, 7));

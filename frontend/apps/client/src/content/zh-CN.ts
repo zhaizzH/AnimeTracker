@@ -116,6 +116,7 @@ export const copy = {
     removeFromCollection: '移除追番',
     notInCollection: '尚未追番',
     share: '分享',
+    relations: '关联作品',
   },
 
   schedule: {
