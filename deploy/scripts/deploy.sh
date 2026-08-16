@@ -35,6 +35,12 @@ if [ -z "${DEEPSEEK_API_KEY:-}" ] && [ -z "${DASHSCOPE_API_KEY:-}" ]; then
     exit 1
 fi
 
+# 生产发布从 GHCR 拉取发布镜像: REGISTRY 与 IMAGE_TAG 必须显式配置
+if [ -z "${REGISTRY:-}" ] || [ -z "${IMAGE_TAG:-}" ]; then
+    echo "ERROR: 生产发布需要配置 REGISTRY(如 ghcr.io/<owner>/animetracker)与 IMAGE_TAG(发布版本标签,如 v1.0.0)" >&2
+    exit 1
+fi
+
 echo "== 校验通过,开始发布 =="
 
 # ---- 2. 发布(仅向前快进,保留本地意外改动不被覆盖) ----

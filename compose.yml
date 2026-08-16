@@ -8,7 +8,7 @@ name: animetracker
 
 services:
   nginx:
-    image: animetracker/frontend:latest
+    image: ${REGISTRY:-animetracker}/frontend:${IMAGE_TAG:-latest}
     build:
       context: ./frontend
     restart: unless-stopped
@@ -20,7 +20,7 @@ services:
       - backend
 
   business:
-    image: animetracker/business:latest
+    image: ${REGISTRY:-animetracker}/business:${IMAGE_TAG:-latest}
     build:
       context: ./backend/business
     restart: unless-stopped
@@ -63,7 +63,7 @@ services:
       - backend
 
   agent:
-    image: animetracker/agent:latest
+    image: ${REGISTRY:-animetracker}/agent:${IMAGE_TAG:-latest}
     build:
       context: ./backend/agent
     restart: unless-stopped
@@ -165,7 +165,7 @@ services:
       - frontend
 
   demo-seeder:
-    image: animetracker/demo-seeder:latest
+    image: ${REGISTRY:-animetracker}/demo-seeder:${IMAGE_TAG:-latest}
     build:
       context: ./deploy/demo-seeder
     profiles: ["tools"]
