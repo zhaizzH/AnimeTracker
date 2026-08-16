@@ -1,9 +1,8 @@
 import type { paths } from '@animetracker/api-contract';
 import { ApiError } from './errors';
+import { isUnsafeMessage, UNSAFE_MESSAGE_FALLBACK } from './unsafe-message';
 
 const DEFAULT_BASE_URL = 'http://localhost:8080';
-const UNSAFE_MESSAGE_FALLBACK = '服务暂时不可用，请稍后重试';
-const UNSAFE_MESSAGE_RE = /java\.lang\.|Traceback| at top\./;
 
 /** Next.js 服务端 fetch 缓存配置（next.revalidate / next.tags / cache）。 */
 type NextFetchRequestConfig = { revalidate?: number | false; tags?: string[] };
@@ -17,10 +16,6 @@ type Data<P extends keyof paths> = NonNullable<
 
 /** 后端统一响应信封 { code, message, data }。 */
 type Envelope = { code?: number; message?: string; data?: unknown };
-
-function isUnsafeMessage(message: string): boolean {
-  return UNSAFE_MESSAGE_RE.test(message);
-}
 
 function buildUrl(baseUrl: string, path: string, params?: object): URL {
   const url = new URL(path, baseUrl);

@@ -56,10 +56,6 @@ export const copy = {
     skipToContent: '跳到主要内容',
   },
 
-  error: {
-    unsafeFallback: '服务暂时不可用，请稍后重试',
-  },
-
   notFound: {
     title: '页面不存在',
     message: '你访问的页面不存在或已被移除',
