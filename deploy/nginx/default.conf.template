@@ -1,0 +1,106 @@
+# 本文件由 docker-entrypoint.d/20-envsubst-on-templates.sh 处理:
+# 只替换容器环境变量($DOMAIN);nginx 自身变量($uri/$host 等)原样保留。
+
+# ---- 端口 80: ACME webroot + 强制跳转 HTTPS ----
+server {
+    listen 80;
+    server_name $DOMAIN;
+
+    # certbot webroot 校验入口
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# ---- 端口 443: 主入口 ----
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name $DOMAIN;
+
+    ssl_certificate     /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 1d;
+
+    # 上传体积上限
+    client_max_body_size 10m;
+
+    # 安全响应头
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'" always;
+
+    # 静态资源根目录(客户端构建产物)
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # 客户端 SPA
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # 管理端 SPA(构建时 vite --base=/admin/,产物在 html/admin/ 下)
+    location = /admin {
+        return 301 /admin/;
+    }
+    location /admin/ {
+        try_files $uri $uri/ /admin/index.html;
+    }
+
+    # Business API(普通接口)
+    location /api/ {
+        proxy_pass http://business:8080;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 10s;
+        proxy_read_timeout    60s;
+    }
+
+    # Agent SSE — 客户端流: 关闭缓冲,长读超时,HTTP/1.1 keepalive
+    location = /api/client/agent/stream {
+        proxy_pass http://business:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering   off;
+        proxy_cache       off;
+        proxy_read_timeout  600s;
+        proxy_send_timeout  600s;
+    }
+
+    # Agent SSE — 管理端流: 同上
+    location = /api/admin/agent/chat/stream {
+        proxy_pass http://business:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering   off;
+        proxy_cache       off;
+        proxy_read_timeout  600s;
+        proxy_send_timeout  600s;
+    }
+
+    # 内部组件与文档端点一律拒绝公网访问(Swagger/Actuator/MinIO)
+    location ~ ^/(doc\.html|swagger-ui/|v3/api-docs/|actuator|minio) {
+        return 404;
+    }
+}
