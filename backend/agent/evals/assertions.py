@@ -35,7 +35,9 @@ def evaluate(case: EvalCase, actual: BehaviorSnapshot) -> list[str]:
     exp = case.expect
 
     if exp.routeTarget is not None and actual.routeTarget != exp.routeTarget:
-        failures.append(f"routeTarget 期望 {exp.routeTarget!r}, 实际 {actual.routeTarget!r}")
+        # 错误路径下路由未产生，routeTarget 让位给已匹配的 errorCategory
+        if not (exp.errorCategory is not None and actual.errorCategory == exp.errorCategory):
+            failures.append(f"routeTarget 期望 {exp.routeTarget!r}, 实际 {actual.routeTarget!r}")
 
     if exp.calledTools is not None and actual.calledTools != list(exp.calledTools):
         failures.append(f"calledTools 期望 {list(exp.calledTools)}, 实际 {actual.calledTools}")

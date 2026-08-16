@@ -29,7 +29,7 @@ _DEFAULT_EXECUTE_STATE = {"state": "COMPLETED"}
 _DEFAULT_PROGRESS_PREVIEW = {
     "previewId": "p1",
     "expiresAt": "2026-08-16T10:00:00+08:00",
-    "items": [{"subjectId": 101, "subjectName": "测试番"}],
+    "items": [{"subjectId": 101, "subjectName": "测试番", "currentEpStatus": 5, "targetEpStatus": 6}],
 }
 _DEFAULT_WISHLIST_ADDED = {"state": "ADDED"}
 
