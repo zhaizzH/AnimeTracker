@@ -63,7 +63,7 @@
 
   /* 强调色 */
   --color-accent: #c98a55;        /* 陶土红（亮） ~6.0:1 */
-  --color-accent-strong: #d99c63; /* 悬停加深：surface 6.78:1 / canvas 7.42:1 */
+  --color-accent-strong: #d99c63; /* 悬停变亮：surface 6.78:1 / canvas 7.42:1 */
   --color-accent-foreground: #1b1916;
 
   /* 焦点环 */

@@ -30,7 +30,10 @@ function syncDom(mode: ThemeMode) {
 }
 
 export function ThemeToggle({ initialMode = 'system' }: { initialMode?: ThemeMode }) {
-  const [mode, setMode] = useState<ThemeMode>(() => readSavedMode() ?? initialMode);
+  // 服务端预渲染时无 document，必须回退到 initialMode
+  const [mode, setMode] = useState<ThemeMode>(() =>
+    typeof document === 'undefined' ? initialMode : readSavedMode() ?? initialMode,
+  );
 
   useEffect(() => {
     syncDom(mode);
