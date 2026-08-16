@@ -1,0 +1,15 @@
+{
+  "name": "@animetracker/api-contract",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "openapi-typescript ../../../docs/spec/openapi.yaml -o src/generated/schema.d.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.0.0"
+  }
+}

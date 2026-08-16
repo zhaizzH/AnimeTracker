@@ -6,6 +6,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "generate": "pnpm --filter @animetracker/api-contract generate",
     "lint": "pnpm --filter @animetracker/client lint",
     "typecheck": "pnpm --filter @animetracker/client typecheck",
     "test": "pnpm --filter @animetracker/client test",
