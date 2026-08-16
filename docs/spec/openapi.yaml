@@ -297,277 +297,6 @@ paths:
                             description: "创建时间"
                         description: "用户信息"
                     description: ""
-  /api/client/auth/resend-code:
-    post:
-      summary: "重新发送验证码（验证码邮件未收到或已过期时重发）"
-      description: "重新发送验证码（验证码邮件未收到或已过期时重发）"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              required:
-              - "email"
-              type: "object"
-              properties:
-                email:
-                  type: "string"
-                  description: "邮箱"
-                  format: "email"
-              description: ""
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "string"
-                    description: ""
-  /api/client/auth/login:
-    post:
-      summary: "用户登录（邮箱已验证，支持用户名或邮箱 + 密码）"
-      description: "用户登录（邮箱已验证，支持用户名或邮箱 + 密码）"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              required:
-              - "password"
-              - "username"
-              type: "object"
-              properties:
-                username:
-                  type: "string"
-                  description: "用户名或邮箱"
-                password:
-                  type: "string"
-                  description: "密码"
-              description: ""
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "object"
-                    properties:
-                      token:
-                        type: "string"
-                        description: "Access Token"
-                      refreshToken:
-                        type: "string"
-                        description: "Refresh Token（轮换）"
-                      user:
-                        type: "object"
-                        properties:
-                          id:
-                            type: "integer"
-                            description: "用户ID"
-                            format: "int64"
-                          username:
-                            type: "string"
-                            description: "用户名（唯一）"
-                          email:
-                            type: "string"
-                            description: "邮箱"
-                          nickname:
-                            type: "string"
-                            description: "昵称"
-                          avatar:
-                            type: "string"
-                            description: "头像URL"
-                          role:
-                            type: "string"
-                            description: "角色: USER=普通用户, ADMIN=管理员"
-                          createdAt:
-                            type: "string"
-                            description: "创建时间"
-                        description: "用户信息"
-                    description: ""
-  /api/client/auth/forgot-password:
-    post:
-      summary: "忘记密码 — 发送重置验证码（邮箱不存在时静默成功，防枚举）"
-      description: "忘记密码 — 发送重置验证码（邮箱不存在时静默成功，防枚举）"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              required:
-              - "email"
-              type: "object"
-              properties:
-                email:
-                  type: "string"
-                  description: "邮箱"
-                  format: "email"
-              description: ""
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "string"
-                    description: ""
-  /api/client/auth/reset-password:
-    post:
-      summary: "忘记密码 — 重置密码（验证码校验通过后重置并踢出所有设备）"
-      description: "忘记密码 — 重置密码（验证码校验通过后重置并踢出所有设备）"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              required:
-              - "code"
-              - "email"
-              - "newPassword"
-              type: "object"
-              properties:
-                email:
-                  type: "string"
-                  description: "邮箱"
-                  format: "email"
-                code:
-                  maxLength: 6
-                  minLength: 6
-                  type: "string"
-                  description: "验证码（6位）"
-                newPassword:
-                  maxLength: 128
-                  minLength: 6
-                  type: "string"
-                  description: "新密码"
-              description: ""
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "string"
-                    description: ""
-  /api/client/auth/refresh:
-    post:
-      summary: "刷新 Token"
-      description: "刷新 Token"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              required:
-              - "refreshToken"
-              type: "object"
-              properties:
-                refreshToken:
-                  type: "string"
-                  description: "Refresh Token（轮换）"
-              description: ""
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "object"
-                    properties:
-                      token:
-                        type: "string"
-                        description: "Access Token"
-                      refreshToken:
-                        type: "string"
-                        description: "Refresh Token（轮换）"
-                      user:
-                        type: "object"
-                        properties:
-                          id:
-                            type: "integer"
-                            description: "用户ID"
-                            format: "int64"
-                          username:
-                            type: "string"
-                            description: "用户名（唯一）"
-                          email:
-                            type: "string"
-                            description: "邮箱"
-                          nickname:
-                            type: "string"
-                            description: "昵称"
-                          avatar:
-                            type: "string"
-                            description: "头像URL"
-                          role:
-                            type: "string"
-                            description: "角色: USER=普通用户, ADMIN=管理员"
-                          createdAt:
-                            type: "string"
-                            description: "创建时间"
-                        description: "用户信息"
-                    description: ""
-  /api/client/auth/logout:
-    post:
-      summary: "用户退出登录（当前 token 立即失效）"
-      description: "用户退出登录（当前 token 立即失效）"
-      responses:
-        "200":
-          description: ""
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "string"
-                    description: ""
   /api/client/me:
     get:
       summary: "获取当前登录用户信息"
@@ -1783,7 +1512,7 @@ paths:
   /api/client/collections/{subjectId}/wishlist:
     post:
       summary: "仅当未收藏时加入想看（幂等，不覆盖已有收藏）"
-      description: "仅当不存在收藏时原子加入想看（type=1）；已存在任意收藏状态时返回 ALREADY_COLLECTED，不覆盖。唯一约束 (user_id, subject_id) 兜底并发。"
+      description: "仅当未收藏时加入想看（幂等，不覆盖已有收藏）"
       parameters:
       - name: "subjectId"
         in: "path"
@@ -1810,10 +1539,10 @@ paths:
                     properties:
                       state:
                         type: "string"
-                        description: "ADDED=已加入想看；ALREADY_COLLECTED=已存在收藏，未覆盖"
+                        description: "ADDED | ALREADY_COLLECTED"
                       existingType:
                         type: "integer"
-                        description: "ALREADY_COLLECTED 时返回已存在收藏类型（1=想看, 2=看过, 3=在看, 4=搁置, 5=抛弃）"
+                        description: "ALREADY_COLLECTED 时返回已存在收藏类型（1-5）"
                     description: ""
   /api/client/collections/{subjectId}/remove:
     post:
@@ -2025,8 +1754,8 @@ paths:
                     description: ""
   /api/client/collections/progress-preview:
     post:
-      summary: "生成本周追番进度预览"
-      description: "生成当前登录用户本周（周一起至昨日）可推进的追番进度预览；仅生成快照并保存在 Redis，不写入任何收藏数据。"
+      summary: "生成当前登录用户本周追番进度预览"
+      description: "生成当前登录用户本周追番进度预览"
       responses:
         "200":
           description: ""
@@ -2046,71 +1775,71 @@ paths:
                     properties:
                       previewId:
                         type: "string"
-                        description: "预览 ID，确认执行时使用"
+                        description: "预览ID"
                       state:
                         type: "string"
-                        description: "预览状态: PENDING=待确认"
+                        description: "{PENDING=PENDING, PREVIEW_CHANGED=PREVIEW_CHANGED,\
+                          \ COMPLETED=执行完成（含部分成功）}"
+                        enum:
+                        - "PENDING"
+                        - "PREVIEW_CHANGED"
+                        - "COMPLETED"
                       expiresAt:
-                        type: "string"
-                        description: "预览过期时间（10 分钟内需确认执行）"
+                        type: "object"
+                        properties:
+                          dateTime:
+                            type: "string"
+                            description: "The local date-time."
+                          offset:
+                            type: "object"
+                            properties:
+                              totalSeconds:
+                                type: "integer"
+                                description: "The total offset in seconds."
+                            description: "The offset from UTC/Greenwich."
+                        description: "过期时间"
                       weekStart:
                         type: "string"
-                        description: "本周周一日期"
+                        description: "本周周一"
                       cutoffDate:
                         type: "string"
-                        description: "统计截止日期（昨日）"
+                        description: "截止日期（昨日）"
                       items:
                         type: "array"
-                        description: "可推进进度的追番列表"
+                        description: ""
                         items:
                           type: "object"
                           properties:
                             subjectId:
                               type: "integer"
-                              description: "条目 ID"
+                              description: "条目ID"
                               format: "int64"
                             subjectName:
                               type: "string"
                               description: "条目名称"
                             currentEpStatus:
                               type: "integer"
-                              description: "当前看到集数"
+                              description: "当前进度"
                             targetEpStatus:
                               type: "integer"
-                              description: "目标推进集数"
+                              description: "目标进度"
                             completedAfterUpdate:
                               type: "boolean"
-                              description: "更新后是否已看完"
+                              description: "更新后是否达到总集数"
                             suggestMarkAsWatched:
                               type: "boolean"
                               description: "是否建议标记为看过"
-                          description: "收藏进度条目 VO"
+                          description: "收藏进度预览/执行明细项"
+                        default: "new ArrayList<>()"
                     description: ""
-        "401":
-          description: "未认证"
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "object"
-                    description: ""
-                    nullable: true
   /api/client/collections/progress-preview/{previewId}/execute:
     post:
-      summary: "确认执行本周追番进度预览"
-      description: "确认执行预览：重新校验数据，数据变化返回 PREVIEW_CHANGED 与新预览且不写入；数据一致则逐项推进进度（每部番剧独立事务，允许部分成功）并汇总。重复确认幂等返回首次执行结果。"
+      summary: "确认执行预览：重新校验，数据变化返回 PREVIEW_CHANGED，否则逐项执行并汇总"
+      description: "确认执行预览：重新校验，数据变化返回 PREVIEW_CHANGED，否则逐项执行并汇总"
       parameters:
       - name: "previewId"
         in: "path"
-        description: "预览 ID"
+        description: ""
         required: true
         schema:
           type: "string"
@@ -2133,163 +1862,153 @@ paths:
                     properties:
                       state:
                         type: "string"
-                        description: "执行状态: COMPLETED=已执行完成, PREVIEW_CHANGED=数据已变化需重新确认"
+                        description: "{PENDING=PENDING, PREVIEW_CHANGED=PREVIEW_CHANGED,\
+                          \ COMPLETED=执行完成（含部分成功）}"
+                        enum:
+                        - "PENDING"
+                        - "PREVIEW_CHANGED"
+                        - "COMPLETED"
                       replayed:
                         type: "boolean"
-                        description: "是否为重复确认的幂等重放结果"
+                        description: "是否为重复确认返回首次结果"
                       preview:
                         type: "object"
-                        description: "PREVIEW_CHANGED 时返回的新预览，其余情况为 null"
-                        nullable: true
                         properties:
                           previewId:
                             type: "string"
-                            description: "新预览 ID"
+                            description: "预览ID"
                           state:
                             type: "string"
-                            description: "预览状态: PREVIEW_CHANGED=数据已变化"
+                            description: "{PENDING=PENDING, PREVIEW_CHANGED=PREVIEW_CHANGED,\
+                              \ COMPLETED=执行完成（含部分成功）}"
+                            enum:
+                            - "PENDING"
+                            - "PREVIEW_CHANGED"
+                            - "COMPLETED"
                           expiresAt:
-                            type: "string"
-                            description: "新预览过期时间"
+                            type: "object"
+                            properties:
+                              dateTime:
+                                type: "string"
+                                description: "The local date-time."
+                              offset:
+                                type: "object"
+                                properties:
+                                  totalSeconds:
+                                    type: "integer"
+                                    description: "The total offset in seconds."
+                                description: "The offset from UTC/Greenwich."
+                            description: "过期时间"
                           weekStart:
                             type: "string"
-                            description: "本周周一日期"
+                            description: "本周周一"
                           cutoffDate:
                             type: "string"
-                            description: "统计截止日期（昨日）"
+                            description: "截止日期（昨日）"
                           items:
                             type: "array"
-                            description: "重新计算后的追番列表"
+                            description: ""
                             items:
                               type: "object"
                               properties:
                                 subjectId:
                                   type: "integer"
-                                  description: "条目 ID"
+                                  description: "条目ID"
                                   format: "int64"
                                 subjectName:
                                   type: "string"
                                   description: "条目名称"
                                 currentEpStatus:
                                   type: "integer"
-                                  description: "当前看到集数"
+                                  description: "当前进度"
                                 targetEpStatus:
                                   type: "integer"
-                                  description: "目标推进集数"
+                                  description: "目标进度"
                                 completedAfterUpdate:
                                   type: "boolean"
-                                  description: "更新后是否已看完"
+                                  description: "更新后是否达到总集数"
                                 suggestMarkAsWatched:
                                   type: "boolean"
                                   description: "是否建议标记为看过"
-                              description: "收藏进度条目 VO"
+                              description: "收藏进度预览/执行明细项"
+                            default: "new ArrayList<>()"
+                        description: "预览变化时的新预览（COMPLETED 时为 null 不输出）"
                       succeeded:
                         type: "array"
-                        description: "成功推进进度的追番"
+                        description: ""
                         items:
                           type: "object"
                           properties:
                             subjectId:
                               type: "integer"
-                              description: "条目 ID"
+                              description: "条目ID"
                               format: "int64"
                             subjectName:
                               type: "string"
                               description: "条目名称"
                             currentEpStatus:
                               type: "integer"
-                              description: "更新前集数"
+                              description: "当前进度"
                             targetEpStatus:
                               type: "integer"
-                              description: "更新后集数"
+                              description: "目标进度"
                             completedAfterUpdate:
                               type: "boolean"
-                              description: "更新后是否已看完"
+                              description: "更新后是否达到总集数"
                             suggestMarkAsWatched:
                               type: "boolean"
                               description: "是否建议标记为看过"
-                          description: "收藏进度条目 VO"
+                          description: "收藏进度预览/执行明细项"
+                        default: "new ArrayList<>()"
                       skipped:
                         type: "array"
-                        description: "因业务冲突跳过（进度已变化）的追番"
+                        description: ""
                         items:
                           type: "object"
                           properties:
                             subjectId:
                               type: "integer"
-                              description: "条目 ID"
+                              description: "条目ID"
                               format: "int64"
                             subjectName:
                               type: "string"
                               description: "条目名称"
                             currentEpStatus:
                               type: "integer"
-                              description: "当前集数"
+                              description: "当前进度"
                             targetEpStatus:
                               type: "integer"
-                              description: "目标集数"
+                              description: "目标进度"
                             reason:
                               type: "string"
-                              description: "跳过原因"
-                          description: "收藏进度失败项 VO"
+                              description: "跳过/失败原因"
+                          description: "收藏进度执行跳过/失败项"
+                        default: "new ArrayList<>()"
                       failed:
                         type: "array"
-                        description: "因运行时异常失败的追番"
+                        description: ""
                         items:
                           type: "object"
                           properties:
                             subjectId:
                               type: "integer"
-                              description: "条目 ID"
+                              description: "条目ID"
                               format: "int64"
                             subjectName:
                               type: "string"
                               description: "条目名称"
                             currentEpStatus:
                               type: "integer"
-                              description: "当前集数"
+                              description: "当前进度"
                             targetEpStatus:
                               type: "integer"
-                              description: "目标集数"
+                              description: "目标进度"
                             reason:
                               type: "string"
-                              description: "失败原因"
-                          description: "收藏进度失败项 VO"
+                              description: "跳过/失败原因"
+                          description: "收藏进度执行跳过/失败项"
+                        default: "new ArrayList<>()"
                     description: ""
-        "404":
-          description: "预览不存在"
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "object"
-                    description: ""
-                    nullable: true
-        "409":
-          description: "预览已过期/已失效/执行中/锁未取得"
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
-                    type: "string"
-                    description: ""
-                  data:
-                    type: "object"
-                    description: ""
-                    nullable: true
   /api/admin/agent/prompts:
     get:
       summary: "提示词列表"
@@ -3157,6 +2876,9 @@ paths:
                                   path:
                                     type: "string"
                                     description: "请求路径"
+                                  params:
+                                    type: "string"
+                                    description: "请求参数 JSON（脱敏）"
                                   ip:
                                     type: "string"
                                     description: "客户端 IP"
@@ -4401,6 +4123,294 @@ components:
               description: "收藏数"
           description: "条目信息"
       description: "用户收藏视图"
+    想看加入结果（幂等）：state=ADDED 表示新增成功；state=ALREADY_COLLECTED 表示已存在收藏，不覆盖:
+      type: "object"
+      properties:
+        state:
+          type: "string"
+          description: "ADDED | ALREADY_COLLECTED"
+        existingType:
+          type: "integer"
+          description: "ALREADY_COLLECTED 时返回已存在收藏类型（1-5）"
+      description: ""
+    java.time.ZoneOffset:
+      type: "object"
+      properties:
+        totalSeconds:
+          type: "integer"
+          description: "The total offset in seconds."
+      description: "The offset from UTC/Greenwich."
+    java.time.OffsetDateTime:
+      type: "object"
+      properties:
+        dateTime:
+          type: "string"
+          description: "The local date-time."
+        offset:
+          type: "object"
+          properties:
+            totalSeconds:
+              type: "integer"
+              description: "The total offset in seconds."
+          description: "The offset from UTC/Greenwich."
+      description: "过期时间"
+    收藏进度预览/执行明细项:
+      type: "object"
+      properties:
+        subjectId:
+          type: "integer"
+          description: "条目ID"
+          format: "int64"
+        subjectName:
+          type: "string"
+          description: "条目名称"
+        currentEpStatus:
+          type: "integer"
+          description: "当前进度"
+        targetEpStatus:
+          type: "integer"
+          description: "目标进度"
+        completedAfterUpdate:
+          type: "boolean"
+          description: "更新后是否达到总集数"
+        suggestMarkAsWatched:
+          type: "boolean"
+          description: "是否建议标记为看过"
+      description: "收藏进度预览/执行明细项"
+    本周追番进度预览返回体:
+      type: "object"
+      properties:
+        previewId:
+          type: "string"
+          description: "预览ID"
+        state:
+          type: "string"
+          description: "{PENDING=PENDING, PREVIEW_CHANGED=PREVIEW_CHANGED, COMPLETED=执\
+            行完成（含部分成功）}"
+          enum:
+          - "PENDING"
+          - "PREVIEW_CHANGED"
+          - "COMPLETED"
+        expiresAt:
+          type: "object"
+          properties:
+            dateTime:
+              type: "string"
+              description: "The local date-time."
+            offset:
+              type: "object"
+              properties:
+                totalSeconds:
+                  type: "integer"
+                  description: "The total offset in seconds."
+              description: "The offset from UTC/Greenwich."
+          description: "过期时间"
+        weekStart:
+          type: "string"
+          description: "本周周一"
+        cutoffDate:
+          type: "string"
+          description: "截止日期（昨日）"
+        items:
+          type: "array"
+          description: ""
+          items:
+            type: "object"
+            properties:
+              subjectId:
+                type: "integer"
+                description: "条目ID"
+                format: "int64"
+              subjectName:
+                type: "string"
+                description: "条目名称"
+              currentEpStatus:
+                type: "integer"
+                description: "当前进度"
+              targetEpStatus:
+                type: "integer"
+                description: "目标进度"
+              completedAfterUpdate:
+                type: "boolean"
+                description: "更新后是否达到总集数"
+              suggestMarkAsWatched:
+                type: "boolean"
+                description: "是否建议标记为看过"
+            description: "收藏进度预览/执行明细项"
+          default: "new ArrayList<>()"
+      description: "预览变化时的新预览（COMPLETED 时为 null 不输出）"
+    收藏进度执行跳过/失败项:
+      type: "object"
+      properties:
+        subjectId:
+          type: "integer"
+          description: "条目ID"
+          format: "int64"
+        subjectName:
+          type: "string"
+          description: "条目名称"
+        currentEpStatus:
+          type: "integer"
+          description: "当前进度"
+        targetEpStatus:
+          type: "integer"
+          description: "目标进度"
+        reason:
+          type: "string"
+          description: "跳过/失败原因"
+      description: "收藏进度执行跳过/失败项"
+    本周追番进度确认执行结果:
+      type: "object"
+      properties:
+        state:
+          type: "string"
+          description: "{PENDING=PENDING, PREVIEW_CHANGED=PREVIEW_CHANGED, COMPLETED=执\
+            行完成（含部分成功）}"
+          enum:
+          - "PENDING"
+          - "PREVIEW_CHANGED"
+          - "COMPLETED"
+        replayed:
+          type: "boolean"
+          description: "是否为重复确认返回首次结果"
+        preview:
+          type: "object"
+          properties:
+            previewId:
+              type: "string"
+              description: "预览ID"
+            state:
+              type: "string"
+              description: "{PENDING=PENDING, PREVIEW_CHANGED=PREVIEW_CHANGED, COMPLETED=执\
+                行完成（含部分成功）}"
+              enum:
+              - "PENDING"
+              - "PREVIEW_CHANGED"
+              - "COMPLETED"
+            expiresAt:
+              type: "object"
+              properties:
+                dateTime:
+                  type: "string"
+                  description: "The local date-time."
+                offset:
+                  type: "object"
+                  properties:
+                    totalSeconds:
+                      type: "integer"
+                      description: "The total offset in seconds."
+                  description: "The offset from UTC/Greenwich."
+              description: "过期时间"
+            weekStart:
+              type: "string"
+              description: "本周周一"
+            cutoffDate:
+              type: "string"
+              description: "截止日期（昨日）"
+            items:
+              type: "array"
+              description: ""
+              items:
+                type: "object"
+                properties:
+                  subjectId:
+                    type: "integer"
+                    description: "条目ID"
+                    format: "int64"
+                  subjectName:
+                    type: "string"
+                    description: "条目名称"
+                  currentEpStatus:
+                    type: "integer"
+                    description: "当前进度"
+                  targetEpStatus:
+                    type: "integer"
+                    description: "目标进度"
+                  completedAfterUpdate:
+                    type: "boolean"
+                    description: "更新后是否达到总集数"
+                  suggestMarkAsWatched:
+                    type: "boolean"
+                    description: "是否建议标记为看过"
+                description: "收藏进度预览/执行明细项"
+              default: "new ArrayList<>()"
+          description: "预览变化时的新预览（COMPLETED 时为 null 不输出）"
+        succeeded:
+          type: "array"
+          description: ""
+          items:
+            type: "object"
+            properties:
+              subjectId:
+                type: "integer"
+                description: "条目ID"
+                format: "int64"
+              subjectName:
+                type: "string"
+                description: "条目名称"
+              currentEpStatus:
+                type: "integer"
+                description: "当前进度"
+              targetEpStatus:
+                type: "integer"
+                description: "目标进度"
+              completedAfterUpdate:
+                type: "boolean"
+                description: "更新后是否达到总集数"
+              suggestMarkAsWatched:
+                type: "boolean"
+                description: "是否建议标记为看过"
+            description: "收藏进度预览/执行明细项"
+          default: "new ArrayList<>()"
+        skipped:
+          type: "array"
+          description: ""
+          items:
+            type: "object"
+            properties:
+              subjectId:
+                type: "integer"
+                description: "条目ID"
+                format: "int64"
+              subjectName:
+                type: "string"
+                description: "条目名称"
+              currentEpStatus:
+                type: "integer"
+                description: "当前进度"
+              targetEpStatus:
+                type: "integer"
+                description: "目标进度"
+              reason:
+                type: "string"
+                description: "跳过/失败原因"
+            description: "收藏进度执行跳过/失败项"
+          default: "new ArrayList<>()"
+        failed:
+          type: "array"
+          description: ""
+          items:
+            type: "object"
+            properties:
+              subjectId:
+                type: "integer"
+                description: "条目ID"
+                format: "int64"
+              subjectName:
+                type: "string"
+                description: "条目名称"
+              currentEpStatus:
+                type: "integer"
+                description: "当前进度"
+              targetEpStatus:
+                type: "integer"
+                description: "目标进度"
+              reason:
+                type: "string"
+                description: "跳过/失败原因"
+            description: "收藏进度执行跳过/失败项"
+          default: "new ArrayList<>()"
+      description: ""
     导入记录 VO:
       type: "object"
       properties:
@@ -4501,6 +4511,9 @@ components:
         path:
           type: "string"
           description: "请求路径"
+        params:
+          type: "string"
+          description: "请求参数 JSON（脱敏）"
         ip:
           type: "string"
           description: "客户端 IP"
@@ -4573,6 +4586,9 @@ components:
               path:
                 type: "string"
                 description: "请求路径"
+              params:
+                type: "string"
+                description: "请求参数 JSON（脱敏）"
               ip:
                 type: "string"
                 description: "客户端 IP"
@@ -4854,99 +4870,3 @@ components:
           description: "收藏数"
           format: "int64"
       description: "热门榜条目"
-    收藏进度条目 VO:
-      type: "object"
-      properties:
-        subjectId:
-          type: "integer"
-          description: "条目 ID"
-          format: "int64"
-        subjectName:
-          type: "string"
-          description: "条目名称"
-        currentEpStatus:
-          type: "integer"
-          description: "当前看到集数"
-        targetEpStatus:
-          type: "integer"
-          description: "目标推进集数"
-        completedAfterUpdate:
-          type: "boolean"
-          description: "更新后是否已看完"
-        suggestMarkAsWatched:
-          type: "boolean"
-          description: "是否建议标记为看过"
-      description: "收藏进度条目 VO"
-    收藏进度失败项 VO:
-      type: "object"
-      properties:
-        subjectId:
-          type: "integer"
-          description: "条目 ID"
-          format: "int64"
-        subjectName:
-          type: "string"
-          description: "条目名称"
-        currentEpStatus:
-          type: "integer"
-          description: "当前集数"
-        targetEpStatus:
-          type: "integer"
-          description: "目标集数"
-        reason:
-          type: "string"
-          description: "跳过/失败原因"
-      description: "收藏进度失败项 VO"
-    收藏进度预览 VO:
-      type: "object"
-      properties:
-        previewId:
-          type: "string"
-          description: "预览 ID，确认执行时使用"
-        state:
-          type: "string"
-          description: "预览状态: PENDING=待确认, PREVIEW_CHANGED=数据已变化"
-        expiresAt:
-          type: "string"
-          description: "预览过期时间（10 分钟内需确认执行）"
-        weekStart:
-          type: "string"
-          description: "本周周一日期"
-        cutoffDate:
-          type: "string"
-          description: "统计截止日期（昨日）"
-        items:
-          type: "array"
-          description: "可推进进度的追番列表"
-          items:
-            $ref: "#/components/schemas/收藏进度条目 VO"
-      description: "收藏进度预览 VO"
-    收藏进度执行 VO:
-      type: "object"
-      properties:
-        state:
-          type: "string"
-          description: "执行状态: COMPLETED=已执行完成, PREVIEW_CHANGED=数据已变化需重新确认"
-        replayed:
-          type: "boolean"
-          description: "是否为重复确认的幂等重放结果"
-        preview:
-          type: "object"
-          description: "PREVIEW_CHANGED 时返回的新预览，其余情况为 null"
-          $ref: "#/components/schemas/收藏进度预览 VO"
-        succeeded:
-          type: "array"
-          description: "成功推进进度的追番"
-          items:
-            $ref: "#/components/schemas/收藏进度条目 VO"
-        skipped:
-          type: "array"
-          description: "因业务冲突跳过（进度已变化）的追番"
-          items:
-            $ref: "#/components/schemas/收藏进度失败项 VO"
-        failed:
-          type: "array"
-          description: "因运行时异常失败的追番"
-          items:
-            $ref: "#/components/schemas/收藏进度失败项 VO"
-      description: "收藏进度执行 VO"
