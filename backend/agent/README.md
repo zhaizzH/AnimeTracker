@@ -76,7 +76,11 @@ backend/agent/
     │       ├── search.py    # search_agent + 搜索工具
     │       ├── discover.py  # discover_agent + 发现工具
     │       ├── recommend.py # recommend_agent
-    │       └── collections.py # user_collections_tools + 追番进度预览/执行/取消工具
+    │       ├── collections.py # 收藏查询工具，只读（collection_read_tools）
+    │       └── actions/     # 收藏写操作工具（按业务能力拆分）
+    │           ├── __init__.py          # 显式组合 action_tools
+    │           ├── collection_progress.py # 追番进度预览/执行/取消
+    │           └── wishlist.py          # 加入想看预览/执行/取消
     ├── core/
     │   ├── agent_runtime.py # agent_invoke / agent_stream / _run_async
     │   ├── event_bus.py     # ContextVar 事件总线
@@ -90,7 +94,7 @@ backend/agent/
     │   ├── redis_store.py   # Redis 实现（会话 / 消息 / 待确认动作）
     │   └── models.py
     ├── llm/models.py        # LLM 工厂（create_llm）+ ChatTongyi 流式补丁
-    ├── schemas/             # auth / chat / session / sse_response / admin_config
+    ├── schemas/             # auth / chat / session / sse_response / admin_config / pending_action
     ├── service/chat.py      # ChatService：编排 store + graph + 流式引擎
     └── utils/prompt_utils.py
 ```
@@ -132,10 +136,39 @@ backend/agent/
 
 ### 关键点
 
-- **待确认状态**：`PendingAction`（`app/db/models.py`）经 `ChatStore.save_pending_action` 持久化到 Redis，`ChatService` 在每次会话开始时注入 `pending_action` / `pending_preview_id` 到 AgentState。
+- **待确认状态**：`PendingAction`（`app/schemas/pending_action.py`，强类型可辨识联合）经 `ChatStore.save_pending_action` 持久化到 Redis，`ChatService` 在每次会话开始时注入 `pending_action` / `pending_preview_id` 到 AgentState。
 - **强制路由**：`gateway.py` 的 `_resolve_forced_pending_route` 对「待确认 + 明确确认」确定性返回 `recommend_agent`，与图路由 `_route_from_gateway` 期望的 `{"routing": {...}}` 结构一致，避免 LLM 把「确认」路由到其他 Agent。
-- **工具**：`collections.py` 追加 `preview_weekly_collection_progress` / `execute_weekly_collection_progress` / `cancel_weekly_collection_progress`，共用 `_preview_data_to_pending_action` 构造待确认状态；`execute` 的 `preview_id` 参数用 `InjectedState("pending_preview_id")` 注入，Agent 不得自行编造。
+- **工具**：`actions/collection_progress.py` 提供 `preview_weekly_collection_progress` / `execute_weekly_collection_progress` / `cancel_weekly_collection_progress`，共用 `_preview_data_to_pending_action` 构造待确认状态；`execute` 的 `preview_id` 参数用 `InjectedState("pending_preview_id")` 注入，Agent 不得自行编造。
 - **提示词**：`recommend_agent_prompt.md` 增加「追番进度更新（待确认动作）」约束；`run.py` 的 `_build_pending_context` 把 previewId 与明细注入系统提示词。
+
+## 推荐后加入「想看」（待确认动作）
+
+用户要求把 Agent 推荐的番剧加入「想看」时，同样采用两段式确认：先预览（去重、过滤已收藏、最多 10 部），用户明确确认后才逐项调用 Business 原子接口写入，绝不覆盖已有收藏。
+
+### 流程
+
+```
+用户:「把前两部加入想看」
+  └─► recommend_agent 调用 preview_add_to_wishlist
+        ├─ 去重并限制最多 10 部，逐项查询收藏详情，已收藏归入 skippedItems
+        ├─ 未收藏条目写入 PendingAction（ADD_TO_WISHLIST，Redis 键 agent:pending-action:{session_id}，TTL 600s）
+        └─ 返回 pendingItems / skippedItems 预览并询问确认
+用户:「确认」
+  └─► gateway_router 检测到 ADD_TO_WISHLIST 待确认动作 + 明确确认 → 确定性强制路由 recommend_agent
+        └─ recommend_agent 调用 execute_add_to_wishlist
+              ├─ 只读取 AgentState.pending_action.items，不接受模型自造列表
+              ├─ 逐项 POST /api/client/collections/{subjectId}/wishlist（Business 幂等保证不覆盖）
+              ├─ 按 成功/跳过/失败 分类汇报，完成后 CLEAR 待确认状态
+              └─ 基础设施错误（写入结果不确定）保留待确认动作供重试
+用户:「先不用」→ cancel_add_to_wishlist 仅清理本地待确认状态，不调用后端
+```
+
+### 关键点
+
+- **强类型协议**：`PendingAction` 为可辨识联合（`app/schemas/pending_action.py`），按 `type` 区分 `COLLECTION_PROGRESS_UPDATE` 与 `ADD_TO_WISHLIST`；Redis 读取经 `parse_pending_action_json` 校验，未知/损坏数据安全失败，不交给模型猜测。
+- **写操作工具**：`actions/` 包按业务能力拆分（`collection_progress.py` / `wishlist.py`），`actions/__init__.py` 组合 `action_tools`，`recommend.py` 显式组合只读工具与写操作工具，保持依赖可见。
+- **上下文注入**：`run_domain_agent(include_pending_action=True)` 仅 recommend_agent 注入待确认上下文；search/discover 不接触隐藏写操作状态。
+- **Business 原子保护**：`POST /api/client/collections/{subjectId}/wishlist` 仅在不存在收藏时插入（type=1），已存在任意收藏状态返回 `ALREADY_COLLECTED`，不依赖 Python 检查与写入时间差。
 
 ## 托管提示词（Redis + 本地回退）
 

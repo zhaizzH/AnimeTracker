@@ -1780,6 +1780,41 @@ paths:
                   data:
                     type: "string"
                     description: ""
+  /api/client/collections/{subjectId}/wishlist:
+    post:
+      summary: "仅当未收藏时加入想看（幂等，不覆盖已有收藏）"
+      description: "仅当不存在收藏时原子加入想看（type=1）；已存在任意收藏状态时返回 ALREADY_COLLECTED，不覆盖。唯一约束 (user_id, subject_id) 兜底并发。"
+      parameters:
+      - name: "subjectId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      state:
+                        type: "string"
+                        description: "ADDED=已加入想看；ALREADY_COLLECTED=已存在收藏，未覆盖"
+                      existingType:
+                        type: "integer"
+                        description: "ALREADY_COLLECTED 时返回已存在收藏类型（1=想看, 2=看过, 3=在看, 4=搁置, 5=抛弃）"
+                    description: ""
   /api/client/collections/{subjectId}/remove:
     post:
       summary: "删除收藏"
