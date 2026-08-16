@@ -76,3 +76,26 @@ async def test_delete_session_cleans_pending_action(store):
     await store.save_pending_action("s1", action(user_id=7), ttl_seconds=600)
     await store.delete_session("s1", 7)
     assert await store.get_pending_action("s1", 7) is None
+
+
+@pytest.mark.asyncio
+async def test_unknown_type_pending_action_is_logged_and_cleared(store, caplog):
+    await store._r.set("agent:pending-action:s1", '{"type":"UNKNOWN"}')
+    assert await store.get_pending_action("s1", 7) is None
+    assert await store._r.get("agent:pending-action:s1") is None
+    assert any("待确认动作数据损坏或类型未知" in r.message for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_malformed_pending_action_json_is_logged_and_cleared(store, caplog):
+    await store._r.set("agent:pending-action:s1", "{corrupt json")
+    assert await store.get_pending_action("s1", 7) is None
+    assert await store._r.get("agent:pending-action:s1") is None
+    assert any("待确认动作数据损坏或类型未知" in r.message for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_delete_pending_action_on_corrupt_data_clears_without_raise(store):
+    await store._r.set("agent:pending-action:s1", '{"type":"UNKNOWN"}')
+    await store.delete_pending_action("s1", 7)  # 不得抛出
+    assert await store._r.get("agent:pending-action:s1") is None

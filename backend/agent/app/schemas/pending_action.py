@@ -13,8 +13,8 @@ class _AliasCompatModel(BaseModel):
 class CollectionProgressPendingItem(_AliasCompatModel):
     subject_id: int = Field(alias="subjectId")
     subject_name: str = Field(alias="subjectName")
-    current_ep_status: int = Field(alias="currentEpStatus")
-    target_ep_status: int = Field(alias="targetEpStatus")
+    current_ep_status: int | None = Field(alias="currentEpStatus")
+    target_ep_status: int | None = Field(alias="targetEpStatus")
 
 
 class CollectionProgressPendingAction(_AliasCompatModel):
@@ -31,7 +31,7 @@ class WishlistPendingItem(_AliasCompatModel):
     subject_name: str = Field(alias="subjectName")
 
 
-class WishlistPendingAction(BaseModel):
+class WishlistPendingAction(_AliasCompatModel):
     type: Literal["ADD_TO_WISHLIST"]
     user_id: int
     expires_at: datetime

@@ -104,8 +104,11 @@ def execute_add_to_wishlist(
         elif isinstance(result, dict) and result.get("state") == "ALREADY_COLLECTED":
             skipped.append({"subjectId": sid, "subjectName": name,
                             "existingType": result.get("existingType")})
-        else:
+        elif isinstance(result, dict) and result.get("state") == "ADDED":
             succeeded.append({"subjectId": sid, "subjectName": name})
+        else:
+            failed.append({"subjectId": sid, "subjectName": name,
+                           "reason": "未返回预期的 ADDED 状态"})
 
     if not infra_error:
         emit_pending_action_clear()

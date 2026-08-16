@@ -1,12 +1,16 @@
 import json
+import logging
 import threading
 from datetime import datetime, timedelta
 
 import redis
+from pydantic import ValidationError
 
 from app.db.base import ChatStore
 from app.db.models import Message, Session
 from app.schemas.pending_action import PendingAction, parse_pending_action_json
+
+logger = logging.getLogger(__name__)
 
 # ponytail: datetime.now() has microsecond resolution; back-to-back writes can share
 # a timestamp and break "most recent first" session ordering. Guard makes updated_at
@@ -105,12 +109,21 @@ class RedisStore(ChatStore):
         await self._r.srem(self._user_sessions_key(user_id), session_id)
         await self._r.delete(self._session_key(session_id))
 
-    async def get_pending_action(self, session_id: str, user_id: int) -> PendingAction | None:
-        raw = await self._r.get(self._pending_action_key(session_id))
+    async def _parse_pending_action(self, session_id: str, raw: str | None) -> PendingAction | None:
+        """解析待确认动作；未知类型/损坏数据按设计规范记录错误并清除，返回 None，不向上抛。"""
         if not raw:
             return None
-        action = parse_pending_action_json(raw)
-        if action.user_id != user_id:
+        try:
+            return parse_pending_action_json(raw)
+        except (ValidationError, json.JSONDecodeError):
+            logger.warning("待确认动作数据损坏或类型未知，已清除: session=%s raw=%s", session_id, raw)
+            await self._r.delete(self._pending_action_key(session_id))
+            return None
+
+    async def get_pending_action(self, session_id: str, user_id: int) -> PendingAction | None:
+        raw = await self._r.get(self._pending_action_key(session_id))
+        action = await self._parse_pending_action(session_id, raw)
+        if action is None or action.user_id != user_id:
             return None
         return action
 
@@ -123,7 +136,8 @@ class RedisStore(ChatStore):
 
     async def delete_pending_action(self, session_id: str, user_id: int):
         raw = await self._r.get(self._pending_action_key(session_id))
-        if raw and parse_pending_action_json(raw).user_id == user_id:
+        action = await self._parse_pending_action(session_id, raw)
+        if action is not None and action.user_id == user_id:
             await self._r.delete(self._pending_action_key(session_id))
 
     async def update_session_title(self, session_id: str, title: str):
