@@ -19,6 +19,30 @@ services:
       - frontend
       - backend
 
+  # ---- 新 Client(Next.js 独立容器, opt-in)----
+  # 仅启用 next-client profile 时创建;不发布任何端口,由 nginx
+  # (client-next.conf.template)反代。同时接入 frontend 与 backend 网络:
+  # nginx 经 frontend 访问,SSR 经 BUSINESS_API_URL 走 backend 直连业务后端。
+  client-next:
+    image: ${REGISTRY:-animetracker}/client-next:${IMAGE_TAG:-latest}
+    build:
+      context: ./frontend
+      dockerfile: apps/client/Dockerfile
+    profiles: ["next-client"]
+    restart: unless-stopped
+    depends_on:
+      business:
+        condition: service_healthy
+    environment:
+      CLIENT_DOMAIN: ${CLIENT_DOMAIN:-}
+      BUSINESS_API_URL: ${BUSINESS_API_URL:-http://business:8080}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
+    expose:
+      - "3000"
+    networks:
+      - frontend
+      - backend
+
   business:
     image: ${REGISTRY:-animetracker}/business:${IMAGE_TAG:-latest}
     build:

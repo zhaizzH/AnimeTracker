@@ -18,6 +18,12 @@ services:
       - certbot-webroot:/var/www/certbot
     command: ["/bin/sh", "/etc/nginx/bootstrap.sh"]
 
+  # 新 Client 生产覆盖(next-client profile 启用时生效)
+  client-next:
+    environment:
+      # 生产环境 SSR 必须走内网直连业务后端,避免经 nginx 公网入口回环
+      BUSINESS_API_URL: ${BUSINESS_API_URL:-http://business:8080}
+
   certbot:
     volumes:
       - ./deploy/certbot/init-cert.sh:/opt/init-cert.sh:ro

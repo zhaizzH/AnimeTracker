@@ -1,0 +1,28 @@
+# 本文件由 nginx 官方镜像 docker-entrypoint.d/20-envsubst-on-templates.sh 处理:
+# 只替换容器环境变量($CLIENT_DOMAIN);nginx 运行时变量($host/$uri/$request_id 等)原样保留。
+# 用法: 启用 compose 的 next-client profile 后,把本文件挂载到 nginx 容器的
+#       /etc/nginx/templates/client-next.conf.template,重启 nginx 即对外暴露新 Client。
+# 注意: Next 独立容器是服务端渲染,无静态 SPA fallback,严禁添加 try_files /index.html。
+
+server {
+    listen 80;
+    server_name $CLIENT_DOMAIN;
+
+    location / {
+        proxy_pass http://client-next:3000;
+        proxy_http_version 1.1;
+
+        # 兼容 WebSocket(Next)与常规 HTTP;空 Upgrade 时 Connection 头会被 nginx 丢弃
+        proxy_set_header Upgrade    $http_upgrade;
+        proxy_set_header Connection $http_upgrade;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Request-ID      $request_id;
+
+        proxy_connect_timeout 10s;
+        proxy_read_timeout    60s;
+    }
+}

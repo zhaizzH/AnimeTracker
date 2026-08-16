@@ -24,6 +24,32 @@ cd frontend/admin  && npm install && npm run dev   # http://localhost:5174
 
 生产构建均为 `npm run build` → `dist/`。开发联调需先启动业务后端（:8080），详见 [`../backend/README.md`](../backend/README.md)。
 
+## 新 Client（Next.js，pnpm workspace）
+
+`apps/client` 是独立的 Next.js 公开站点（SSR / SEO 完整），与上面两个 Vite 工程并存但不共享源码。workspace 使用 pnpm（见 `pnpm-workspace.yaml` / `pnpm-lock.yaml`）：
+
+```bash
+cd frontend
+pnpm install            # 安装整个 workspace（lockfile 已提交，CI 用 --frozen-lockfile）
+pnpm generate           # 从 docs/spec/openapi.yaml 重新生成 api-contract 类型
+pnpm lint / typecheck / test / build
+pnpm --filter @animetracker/client e2e   # Playwright：生产构建 + 确定性 mock 后端
+```
+
+### 独立部署（opt-in，不影响既有 nginx 生产路由）
+
+新 Client 以独立容器交付，默认不参与现有编排；需要时显式启用 `next-client` profile：
+
+```bash
+# 构建上下文必须为 frontend/（含 pnpm-workspace.yaml / pnpm-lock.yaml）
+docker build -f apps/client/Dockerfile -t animetracker/client-next:latest .
+
+# 单独拉起新 Client 容器（仅在启用 next-client profile 时创建）
+docker compose -f compose.yml -f compose.prod.yml --profile next-client up -d client-next
+```
+
+容器只 `expose 3000`（不发布到宿主机），挂在 `frontend` 与 `backend` 网络：nginx 经 `frontend` 反代，SSR 经 `BUSINESS_API_URL` 走 `backend` 直连业务后端。对外路由需把 `deploy/nginx/client-next.conf.template` 挂载到 nginx 容器的 `/etc/nginx/templates/`（环境变量 `CLIENT_DOMAIN` 渲染 `server_name`），并配置 `CLIENT_DOMAIN`、`BUSINESS_API_URL`、`NEXT_PUBLIC_SITE_URL`（见 `.env.example`）。该模板是纯反代、无静态 SPA fallback，用于接入/验证阶段，不会自动切换现有 `frontend`/`admin` 流量。
+
 ## 相关文档
 
 - 用户端前端：[`client/README.md`](client/README.md)
