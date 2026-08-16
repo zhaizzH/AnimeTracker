@@ -9,3 +9,13 @@ it('stores the selected dark theme and updates the document', async () => {
   expect(document.documentElement.dataset.theme).toBe('dark');
   expect(document.cookie).toContain('at-theme=dark');
 });
+
+it('keeps a saved theme cookie untouched on mount and reflects it in the select', () => {
+  document.cookie = 'at-theme=; Max-Age=0';
+  document.cookie = 'at-theme=dark; Path=/; SameSite=Lax';
+  render(<ThemeToggle initialMode="system" />);
+  expect(screen.getByLabelText('主题')).toHaveValue('dark');
+  expect(document.documentElement.dataset.theme).toBe('dark');
+  expect(document.cookie).toContain('at-theme=dark');
+  expect(document.cookie).not.toContain('at-theme=system');
+});
