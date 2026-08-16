@@ -5,6 +5,7 @@ import top.zhaizz.pojo.dto.collection.CollectionQueryDTO;
 import top.zhaizz.pojo.dto.collection.CollectionUpdateDTO;
 import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
 import top.zhaizz.pojo.vo.collection.UserCollectionVO;
+import top.zhaizz.pojo.vo.collection.WishlistAddResultVO;
 
 import java.util.Map;
 
@@ -16,6 +17,9 @@ public interface CollectionService {
 
     /** 获取用户各收藏类型计数（key=type 1-5） */
     Map<Integer, Long> listCounts(Long userId);
+
+    /** 仅当不存在收藏时加入想看（幂等，不覆盖已有收藏） */
+    WishlistAddResultVO addToWishlistIfAbsent(Long userId, Long subjectId);
 
     /** 获取用户对某番剧的收藏详情 */
     UserCollectionVO getCollection(Long userId, Long subjectId);

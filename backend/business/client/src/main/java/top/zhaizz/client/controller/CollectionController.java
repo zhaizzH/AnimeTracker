@@ -12,6 +12,7 @@ import top.zhaizz.pojo.dto.collection.CollectionUpdateDTO;
 import top.zhaizz.pojo.dto.collection.EpisodeStatusDTO;
 import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
 import top.zhaizz.pojo.vo.collection.UserCollectionVO;
+import top.zhaizz.pojo.vo.collection.WishlistAddResultVO;
 
 import java.util.Map;
 
@@ -62,6 +63,15 @@ public class CollectionController {
         Long userId = SecurityUtil.getCurrentUserId();
         collectionService.saveOrUpdate(userId, subjectId, request);
         return Result.success();
+    }
+
+    /**
+     * 仅当未收藏时加入想看（幂等，不覆盖已有收藏）
+     */
+    @PostMapping("/{subjectId}/wishlist")
+    public Result<WishlistAddResultVO> addToWishlist(@PathVariable Long subjectId) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        return Result.success(collectionService.addToWishlistIfAbsent(userId, subjectId));
     }
 
     /**

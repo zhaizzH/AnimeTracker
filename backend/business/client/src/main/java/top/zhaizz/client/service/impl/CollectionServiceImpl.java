@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.zhaizz.client.converter.CollectionConverter;
@@ -21,6 +22,7 @@ import java.time.LocalDate;
 import top.zhaizz.pojo.entity.UserCollection;
 import top.zhaizz.pojo.vo.collection.UserCollectionSubjectVO;
 import top.zhaizz.pojo.vo.collection.UserCollectionVO;
+import top.zhaizz.pojo.vo.collection.WishlistAddResultVO;
 
 import java.util.HashMap;
 import java.util.List;
@@ -64,13 +66,38 @@ public class CollectionServiceImpl implements CollectionService {
 
     @Override
     public UserCollectionVO getCollection(Long userId, Long subjectId) {
-        UserCollection collection = collectionMapper.selectOne(
-                new LambdaQueryWrapper<UserCollection>()
-                        .eq(UserCollection::getUserId, userId)
-                        .eq(UserCollection::getSubjectId, subjectId));
+        UserCollection collection = findCollection(userId, subjectId);
         if (collection == null) return null;
 
         return toSimpleVO(collection);
+    }
+
+    @Override
+    @Transactional
+    public WishlistAddResultVO addToWishlistIfAbsent(Long userId, Long subjectId) {
+        if (subjectMapper.selectById(subjectId) == null) {
+            throw new BizException(ErrorType.NOT_FOUND, "条目不存在");
+        }
+        UserCollection existing = findCollection(userId, subjectId);
+        if (existing != null) return WishlistAddResultVO.alreadyCollected(existing.getType());
+
+        UserCollection entity = new UserCollection();
+        entity.setUserId(userId);
+        entity.setSubjectId(subjectId);
+        entity.setType(1);
+        entity.setRate(0);
+        entity.setEpStatus(0);
+        entity.setCreatedAt(java.time.LocalDateTime.now());
+        entity.setUpdatedAt(entity.getCreatedAt());
+        try {
+            collectionMapper.insert(entity);
+        } catch (DuplicateKeyException e) {
+            // (user_id, subject_id) 唯一约束兜底并发竞态：重读并返回已收藏，不覆盖
+            UserCollection raced = findCollection(userId, subjectId);
+            if (raced != null) return WishlistAddResultVO.alreadyCollected(raced.getType());
+            throw e;
+        }
+        return WishlistAddResultVO.added();
     }
 
     @Override
@@ -162,5 +189,12 @@ public class CollectionServiceImpl implements CollectionService {
         vo.setRate(entity.getRate());
         vo.setEpStatus(entity.getEpStatus());
         return vo;
+    }
+
+    private UserCollection findCollection(Long userId, Long subjectId) {
+        return collectionMapper.selectOne(
+                new LambdaQueryWrapper<UserCollection>()
+                        .eq(UserCollection::getUserId, userId)
+                        .eq(UserCollection::getSubjectId, subjectId));
     }
 }
