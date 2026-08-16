@@ -13,6 +13,8 @@
 - 前端不直接访问 `8090`；Agent 流量经 business 代理层对外（`/api/client/agent/*`、`/api/admin/agent/*`）。
 - agent 通过回查 business API 获取番剧实时数据；数据导入由管理端经 agent 触发（`POST /api/admin/agent/import/run`）。
 - agent 与 importer 共用同一 Python venv 与 `.env`。
+- 涉及收藏与进度的 Agent 写操作采用“预览 → 用户确认 → 执行”，待确认动作存储在 Redis，模型不直接构造最终写入参数。
+- `agent/evals/` 提供零网络、零副作用的确定性评测，覆盖路由、推荐与安全写入边界。
 
 ## 服务与端口
 
@@ -45,5 +47,6 @@ backend/
 | [`business/README.md`](business/README.md) | 多模块架构、模块职责、分层约定、配置、测试 |
 | [`agent/README.md`](agent/README.md) | LangGraph 状态图、SSE 协议、托管提示词、`.env` 配置、接口清单 |
 | [`agent/importer/README.md`](agent/importer/README.md) | 导入模式、并发模型、`.env` 配置、写入表 |
+| [`agent/evals/README.md`](agent/evals/README.md) | 离线 / Live Agent 评测、数据集与 CI 门禁 |
 
 > 前端联调需先启动 business（:8080）；数据库建表脚本见 [`../docs/database/db-schema.sql`](../docs/database/db-schema.sql)。

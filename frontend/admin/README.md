@@ -1,10 +1,10 @@
 # AnimeTracker 管理端前端（admin）
 
-面向运营人员的番剧管理后台 Web 应用，基于 **React 18 + TypeScript + Vite 6 + Ant Design 5** 构建，提供仪表盘、番剧管理、用户管理、数据导入、Agent 配置、操作日志等管理功能。
+面向运营人员的番剧管理后台 Web 应用，基于 **React 18 + TypeScript + Vite 6 + Ant Design 5** 构建，提供仪表盘、番剧管理、用户管理、数据导入、Agent 配置与对话、操作日志等管理功能。
 
 - **开发端口**：`5174`
 - **生产构建**：`npm run build` → `dist/`
-- **当前状态**：🟡 预览版（登录与仪表盘已接入真实 API，其余页面陆续接入中）
+- **当前状态**：🟡 核心页面已接入真实 API，细粒度权限与交互体验仍在完善
 
 > 站点标题：**AnimeTracker 运营后台**。用户端前端位于同级 [`../client/`](../client/README.md)。
 
@@ -81,10 +81,6 @@ src/
 ├── layouts/
 │   └── AdminLayout.tsx       # 后台布局（侧边栏 + 顶栏 + 内容区）
 │
-├── mock/                     # 演示数据（开发/备用）
-│   ├── admin.ts              # 番剧/用户/导入/日志/Agent mock
-│   └── dashboard.ts          # 仪表盘 mock（趋势/概览/评分等）
-│
 ├── pages/                    # 页面组件
 │   ├── Login.tsx             # 登录（已接入真实 API）
 │   ├── Dashboard.tsx         # 仪表盘（已接入真实 API）
@@ -92,6 +88,7 @@ src/
 │   ├── Users.tsx             # 用户管理
 │   ├── ImportTasks.tsx       # 数据导入
 │   ├── AgentConfig.tsx       # Agent 配置
+│   ├── AgentChat.tsx         # 管理员 Agent 对话（独立会话与流式响应）
 │   └── Logs.tsx              # 操作日志
 │
 ├── store/                    # Zustand 状态
@@ -118,6 +115,7 @@ src/
 | `/import` | 数据导入 | 是 |
 | `/logs` | 操作日志 | 是 |
 | `/agent` | Agent 配置 | 是 |
+| `/agent-chat` | 管理员 Agent 对话 | 是 |
 | `*` | 重定向至 `/dashboard` | — |
 
 受保护路由由 `ProtectedLayout` 守卫（检查 `authStore.token`），嵌套在 `AdminLayout` 内渲染。
@@ -128,13 +126,14 @@ src/
 
 | 页面 | 文件 | 状态 | 说明 |
 |------|------|------|------|
-| 登录 | `Login.tsx` | ✅ 可交互 | 真实 API 登录 + ADMIN 角色检查 + 终端风格动画 |
-| 仪表盘 | `Dashboard.tsx` | ✅ 可交互 | 调用 6 个真实 API，展示概览统计、趋势图、收藏分布、热门榜 |
-| 番剧管理 | `Subjects.tsx` | 🟡 功能较完整 | 列表 + 搜索/过滤 + CRUD + 详情 Drawer + 封面上传 |
-| 用户管理 | `Users.tsx` | 🟡 雏形 | 列表 + 关键字/角色过滤 + 角色调整 Modal |
-| 数据导入 | `ImportTasks.tsx` | 🟡 雏形 | 导入状态 + 启动表单 + 当前任务 + 历史记录（5s 轮询） |
-| Agent 配置 | `AgentConfig.tsx` | 🟡 功能较完整 | 提示词列表/编辑器 + 模型配置 + Agent 健康状态 |
-| 操作日志 | `Logs.tsx` | 🟡 功能较完整 | 日志列表 + 多维过滤 + 详情 Drawer + 统计 + CSV 导出 |
+| 登录 | `Login.tsx` | ✅ 已接入 API | 登录 + ADMIN 角色检查 + 终端风格动画 |
+| 仪表盘 | `Dashboard.tsx` | ✅ 已接入 API | 概览统计、趋势图、收藏分布、热门榜 |
+| 番剧管理 | `Subjects.tsx` | ✅ 已接入 API | 列表、搜索/过滤、CRUD、详情 Drawer、封面上传 |
+| 用户管理 | `Users.tsx` | ✅ 已接入 API | 列表、关键字/角色过滤、角色调整 |
+| 数据导入 | `ImportTasks.tsx` | ✅ 已接入 API | 导入状态、启动任务、历史记录与轮询 |
+| Agent 配置 | `AgentConfig.tsx` | ✅ 已接入 API | 提示词编辑、运行时模型配置、Agent 健康状态 |
+| Agent 对话 | `AgentChat.tsx` | 🟡 开发中 | 管理员独立会话、历史记录与 SSE 流式对话 |
+| 操作日志 | `Logs.tsx` | ✅ 已接入 API | 日志列表、多维过滤、详情与 CSV 导出 |
 
 ---
 
@@ -205,8 +204,9 @@ src/
 - [x] 「极光白昼」浅色后台主题 + 暗夜深色主题 + 布局骨架
 - [x] 登录页接入真实 API + ADMIN 角色检查
 - [x] 仪表盘接入真实 API
-- [x] 番剧 / 用户 / 导入 / Agent 配置 / 日志 页面雏形
-- [ ] 各页面全面接入真实 `/api/admin/*` 接口并移除 Mock
+- [x] 番剧 / 用户 / 导入 / Agent 配置 / 日志接入真实 `/api/admin/*` 接口
+- [x] 管理员 Agent 对话页面与独立会话接口
+- [ ] 完善管理员 Agent 的领域能力与交互体验
 - [ ] 权限指令 / 路由守卫按角色细粒度控制
 
 ---

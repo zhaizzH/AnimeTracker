@@ -4,12 +4,6 @@
 
 ---
 
-## 文件清单
-
-各文件按类别存放在下列子目录中。
-
----
-
 ## 子目录
 
 | 目录 | 说明 |
@@ -18,7 +12,7 @@
 | [`database/`](database/) | 数据库脚本（[`db-schema.sql`](database/db-schema.sql)，含 `operation_log` 等操作审计表） |
 | [`spec/`](spec/) | API 规范（[`openapi.yaml`](spec/openapi.yaml)，OpenAPI 3.0 完整接口定义） |
 | [`retrospective/`](retrospective/) | 项目复盘 |
-| [`test/`](test/) | 测试计划编写方案、测试计划与执行报告 |
+| [`test/`](test/) | 测试工作区：`plan/` 测试计划、`report/` 执行报告、`scripts/` 辅助脚本与测试数据 |
 | `api/` | 第三方 API 文档工具（独立 Git 仓库，已被 `.gitignore` 忽略，不属于本项目源码） |
 | `superpowers/` | 项目规划与设计文档（`plans/`、`specs/`） |
 

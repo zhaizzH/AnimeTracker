@@ -3,7 +3,7 @@
 基于 **FastAPI + LangGraph + langchain create_agent** 构建的 AI 对话 Agent，面向番剧场景提供搜索、发现、推荐三类对话能力，通过工具调用后端业务 API 获取实时数据，经 SSE 流式输出。
 
 - **默认端口**：`8090`（Swagger 文档：`/docs`）
-- **LLM**：DashScope 百炼 Qwen（默认 `qwen3.7-plus`，可选 DeepSeek 官方直连）
+- **LLM**：DeepSeek 官方直连或 DashScope 百炼 Qwen（同时配置时优先 DeepSeek）
 - **存储**：Redis（会话 / 消息 + 托管提示词快照）
 
 ## 架构定位
@@ -182,14 +182,16 @@ backend/agent/
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `dashscope_api_key` | 空 | DashScope API Key（必填） |
-| `llm_model` | `qwen3.7-plus` | 模型名 |
-| `llm_model_route` | `qwen3.7-plus` | gateway 路由专用模型（快速模型，降低首段等待） |
+| `deepseek_api_key` | 空 | DeepSeek 官方 API Key；存在时优先使用 DeepSeek |
+| `deepseek_base_url` | `https://api.deepseek.com` | DeepSeek OpenAI 兼容端点 |
+| `deepseek_model` | `deepseek-chat` | DeepSeek 领域 Agent 模型 |
+| `deepseek_model_route` | `deepseek-chat` | DeepSeek gateway 路由模型 |
+| `dashscope_api_key` | 空 | DashScope API Key；未配置 DeepSeek 时作为回退供应商 |
+| `dashscope_model` | `qwen3.7-plus` | DashScope 领域 Agent 模型 |
+| `dashscope_model_route` | `qwen3.7-plus` | DashScope gateway 路由模型 |
 | `llm_temperature` | `0.3` | 默认温度（route slot 固定 0.0） |
 | `llm_max_tokens` | `4096` | 最大 token |
 | `llm_thinking_budget` | `2048` | 思考预算 |
-| `deepseek_api_key` | 空 | DeepSeek 官方 Key（可选；模型名带 `deepseek/` 前缀即走此 provider，例如 `deepseek/deepseek-v4-flash`） |
-| `deepseek_base_url` | `https://api.deepseek.com` | DeepSeek 官方地址（OpenAI 兼容端点） |
 | `agent_host` / `agent_port` | `0.0.0.0` / `8090` | 服务监听 |
 | `backend_base_url` | `http://localhost:8080` | 业务后端地址 |
 | `redis_url` | `redis://localhost:6379/0` | Redis 地址（会话 / 消息 / 提示词 / 运行时模型配置） |
@@ -215,7 +217,7 @@ python importer/main.py --mode season --key 2026-summer
 
 ```bash
 cd backend/agent
-cp .env.example .env          # 填入 DASHSCOPE_API_KEY 与 REDIS_URL（本地需启动 Redis）
+cp .env.example .env          # 填入 DEEPSEEK_API_KEY 或 DASHSCOPE_API_KEY，并配置 REDIS_URL
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8090
 ```
@@ -231,13 +233,25 @@ uvicorn main:app --reload --port 8090
 - `GET /api/client/agent/health` —— 健康检查
 - `GET /api/admin/agent/prompts` / `GET /{key}` / `POST /{key}/update` / `POST /{key}/reset` —— 托管提示词查询 / 更新 / 重置
 - `GET /api/admin/agent/config` / `POST /api/admin/agent/config/update` —— 运行时模型配置读写
+- `/api/admin/agent/chat/*` —— 管理员独立会话、历史记录与 SSE 流式对话（与用户会话隔离）
 - `GET /docs` —— Swagger 文档
 
 > `/api/admin/agent/*` 为管理端接口，需 ADMIN 角色（本地验签）；管理端前端「Agent 配置」页即对接这些端点。
+
+## 确定性评测
+
+`evals/` 提供复用生产图结构的 Agent 评测。离线模式用确定性 LLM 与 Business API 替身覆盖路由、推荐、追番进度、想看和安全边界，不访问网络、不写入真实数据，并作为 CI 门禁：
+
+```bash
+python -m evals.runner --mode offline
+```
+
+Live 模式需要显式设置 `ALLOW_LIVE_AGENT_EVAL=true` 和供应商 Key，只用于诊断模型表现；业务写接口仍由 dry-run 替身接管。数据集、退出码和隐私约束详见 [`evals/README.md`](evals/README.md)。
 
 ## 相关文档
 
 - 后端总览：[`../README.md`](../README.md)
 - 业务后端：[`../business/README.md`](../business/README.md)
 - 数据导入：[`importer/README.md`](importer/README.md)
+- Agent 评测：[`evals/README.md`](evals/README.md)
 - 项目总览：[`../../README.md`](../../README.md)

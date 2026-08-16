@@ -84,7 +84,10 @@ mvn -pl app spring-boot:run -Dspring-boot.run.profiles.active=local
 
 - `application.yml` —— 主配置（默认激活 `local`，含 HikariCP / Lettuce 连接池、Jackson 日期格式、MyBatis-Plus、multipart 限制等）
 - `application-local.yml` —— 本地开发覆盖（数据源、Redis、JWT、MinIO、Agent 地址等）
+- `application-prod.yml` —— 容器部署配置，通过环境变量读取生产凭据与服务地址
 - `application-template.yml` —— 模板文件（敏感值用 `<placeholder>` 占位，供新开发者复制）
+
+数据库结构同时提供 Flyway 基线迁移 `app/src/main/resources/db/migration/V1__baseline.sql`；容器启动时可据此初始化，与项目级 `docs/database/db-schema.sql` 保持同一业务 Schema。
 
 需配置：
 
@@ -108,14 +111,20 @@ mvn -pl app spring-boot:run -Dspring-boot.run.profiles.active=local
 
 ## 测试
 
-测试类位于 `app/src/test/`，使用 Spring Boot Test + H2 内存数据库，共 11 个：
+测试分散在 `admin`、`agent`、`app` 与 `client` 模块，共 11 个测试类：
 
 | 分组 | 测试类 |
 |------|--------|
-| 认证 / 收藏 | `AuthServiceImplTest`、`CollectionServiceImplTest`、`VerificationServiceImplTest` |
-| 导入 / 仪表盘 | `ImportServiceImplTest`、`DashboardMapperTest` |
-| 审计 / 限流 | `OperationLogAspectTest`、`OperationLogCleanupTaskTest`、`RateLimiterTest`、`RateLimitAspectTest` |
-| 异常 / 校验 | `GlobalExceptionHandlerTest`、`SubjectScheduleValidationTest` |
+| 管理与代理 | `AdminLogServiceImplTest`、`AgentServiceImplTest` |
+| 应用入口与追踪 | `CollectionProgressControllerTest`、`RequestIdFilterTest` |
+| 进度更新 | `CollectionProgressContractTest`、`CollectionProgressCalculatorTest`、`CollectionProgressExecutionTest`、`CollectionProgressServiceImplTest`、`ProgressPreviewStoreTest` |
+| 想看写入 | `CollectionWishlistContractTest`、`CollectionWishlistTest` |
+
+运行全部业务测试：
+
+```bash
+mvn clean test
+```
 
 ## 相关文档
 

@@ -5,13 +5,15 @@
 | 工程 | 端口 | 说明 | 文档 |
 |------|------|------|------|
 | `client` | `5173` | 用户端追番应用：浏览 / 搜索、追番进度、时间表、标签、AI 助手 | [client/README.md](client/README.md) |
-| `admin` | `5174` | 运营后台（预览版）：仪表盘、番剧 / 用户 / 导入 / 日志 / Agent 配置 | [admin/README.md](admin/README.md) |
+| `admin` | `5174` | 运营后台（部分功能开发中）：仪表盘、番剧 / 用户 / 导入 / 日志 / Agent 配置与管理员对话 | [admin/README.md](admin/README.md) |
 
 ```
 Browser ──/api/*──► Vite dev proxy ──► business :8080
 ```
 
 两个工程技术栈一致（Zustand + React Query + React Router 7），但用户端采用纸质感设计系统（`theme.css` 全局 CSS 变量），管理端采用明暗双主题（`theme.ts` + `global.css`），互不共享源码。
+
+管理端核心数据页面已接入真实 `/api/admin/*` 接口；当前主要继续完善管理员 Agent 能力、细粒度权限与交互体验。
 
 ## 快速开始
 
