@@ -124,6 +124,7 @@ export const copy = {
     today: '今天',
     timezone: '时区',
     empty: '当天暂无更新',
+    loadError: '时间表加载失败，请稍后重试',
     weekdays: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
     statusAiring: '放送中',
     statusFinished: '已完结',
