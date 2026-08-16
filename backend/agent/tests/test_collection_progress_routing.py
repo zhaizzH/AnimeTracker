@@ -59,6 +59,7 @@ def test_run_domain_agent_appends_pending_context_with_preview_id(monkeypatch):
         tools=[],
         prompt_key="client_recommend_agent_prompt",
         prompt_path="client/recommend_agent_prompt.md",
+        include_pending_action=True,
     )
     prompt = captured["system_prompt"].content
     assert result["result"] == "已更新"

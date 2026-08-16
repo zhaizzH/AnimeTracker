@@ -13,6 +13,14 @@ from app.schemas.pending_action import PendingAction
 
 
 def _build_pending_context(pending: PendingAction) -> str:
+    if pending.type == "ADD_TO_WISHLIST":
+        return (
+            "\n\n【待确认动作】\n"
+            "用户有待确认加入「想看」的番剧。执行必须使用系统注入的待确认条目,不得要求用户提供或自行编造:\n"
+            f"- 类型: {pending.type}\n"
+            f"- 过期时间: {pending.expires_at.isoformat()}\n"
+            f"- 条目: {json.dumps([i.model_dump(by_alias=True) for i in pending.items], ensure_ascii=False)}\n"
+        )
     preview_id = getattr(pending, "preview_id", None)
     items = getattr(pending, "items", [])
     return (
@@ -26,9 +34,10 @@ def _build_pending_context(pending: PendingAction) -> str:
     )
 
 
-def run_domain_agent(state, *, slot: AgentChatModelSlot, tools: list, prompt_key: str, prompt_path: str) -> dict:
+def run_domain_agent(state, *, slot: AgentChatModelSlot, tools: list, prompt_key: str, prompt_path: str,
+                     include_pending_action: bool = False) -> dict:
     prompt = load_managed_prompt(prompt_key, prompt_path)
-    pending = state.get("pending_action")
+    pending = state.get("pending_action") if include_pending_action else None
     if pending is not None:
         prompt += _build_pending_context(pending)
     agent = create_agent(

@@ -12,6 +12,9 @@ from app.core.prompt_sync import load_managed_prompt
 
 _ALLOWED_TARGETS = ("search_agent", "discover_agent", "recommend_agent")
 
+# 支持确定性强制路由到 recommend_agent 的待确认动作类型
+RECOMMEND_PENDING_ACTION_TYPES = {"COLLECTION_PROGRESS_UPDATE", "ADD_TO_WISHLIST"}
+
 # 保守的确认词表: 仅精确匹配的简短肯定,拒绝否定词与含糊长文本
 _CONFIRMATION_PHRASES = {
     "确认", "确定", "是", "是的", "好", "好的", "可以", "行",
@@ -30,9 +33,9 @@ def _is_explicit_confirmation(text: str) -> bool:
 
 
 def _resolve_forced_pending_route(state: AgentState) -> dict[str, str] | None:
-    """存在待确认动作且当前问题为明确确认时,确定性强制路由 recommend_agent。"""
+    """存在支持的待确认动作且当前问题为明确确认时,确定性强制路由 recommend_agent。"""
     pending = state.get("pending_action")
-    if pending is None or getattr(pending, "type", None) != "COLLECTION_PROGRESS_UPDATE":
+    if pending is None or getattr(pending, "type", None) not in RECOMMEND_PENDING_ACTION_TYPES:
         return None
     if not _is_explicit_confirmation(state.get("current_question") or ""):
         return None

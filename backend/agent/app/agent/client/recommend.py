@@ -14,4 +14,5 @@ def recommend_agent(state):
         tools=[*collection_read_tools, *recommend_action_tools, get_current_time],
         prompt_key="client_recommend_agent_prompt",
         prompt_path="client/recommend_agent_prompt.md",
+        include_pending_action=True,
     )
