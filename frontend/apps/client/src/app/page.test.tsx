@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import HomePage from './page';
+import HomePage, { dynamic } from './page';
 
 // 服务端首页在渲染时并行取数，这里拦截 public 适配器返回固定信封，
 // 以验证 SSR 输出三个板块标题（JS 执行前即存在）。
@@ -18,6 +18,10 @@ vi.mock('next/image', () => ({
 }));
 
 describe('HomePage (SSR)', () => {
+  it('forces request-time rendering so build-time fixture data is never served', () => {
+    expect(dynamic).toBe('force-dynamic');
+  });
+
   it('renders the three section headings in order in server HTML', async () => {
     render(await HomePage());
     const headings = screen.getAllByRole('heading', { level: 2 }).map((node) => node.textContent);

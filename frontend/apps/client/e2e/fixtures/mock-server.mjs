@@ -4,8 +4,8 @@
  * 为什么需要它：本应用所有公开数据都在 Next.js 服务端渲染阶段 fetch
  * （Server Component 直接调用 adapter），Playwright 的 page.route 只能拦截
  * 浏览器发出的请求，拦不到服务端 fetch。因此把 mock 起在 adapter 默认的
- * http://localhost:8080（见 src/lib/api/public-client.ts 的 DEFAULT_BASE_URL），
- * 让 next build 预渲染与 next start 的运行时 SSR 都能取到确定性数据。
+ * http://127.0.0.1:18080，
+ * 让 E2E 启动的 Next 服务在请求时取得确定性数据。
  *
  * 数据与 e2e/fixtures/api.ts 共享同一实现（api.ts 从本文件导入）。
  * 直接运行 `node e2e/fixtures/mock-server.mjs` 即监听 8080。
@@ -13,7 +13,7 @@
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 
-const PORT = Number(process.env.MOCK_PORT || 8080);
+const PORT = Number(process.env.MOCK_PORT || 18080);
 
 /** 公开 API 的番剧条目（字段子集，对应 api-contract 的条目列表视图）。 */
 export function makeSubject(id, overrides = {}) {

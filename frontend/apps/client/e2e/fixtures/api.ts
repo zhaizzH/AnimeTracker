@@ -6,7 +6,7 @@ import { handleApiRequest } from './mock-server.mjs';
  *
  * 本应用公开数据在 Next.js 服务端渲染阶段 fetch（Server Component 直接调用
  * adapter），page.route 拦不到服务端请求 —— 那部分由 e2e/fixtures/mock-server.mjs
- * 起在 adapter 默认的 http://localhost:8080 提供确定性数据（playwright.config.ts
+ * 起在 E2E 专用的 http://127.0.0.1:18080 提供确定性数据（playwright.config.ts
  * 里注册了该 webServer）。这里的 page.route 覆盖浏览器侧任何 /api/client/* 请求
  * 作为兜底，与 mock 服务共用同一 handler，保证行为一致。
  *

@@ -5,14 +5,14 @@ import { defineConfig, devices } from '@playwright/test';
  *
  * 公开数据全部在 Next.js 服务端渲染阶段 fetch（Server Component 直接调用
  * adapter），page.route 拦不到服务端请求。因此额外注册一个零依赖 mock 服务
- * 在 adapter 默认的 http://localhost:8080（见 src/lib/api/public-client.ts），
- * 覆盖 /api/client/subjects* 与 /api/client/tags；next build 预渲染与 next start
- * 运行时 SSR 都从它取数。页面文档与静态资源仍走真实生产构建。
+ * 在专用的 http://127.0.0.1:18080，
+ * 覆盖 /api/client/subjects* 与 /api/client/tags；E2E 的 Next 服务从它取数。
+ * 页面文档与静态资源仍走真实生产构建。
  * 浏览器侧兜底拦截见 e2e/fixtures/api.ts。
  */
 const PORT = 3000;
 const baseURL = `http://localhost:${PORT}`;
-const MOCK_BASE = 'http://localhost:8080';
+const MOCK_BASE = 'http://127.0.0.1:18080';
 
 export default defineConfig({
   testDir: './e2e',
@@ -37,12 +37,14 @@ export default defineConfig({
     {
       command: 'node e2e/fixtures/mock-server.mjs',
       url: `${MOCK_BASE}/__health`,
+      env: { MOCK_PORT: '18080' },
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },
     {
       command: 'pnpm build && pnpm start',
       url: baseURL,
+      env: { BUSINESS_API_URL: MOCK_BASE },
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,
     },

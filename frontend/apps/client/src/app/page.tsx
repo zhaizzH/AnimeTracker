@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   description: copy.home.tagline,
 };
 
+// 首页必须在请求时取数：E2E 的 mock 构建不能把 fixture 数据写进 ISR 产物。
+export const dynamic = 'force-dynamic';
+
 const HOME_SECTION_LIMIT = 6;
 
 /** 提取页信封中的数据项，无法提供数据时回退为空数组。 */
