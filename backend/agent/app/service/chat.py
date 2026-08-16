@@ -4,6 +4,7 @@ import logging
 from fastapi.responses import StreamingResponse
 from langchain_core.messages import AIMessage, HumanMessage
 
+from app.core.observability import get_trace_id, set_trace_context
 from app.core.pending_action import PendingActionEvent
 from app.core.streaming import StreamConfig, create_streaming_response
 from app.schemas.auth import UserInfo
@@ -20,6 +21,8 @@ class ChatService:
         self.settings = settings
 
     async def stream_chat(self, session_id: str, content: str, user_id: int, role: str, token: str = "") -> StreamingResponse:
+        # 建立请求级上下文(不覆盖已有 traceId): session/user 只记录匿名哈希
+        set_trace_context(get_trace_id(), session_id=session_id, user_id=str(user_id))
         await self.store.save_message(session_id, "user", content)
         history = await self.store.get_messages(session_id)
 

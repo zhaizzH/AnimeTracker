@@ -1,11 +1,19 @@
 import asyncio
 import logging
+import time
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
 
 from fastapi.responses import StreamingResponse
 
 from app.core.event_bus import reset_status_emitter, set_status_emitter
+from app.core.observability import (
+    classify_error,
+    elapsed_ms,
+    get_session_hash,
+    get_user_hash,
+    log_event,
+)
 from app.core.pending_action import (
     PendingActionEvent,
     get_pending_action_event,
@@ -46,6 +54,12 @@ def _build_emitted_response(payload: dict) -> AssistantResponse | None:
     )
 
 
+def _extract_route_target(latest_state: dict) -> str | None:
+    routing = latest_state.get("routing") or {}
+    target = routing.get("route_target")
+    return target if isinstance(target, str) and target else None
+
+
 def create_streaming_response(config: StreamConfig) -> StreamingResponse:
     async def event_stream():
         state = config.build_initial_state()
@@ -72,6 +86,10 @@ def create_streaming_response(config: StreamConfig) -> StreamingResponse:
         used_tools: list[str] = []
         has_streamed = False
         has_error = False
+        request_started = time.perf_counter()
+        first_answer_at: float | None = None
+        success = False
+        error_type: str | None = None
 
         async def produce():
             nonlocal latest_state
@@ -95,6 +113,7 @@ def create_streaming_response(config: StreamConfig) -> StreamingResponse:
                     break
                 if kind == "error":
                     has_error = True
+                    error_type = classify_error(payload)
                     text = config.map_exception(payload) if config.map_exception else "处理请求时出错，请重试"
                     yield serialize_sse(AssistantResponse(type=MessageType.ANSWER, content=Content(text=text)))
                     continue
@@ -102,6 +121,8 @@ def create_streaming_response(config: StreamConfig) -> StreamingResponse:
                 if response is None:
                     continue
                 if response.type == MessageType.ANSWER and response.content.text:
+                    if first_answer_at is None:
+                        first_answer_at = time.perf_counter()
                     has_streamed = True
                     aggregated_answer.append(response.content.text)
                 if (
@@ -116,6 +137,8 @@ def create_streaming_response(config: StreamConfig) -> StreamingResponse:
             if not has_streamed and not has_error and config.extract_final_content:
                 text = config.extract_final_content(latest_state)
                 if text:
+                    if first_answer_at is None:
+                        first_answer_at = time.perf_counter()
                     yield serialize_sse(AssistantResponse(type=MessageType.ANSWER, content=Content(text=text)))
 
             if config.on_answer_completed is not None:
@@ -132,7 +155,30 @@ def create_streaming_response(config: StreamConfig) -> StreamingResponse:
                 except Exception:
                     pass  # 待确认动作持久化失败不阻塞流结束
             yield serialize_sse(AssistantResponse(content=Content(), is_end=True))
+            success = not has_error
+        except asyncio.CancelledError:
+            error_type = "CLIENT_DISCONNECTED"
+            success = False
+            raise
+        except Exception as exc:
+            error_type = classify_error(exc)
+            success = False
+            raise
         finally:
+            first_token_ms = None
+            if first_answer_at is not None:
+                first_token_ms = round((first_answer_at - request_started) * 1000)
+            log_event(
+                "agent.request.completed",
+                sessionHash=get_session_hash(),
+                userHash=get_user_hash(),
+                routeTarget=_extract_route_target(latest_state),
+                durationMs=elapsed_ms(request_started),
+                firstTokenMs=first_token_ms,
+                toolCount=len(used_tools),
+                success=success,
+                errorType=error_type,
+            )
             reset_status_emitter(emitter_token)
             reset_pending_action_collector(pending_token)
             if not producer.done():
