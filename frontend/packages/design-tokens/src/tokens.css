@@ -1,0 +1,84 @@
+/*
+ * design-tokens — 编辑部手账 视觉 token
+ *
+ * 语义命名，Client 与 Admin 共享。浅色/深色两套取值，均为 WCAG 2.2 AA
+ * 对照检查（正文 ≥ 4.5:1）。不使用渐变、玻璃拟态与重阴影。
+ */
+
+:root {
+  color-scheme: light;
+
+  /* 画布与内容面 */
+  --color-canvas: #f6f2e9;        /* 暖骨白画布 */
+  --color-surface: #ffffff;       /* 白色内容面 */
+  --color-surface-muted: #efe9dd; /* 略暗内容面（卡片、骨架） */
+
+  /* 文本 */
+  --color-foreground: #26221d;    /* 炭黑正文 */
+  --color-muted: #5c554a;         /* 次要文字 ~7.3:1 */
+  --color-faint: #6d6659;         /* 占位符/弱化文字 ~5.7:1 */
+
+  /* 边框 */
+  --color-border: #d9d2c4;        /* 低对比暖灰边框 */
+  --color-border-strong: #b7ae9d; /* 输入框等需可见边界的边框 */
+
+  /* 强调色（只用于主操作、收藏状态与反馈） */
+  --color-accent: #99552a;        /* 陶土红 ~5.7:1 */
+  --color-accent-strong: #7f4620;
+  --color-accent-foreground: #ffffff;
+
+  /* 焦点环 */
+  --color-focus-ring: #3b6ea5;
+
+  /* 反馈 */
+  --color-danger: #b3261e;
+  --color-success: #2e6e3e;
+  --color-warning: #7a5400;
+  --color-info: #2b5f8a;
+
+  /* 追番收藏状态 */
+  --color-status-wish: #2b5f8a;       /* 想看 */
+  --color-status-watching: #2e6e3e;   /* 在看 */
+  --color-status-completed: #99552a;  /* 看过 */
+  --color-status-on-hold: #7a715e;    /* 搁置 */
+  --color-status-dropped: #6b6356;    /* 抛弃 */
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* 画布与内容面 */
+  --color-canvas: #1b1916;        /* 暖黑灰画布 */
+  --color-surface: #24211d;       /* 略亮内容面 */
+  --color-surface-muted: #2d2924; /* 更亮一档的内容面 */
+
+  /* 文本 */
+  --color-foreground: #ece5d6;    /* 米白正文 */
+  --color-muted: #b3ab9b;         /* ~7.7:1 */
+  --color-faint: #8f8778;         /* ~4.9:1 */
+
+  /* 边框 */
+  --color-border: #3d382f;
+  --color-border-strong: #5a5342;
+
+  /* 强调色 */
+  --color-accent: #c98a55;        /* 陶土红（亮） ~6.0:1 */
+  --color-accent-strong: #b57644;
+  --color-accent-foreground: #1b1916;
+
+  /* 焦点环 */
+  --color-focus-ring: #8ab8e8;
+
+  /* 反馈 */
+  --color-danger: #e07a6b;
+  --color-success: #7ec491;
+  --color-warning: #d0a24a;
+  --color-info: #8ab8e8;
+
+  /* 追番收藏状态 */
+  --color-status-wish: #7db0d6;       /* 想看 */
+  --color-status-watching: #7ec491;   /* 在看 */
+  --color-status-completed: #c98a55;  /* 看过 */
+  --color-status-on-hold: #a29884;    /* 搁置 */
+  --color-status-dropped: #8f8676;    /* 抛弃 */
+}

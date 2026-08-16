@@ -1,0 +1,12 @@
+{
+  "name": "@animetracker/design-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    ".": "./src/tokens.css"
+  },
+  "style": "./src/tokens.css",
+  "files": [
+    "src"
+  ]
+}
