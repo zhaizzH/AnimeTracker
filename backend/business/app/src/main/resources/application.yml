@@ -25,6 +25,16 @@ spring:
       idle-timeout: 300000
       connection-timeout: 5000
 
+  flyway:
+    # 新库自动执行 V1 基线迁移；禁止静默接管未知数据库（baseline-on-migrate 保持 false）
+    enabled: true
+    baseline-on-migrate: false
+
+  sql:
+    init:
+      # 统一走 Flyway，禁用 spring.sql.init 脚本初始化
+      mode: never
+
   data:
     redis:  # redis 配置
       host: ${at.data.redis.host:localhost}
