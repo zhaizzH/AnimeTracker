@@ -22,6 +22,7 @@ public enum ErrorType {
     METHOD_NOT_ALLOWED(405, "请求方法不允许"),
     UNSUPPORTED_MEDIA_TYPE(415, "不支持的 Content-Type"),
     PAYLOAD_TOO_LARGE(413, "上传文件大小超过限制"),
+    SERVICE_UNAVAILABLE(503, "服务暂不可用"),
     INTERNAL_ERROR(500, "服务器内部错误");
 
     private final int code;

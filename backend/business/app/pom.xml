@@ -48,6 +48,19 @@
             <artifactId>flyway-mysql</artifactId>
         </dependency>
 
+        <!-- Actuator 健康检查（仅 health + info） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- 结构化单行 JSON 日志 -->
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>7.4</version>
+        </dependency>
+
 
         <!-- Spring Cache（Redis 缓存注解支持） -->
         <dependency>
