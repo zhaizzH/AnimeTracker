@@ -1,0 +1,17 @@
+.git
+.gitignore
+.env
+.env.*
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+evals
+tests
+*.log
+.idea
+.vscode
+.DS_Store
+# 注意: resources/ 目录(托管提示词)必须保留,不得加入此忽略列表

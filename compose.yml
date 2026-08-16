@@ -1,0 +1,196 @@
+# ===================================================================
+# AnimeTracker 基础编排
+# 生产部署:  docker compose -f compose.yml -f compose.prod.yml up -d
+# 本文件不向宿主机发布任何端口;只有 compose.prod.yml 把 nginx 的
+# 80/443 映射到宿主机,保证最小暴露面。
+# ===================================================================
+name: animetracker
+
+services:
+  nginx:
+    image: animetracker/frontend:latest
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      business:
+        condition: service_healthy
+    networks:
+      - frontend
+      - backend
+
+  business:
+    image: animetracker/business:latest
+    build:
+      context: ./backend/business
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      MYSQL_DRIVER: com.mysql.cj.jdbc.Driver
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-anime_tracker}
+      MYSQL_USER: ${MYSQL_USER:-animetracker}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD 未设置}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD 未设置}
+      REDIS_DATABASE: ${REDIS_DATABASE:-1}
+      AGENT_HOST: agent
+      AGENT_PORT: "8090"
+      AT_ADMIN_SUPERADMIN_ID: ${AT_ADMIN_SUPERADMIN_ID:?AT_ADMIN_SUPERADMIN_ID 未设置}
+      AT_CORS_ALLOWED_ORIGINS: ${AT_CORS_ALLOWED_ORIGINS:-}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 未设置}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-1800000}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-604800000}
+      JWT_MAX_LOGIN_FAILS: ${JWT_MAX_LOGIN_FAILS:-5}
+      JWT_LOGIN_FAIL_WINDOW_MINUTES: ${JWT_LOGIN_FAIL_WINDOW_MINUTES:-300}
+      MINIO_HOST: minio
+      MINIO_PORT: "9000"
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY 未设置}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY 未设置}
+      MINIO_BUCKET: ${MINIO_BUCKET:-anime-tracker}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_SEND_EMAIL: ${RESEND_SEND_EMAIL:-}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - backend
+
+  agent:
+    image: animetracker/agent:latest
+    build:
+      context: ./backend/agent
+    restart: unless-stopped
+    environment:
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      DEEPSEEK_MODEL_ROUTE: ${DEEPSEEK_MODEL_ROUTE:-deepseek-chat}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      DASHSCOPE_MODEL: ${DASHSCOPE_MODEL:-qwen3.7-plus}
+      DASHSCOPE_MODEL_ROUTE: ${DASHSCOPE_MODEL_ROUTE:-qwen3.7-plus}
+      BACKEND_BASE_URL: http://business:8080
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 未设置}
+      # Redis 密码走 URL 认证(redis://:password@host:port/db)
+      REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD 未设置}@redis:6379/${REDIS_DATABASE:-1}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-anime_tracker}
+      MYSQL_USER: ${MYSQL_USER:-animetracker}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD 未设置}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD 未设置}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=caching_sha2_password
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - backend
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD:?REDIS_PASSWORD 未设置}
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - backend
+
+  minio:
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY 未设置}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY 未设置}
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - backend
+
+  certbot:
+    image: certbot/certbot:latest
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command: "trap exit TERM; while :; do /opt/init-cert.sh; sleep 12h & wait $${!}; done"
+    volumes:
+      - ./deploy/certbot/init-cert.sh:/opt/init-cert.sh:ro
+      - certbot-cert:/etc/letsencrypt
+      - certbot-webroot:/var/www/certbot
+    environment:
+      DOMAIN: ${DOMAIN}
+      CERT_EMAIL: ${CERT_EMAIL}
+    depends_on:
+      nginx:
+        condition: service_healthy
+    networks:
+      - frontend
+
+  demo-seeder:
+    image: animetracker/demo-seeder:latest
+    build:
+      context: ./deploy/demo-seeder
+    profiles: ["tools"]
+    restart: "no"
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-anime_tracker}
+      MYSQL_USER: ${MYSQL_USER:-animetracker}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD 未设置}
+      ALLOW_DEMO_SEED: ${ALLOW_DEMO_SEED:-false}
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:?DEMO_USER_PASSWORD 未设置(运行 demo-seeder 必需)}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - backend
+
+volumes:
+  mysql-data:
+  redis-data:
+  minio-data:
+  certbot-cert:
+  certbot-webroot:
+
+networks:
+  frontend:
+  backend:
