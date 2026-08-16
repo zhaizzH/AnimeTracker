@@ -12,6 +12,8 @@ export type DiscoveryResultsProps = {
   total: number;
   /** 取数失败时的安全错误信息（非异常页面） */
   errorMessage?: string;
+  /** 后端返回的请求编号，便于排查 */
+  requestId?: string;
 };
 
 function PageLink({ query, page, children }: { query: DiscoveryQuery; page: number; children: React.ReactNode }) {
@@ -27,7 +29,7 @@ function PageLink({ query, page, children }: { query: DiscoveryQuery; page: numb
  * 发现页结果区：卡片网格 + 结果数 + 链接式分页。
  * 分页用规范化查询串（toDiscoverySearchParams），可分享、无需 JS。
  */
-export function DiscoveryResults({ query, subjects, total, errorMessage }: DiscoveryResultsProps) {
+export function DiscoveryResults({ query, subjects, total, errorMessage, requestId }: DiscoveryResultsProps) {
   const totalPages = Math.max(1, Math.ceil(total / query.size));
   const hasPrev = query.page > 1;
   const hasNext = query.page < totalPages;
@@ -36,7 +38,7 @@ export function DiscoveryResults({ query, subjects, total, errorMessage }: Disco
     <section className={styles.layout}>
       <h1 className={styles.title}>{copy.discovery.title}</h1>
       {errorMessage ? (
-        <ErrorState message={errorMessage} retryHref="/discover" />
+        <ErrorState message={errorMessage} requestId={requestId} retryHref="/discover" />
       ) : (
         <>
           <p className={styles.count}>{copy.discovery.results.replace('{{total}}', String(total))}</p>

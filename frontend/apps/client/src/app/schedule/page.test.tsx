@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import SchedulePage from './page';
 import { parseSeasonParams, weekdayHref } from '@/features/schedule/season';
+import { ApiError } from '@/lib/api/errors';
 
 // 单个稳定的 getSchedule mock：测试可对其重置/注入返回值或拒绝，
 // 服务端页面在渲染时通过 getPublicApi() 取到的就是同一实例。
@@ -58,5 +59,13 @@ describe('SchedulePage (SSR)', () => {
     expect(screen.getByRole('alert')).toBeTruthy();
     expect(screen.getByRole('heading', { name: '周日' })).toBeTruthy();
     expect(screen.queryByText('当天暂无更新')).toBeNull();
+  });
+
+  it('shows the backend message and requestId for a business ApiError', async () => {
+    getScheduleMock.mockRejectedValue(new ApiError(400, '季度参数无效', undefined, 'req-9'));
+    render(await SchedulePage({ searchParams: Promise.resolve({}) }));
+    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(screen.getByText('季度参数无效')).toBeTruthy();
+    expect(screen.getByText('请求编号: req-9')).toBeTruthy();
   });
 });

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { copy } from '@/content/zh-CN';
 import { getPublicApi } from '@/lib/api/public-client';
+import { ApiError } from '@/lib/api/errors';
 import type { SubjectListItem } from '@/features/subjects/model';
 import {
   fetchAllSchedulePages,
@@ -28,19 +29,28 @@ export default async function SchedulePage({ searchParams }: PageProps) {
 
   let subjects: SubjectListItem[] = [];
   let errorMessage: string | undefined;
+  let requestId: string | undefined;
   try {
     subjects = await fetchAllSchedulePages(async (page, size) => {
       const data = await api.getSchedule({ year: params.year, quarter: params.quarter, page, size });
       return data ?? {};
     });
-  } catch {
-    errorMessage = copy.schedule.loadError;
+  } catch (err) {
+    errorMessage =
+      err instanceof ApiError && err.message ? err.message : copy.schedule.loadError;
+    requestId = err instanceof ApiError ? err.requestId : undefined;
   }
 
   const grouped = groupScheduleByWeekday(subjects);
   const selectedWeekday: Weekday = params.weekday ?? getTodayIsoWeekday();
 
   return (
-    <ScheduleView params={params} selectedWeekday={selectedWeekday} grouped={grouped} errorMessage={errorMessage} />
+    <ScheduleView
+      params={params}
+      selectedWeekday={selectedWeekday}
+      grouped={grouped}
+      errorMessage={errorMessage}
+      requestId={requestId}
+    />
   );
 }

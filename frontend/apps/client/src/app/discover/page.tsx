@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { copy } from '@/content/zh-CN';
 import { getPublicApi } from '@/lib/api/public-client';
+import { ApiError } from '@/lib/api/errors';
 import { toSubjectCardModel } from '@/features/subjects/model';
 import type { SubjectCardModel } from '@/features/subjects/model';
 import {
@@ -62,7 +63,13 @@ export default async function DiscoverPage({ searchParams }: PageProps) {
     (item) => toSubjectCardModel(item as Parameters<typeof toSubjectCardModel>[0]),
   );
   const total = page?.total ?? 0;
-  const errorMessage = listRes.status === 'rejected' ? copy.discovery.loadError : undefined;
+  const listError = listRes.status === 'rejected' ? listRes.reason : undefined;
+  const errorMessage = listError
+    ? listError instanceof ApiError && listError.message
+      ? listError.message
+      : copy.discovery.loadError
+    : undefined;
+  const requestId = listError instanceof ApiError ? listError.requestId : undefined;
   const tags =
     tagsRes.status === 'fulfilled'
       ? (tagsRes.value as unknown as { name?: string }[])
@@ -71,7 +78,7 @@ export default async function DiscoverPage({ searchParams }: PageProps) {
   return (
     <main id="main" className={styles.page}>
       <DiscoveryFilters query={query} tags={tags} years={years} />
-      <DiscoveryResults query={query} subjects={subjects} total={total} errorMessage={errorMessage} />
+      <DiscoveryResults query={query} subjects={subjects} total={total} errorMessage={errorMessage} requestId={requestId} />
     </main>
   );
 }

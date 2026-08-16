@@ -15,6 +15,8 @@ export type ScheduleViewProps = {
   grouped: Map<Weekday, SubjectCardModel[]>;
   /** 取数失败时的安全错误信息（布局仍渲染，只是列内不显示误导性空态） */
   errorMessage?: string;
+  /** 后端返回的请求编号，便于排查 */
+  requestId?: string;
 };
 
 /**
@@ -22,7 +24,7 @@ export type ScheduleViewProps = {
  * 全部星期始终在服务端 HTML 中渲染；CSS 在桌面展示七列、在移动端只显示
  * 选中星期所在列。移动端选择器是链接，切换星期即更新 URL，无需 JS。
  */
-export function ScheduleView({ params, selectedWeekday, grouped, errorMessage }: ScheduleViewProps) {
+export function ScheduleView({ params, selectedWeekday, grouped, errorMessage, requestId }: ScheduleViewProps) {
   const seasonText = `${params.year} ${quarterLabel(params.quarter)}`;
 
   return (
@@ -31,7 +33,7 @@ export function ScheduleView({ params, selectedWeekday, grouped, errorMessage }:
       <p className={styles.season}>{seasonText}</p>
 
       {errorMessage ? (
-        <ErrorState message={errorMessage} retryHref={weekdayHref(params, selectedWeekday)} />
+        <ErrorState message={errorMessage} requestId={requestId} retryHref={weekdayHref(params, selectedWeekday)} />
       ) : null}
 
       <nav className={styles.selector} aria-label={copy.schedule.title}>
