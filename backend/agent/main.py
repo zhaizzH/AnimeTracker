@@ -14,12 +14,12 @@ from app.api.admin_config import require_admin
 from app.api.deps import verify_token
 from app.agent.graph import build_graph
 from app.config import resolve_llm_provider, settings
-from app.core.observability import trace_context_middleware
+from app.core.observability import configure_logging, trace_context_middleware
 from app.core.prompt_sync import initialize_agent_prompt_snapshot
 from app.db.redis_store import RedisStore
 from app.service.chat import ChatService
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+configure_logging()
 logger = logging.getLogger(__name__)
 
 
