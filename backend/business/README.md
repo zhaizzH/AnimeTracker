@@ -87,7 +87,7 @@ mvn -pl app spring-boot:run -Dspring-boot.run.profiles.active=local
 - `application-prod.yml` —— 容器部署配置，通过环境变量读取生产凭据与服务地址
 - `application-template.yml` —— 模板文件（敏感值用 `<placeholder>` 占位，供新开发者复制）
 
-数据库结构同时提供 Flyway 基线迁移 `app/src/main/resources/db/migration/V1__baseline.sql`；容器启动时可据此初始化，与项目级 `docs/database/db-schema.sql` 保持同一业务 Schema。
+数据库结构不使用 Flyway，统一由项目级 `docs/database/db-schema.sql` 维护；新环境手动执行该脚本建表。
 
 需配置：
 

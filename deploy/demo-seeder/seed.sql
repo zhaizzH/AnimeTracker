@@ -2,7 +2,7 @@
 -- AnimeTracker 演示数据（仅 tools profile 下由 demo-seeder 执行）
 -- 演示用户密码哈希由 entrypoint.sh 运行时生成并替换占位符，绝不落库明文。
 -- 全部使用 INSERT IGNORE 保证重复执行幂等。
--- 依赖：业务库已由 Flyway V1 基线迁移建表。
+-- 依赖：业务库已由 docs/database/db-schema.sql 建表。
 -- =====================================================================
 
 SET NAMES utf8mb4;

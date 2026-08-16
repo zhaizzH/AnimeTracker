@@ -38,16 +38,6 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Flyway 数据库版本迁移（MySQL 支持需额外模块） -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-mysql</artifactId>
-        </dependency>
-
         <!-- Actuator 健康检查（仅 health + info） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

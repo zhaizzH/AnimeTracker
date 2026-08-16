@@ -79,7 +79,7 @@ docker compose -f compose.yml -f compose.prod.yml ps
 docker compose -f compose.yml -f compose.prod.yml down
 ```
 
-首次启动会创建 MySQL / Redis / MinIO 数据卷，并由 Flyway 在空库上自动建表。
+首次启动会创建 MySQL / Redis / MinIO 数据卷。业务库结构不使用 Flyway，由 `docs/database/db-schema.sql` 手动建表（项目根目录运行 `mysql ... < docs/database/db-schema.sql`）。
 
 ---
 

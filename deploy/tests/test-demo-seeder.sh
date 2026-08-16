@@ -8,13 +8,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SEEDER_DIR="$SCRIPT_DIR/../demo-seeder"
-BASELINE_SQL="${BASELINE_SQL:-$SCRIPT_DIR/../../backend/business/app/src/main/resources/db/migration/V1__baseline.sql}"
+BASELINE_SQL="${BASELINE_SQL:-$SCRIPT_DIR/../../docs/database/db-schema.sql}"
 IMAGE="${IMAGE:-animetracker-demo-seeder:test}"
 DB_NAME="demo_seeder_$$"
 ROOT_PW="seeder_test_pw"
 
 command -v docker >/dev/null 2>&1 || { echo "FAIL: 需要 docker" >&2; exit 1; }
-[ -f "$BASELINE_SQL" ] || { echo "FAIL: 未找到基线迁移 $BASELINE_SQL" >&2; exit 1; }
+[ -f "$BASELINE_SQL" ] || { echo "FAIL: 未找到建表脚本 $BASELINE_SQL" >&2; exit 1; }
 
 pass() { echo "PASS: $1"; }
 fail() { echo "FAIL: $1" >&2; exit 1; }
@@ -32,7 +32,7 @@ for _ in $(seq 1 60); do
 done
 docker exec "$MYSQL_CID" mysqladmin ping -uroot -p"$ROOT_PW" --silent >/dev/null 2>&1 || fail "MySQL 未在超时时间内就绪"
 
-echo "应用基线迁移（模拟 Flyway 首次启动）..."
+echo "应用项目级 db-schema.sql 建表..."
 docker exec -i "$MYSQL_CID" mysql -uroot -p"$ROOT_PW" "$DB_NAME" < "$BASELINE_SQL"
 
 run_seeder() {

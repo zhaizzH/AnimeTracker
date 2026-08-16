@@ -3,7 +3,7 @@ set -eu
 
 # 演示数据写入入口（仅 tools profile 下由 docker compose 显式调用）。
 # 守卫：非空业务库默认拒绝写入；只有 ALLOW_DEMO_SEED=true 才允许覆盖。
-# 依赖：业务库已由 Flyway 建表；DEMO_USER_PASSWORD 提供明文密码，哈希运行时生成。
+# 依赖：业务库已由 docs/database/db-schema.sql 建表；DEMO_USER_PASSWORD 提供明文密码，哈希运行时生成。
 
 mysql_demo() {
   mysql -h"${MYSQL_HOST:-localhost}" -P"${MYSQL_PORT:-3306}" \
