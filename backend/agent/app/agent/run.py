@@ -4,11 +4,11 @@ from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, SystemMessage
 
 from app.agent.state import AgentState
-from app.config import AgentChatModelSlot, create_agent_chat_llm
+from app.config import AgentChatModelSlot, create_agent_chat_llm, resolve_llm_provider, settings
 from app.core.agent_runtime import agent_stream
 from app.core.event_bus import emit_answer_delta, emit_thinking_delta
 from app.core.middleware import build_tool_status_middleware
-from app.core.observability import llm_model_name, provider_from_model
+from app.core.observability import llm_model_name
 from app.core.prompt_sync import load_managed_prompt
 from app.schemas.pending_action import PendingAction
 
@@ -57,7 +57,7 @@ def run_domain_agent(state, *, slot: AgentChatModelSlot, tools: list, prompt_key
         on_model_delta=emit_answer_delta,
         on_thinking_delta=emit_thinking_delta,
         slot=slot.value,
-        provider=provider_from_model(model_name),
+        provider=resolve_llm_provider(settings).provider,
         model=model_name,
     )
     text = stream["streamed_text"]

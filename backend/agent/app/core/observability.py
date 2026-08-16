@@ -69,19 +69,6 @@ def hash_value(value: str | None) -> str | None:
     return hashlib.sha256(f"{_HASH_SALT}:{value}".encode("utf-8")).hexdigest()[:16]
 
 
-def provider_from_model(model: str | None) -> str | None:
-    """生产约定: 模型名以 deepseek/ 开头 → deepseek,否则 dashscope。
-
-    注: ChatDeepSeek 在创建时被剥掉 `deepseek/` 前缀,故同时识别 `deepseek-` 前缀。
-    """
-    if not model:
-        return None
-    m = str(model).strip().lower()
-    if m.startswith("deepseek/") or m.startswith("deepseek-"):
-        return "deepseek"
-    return "dashscope"
-
-
 def llm_model_name(llm) -> str | None:
     """从 LangChain chat model 对象提取实际模型名(deepseek 模型不带前缀)。"""
     if llm is None:

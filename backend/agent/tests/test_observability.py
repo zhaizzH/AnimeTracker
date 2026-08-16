@@ -9,7 +9,6 @@ from app.core.observability import (
     get_trace_id,
     hash_value,
     log_event,
-    provider_from_model,
     reset_trace_context,
     set_trace_context,
     trace_context_middleware,
@@ -48,13 +47,6 @@ def test_log_event_filters_unallowed_fields_and_none(caplog):
     assert payload["userHash"] == "h1"
     assert "user_input" not in payload
     assert "敏感内容" not in caplog.text
-
-
-def test_provider_from_model():
-    assert provider_from_model("deepseek/deepseek-chat") == "deepseek"
-    assert provider_from_model("deepseek-chat") == "deepseek"
-    assert provider_from_model("qwen-plus") == "dashscope"
-    assert provider_from_model(None) is None
 
 
 def test_hash_value_is_deterministic_and_not_plain():
