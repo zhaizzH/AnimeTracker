@@ -14,5 +14,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    // Playwright 的 e2e/*.spec.ts 是浏览器测试，必须排除在 vitest 之外。
+    exclude: ['e2e/**', '**/node_modules/**', '**/dist/**'],
   },
 });

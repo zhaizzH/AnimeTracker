@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@animetracker/api-contract": "workspace:*",
@@ -18,6 +20,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.1",
     "@eslint/eslintrc": "^3.3.6",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^16.0.0",
