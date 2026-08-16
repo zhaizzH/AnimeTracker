@@ -1,0 +1,170 @@
+# 加入想看确定性 case（8 个）：预览、跳过已收藏、确认执行、拒绝写入、部分失败。
+
+- id: wishlist-preview-after-recommend
+  category: wishlist
+  input: 把推荐的这部加入想看
+  expect:
+    routeTarget: recommend_agent
+    calledTools: [preview_add_to_wishlist]
+    toolArguments:
+      preview_add_to_wishlist:
+        subjects:
+          - subjectId: 101
+            subjectName: 测试番
+    businessCalls:
+      - [GET, /api/client/collections/101]
+    pendingActionType: ADD_TO_WISHLIST
+    pendingActionOperation: SET
+    pendingSubjectIds: [101]
+    forbiddenTools: [execute_add_to_wishlist]
+
+- id: wishlist-skip-collected
+  category: wishlist
+  input: 把这部加入想看
+  fixtures:
+    "GET /api/client/collections/101":
+      type: 3
+  expect:
+    routeTarget: recommend_agent
+    calledTools: [preview_add_to_wishlist]
+    toolArguments:
+      preview_add_to_wishlist:
+        subjects:
+          - subjectId: 101
+            subjectName: 测试番
+    businessCalls:
+      - [GET, /api/client/collections/101]
+    pendingSubjectIds: []
+
+- id: wishlist-confirm-executes
+  category: wishlist
+  input: 确认
+  state:
+    user:
+      user_id: 1
+      role: USER
+    pending_action:
+      type: ADD_TO_WISHLIST
+      user_id: 1
+      expires_at: "2026-08-16T10:00:00+08:00"
+      items:
+        - subject_id: 101
+          subject_name: 测试番
+  expect:
+    routeTarget: recommend_agent
+    calledTools: [execute_add_to_wishlist]
+    businessCalls:
+      - [POST, /api/client/collections/101/wishlist]
+    pendingActionOperation: CLEAR
+
+- id: wishlist-system-subject-id
+  category: wishlist
+  input: 确认加入我刚刚看的那部
+  state:
+    user:
+      user_id: 1
+      role: USER
+    pending_action:
+      type: ADD_TO_WISHLIST
+      user_id: 1
+      expires_at: "2026-08-16T10:00:00+08:00"
+      items:
+        - subject_id: 101
+          subject_name: 测试番
+  expect:
+    routeTarget: recommend_agent
+    calledTools: [execute_add_to_wishlist]
+    toolArguments:
+      execute_add_to_wishlist: {}
+    businessCalls:
+      - [POST, /api/client/collections/101/wishlist]
+    pendingActionOperation: CLEAR
+
+- id: wishlist-vague-no-write
+  category: wishlist
+  input: 随便吧
+  state:
+    user:
+      user_id: 1
+      role: USER
+    pending_action:
+      type: ADD_TO_WISHLIST
+      user_id: 1
+      expires_at: "2026-08-16T10:00:00+08:00"
+      items:
+        - subject_id: 101
+          subject_name: 测试番
+  expect:
+    routeTarget: recommend_agent
+    calledTools: []
+    forbiddenTools: [execute_add_to_wishlist]
+    businessCalls: []
+
+- id: wishlist-negation-no-write
+  category: wishlist
+  input: 不用了
+  state:
+    user:
+      user_id: 1
+      role: USER
+    pending_action:
+      type: ADD_TO_WISHLIST
+      user_id: 1
+      expires_at: "2026-08-16T10:00:00+08:00"
+      items:
+        - subject_id: 101
+          subject_name: 测试番
+  expect:
+    routeTarget: recommend_agent
+    calledTools: []
+    forbiddenTools: [execute_add_to_wishlist]
+    businessCalls: []
+
+- id: wishlist-offtopic-no-write
+  category: wishlist
+  input: 今天天气怎么样
+  state:
+    user:
+      user_id: 1
+      role: USER
+    pending_action:
+      type: ADD_TO_WISHLIST
+      user_id: 1
+      expires_at: "2026-08-16T10:00:00+08:00"
+      items:
+        - subject_id: 101
+          subject_name: 测试番
+  expect:
+    routeTarget: discover_agent
+    calledTools: []
+    forbiddenTools: [execute_add_to_wishlist]
+    businessCalls: []
+
+- id: wishlist-partial-failure
+  category: wishlist
+  input: 确认
+  state:
+    user:
+      user_id: 1
+      role: USER
+    pending_action:
+      type: ADD_TO_WISHLIST
+      user_id: 1
+      expires_at: "2026-08-16T10:00:00+08:00"
+      items:
+        - subject_id: 101
+          subject_name: 测试番
+        - subject_id: 102
+          subject_name: 测试番二
+  fixtures:
+    "POST /api/client/collections/102/wishlist":
+      error: true
+      code: 500
+      message: 内部错误
+  expect:
+    routeTarget: recommend_agent
+    calledTools: [execute_add_to_wishlist]
+    businessCalls:
+      - [POST, /api/client/collections/101/wishlist]
+      - [POST, /api/client/collections/102/wishlist]
+    pendingActionOperation: CLEAR

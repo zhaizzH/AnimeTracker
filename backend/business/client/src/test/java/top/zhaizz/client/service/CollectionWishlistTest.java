@@ -77,6 +77,7 @@ class CollectionWishlistTest {
 
     @Test
     void duplicateKeyRaceReReadsAndReturnsAlreadyCollected() {
+        // READ_COMMITTED 下每个语句读取最新已提交数据：唯一键冲突后重读能看到并发写入行（REPEATABLE READ 快照则看不到）
         UserCollection raced = new UserCollection();
         raced.setType(2);
         when(subjectMapper.selectById(7L)).thenReturn(new Subject());

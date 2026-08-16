@@ -1,110 +1,164 @@
-"""Agent 侧请求链路与结构化日志。
+"""Agent 可观测性: 请求级 trace 上下文、结构化 JSON 事件与计时辅助。
 
-- `TraceContextMiddleware`: 接受合法 X-Request-ID 或生成 UUID,存入 ContextVar 与响应头,
-  请求结束在 finally 中清理,避免协程复用污染。
-- `configure_logging`: 单行结构化 JSON 输出到 stdout/stderr,绝不包含 JWT、LLM Key、
-  提示词或请求体。
+隐私红线: 事件日志绝不记录用户输入、JWT/API key、工具参数、完整回答或 Business 响应体。
+所有字段必须经过 _ALLOWED_FIELDS 白名单过滤，None 值省略。日志输出为单行 JSON，
+外层含时间、级别、服务名、traceId、logger 与 message。
 """
+
+from __future__ import annotations
+
+import asyncio
+import hashlib
 import json
 import logging
 import re
 import sys
+import time
 import uuid
-from contextvars import ContextVar
-from typing import Any, Callable
+from collections.abc import Awaitable, Callable
+from contextvars import ContextVar, Token
 
-SERVICE = "animetracker-agent"
+from starlette.requests import Request
+from starlette.responses import Response
+
 HEADER_X_REQUEST_ID = "X-Request-ID"
+SERVICE_NAME = "animetracker-agent"
 _VALID_ID = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
-_SECRET_KEYS = re.compile(r"(?i)(api[_-]?key|secret|password|token|authorization|jwt)")
 
-_trace_id_var: ContextVar[str] = ContextVar("trace_id", default="")
+logger = logging.getLogger(__name__)
+
+_trace_id: ContextVar[str | None] = ContextVar("trace_id", default=None)
+_session_hash: ContextVar[str | None] = ContextVar("session_hash", default=None)
+_user_hash: ContextVar[str | None] = ContextVar("user_hash", default=None)
+
+# 事件字段白名单(隐私红线)。token 字段来自 usage_metadata；请求事件要求
+# sessionHash/userHash/toolCount/routeTarget。
+_ALLOWED_FIELDS = {
+    "provider", "model", "slot", "durationMs", "firstTokenMs",
+    "success", "errorType", "toolName", "routeTarget", "businessStatus",
+    "inputTokens", "outputTokens", "totalTokens",
+    "sessionHash", "userHash", "toolCount",
+}
+
+# 服务端固定 salt(不可逆摘要；无配置时上层省略 sessionHash/userHash 字段)
+_HASH_SALT = "animetracker-agent-observability-salt-v1"
 
 
-def get_trace_id() -> str:
-    return _trace_id_var.get()
+def set_trace_context(trace_id: str | None, session_id: str | None = None, user_id: str | None = None) -> Token:
+    """建立请求级 trace 上下文；返回传给 reset_trace_context 的 token。
+
+    session_id/user_id 仅记录匿名哈希(服务端固定 salt 的不可逆摘要)，绝不记录原文。
+    """
+    token = _trace_id.set(trace_id)
+    if session_id is not None:
+        _session_hash.set(hash_value(session_id))
+    if user_id is not None:
+        _user_hash.set(hash_value(str(user_id)))
+    return token
 
 
-def _resolve_trace_id(incoming: str | None) -> str:
-    if incoming:
-        trimmed = incoming.strip()
-        if _VALID_ID.match(trimmed):
-            return trimmed
+def get_trace_id() -> str | None:
+    return _trace_id.get()
+
+
+def get_session_hash() -> str | None:
+    return _session_hash.get()
+
+
+def get_user_hash() -> str | None:
+    return _user_hash.get()
+
+
+def reset_trace_context(token: Token) -> None:
+    _trace_id.reset(token)
+    _session_hash.set(None)
+    _user_hash.set(None)
+
+
+def sanitize_trace_id(value: str | None) -> str:
+    """接受合法 X-Request-ID(与 Business 同字符集)或生成 UUID；缺失/非法时生成新 UUID。"""
+    if value and _VALID_ID.match(value.strip()):
+        return value.strip()
     return str(uuid.uuid4())
 
 
-class TraceContextMiddleware:
-    """纯 ASGI 中间件,为每个 HTTP 请求注入 traceId 并回写响应头。
-
-    Streaming/SSE 场景下 BaseHTTPMiddleware 存在缓冲与上下文问题,故采用纯 ASGI 实现。
-    """
-
-    def __init__(self, app: Callable):
-        self.app = app
-
-    async def __call__(self, scope: dict, receive: Callable, send: Callable) -> None:
-        if scope["type"] != "http":
-            await self.app(scope, receive, send)
-            return
-
-        raw_header = next(
-            (v for k, v in scope.get("headers", []) if k == b"x-request-id"), None
-        )
-        trace_id = _resolve_trace_id(raw_header.decode("utf-8", "replace") if raw_header else None)
-        token = _trace_id_var.set(trace_id)
-
-        async def send_wrapper(message: dict) -> None:
-            if message["type"] == "http.response.start":
-                headers = list(message.get("headers", []))
-                headers.append((b"x-request-id", trace_id.encode("utf-8")))
-                message = {**message, "headers": headers}
-            await send(message)
-
-        try:
-            await self.app(scope, receive, send_wrapper)
-        finally:
-            _trace_id_var.reset(token)
+async def trace_context_middleware(
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
+) -> Response:
+    """校验/生成 traceId，注入 ContextVar 与响应头，请求结束在 finally 中清理 ContextVar。"""
+    trace_id = sanitize_trace_id(request.headers.get(HEADER_X_REQUEST_ID))
+    token = set_trace_context(trace_id)
+    try:
+        response = await call_next(request)
+        response.headers[HEADER_X_REQUEST_ID] = trace_id
+        return response
+    finally:
+        reset_trace_context(token)
 
 
-def _scrub_secrets(value: Any) -> Any:
-    """结构化消息中掩码已知密钥字段,防止 JWT / LLM Key 进入日志。"""
-    if isinstance(value, dict):
-        return {k: ("***" if isinstance(k, str) and _SECRET_KEYS.search(k) else _scrub_secrets(v)) for k, v in value.items()}
-    if isinstance(value, list):
-        return [_scrub_secrets(item) for item in value]
-    return value
+def hash_value(value: str | None) -> str | None:
+    """服务端固定 salt 的不可逆摘要(sha256 截断)；值为空时返回 None，调用方省略字段。"""
+    if not value:
+        return None
+    return hashlib.sha256(f"{_HASH_SALT}:{value}".encode("utf-8")).hexdigest()[:16]
 
 
-class _JsonFormatter(logging.Formatter):
+def llm_model_name(llm) -> str | None:
+    """从 LangChain chat model 对象提取实际模型名(deepseek 模型不带前缀)。"""
+    if llm is None:
+        return None
+    name = getattr(llm, "model_name", None)
+    if name:
+        return str(name)
+    return getattr(llm, "model", None)
+
+
+def elapsed_ms(started: float) -> int:
+    return round((time.perf_counter() - started) * 1000)
+
+
+def classify_error(exc: BaseException) -> str:
+    """统一错误类别映射(在日志边界归一化，不建立异常继承树)。"""
+    if isinstance(exc, asyncio.CancelledError):
+        return "CLIENT_DISCONNECTED"
+    if isinstance(exc, TimeoutError):
+        return "MODEL_TIMEOUT"
+    if isinstance(exc, (ValueError, TypeError)):
+        return "MODEL_RESPONSE_INVALID"
+    return "INTERNAL_ERROR"
+
+
+def log_event(event: str, **fields) -> None:
+    """输出单行结构化 JSON 事件；仅白名单字段被写入，None 值省略。"""
+    payload = {"service": SERVICE_NAME, "event": event, "traceId": _trace_id.get()}
+    payload.update({k: v for k, v in fields.items() if k in _ALLOWED_FIELDS})
+    payload = {k: v for k, v in payload.items() if v is not None}
+    logger.info(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
+
+
+class JsonFormatter(logging.Formatter):
+    """单行 JSON 日志外层: timestamp、level、service、traceId、logger、message。"""
+
     def format(self, record: logging.LogRecord) -> str:
-        message = record.msg
-        if not isinstance(message, (dict, list)):
-            text = record.getMessage()
-            try:
-                message = json.loads(text)
-            except (ValueError, TypeError):
-                message = text
         payload = {
-            "ts": logging.Formatter.formatTime(self, record, "%Y-%m-%dT%H:%M:%S%z"),
+            "timestamp": self.formatTime(record, "%Y-%m-%dT%H:%M:%S%z"),
             "level": record.levelname,
-            "service": SERVICE,
-            "traceId": _trace_id_var.get(),
+            "service": SERVICE_NAME,
+            "traceId": _trace_id.get(),
             "logger": record.name,
-            "message": _scrub_secrets(message),
+            "message": record.getMessage(),
         }
-        if record.exc_info:
-            payload["exc"] = self.formatException(record.exc_info)
-        return json.dumps(payload, ensure_ascii=False, default=str)
+        payload = {k: v for k, v in payload.items() if v is not None}
+        return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
 
 
-def configure_logging(*, stream: Any = None) -> None:
-    """安装单行 JSON 日志处理器;stream 默认 stderr,uvicorn 日志透传到 root。"""
-    handler = logging.StreamHandler(stream or sys.stderr)
-    handler.setFormatter(_JsonFormatter())
-    root = logging.getLogger()
-    root.handlers = [handler]
-    root.setLevel(logging.INFO)
-    for name in ("uvicorn", "uvicorn.access", "uvicorn.error", "uvicorn.asgi"):
-        lg = logging.getLogger(name)
-        lg.handlers = []
-        lg.propagate = True
+def configure_logging() -> None:
+    """把 root 与 uvicorn 日志统一为输出单行 JSON 到 stdout。"""
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(JsonFormatter())
+    for name in ("", "uvicorn", "uvicorn.error", "uvicorn.access"):
+        target = logging.getLogger(name)
+        target.handlers = [handler]
+        target.setLevel(logging.INFO)
+        target.propagate = False

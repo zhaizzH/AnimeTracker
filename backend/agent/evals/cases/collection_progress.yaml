@@ -1,0 +1,180 @@
+# 收藏进度确定性 case（8 个）：预览→确认→执行链路，替换/取消/过期/冲突分支。
+
+- id: progress-preview-trigger
+  category: collection_progress
+  input: 本周截至昨日在看的都看完了
+  expect:
+    routeTarget: recommend_agent
+    calledTools: [preview_weekly_collection_progress]
+    businessCalls:
+      - [POST, /api/client/collections/progress-preview]
+    pendingActionType: COLLECTION_PROGRESS_UPDATE
+    pendingActionOperation: SET
+    pendingSubjectIds: [101]
+
+- id: progress-preview-no-execute-first
+  category: collection_progress
+  input: 我今天把在看的都看完了
+  expect:
+    routeTarget: recommend_agent
+    calledTools: [preview_weekly_collection_progress]
+    forbiddenTools: [execute_weekly_collection_progress]
+    businessCalls:
+      - [POST, /api/client/collections/progress-preview]
+
+- id: progress-confirm-executes
+  category: collection_progress
+  input: 确认
+  state:
+    user:
+      user_id: 1
+      role: USER
+    pending_action:
+      type: COLLECTION_PROGRESS_UPDATE
+      preview_id: p1
+      user_id: 1
+      expires_at: "2026-08-16T10:00:00+08:00"
+      items:
+        - subject_id: 101
+          subject_name: 测试番
+          current_ep_status: 5
+          target_ep_status: 6
+  expect:
+    routeTarget: recommend_agent
+    calledTools: [execute_weekly_collection_progress]
+    businessCalls:
+      - [POST, /api/client/collections/progress-preview/p1/execute]
+    pendingActionOperation: CLEAR
+
+- id: progress-preview-changed
+  category: collection_progress
+  input: 确认
+  state:
+    user:
+      user_id: 1
+      role: USER
+    pending_action:
+      type: COLLECTION_PROGRESS_UPDATE
+      preview_id: p1
+      user_id: 1
+      expires_at: "2026-08-16T10:00:00+08:00"
+      items:
+        - subject_id: 101
+          subject_name: 测试番
+          current_ep_status: 5
+          target_ep_status: 6
+  fixtures:
+    "POST /api/client/collections/progress-preview/p1/execute":
+      state: PREVIEW_CHANGED
+      preview:
+        previewId: p2
+        expiresAt: "2026-08-16T10:05:00+08:00"
+        items:
+          - subjectId: 101
+            subjectName: 测试番
+            currentEpStatus: 5
+            targetEpStatus: 7
+  expect:
+    routeTarget: recommend_agent
+    calledTools: [execute_weekly_collection_progress]
+    forbiddenTools: [preview_weekly_collection_progress]
+    businessCalls:
+      - [POST, /api/client/collections/progress-preview/p1/execute]
+    pendingActionType: COLLECTION_PROGRESS_UPDATE
+    pendingActionOperation: REPLACE
+    pendingSubjectIds: [101]
+
+- id: progress-cancel-no-write
+  category: collection_progress
+  input: 取消
+  state:
+    user:
+      user_id: 1
+      role: USER
+    pending_action:
+      type: COLLECTION_PROGRESS_UPDATE
+      preview_id: p1
+      user_id: 1
+      expires_at: "2026-08-16T10:00:00+08:00"
+      items:
+        - subject_id: 101
+          subject_name: 测试番
+          current_ep_status: 5
+          target_ep_status: 6
+  expect:
+    routeTarget: recommend_agent
+    calledTools: [cancel_weekly_collection_progress]
+    forbiddenTools: [execute_weekly_collection_progress]
+    businessCalls: []
+    pendingActionOperation: CLEAR
+
+- id: progress-execute-404-expired
+  category: collection_progress
+  input: 确认
+  state:
+    user:
+      user_id: 1
+      role: USER
+    pending_action:
+      type: COLLECTION_PROGRESS_UPDATE
+      preview_id: p1
+      user_id: 1
+      expires_at: "2026-08-16T10:00:00+08:00"
+      items:
+        - subject_id: 101
+          subject_name: 测试番
+          current_ep_status: 5
+          target_ep_status: 6
+  fixtures:
+    "POST /api/client/collections/progress-preview/p1/execute":
+      error: true
+      code: 404
+      message: 预览不存在或已过期
+  expect:
+    routeTarget: recommend_agent
+    calledTools: [execute_weekly_collection_progress]
+    businessCalls:
+      - [POST, /api/client/collections/progress-preview/p1/execute]
+    pendingActionOperation: CLEAR
+
+- id: progress-execute-409-retryable
+  category: collection_progress
+  input: 确认
+  state:
+    user:
+      user_id: 1
+      role: USER
+    pending_action:
+      type: COLLECTION_PROGRESS_UPDATE
+      preview_id: p1
+      user_id: 1
+      expires_at: "2026-08-16T10:00:00+08:00"
+      items:
+        - subject_id: 101
+          subject_name: 测试番
+          current_ep_status: 5
+          target_ep_status: 6
+  fixtures:
+    "POST /api/client/collections/progress-preview/p1/execute":
+      error: true
+      code: 409
+      message: 预览已过期，请重新生成
+  expect:
+    routeTarget: recommend_agent
+    calledTools: [execute_weekly_collection_progress]
+    businessCalls:
+      - [POST, /api/client/collections/progress-preview/p1/execute]
+    pendingActionOperation: CLEAR
+
+- id: progress-finished-readonly
+  category: collection_progress
+  input: 这部番完结了，帮我看看要不要标记为看过
+  expect:
+    routeTarget: search_agent
+    calledTools: [get_my_collection]
+    toolArguments:
+      get_my_collection:
+        subject_id: 101
+    forbiddenTools: [execute_weekly_collection_progress, execute_add_to_wishlist]
+    businessCalls:
+      - [GET, /api/client/collections/101]

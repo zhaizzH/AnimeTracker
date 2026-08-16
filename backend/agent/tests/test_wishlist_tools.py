@@ -123,6 +123,15 @@ def test_execute_clears_pending_after_completion(monkeypatch, user, pending, pen
     assert event is not None and event.operation == "CLEAR"
 
 
+def test_execute_unexpected_state_is_failed_not_succeeded(monkeypatch, user, pending, pending_collector):
+    monkeypatch.setattr(wishlist, "call_api", lambda *a, **k: {"state": "PENDING"})
+    result = wishlist.execute_add_to_wishlist.func(pending=pending, user=user)
+    assert result["succeeded"] == []
+    assert [x["subjectId"] for x in result["failed"]] == [1]
+    event = get_pending_action_event()
+    assert event is not None and event.operation == "CLEAR"
+
+
 def test_execute_infrastructure_error_keeps_pending(monkeypatch, user, pending, pending_collector):
     monkeypatch.setattr(wishlist, "call_api", lambda *a, **k: {"error": True, "message": "后端服务超时"})
     result = wishlist.execute_add_to_wishlist.func(pending=pending, user=user)

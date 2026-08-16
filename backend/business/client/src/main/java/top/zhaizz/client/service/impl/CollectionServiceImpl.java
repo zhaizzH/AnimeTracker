@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import top.zhaizz.client.converter.CollectionConverter;
 import top.zhaizz.client.mapper.CollectionMapper;
@@ -73,7 +74,7 @@ public class CollectionServiceImpl implements CollectionService {
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public WishlistAddResultVO addToWishlistIfAbsent(Long userId, Long subjectId) {
         if (subjectMapper.selectById(subjectId) == null) {
             throw new BizException(ErrorType.NOT_FOUND, "条目不存在");

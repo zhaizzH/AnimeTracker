@@ -1,0 +1,150 @@
+# 路由确定性 case（8 个）：gateway 路由目标与强制确认路由。
+
+- id: routing-exact-search
+  category: routing
+  input: 搜索《某科学的超电磁炮》这部番
+  expect:
+    routeTarget: search_agent
+    calledTools: [search_subjects]
+    toolArguments:
+      search_subjects:
+        query: 某科学的超电磁炮
+    businessCalls:
+      - [GET, /api/client/subjects/search]
+
+- id: routing-discover-filter
+  category: routing
+  input: 找今年夏天的恋爱题材新番
+  expect:
+    routeTarget: discover_agent
+    calledTools: [get_season_subjects]
+    toolArguments:
+      get_season_subjects:
+        year: 2026
+        quarter: summer
+    businessCalls:
+      - [GET, /api/client/subjects/season]
+
+- id: routing-recommend-profile
+  category: routing
+  input: 根据我的追番记录推荐几部
+  expect:
+    routeTarget: recommend_agent
+    calledTools: [get_my_watch_profile]
+    businessCalls:
+      - [GET, /api/client/collections]
+
+- id: routing-confirm-progress
+  category: routing
+  input: 确认
+  state:
+    user:
+      user_id: 1
+      role: USER
+    pending_action:
+      type: COLLECTION_PROGRESS_UPDATE
+      preview_id: p1
+      user_id: 1
+      expires_at: "2026-08-16T10:00:00+08:00"
+      items:
+        - subject_id: 101
+          subject_name: 测试番
+          current_ep_status: 5
+          target_ep_status: 6
+  expect:
+    routeTarget: recommend_agent
+    calledTools: [execute_weekly_collection_progress]
+    businessCalls:
+      - [POST, /api/client/collections/progress-preview/p1/execute]
+    pendingActionOperation: CLEAR
+
+- id: routing-confirm-wishlist
+  category: routing
+  input: 确认
+  state:
+    user:
+      user_id: 1
+      role: USER
+    pending_action:
+      type: ADD_TO_WISHLIST
+      user_id: 1
+      expires_at: "2026-08-16T10:00:00+08:00"
+      items:
+        - subject_id: 101
+          subject_name: 测试番
+  expect:
+    routeTarget: recommend_agent
+    calledTools: [execute_add_to_wishlist]
+    businessCalls:
+      - [POST, /api/client/collections/101/wishlist]
+    pendingActionOperation: CLEAR
+
+- id: routing-no-confirm-negation
+  category: routing
+  input: 不要确认
+  state:
+    user:
+      user_id: 1
+      role: USER
+    pending_action:
+      type: COLLECTION_PROGRESS_UPDATE
+      preview_id: p1
+      user_id: 1
+      expires_at: "2026-08-16T10:00:00+08:00"
+      items:
+        - subject_id: 101
+          subject_name: 测试番
+          current_ep_status: 5
+          target_ep_status: 6
+  expect:
+    routeTarget: discover_agent
+    calledTools: []
+    forbiddenTools: [execute_weekly_collection_progress]
+    businessCalls: []
+
+- id: routing-no-confirm-wait
+  category: routing
+  input: 先等等
+  state:
+    user:
+      user_id: 1
+      role: USER
+    pending_action:
+      type: COLLECTION_PROGRESS_UPDATE
+      preview_id: p1
+      user_id: 1
+      expires_at: "2026-08-16T10:00:00+08:00"
+      items:
+        - subject_id: 101
+          subject_name: 测试番
+          current_ep_status: 5
+          target_ep_status: 6
+  expect:
+    routeTarget: discover_agent
+    calledTools: []
+    forbiddenTools: [execute_weekly_collection_progress, execute_add_to_wishlist]
+    businessCalls: []
+
+- id: routing-no-confirm-ambiguous-question
+  category: routing
+  input: 确认一下这部番叫什么
+  state:
+    user:
+      user_id: 1
+      role: USER
+    pending_action:
+      type: ADD_TO_WISHLIST
+      user_id: 1
+      expires_at: "2026-08-16T10:00:00+08:00"
+      items:
+        - subject_id: 101
+          subject_name: 测试番
+  expect:
+    routeTarget: search_agent
+    calledTools: [search_subjects]
+    toolArguments:
+      search_subjects:
+        query: 这部番
+    businessCalls:
+      - [GET, /api/client/subjects/search]
+    forbiddenTools: [execute_add_to_wishlist]
