@@ -1,5 +1,7 @@
 # ===================================================================
-# AnimeTracker API — 生产环境配置
+# AnimeTracker API — 公共配置
+# 默认面向本地开发（带可启动的默认值），不再默认激活 local profile。
+# 生产环境通过 Docker Compose 设置 SPRING_PROFILES_ACTIVE=prod，密钥由 application-prod.yml 从环境变量读取。
 # ===================================================================
 server:
   port: 8080
@@ -8,18 +10,15 @@ spring:
   application:
     name: animetracker-business # 应用名称
 
-  profiles:
-    active: local # 激活的配置文件
-
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
   datasource:
-    driver-class-name: ${at.datasource.driver-class-name} # 数据库驱动类名
-    url: jdbc:mysql://${at.datasource.host}:${at.datasource.port}/${at.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
-    username: ${at.datasource.username}
-    password: ${at.datasource.password}
+    driver-class-name: ${at.datasource.driver-class-name:com.mysql.cj.jdbc.Driver} # 数据库驱动类名
+    url: jdbc:mysql://${at.datasource.host:localhost}:${at.datasource.port:3306}/${at.datasource.database:anime_tracker}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${at.datasource.username:root}
+    password: ${at.datasource.password:}
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
@@ -28,9 +27,9 @@ spring:
 
   data:
     redis:  # redis 配置
-      host: ${at.data.redis.host}
-      port: ${at.data.redis.port}
-      password: ${at.data.redis.password}
+      host: ${at.data.redis.host:localhost}
+      port: ${at.data.redis.port:6379}
+      password: ${at.data.redis.password:}
       database: ${at.data.redis.database:1}
       timeout: 2000ms
       lettuce:
@@ -42,7 +41,7 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
-    default-property-inclusion: ${at.jackson.default-property-inclusion}
+    default-property-inclusion: ${at.jackson.default-property-inclusion:non_null}
 
   servlet:
     multipart:
@@ -63,30 +62,37 @@ mybatis-plus:
 # AI Agent 服务
 at:
   agent:
-    base-url: http://${at.agent.host}:${at.agent.port}
+    base-url: http://${at.agent.host:localhost}:${at.agent.port:8090}
     connect-timeout: 10000
     read-timeout: 30000
 
   # 管理端
   admin:
-    superadmin-id: 1  # 管理员用户 ID
+    superadmin-id: ${AT_ADMIN_SUPERADMIN_ID:1}  # 管理员用户 ID
+
+  # CORS 跨域白名单（逗号分隔）
+  cors:
+    allowed-origins: ${AT_CORS_ALLOWED_ORIGINS:http://localhost:5173}
 
 # JWT 配置
 jwt:
-  secret: ${jwt.secret}
-  expiration: ${jwt.expiration}
-  refresh-expiration: ${jwt.refresh-expiration}
+  secret: ${at.jwt.secret:dev-secret-key-not-for-production-use-change-it}
+  expiration: ${at.jwt.expiration:1800000}    # 30 分钟
+  refresh-expiration: ${at.jwt.refresh-expiration:604800000}  # 7 天
+  max-login-fails: ${at.jwt.max-login-fails:5}  # 登录失败次数限制
+  login-fail-window-minutes: ${at.jwt.login-fail-window-minutes:300}
 
 # MinIO 对象存储
 minio:
-  endpoint: http://${minio.host}:${minio.port}
-  access-key: ${minio.access-key}
-  secret-key: ${minio.secret-key}
-  bucket: ${minio.bucket}
+  endpoint: http://${minio.host:localhost}:${minio.port:9000}
+  access-key: ${at.minio.access-key:minioadmin}
+  secret-key: ${at.minio.secret-key:minioadmin}
+  bucket: ${at.minio.bucket:anime-tracker}
 
 # Resend 邮件服务
 resend:
-  api-key: ${resend.api-key}
+  api-key: ${at.resend.api-key:}
+  send-email: ${at.resend.send-email:admin@localhost}  # 发件人邮箱
 
 # 日志
 logging:
