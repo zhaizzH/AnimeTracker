@@ -26,7 +26,7 @@ from pydantic import SecretStr, TypeAdapter, ValidationError
 from app.agent import run as agent_run
 from app.agent.client import gateway as client_gateway
 from app.agent.graph import build_graph
-from app.config import ResolvedLlmProviderConfig, resolve_llm_provider, settings
+from app.config import ResolvedLlmProviderConfig, create_agent_chat_llm, resolve_llm_provider, settings
 from app.core.event_bus import reset_status_emitter, set_status_emitter
 from app.core.observability import classify_error
 from app.core.pending_action import (
@@ -274,6 +274,9 @@ def run_live(cases: list[EvalCase], *, sample: int = 10, provider_override: str 
     resolved = resolve_eval_provider(provider_override)
     selected = cases if sample is None or sample >= len(cases) else cases[:sample]
 
+    def live_llm(slot, **kwargs):
+        return create_agent_chat_llm(slot, provider_config=resolved, **kwargs)
+
     # 真实 LLM 会调用真实工具 → 用 dry-run adapter 拦截写接口, 只读返回空数据
     results: list[CaseResult] = []
     for case in selected:
@@ -286,6 +289,8 @@ def run_live(cases: list[EvalCase], *, sample: int = 10, provider_override: str 
         pending_token = set_pending_action_collector()
         try:
             with ExitStack() as stack:
+                stack.enter_context(mock.patch.object(client_gateway, "create_agent_chat_llm", live_llm))
+                stack.enter_context(mock.patch.object(agent_run, "create_agent_chat_llm", live_llm))
                 for module_path in CALL_API_MODULES:
                     stack.enter_context(mock.patch(f"{module_path}.call_api", fake_call_api))
                 graph = build_graph()

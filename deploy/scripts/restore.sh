@@ -83,13 +83,12 @@ gunzip -c "$DEST/mysql/dump.sql.gz" \
 
 # ---- 7. 恢复 MinIO 对象 ----
 echo "恢复 MinIO 桶 $MINIO_BUCKET ..."
-MINIO_IMAGE="$(docker compose config --images | grep '^quay.io/minio/minio:' | head -n1)"
 MC_CID="$($COMPOSE ps -q minio)"
 docker run --rm --entrypoint mc \
     --network "container:$MC_CID" \
     -v "$DEST/minio:/backup" \
     -e "MC_HOST_local=http://${MINIO_ACCESS_KEY}:${MINIO_SECRET_KEY}@127.0.0.1:9000" \
-    "$MINIO_IMAGE" mirror --overwrite --remove /backup "local/$MINIO_BUCKET"
+    "$MINIO_MC_IMAGE" mirror --overwrite --remove /backup "local/$MINIO_BUCKET"
 
 # ---- 8. 重启业务(up -d:不存在则创建,已停止则启动) ----
 echo "启动 business / agent ..."

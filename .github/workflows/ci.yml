@@ -56,7 +56,12 @@ jobs:
         run: pip install -r requirements.txt
       - name: Run pytest
         working-directory: backend/agent
-        run: python -m pytest -q --ignore=tests/test_eval_dataset.py
+        run: python -m pytest -q
+      - name: Run offline Agent eval gate
+        working-directory: backend/agent
+        run: python -m evals.runner --mode offline
+      - name: Validate deployment contracts
+        run: python -m pytest deploy/tests/test_deploy_contracts.py
 
   frontend:
     name: Frontend build (${{ matrix.app }})

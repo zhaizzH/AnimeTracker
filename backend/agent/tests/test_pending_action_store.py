@@ -88,10 +88,14 @@ async def test_unknown_type_pending_action_is_logged_and_cleared(store, caplog):
 
 @pytest.mark.asyncio
 async def test_malformed_pending_action_json_is_logged_and_cleared(store, caplog):
-    await store._r.set("agent:pending-action:s1", "{corrupt json")
+    raw = "{corrupt-json-with-private-title"
+    await store._r.set("agent:pending-action:s1", raw)
     assert await store.get_pending_action("s1", 7) is None
     assert await store._r.get("agent:pending-action:s1") is None
     assert any("待确认动作数据损坏或类型未知" in r.message for r in caplog.records)
+    assert raw not in caplog.text
+    assert "rawLength=32" in caplog.text
+    assert "session=s1" not in caplog.text
 
 
 @pytest.mark.asyncio

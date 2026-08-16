@@ -96,10 +96,15 @@ _SLOT_DEFAULTS: dict[AgentChatModelSlot, dict[str, Any]] = {
 }
 
 
-def create_agent_chat_llm(slot: AgentChatModelSlot, *, temperature: float | None = None):
+def create_agent_chat_llm(
+        slot: AgentChatModelSlot,
+        *,
+        temperature: float | None = None,
+        provider_config: ResolvedLlmProviderConfig | None = None,
+):
     cfg = _SLOT_DEFAULTS[slot]
     rc = get_runtime_model_config() or {}
-    resolved = resolve_llm_provider(settings)
+    resolved = provider_config or resolve_llm_provider(settings)
     if slot is AgentChatModelSlot.CLIENT_ROUTE:
         model = rc.get("modelRoute") or cfg.get("model") or resolved.route_model
     else:

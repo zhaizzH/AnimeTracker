@@ -44,14 +44,12 @@ $COMPOSE exec -e MYSQL_DATABASE="$MYSQL_DATABASE" -T mysql sh -c \
 
 # ---- 3. MinIO 对象镜像(mc mirror,与 minio 容器共享网络命名空间) ----
 echo "镜像 MinIO bucket $MINIO_BUCKET ..."
-MINIO_IMAGE="$(docker compose config --images | grep '^quay.io/minio/minio:' | head -n1)"
-[ -n "$MINIO_IMAGE" ] || { echo "ERROR: 无法从 compose 配置定位 MinIO 镜像" >&2; exit 1; }
 MC_CID="$($COMPOSE ps -q minio)"
 docker run --rm --entrypoint mc \
     --network "container:$MC_CID" \
     -v "$DEST/minio:/backup" \
     -e "MC_HOST_local=http://${MINIO_ACCESS_KEY}:${MINIO_SECRET_KEY}@127.0.0.1:9000" \
-    "$MINIO_IMAGE" mirror --overwrite --remove "local/$MINIO_BUCKET" /backup
+    "$MINIO_MC_IMAGE" mirror --overwrite --remove "local/$MINIO_BUCKET" /backup
 ( cd "$DEST/minio" && find . -type f -print0 | sort -z | xargs -0 -r sha256sum > "$DEST/minio.files.sha256" )
 
 # ---- 4. 清单 ----

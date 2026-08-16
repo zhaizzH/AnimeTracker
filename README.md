@@ -337,7 +337,7 @@ npm run dev                   # 开发服务器 http://localhost:5174
 | 文件 | 说明 |
 |------|------|
 | `compose.yml` | 基础编排（business / agent / mysql / redis / minio / nginx / certbot / demo-seeder） |
-| `compose.prod.yml` | 生产覆盖（80/443 端口、TLS 配置、certbot 平滑 reload） |
+| `compose.prod.yml` | 生产覆盖（80/443 端口、TLS 配置、nginx 周期性平滑 reload） |
 | `.env.example` | 环境模板（复制为 `.env` 填写） |
 | `deploy/scripts/deploy.sh` | 一键部署（校验后 `git pull --ff-only` + `compose pull` + `up -d`） |
 | `deploy/scripts/backup.sh` | 每日/每周备份（MySQL 一致性转储 + MinIO 对象镜像，保留 7+4 份） |

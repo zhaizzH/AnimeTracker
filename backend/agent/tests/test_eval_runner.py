@@ -125,8 +125,7 @@ def test_live_mode_captures_called_tools(monkeypatch):
 
     from evals.adapters import EvalFakeChatModel, build_domain_responses, build_route_responses
     from evals.runner import run_live
-    from app.agent import run as agent_run
-    from app.agent.client import gateway as client_gateway
+    from evals import runner
 
     monkeypatch.setenv("ALLOW_LIVE_AGENT_EVAL", "true")
     monkeypatch.setattr(settings, "deepseek_api_key", "eval-key")
@@ -145,11 +144,40 @@ def test_live_mode_captures_called_tools(monkeypatch):
             return EvalFakeChatModel(responses=build_route_responses(case.expect))
         return EvalFakeChatModel(responses=build_domain_responses(case.expect))
 
-    with mock.patch.object(client_gateway, "create_agent_chat_llm", fake_llm), \
-         mock.patch.object(agent_run, "create_agent_chat_llm", fake_llm):
+    with mock.patch.object(runner, "create_agent_chat_llm", fake_llm):
         report = run_live([case], sample=1)
     assert report.failed == 0
     assert report.total == 1
+
+
+def test_live_mode_injects_explicit_provider_into_model_factory(monkeypatch):
+    from unittest import mock
+
+    from evals.adapters import EvalFakeChatModel, build_domain_responses, build_route_responses
+    from evals import runner
+
+    monkeypatch.setenv("ALLOW_LIVE_AGENT_EVAL", "true")
+    monkeypatch.setattr(settings, "deepseek_api_key", "deepseek-key")
+    monkeypatch.setattr(settings, "dashscope_api_key", "dashscope-key")
+    case = EvalCase.model_validate({
+        "id": "live-provider-override",
+        "category": "recommendation",
+        "input": "根据我的观看画像推荐几部番",
+        "expect": {"routeTarget": "recommend_agent", "calledTools": ["get_my_watch_profile"]},
+    })
+    providers = []
+
+    def fake_factory(slot, **kwargs):
+        providers.append(kwargs["provider_config"].provider)
+        if getattr(slot, "value", None) == "client_route":
+            return EvalFakeChatModel(responses=build_route_responses(case.expect))
+        return EvalFakeChatModel(responses=build_domain_responses(case.expect))
+
+    with mock.patch.object(runner, "create_agent_chat_llm", fake_factory):
+        report = runner.run_live([case], sample=1, provider_override="dashscope")
+
+    assert report.failed == 0
+    assert providers and set(providers) == {"dashscope"}
 
 
 def test_live_mode_captures_pending_action_and_business_calls(monkeypatch):
@@ -158,8 +186,7 @@ def test_live_mode_captures_pending_action_and_business_calls(monkeypatch):
 
     from evals.adapters import EvalFakeChatModel, build_domain_responses, build_route_responses
     from evals.runner import run_live
-    from app.agent import run as agent_run
-    from app.agent.client import gateway as client_gateway
+    from evals import runner
 
     monkeypatch.setenv("ALLOW_LIVE_AGENT_EVAL", "true")
     monkeypatch.setattr(settings, "deepseek_api_key", "eval-key")
@@ -184,7 +211,6 @@ def test_live_mode_captures_pending_action_and_business_calls(monkeypatch):
             return EvalFakeChatModel(responses=build_route_responses(case.expect))
         return EvalFakeChatModel(responses=build_domain_responses(case.expect))
 
-    with mock.patch.object(client_gateway, "create_agent_chat_llm", fake_llm), \
-         mock.patch.object(agent_run, "create_agent_chat_llm", fake_llm):
+    with mock.patch.object(runner, "create_agent_chat_llm", fake_llm):
         report = run_live([case], sample=1)
     assert report.failed == 0

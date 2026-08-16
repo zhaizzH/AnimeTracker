@@ -13,6 +13,8 @@
 
 ## 1. 首次安装
 
+自建的 Business、Agent 运行镜像使用非 root 用户。MySQL、Redis、MinIO、Nginx 和 Certbot 保留官方镜像支持的初始化用户模型；它们不发布内部端口，Certbot 不挂载 Docker Socket。
+
 新主机只需 **Docker（含 Compose v2）、域名与 `.env`** 即可启动。
 
 ```bash
@@ -123,7 +125,7 @@ deploy/scripts/deploy.sh
 
 ## 7. 证书续期（Let's Encrypt）
 
-`certbot` 容器每 12 小时自动执行一次续期检查（webroot 方式），成功后向 `nginx` 平滑发送 `SIGHUP` 立即换新证书。
+`certbot` 容器每 12 小时自动执行一次续期检查（webroot 方式）。`nginx` 容器每小时对共享证书卷执行一次平滑 reload，因此无需向 certbot 暴露 Docker Socket；新证书最多延迟一小时生效。
 
 ```bash
 # 查看续期日志

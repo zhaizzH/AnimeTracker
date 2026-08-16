@@ -61,10 +61,10 @@ set -a
 # shellcheck disable=SC1090
 . "$REPO_ROOT/.env"
 set +a
-MINIO_IMAGE="$(docker compose config --images | grep '^quay.io/minio/minio:' | head -n1)"
+MINIO_MC_IMAGE="${MINIO_MC_IMAGE:-minio/mc:RELEASE.2025-08-13T08-35-41Z}"
 MC_CID="$($COMPOSE ps -q minio)"
 ROOT_PW="${MYSQL_ROOT_PASSWORD:-}"
-[ -n "$MINIO_IMAGE" ] && [ -n "$MC_CID" ] || { fail "无法定位 MinIO 容器/镜像"; exit 1; }
+[ -n "$MC_CID" ] || { fail "无法定位 MinIO 容器"; exit 1; }
 
 DISPOSABLE_DB="anime_tracker_restore_$$"
 DISPOSABLE_BUCKET="restore-test-$$"
@@ -82,7 +82,7 @@ EOF
 mc_cmd() {
     docker run --rm --entrypoint mc --network "container:$MC_CID" \
         -e "MC_HOST_local=http://${MINIO_ACCESS_KEY}:${MINIO_SECRET_KEY}@127.0.0.1:9000" \
-        "$MINIO_IMAGE" "$@"
+        "$MINIO_MC_IMAGE" "$@"
 }
 mysql_cmd() { $COMPOSE exec -e MYSQL_PWD="$ROOT_PW" -T mysql mysql -uroot "$@"; }
 

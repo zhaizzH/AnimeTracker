@@ -7,6 +7,7 @@
 # 仓库根目录 = 本文件所在目录的上一级(scripts/.. 为 deploy,再上级为仓库根)
 COMMON_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$COMMON_DIR/../.." && pwd)"
+MINIO_MC_IMAGE="${MINIO_MC_IMAGE:-minio/mc:RELEASE.2025-08-13T08-35-41Z}"
 
 fail() {
     echo "ERROR: $*" >&2

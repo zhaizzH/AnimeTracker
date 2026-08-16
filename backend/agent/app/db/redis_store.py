@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from app.db.base import ChatStore
 from app.db.models import Message, Session
 from app.schemas.pending_action import PendingAction, parse_pending_action_json
+from app.core.observability import hash_value
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +117,11 @@ class RedisStore(ChatStore):
         try:
             return parse_pending_action_json(raw)
         except (ValidationError, json.JSONDecodeError):
-            logger.warning("待确认动作数据损坏或类型未知，已清除: session=%s raw=%s", session_id, raw)
+            logger.warning(
+                "待确认动作数据损坏或类型未知，已清除: sessionHash=%s rawLength=%d",
+                hash_value(session_id),
+                len(raw),
+            )
             await self._r.delete(self._pending_action_key(session_id))
             return None
 
