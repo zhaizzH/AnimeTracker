@@ -104,7 +104,29 @@ resend:
   api-key: ${at.resend.api-key:}
   send-email: ${at.resend.send-email:admin@localhost}  # 发件人邮箱
 
-# 日志
+# Actuator 健康检查
+# Liveness: 进程响应即可，不依赖外部组件；Readiness: 仅要求 MySQL 与 Redis。
+# Agent/MinIO 不作为 readiness 强制条件，避免单点能力故障拖垮整体就绪状态。
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: db,redis
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+# 日志（格式由 logback-spring.xml 输出单行结构化 JSON）
 logging:
   level:
     top.zhaizz: warn

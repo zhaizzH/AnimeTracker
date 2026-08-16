@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 单行结构化 JSON 日志。traceId 来自 MDC（RequestIdFilter 写入），service 固定标识。
+     隐私红线：不记录 JWT/密钥/提示词/请求体；上游错误体只在 warn 时记录状态码。 -->
+<configuration>
+    <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"service":"animetracker-business"}</customFields>
+            <fieldNames>
+                <timestamp>ts</timestamp>
+                <message>message</message>
+                <logger>logger</logger>
+                <thread>[ignore]</thread>
+                <levelValue>[ignore]</levelValue>
+                <version>[ignore]</version>
+                <loggerContext>[ignore]</loggerContext>
+            </fieldNames>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="JSON_CONSOLE"/>
+    </root>
+</configuration>

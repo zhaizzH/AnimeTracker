@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.http.*;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import top.zhaizz.agent.service.AgentService;
 import top.zhaizz.common.constant.ErrorType;
+import top.zhaizz.common.constant.TraceConstants;
 import top.zhaizz.common.config.AgentProperties;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.result.Result;
@@ -82,16 +84,27 @@ public class AgentServiceImpl implements AgentService {
         try {
             return restTemplate.exchange(url, method, entity, String.class);
         } catch (HttpStatusCodeException e) {
-            String errBody = e.getResponseBodyAsString();
-            String detail = errBody == null || errBody.isEmpty() ? "无响应" : errBody;
-            // 5xx 归为服务端错误，4xx 归为客户端请求错误
-            throw new BizException(e.getStatusCode().is5xxServerError()
-                            ? ErrorType.INTERNAL_ERROR : ErrorType.BAD_REQUEST,
-                    "Agent 请求失败: " + detail);
+            // 日志不记录上游响应体（隐私红线）；错误体不得直接返回访客
+            log.warn("Agent 请求失败: {} {} -> status={}", method, url, e.getStatusCode().value());
+            if (e.getStatusCode().is5xxServerError()) {
+                throw new BizException(ErrorType.SERVICE_UNAVAILABLE);
+            }
+            throw new BizException(mapUpstream4xx(e.getStatusCode().value()));
         } catch (ResourceAccessException e) {
             log.error("Agent 服务连接失败: {}", url, e);
-            throw new BizException(ErrorType.INTERNAL_ERROR, "Agent 服务连接失败");
+            throw new BizException(ErrorType.SERVICE_UNAVAILABLE, "AI 服务暂不可用");
         }
+    }
+
+    /** 上游 4xx 尽可能保留 401/403/404 等语义，其余归为 400 */
+    private ErrorType mapUpstream4xx(int status) {
+        return switch (status) {
+            case 401 -> ErrorType.UNAUTHORIZED;
+            case 403 -> ErrorType.FORBIDDEN;
+            case 404 -> ErrorType.NOT_FOUND;
+            case 429 -> ErrorType.TOO_MANY_REQUESTS;
+            default -> ErrorType.BAD_REQUEST;
+        };
     }
 
     @Override
@@ -104,22 +117,31 @@ public class AgentServiceImpl implements AgentService {
         }
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(Collections.singletonList(MediaType.TEXT_EVENT_STREAM));
+        String traceId = MDC.get(TraceConstants.MDC_TRACE_ID);
+        if (traceId != null) {
+            headers.set(TraceConstants.HEADER_X_REQUEST_ID, traceId);
+        }
 
-        getStreamRestTemplate().execute(url, method, request -> {
-            request.getHeaders().addAll(headers);
-            if (body != null) {
-                request.getBody().write(body.getBytes(StandardCharsets.UTF_8));
-            }
-        }, response -> {
-            try (BufferedReader br = new BufferedReader(
-                    new InputStreamReader(response.getBody(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    lineConsumer.accept(line);
+        try {
+            getStreamRestTemplate().execute(url, method, request -> {
+                request.getHeaders().addAll(headers);
+                if (body != null) {
+                    request.getBody().write(body.getBytes(StandardCharsets.UTF_8));
                 }
-            }
-            return null;
-        });
+            }, response -> {
+                try (BufferedReader br = new BufferedReader(
+                        new InputStreamReader(response.getBody(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        lineConsumer.accept(line);
+                    }
+                }
+                return null;
+            });
+        } catch (ResourceAccessException e) {
+            log.error("Agent 流式连接失败: {}", url, e);
+            throw new BizException(ErrorType.SERVICE_UNAVAILABLE, "AI 服务暂不可用");
+        }
     }
 
     @Override
