@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import time
@@ -5,7 +6,8 @@ import time
 import pytest
 from langchain_core.messages import AIMessage, AIMessageChunk
 
-from app.core.agent_runtime import agent_invoke, agent_stream
+from app.core.agent_runtime import _run_async, agent_invoke, agent_stream
+from app.core.observability import get_trace_id, reset_trace_context, set_trace_context
 
 
 def last_event(caplog, event_name):
@@ -104,3 +106,20 @@ def test_agent_invoke_invalid_response_still_logs_completed(caplog):
     assert result.content == ""
     event = last_event(caplog, "agent.model.completed")
     assert event["success"] is True
+
+
+def test_run_async_preserves_trace_context_across_thread_pool():
+    """_run_async 线程池分支必须复制 ContextVar：线程内 get_trace_id() 与主线程同值。"""
+
+    async def probe():
+        return get_trace_id()
+
+    async def main():
+        token = set_trace_context("trace-across-pool")
+        try:
+            return _run_async(probe())
+        finally:
+            reset_trace_context(token)
+
+    # asyncio.run 内存在运行中的 loop → _run_async 走 ThreadPoolExecutor + copy_context 分支
+    assert asyncio.run(main()) == "trace-across-pool"

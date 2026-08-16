@@ -278,9 +278,11 @@ def run_live(cases: list[EvalCase], *, sample: int = 10, provider_override: str 
     results: list[CaseResult] = []
     for case in selected:
         started = time.perf_counter()
+        called_tools: list[str] = []
+        tool_arguments: dict[str, dict[str, Any]] = {}
         business_calls: list[tuple[str, str]] = []
         fake_call_api = make_fake_call_api({}, business_calls.append)
-        emitter_token = set_status_emitter(_make_capture_emitter([], {}))
+        emitter_token = set_status_emitter(_make_capture_emitter(called_tools, tool_arguments))
         pending_token = set_pending_action_collector()
         try:
             with ExitStack() as stack:
@@ -293,11 +295,20 @@ def run_live(cases: list[EvalCase], *, sample: int = 10, provider_override: str 
                     routing = final.get("routing") or {}
                     actual = BehaviorSnapshot(
                         routeTarget=routing.get("route_target"),
+                        calledTools=called_tools,
+                        toolArguments=tool_arguments,
+                        pendingAction=get_pending_action_event(),
                         businessCalls=business_calls,
                         answer=final.get("result") or "",
                     )
                 except Exception as exc:
-                    actual = BehaviorSnapshot(errorCategory=classify_error(exc))
+                    actual = BehaviorSnapshot(
+                        errorCategory=classify_error(exc),
+                        calledTools=called_tools,
+                        toolArguments=tool_arguments,
+                        pendingAction=get_pending_action_event(),
+                        businessCalls=business_calls,
+                    )
                 failures = evaluate(case, actual)
                 results.append(CaseResult(case=case, actual=actual, failures=failures,
                                           durationMs=round((time.perf_counter() - started) * 1000, 1)))

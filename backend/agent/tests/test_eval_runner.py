@@ -116,3 +116,75 @@ def test_provider_override_requires_key(monkeypatch):
     with pytest.raises(ValueError, match="DashScope API Key"):
         resolve_eval_provider("dashscope")
     assert resolve_eval_provider("deepseek").provider == "deepseek"
+
+
+def test_live_mode_captures_called_tools(monkeypatch):
+    """live 模式必须捕获 calledTools：带 calledTools 期望的 case 应离线断言通过。"""
+    import os
+    from unittest import mock
+
+    from evals.adapters import EvalFakeChatModel, build_domain_responses, build_route_responses
+    from evals.runner import run_live
+    from app.agent import run as agent_run
+    from app.agent.client import gateway as client_gateway
+
+    monkeypatch.setenv("ALLOW_LIVE_AGENT_EVAL", "true")
+    monkeypatch.setattr(settings, "deepseek_api_key", "eval-key")
+    monkeypatch.setattr(settings, "dashscope_api_key", "")
+
+    case = EvalCase.model_validate({
+        "id": "live-called-tools",
+        "category": "recommendation",
+        "input": "根据我的观看画像推荐几部番",
+        "expect": {"routeTarget": "recommend_agent",
+                   "calledTools": ["get_my_watch_profile"]},
+    })
+
+    def fake_llm(slot, **kwargs):
+        if getattr(slot, "value", None) == "client_route":
+            return EvalFakeChatModel(responses=build_route_responses(case.expect))
+        return EvalFakeChatModel(responses=build_domain_responses(case.expect))
+
+    with mock.patch.object(client_gateway, "create_agent_chat_llm", fake_llm), \
+         mock.patch.object(agent_run, "create_agent_chat_llm", fake_llm):
+        report = run_live([case], sample=1)
+    assert report.failed == 0
+    assert report.total == 1
+
+
+def test_live_mode_captures_pending_action_and_business_calls(monkeypatch):
+    """live 模式必须捕获 pendingAction 与 businessCalls：进度预览 case 全断言通过。"""
+    from unittest import mock
+
+    from evals.adapters import EvalFakeChatModel, build_domain_responses, build_route_responses
+    from evals.runner import run_live
+    from app.agent import run as agent_run
+    from app.agent.client import gateway as client_gateway
+
+    monkeypatch.setenv("ALLOW_LIVE_AGENT_EVAL", "true")
+    monkeypatch.setattr(settings, "deepseek_api_key", "eval-key")
+    monkeypatch.setattr(settings, "dashscope_api_key", "")
+
+    case = EvalCase.model_validate({
+        "id": "live-pending-action",
+        "category": "collection_progress",
+        "input": "本周截至昨日在看的都看完了",
+        "expect": {
+            "routeTarget": "recommend_agent",
+            "calledTools": ["preview_weekly_collection_progress"],
+            "pendingActionType": "COLLECTION_PROGRESS_UPDATE",
+            "pendingActionOperation": "SET",
+            "pendingSubjectIds": [101],
+            "businessCalls": [["POST", "/api/client/collections/progress-preview"]],
+        },
+    })
+
+    def fake_llm(slot, **kwargs):
+        if getattr(slot, "value", None) == "client_route":
+            return EvalFakeChatModel(responses=build_route_responses(case.expect))
+        return EvalFakeChatModel(responses=build_domain_responses(case.expect))
+
+    with mock.patch.object(client_gateway, "create_agent_chat_llm", fake_llm), \
+         mock.patch.object(agent_run, "create_agent_chat_llm", fake_llm):
+        report = run_live([case], sample=1)
+    assert report.failed == 0
