@@ -14,6 +14,7 @@ from app.api.admin_config import require_admin
 from app.api.deps import verify_token
 from app.agent.graph import build_graph
 from app.config import settings
+from app.core.observability import trace_context_middleware
 from app.core.prompt_sync import initialize_agent_prompt_snapshot
 from app.db.redis_store import RedisStore
 from app.service.chat import ChatService
@@ -54,6 +55,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.middleware("http")(trace_context_middleware)
 
 app.include_router(chat_api.create_chat_router(
     prefix="/api/client/agent",
