@@ -1,15 +1,6 @@
-from typing import Literal
-
-from pydantic import BaseModel, Field
 from datetime import datetime
 
-
-class PendingAction(BaseModel):
-    type: Literal["COLLECTION_PROGRESS_UPDATE"]
-    preview_id: str
-    user_id: int
-    expires_at: datetime
-    summary: list[dict] = Field(default_factory=list)
+from pydantic import BaseModel, Field
 
 
 class Session(BaseModel):

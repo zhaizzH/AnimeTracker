@@ -2,8 +2,8 @@ from typing import Any, TypedDict
 
 from langgraph.graph import MessagesState
 
-from app.db.models import PendingAction
 from app.schemas.auth import UserInfo
+from app.schemas.pending_action import PendingAction
 
 
 class RoutingState(TypedDict):

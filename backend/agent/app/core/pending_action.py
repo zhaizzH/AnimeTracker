@@ -2,7 +2,7 @@ from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from typing import Literal
 
-from app.db.models import PendingAction
+from app.schemas.pending_action import PendingAction
 
 
 @dataclass

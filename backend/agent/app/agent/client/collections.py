@@ -10,8 +10,8 @@ from app.core.pending_action import (
     emit_pending_action_replace,
     emit_pending_action_set,
 )
-from app.db.models import PendingAction
 from app.schemas.auth import UserInfo
+from app.schemas.pending_action import CollectionProgressPendingAction
 
 
 def _require_user(user: UserInfo | None) -> dict | None:
@@ -90,13 +90,13 @@ def _compact(item: dict) -> dict:
 user_collections_tools = [get_my_collections, get_my_collection, get_my_stats, get_my_watch_profile]
 
 
-def _preview_data_to_pending_action(data: dict, user: UserInfo) -> PendingAction:
-    return PendingAction(
+def _preview_data_to_pending_action(data: dict, user: UserInfo) -> CollectionProgressPendingAction:
+    return CollectionProgressPendingAction(
         type="COLLECTION_PROGRESS_UPDATE",
         preview_id=data["previewId"],
         user_id=user.user_id,
         expires_at=data["expiresAt"],
-        summary=data.get("items", []),
+        items=data.get("items", []),
     )
 
 

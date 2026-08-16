@@ -9,17 +9,19 @@ from app.core.agent_runtime import agent_stream
 from app.core.event_bus import emit_answer_delta, emit_thinking_delta
 from app.core.middleware import build_tool_status_middleware
 from app.core.prompt_sync import load_managed_prompt
-from app.db.models import PendingAction
+from app.schemas.pending_action import PendingAction
 
 
 def _build_pending_context(pending: PendingAction) -> str:
+    preview_id = getattr(pending, "preview_id", None)
+    items = getattr(pending, "items", [])
     return (
         "\n\n【待确认动作】\n"
         "用户有一个追番进度更新等待确认。写入必须使用以下 previewId,不得要求用户提供或自行编造:\n"
         f"- 类型: {pending.type}\n"
-        f"- previewId: {pending.preview_id}\n"
+        f"- previewId: {preview_id}\n"
         f"- 过期时间: {pending.expires_at.isoformat()}\n"
-        f"- 明细: {json.dumps(pending.summary, ensure_ascii=False)}\n"
+        f"- 明细: {json.dumps([i.model_dump(by_alias=True) for i in items], ensure_ascii=False)}\n"
         "若执行返回 PREVIEW_CHANGED,必须先向用户展示新预览并再次询问确认,不得直接执行。"
     )
 

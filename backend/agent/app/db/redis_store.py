@@ -5,7 +5,8 @@ from datetime import datetime, timedelta
 import redis
 
 from app.db.base import ChatStore
-from app.db.models import Message, PendingAction, Session
+from app.db.models import Message, Session
+from app.schemas.pending_action import PendingAction, parse_pending_action_json
 
 # ponytail: datetime.now() has microsecond resolution; back-to-back writes can share
 # a timestamp and break "most recent first" session ordering. Guard makes updated_at
@@ -108,7 +109,7 @@ class RedisStore(ChatStore):
         raw = await self._r.get(self._pending_action_key(session_id))
         if not raw:
             return None
-        action = PendingAction.model_validate_json(raw)
+        action = parse_pending_action_json(raw)
         if action.user_id != user_id:
             return None
         return action
@@ -116,13 +117,13 @@ class RedisStore(ChatStore):
     async def save_pending_action(self, session_id: str, action: PendingAction, ttl_seconds: int = 600):
         await self._r.set(
             self._pending_action_key(session_id),
-            action.model_dump_json(),
+            action.model_dump_json(by_alias=True),
             ex=ttl_seconds,
         )
 
     async def delete_pending_action(self, session_id: str, user_id: int):
         raw = await self._r.get(self._pending_action_key(session_id))
-        if raw and PendingAction.model_validate_json(raw).user_id == user_id:
+        if raw and parse_pending_action_json(raw).user_id == user_id:
             await self._r.delete(self._pending_action_key(session_id))
 
     async def update_session_title(self, session_id: str, title: str):

@@ -2,16 +2,16 @@ from datetime import datetime, timedelta
 
 from app.agent.client import gateway
 from app.agent import run
-from app.db.models import PendingAction
+from app.schemas.pending_action import CollectionProgressPendingAction
 
 
 def _pending(preview_id="p1", user_id=7):
-    return PendingAction(
+    return CollectionProgressPendingAction(
         type="COLLECTION_PROGRESS_UPDATE",
         preview_id=preview_id,
         user_id=user_id,
         expires_at=datetime.now() + timedelta(minutes=10),
-        summary=[{"subjectId": 1, "subjectName": "A", "currentEpStatus": 3, "targetEpStatus": 5}],
+        items=[{"subjectId": 1, "subjectName": "A", "currentEpStatus": 3, "targetEpStatus": 5}],
     )
 
 

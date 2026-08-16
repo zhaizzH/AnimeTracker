@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
-from app.db.models import Message, PendingAction, Session
+from app.db.models import Message, Session
+from app.schemas.pending_action import PendingAction
 
 
 class ChatStore(ABC):

@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime, timedelta
 
 from app.core.pending_action import emit_pending_action_clear
-from app.db.models import PendingAction
+from app.schemas.pending_action import CollectionProgressPendingAction
 from app.service.chat import ChatService
 
 
@@ -60,7 +60,7 @@ def _run_stream(resp):
 
 
 def _pending(user_id=7, preview_id="p1"):
-    return PendingAction(
+    return CollectionProgressPendingAction(
         type="COLLECTION_PROGRESS_UPDATE",
         preview_id=preview_id,
         user_id=user_id,
