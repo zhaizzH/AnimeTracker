@@ -1,12 +1,16 @@
 import httpx
 
 from app.config import settings
+from app.core.observability import get_trace_id
 
 BASE = settings.backend_base_url
 
 
 def call_api(method: str, path: str, params: dict | None = None, token: str | None = None) -> dict | list:
     headers = {"Authorization": f"Bearer {token}"} if token else {}
+    trace_id = get_trace_id()
+    if trace_id:
+        headers["X-Request-ID"] = trace_id
     try:
         resp = httpx.request(method, f"{BASE}{path}", params=params, headers=headers, timeout=10)
         resp.raise_for_status()

@@ -8,6 +8,7 @@ from app.agent.state import AgentState
 from app.agent.time_tool import _build_current_time_info
 from app.config import AgentChatModelSlot, create_agent_chat_llm
 from app.core.agent_runtime import agent_invoke, extract_text
+from app.core.observability import llm_model_name, provider_from_model
 from app.core.prompt_sync import load_managed_prompt
 
 _ALLOWED_TARGETS = ("search_agent", "discover_agent", "recommend_agent")
@@ -82,9 +83,16 @@ def gateway_router(state: AgentState) -> dict[str, Any]:
     if forced is not None:
         return forced
     llm = create_agent_chat_llm(slot=AgentChatModelSlot.CLIENT_ROUTE)
+    model_name = llm_model_name(llm)
     agent = create_agent(
         model=llm,
         system_prompt=SystemMessage(content=_build_gateway_prompt(state)),
     )
-    result = agent_invoke(agent, list(state.get("history_messages") or []))
+    result = agent_invoke(
+        agent,
+        list(state.get("history_messages") or []),
+        slot=AgentChatModelSlot.CLIENT_ROUTE.value,
+        provider=provider_from_model(model_name),
+        model=model_name,
+    )
     return {"routing": _resolve_routing_result(result.payload)}

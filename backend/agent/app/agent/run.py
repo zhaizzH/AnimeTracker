@@ -8,6 +8,7 @@ from app.config import AgentChatModelSlot, create_agent_chat_llm
 from app.core.agent_runtime import agent_stream
 from app.core.event_bus import emit_answer_delta, emit_thinking_delta
 from app.core.middleware import build_tool_status_middleware
+from app.core.observability import llm_model_name, provider_from_model
 from app.core.prompt_sync import load_managed_prompt
 from app.schemas.pending_action import PendingAction
 
@@ -40,8 +41,10 @@ def run_domain_agent(state, *, slot: AgentChatModelSlot, tools: list, prompt_key
     pending = state.get("pending_action") if include_pending_action else None
     if pending is not None:
         prompt += _build_pending_context(pending)
+    llm = create_agent_chat_llm(slot=slot)
+    model_name = llm_model_name(llm)
     agent = create_agent(
-        model=create_agent_chat_llm(slot=slot),
+        model=llm,
         tools=tools,
         system_prompt=SystemMessage(content=prompt),
         state_schema=AgentState,
@@ -53,6 +56,9 @@ def run_domain_agent(state, *, slot: AgentChatModelSlot, tools: list, prompt_key
         initial_state=state,
         on_model_delta=emit_answer_delta,
         on_thinking_delta=emit_thinking_delta,
+        slot=slot.value,
+        provider=provider_from_model(model_name),
+        model=model_name,
     )
     text = stream["streamed_text"]
     return {"result": text, "messages": [AIMessage(content=text)]}

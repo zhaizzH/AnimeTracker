@@ -1,4 +1,5 @@
 import json
+import time
 from typing import Any, Awaitable, Callable
 
 from langchain.agents.middleware import wrap_tool_call
@@ -6,6 +7,7 @@ from langchain.messages import ToolMessage
 from langchain.tools.tool_node import ToolCallRequest
 
 from app.core.event_bus import emit_function_call
+from app.core.observability import elapsed_ms, log_event
 
 _REGISTERED: dict[str, str] = {}  # tool_name -> display_name
 
@@ -57,9 +59,19 @@ def build_tool_status_middleware():
             name=display_name,
             arguments=_format_arguments(tool_call.get("args")),
         )
+        started = time.perf_counter()
         try:
             result = await handler(request)
         except Exception as exc:
+            # P2: 不 re-raise,保留吞异常→SSE error 事件→返回错误 ToolMessage 的既有行为,
+            # 只在失败时补充结构化日志。
+            log_event(
+                "agent.tool.completed",
+                toolName=tool_name,
+                durationMs=elapsed_ms(started),
+                success=False,
+                errorType="TOOL_INTERNAL_ERROR",
+            )
             emit_function_call(
                 node=f"tool:{tool_name}",
                 state="end",
@@ -68,6 +80,12 @@ def build_tool_status_middleware():
                 name=display_name,
             )
             return ToolMessage(content=json.dumps({"error": str(exc)}, ensure_ascii=False), tool_call_id=tool_call_id)
+        log_event(
+            "agent.tool.completed",
+            toolName=tool_name,
+            durationMs=elapsed_ms(started),
+            success=True,
+        )
         emit_function_call(
             node=f"tool:{tool_name}",
             state="end",
