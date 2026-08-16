@@ -37,16 +37,22 @@ public class AdminLogServiceImpl implements AdminLogService {
     }
 
     /**
-     * 构建日志分页筛选条件，筛选逻辑需与 AdminLogMapper.selectStats 的 SQL 保持同步
+     * 构建日志分页筛选条件，筛选逻辑需与 AdminLogMapper.selectStats 的 SQL 保持同步。
+     * 日期条件用显式 if 添加，避免空日期在条件求值前被提前解引用导致 NPE。
      */
     private LambdaQueryWrapper<OperationLog> buildWrapper(LogQueryDTO q) {
-        return Wrappers.<OperationLog>lambdaQuery()
+        LambdaQueryWrapper<OperationLog> wrapper = Wrappers.<OperationLog>lambdaQuery()
                 .eq(StringUtils.hasText(q.getAction()), OperationLog::getAction, q.getAction())
                 .eq(StringUtils.hasText(q.getModule()), OperationLog::getModule, q.getModule())
                 .eq(StringUtils.hasText(q.getUsername()), OperationLog::getUsername, q.getUsername())
                 .eq(q.getUserId() != null, OperationLog::getUserId, q.getUserId())
-                .eq(q.getStatus() != null, OperationLog::getStatus, q.getStatus())
-                .ge(q.getStart() != null, OperationLog::getCreatedAt, q.getStart().atStartOfDay())
-                .lt(q.getEnd() != null, OperationLog::getCreatedAt, q.getEnd().plusDays(1).atStartOfDay());
+                .eq(q.getStatus() != null, OperationLog::getStatus, q.getStatus());
+        if (q.getStart() != null) {
+            wrapper.ge(OperationLog::getCreatedAt, q.getStart().atStartOfDay());
+        }
+        if (q.getEnd() != null) {
+            wrapper.lt(OperationLog::getCreatedAt, q.getEnd().plusDays(1).atStartOfDay());
+        }
+        return wrapper;
     }
 }

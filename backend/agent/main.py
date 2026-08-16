@@ -13,7 +13,7 @@ from app.api import import_api as import_api_api
 from app.api.admin_config import require_admin
 from app.api.deps import verify_token
 from app.agent.graph import build_graph
-from app.config import settings
+from app.config import resolve_llm_provider, settings
 from app.core.observability import trace_context_middleware
 from app.core.prompt_sync import initialize_agent_prompt_snapshot
 from app.db.redis_store import RedisStore
@@ -25,6 +25,10 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 启动即校验 LLM 配置；只记录供应商与模型名，绝不记录密钥
+    resolved = resolve_llm_provider(settings)
+    logger.info("LLM 供应商: %s, 模型: %s, 路由模型: %s", resolved.provider, resolved.model, resolved.route_model)
+
     logger.info("初始化 Redis 存储...")
     store = RedisStore(settings.redis_url)
     try:

@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Literal
 
 from langchain_community.chat_models.tongyi import ChatTongyi
 from langchain_core.messages import AIMessageChunk
@@ -60,27 +61,17 @@ def _patch_chat_openai_reasoning():
 _patch_chat_openai_reasoning()
 
 
-def create_deepseek_llm(*, model: str, temperature: float, max_tokens: int):
-    # 延迟导入避免循环: config -> models
-    from app.config import settings
-
-    return ChatDeepSeek(
-        model=model,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        api_key=settings.deepseek_api_key,
-        base_url=settings.deepseek_base_url,
-    )
-
-
-def create_llm(*, model: str, temperature: float, api_key: str, max_tokens: int,
+def create_llm(*, provider: Literal["deepseek", "dashscope"], model: str, temperature: float,
+               api_key: str, max_tokens: int, base_url: str | None = None,
                thinking_budget: int = 2048):
-    if model.startswith("deepseek/"):
-        # provider 优先:deepseek 模型一律不进 ChatTongyi 分支
-        return create_deepseek_llm(
-            model=model.removeprefix("deepseek/"),
-            temperature=temperature,
+    """按已解析的 provider 创建对应供应商客户端，禁止再从模型名前缀推断供应商。"""
+    if provider == "deepseek":
+        return ChatDeepSeek(
+            model=model,
             max_tokens=max_tokens,
+            temperature=temperature,
+            api_key=api_key,
+            base_url=base_url,
         )
     model_kwargs: dict = {"temperature": temperature, "max_tokens": max_tokens}
     if model.startswith("qwen3"):
