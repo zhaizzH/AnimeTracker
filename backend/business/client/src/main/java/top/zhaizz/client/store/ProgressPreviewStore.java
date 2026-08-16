@@ -3,6 +3,7 @@ package top.zhaizz.client.store;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import top.zhaizz.client.model.ProgressPreviewSnapshot;
 import top.zhaizz.client.model.ProgressPreviewStatus;
@@ -21,6 +22,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class ProgressPreviewStore {
 
     private static final Duration PREVIEW_TTL = Duration.ofMinutes(10);
@@ -48,7 +50,8 @@ public class ProgressPreviewStore {
         try {
             return Optional.ofNullable(objectMapper.readValue(json, ProgressPreviewSnapshot.class));
         } catch (JsonProcessingException e) {
-            return Optional.empty();
+            log.error("收藏进度预览反序列化失败: userId={}, previewId={}", userId, previewId, e);
+            throw new BizException(ErrorType.INTERNAL_ERROR, "预览状态读取失败");
         }
     }
 

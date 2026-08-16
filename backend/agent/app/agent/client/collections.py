@@ -125,6 +125,9 @@ def execute_weekly_collection_progress(
         return err
     data = call_api("POST", f"/api/client/collections/progress-preview/{preview_id}/execute", token=user.token)
     if data.get("error"):
+        if data.get("code") == 404 or (
+                data.get("code") == 409 and "重新生成" in data.get("message", "")):
+            emit_pending_action_clear()
         return data
     state = data.get("state")
     if state == "COMPLETED":

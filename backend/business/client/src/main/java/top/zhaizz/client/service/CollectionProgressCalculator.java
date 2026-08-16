@@ -2,7 +2,7 @@ package top.zhaizz.client.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import top.zhaizz.client.mapper.CollectionProgressMapper;
+import top.zhaizz.client.mapper.CollectionMapper;
 import top.zhaizz.client.model.CollectionProgressCandidate;
 import top.zhaizz.pojo.vo.collection.CollectionProgressItemVO;
 
@@ -17,11 +17,11 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class CollectionProgressCalculator {
 
-    private final CollectionProgressMapper mapper;
+    private final CollectionMapper mapper;
 
     public List<CollectionProgressItemVO> calculate(Long userId, LocalDate weekStart, LocalDate cutoffDate) {
         if (cutoffDate.isBefore(weekStart)) return List.of();
-        return mapper.selectCandidates(userId, weekStart, cutoffDate).stream()
+        return mapper.selectProgressCandidates(userId, weekStart, cutoffDate).stream()
                 .filter(c -> c.getTargetEpStatus() != null
                         && c.getTargetEpStatus() > Objects.requireNonNullElse(c.getCurrentEpStatus(), 0))
                 .map(this::toItem)

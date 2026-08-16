@@ -7,6 +7,5 @@ public enum ProgressPreviewStatus {
     PENDING,        // 已生成，等待确认
     EXECUTING,      // 确认后正在执行
     COMPLETED,      // 执行完成
-    FAILED,         // 执行失败
     INVALIDATED     // 数据变化已失效
 }

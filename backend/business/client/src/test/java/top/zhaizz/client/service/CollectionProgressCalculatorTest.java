@@ -5,7 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import top.zhaizz.client.mapper.CollectionProgressMapper;
+import top.zhaizz.client.mapper.CollectionMapper;
 import top.zhaizz.client.model.CollectionProgressCandidate;
 import top.zhaizz.pojo.vo.collection.CollectionProgressItemVO;
 
@@ -28,14 +28,14 @@ class CollectionProgressCalculatorTest {
     private static final LocalDate FRIDAY = LocalDate.of(2026, 8, 14);
 
     @Mock
-    private CollectionProgressMapper mapper;
+    private CollectionMapper mapper;
 
     @InjectMocks
     private CollectionProgressCalculator calculator;
 
     @Test
     void keepsOnlyCandidatesWhoseTargetIsAhead() {
-        when(mapper.selectCandidates(7L, MONDAY, FRIDAY)).thenReturn(List.of(
+        when(mapper.selectProgressCandidates(7L, MONDAY, FRIDAY)).thenReturn(List.of(
                 candidate(1L, "A", 3, 5, 12),
                 candidate(2L, "B", 6, 6, 6)));
         List<CollectionProgressItemVO> result = calculator.calculate(7L, MONDAY, FRIDAY);
@@ -44,7 +44,7 @@ class CollectionProgressCalculatorTest {
 
     @Test
     void marksCompletionWithoutChangingCollectionType() {
-        when(mapper.selectCandidates(7L, MONDAY, FRIDAY))
+        when(mapper.selectProgressCandidates(7L, MONDAY, FRIDAY))
                 .thenReturn(List.of(candidate(2L, "B", 5, 6, 6)));
         assertThat(calculator.calculate(7L, MONDAY, FRIDAY).getFirst())
                 .extracting(CollectionProgressItemVO::isCompletedAfterUpdate,
@@ -55,7 +55,7 @@ class CollectionProgressCalculatorTest {
     @Test
     void returnsEmptyWhenCutoffBeforeWeekStart() {
         assertThat(calculator.calculate(7L, MONDAY, MONDAY.minusDays(1))).isEmpty();
-        verify(mapper, never()).selectCandidates(any(), any(), any());
+        verify(mapper, never()).selectProgressCandidates(any(), any(), any());
     }
 
     private static CollectionProgressCandidate candidate(Long subjectId, String name,

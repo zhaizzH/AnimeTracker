@@ -58,6 +58,35 @@ def test_execute_completed_clears_pending_action(monkeypatch, user, pending_coll
     assert event is not None and event.operation == "CLEAR"
 
 
+@pytest.mark.parametrize(
+    "error",
+    [
+        {"error": True, "code": 404, "message": "预览不存在"},
+        {"error": True, "code": 409, "message": "预览已过期，请重新生成"},
+        {"error": True, "code": 409, "message": "预览状态已变化，请重新生成"},
+    ],
+)
+def test_terminal_preview_error_clears_pending_action(
+        monkeypatch, user, pending_collector, error):
+    monkeypatch.setattr(collections, "call_api", lambda *a, **k: error)
+
+    assert collections.execute_weekly_collection_progress.func(
+        preview_id="p1", user=user) == error
+
+    event = get_pending_action_event()
+    assert event is not None and event.operation == "CLEAR"
+
+
+def test_executing_conflict_keeps_pending_action(monkeypatch, user, pending_collector):
+    error = {"error": True, "code": 409, "message": "预览正在执行中，请稍后重试"}
+    monkeypatch.setattr(collections, "call_api", lambda *a, **k: error)
+
+    assert collections.execute_weekly_collection_progress.func(
+        preview_id="p1", user=user) == error
+
+    assert get_pending_action_event() is None
+
+
 def test_cancel_clears_without_calling_business(monkeypatch, pending_collector):
     monkeypatch.setattr(collections, "call_api", lambda *a, **k: pytest.fail("must not call business"))
     assert collections.cancel_weekly_collection_progress.func() == {"cancelled": True}

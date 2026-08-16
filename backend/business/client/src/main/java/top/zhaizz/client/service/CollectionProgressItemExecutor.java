@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import top.zhaizz.client.mapper.CollectionProgressMapper;
+import top.zhaizz.client.mapper.CollectionMapper;
 import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.pojo.entity.UserCollection;
@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class CollectionProgressItemExecutor {
 
-    private final CollectionProgressMapper collectionMapper;
+    private final CollectionMapper collectionMapper;
 
     /**
      * 单项进度更新：SQL 再次约束 userId/subjectId/type=3/原进度，确认后并发修改不被覆盖
