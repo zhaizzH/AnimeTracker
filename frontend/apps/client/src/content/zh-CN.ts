@@ -49,6 +49,15 @@ export const copy = {
     back: '返回',
     more: '更多',
     notAvailable: '暂无',
+    requestId: '请求编号',
+  },
+
+  subject: {
+    cover: '封面',
+    scoreUnit: '分',
+    episodeUnit: '集',
+    episodesAll: '全 {{total}} 集',
+    seasons: ['冬', '春', '夏', '秋'],
   },
 
   home: {
