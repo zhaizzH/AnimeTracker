@@ -16,10 +16,15 @@ export const copy = {
     theme: '主题',
     language: '语言',
     ai: 'AI 助手',
+    primary: '主导航',
+    mobile: '移动端主导航',
+    userMenu: '用户菜单',
   },
 
   search: {
+    label: '搜索番剧',
     placeholder: '搜索番剧、标签或关键词',
+    trigger: '搜索',
     submit: '搜索',
     suggestions: '搜索建议',
     history: '搜索历史',

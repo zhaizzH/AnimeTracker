@@ -1,0 +1,32 @@
+.form,
+.compact {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.compact {
+  /* 移动端下拉中的紧凑搜索条，限制在视口内 */
+  width: min(20rem, calc(100vw - var(--space-8)));
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  font: inherit;
+}
+
+.submit {
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  font: inherit;
+  cursor: pointer;
+}
