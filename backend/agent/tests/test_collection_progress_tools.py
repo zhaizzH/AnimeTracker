@@ -1,6 +1,7 @@
 import pytest
 
 from app.agent.client import collections
+from app.agent.client.actions import collection_progress
 from app.core.pending_action import (
     get_pending_action_event,
     reset_pending_action_collector,
@@ -34,17 +35,23 @@ def _changed_data(preview_id):
     return {"state": "PREVIEW_CHANGED", "preview": _preview_data(preview_id)}
 
 
+def test_read_tools_do_not_contain_writes():
+    assert {tool.name for tool in collections.collection_read_tools}.isdisjoint({
+        "preview_weekly_collection_progress", "execute_weekly_collection_progress"
+    })
+
+
 def test_preview_calls_business_and_sets_pending_action(monkeypatch, user, pending_collector):
-    monkeypatch.setattr(collections, "call_api", lambda *a, **k: _preview_data("p1"))
-    result = collections.preview_weekly_collection_progress.func(user=user)
+    monkeypatch.setattr(collection_progress, "call_api", lambda *a, **k: _preview_data("p1"))
+    result = collection_progress.preview_weekly_collection_progress.func(user=user)
     assert result["previewId"] == "p1"
     event = get_pending_action_event()
     assert event is not None and event.operation == "SET"
 
 
 def test_execute_changed_preview_replaces_pending_action(monkeypatch, user, pending_collector):
-    monkeypatch.setattr(collections, "call_api", lambda *a, **k: _changed_data("p2"))
-    result = collections.execute_weekly_collection_progress.func(preview_id="p1", user=user)
+    monkeypatch.setattr(collection_progress, "call_api", lambda *a, **k: _changed_data("p2"))
+    result = collection_progress.execute_weekly_collection_progress.func(preview_id="p1", user=user)
     assert result["state"] == "PREVIEW_CHANGED"
     event = get_pending_action_event()
     assert event is not None and event.operation == "REPLACE"
@@ -52,8 +59,8 @@ def test_execute_changed_preview_replaces_pending_action(monkeypatch, user, pend
 
 
 def test_execute_completed_clears_pending_action(monkeypatch, user, pending_collector):
-    monkeypatch.setattr(collections, "call_api", lambda *a, **k: {"state": "COMPLETED"})
-    collections.execute_weekly_collection_progress.func(preview_id="p1", user=user)
+    monkeypatch.setattr(collection_progress, "call_api", lambda *a, **k: {"state": "COMPLETED"})
+    collection_progress.execute_weekly_collection_progress.func(preview_id="p1", user=user)
     event = get_pending_action_event()
     assert event is not None and event.operation == "CLEAR"
 
@@ -68,9 +75,9 @@ def test_execute_completed_clears_pending_action(monkeypatch, user, pending_coll
 )
 def test_terminal_preview_error_clears_pending_action(
         monkeypatch, user, pending_collector, error):
-    monkeypatch.setattr(collections, "call_api", lambda *a, **k: error)
+    monkeypatch.setattr(collection_progress, "call_api", lambda *a, **k: error)
 
-    assert collections.execute_weekly_collection_progress.func(
+    assert collection_progress.execute_weekly_collection_progress.func(
         preview_id="p1", user=user) == error
 
     event = get_pending_action_event()
@@ -79,16 +86,16 @@ def test_terminal_preview_error_clears_pending_action(
 
 def test_executing_conflict_keeps_pending_action(monkeypatch, user, pending_collector):
     error = {"error": True, "code": 409, "message": "预览正在执行中，请稍后重试"}
-    monkeypatch.setattr(collections, "call_api", lambda *a, **k: error)
+    monkeypatch.setattr(collection_progress, "call_api", lambda *a, **k: error)
 
-    assert collections.execute_weekly_collection_progress.func(
+    assert collection_progress.execute_weekly_collection_progress.func(
         preview_id="p1", user=user) == error
 
     assert get_pending_action_event() is None
 
 
 def test_cancel_clears_without_calling_business(monkeypatch, pending_collector):
-    monkeypatch.setattr(collections, "call_api", lambda *a, **k: pytest.fail("must not call business"))
-    assert collections.cancel_weekly_collection_progress.func() == {"cancelled": True}
+    monkeypatch.setattr(collection_progress, "call_api", lambda *a, **k: pytest.fail("must not call business"))
+    assert collection_progress.cancel_weekly_collection_progress.func() == {"cancelled": True}
     event = get_pending_action_event()
     assert event is not None and event.operation == "CLEAR"

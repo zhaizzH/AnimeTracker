@@ -1,6 +1,6 @@
 from langchain_core.tools import tool
 
-from app.agent.client.collections import user_collections_tools
+from app.agent.client.collections import collection_read_tools
 from app.agent.http import call_api
 from app.agent.run import run_domain_agent
 from app.agent.time_tool import get_current_time
@@ -64,7 +64,7 @@ def discover_agent(state):
     return run_domain_agent(
         state,
         slot=AgentChatModelSlot.CLIENT_DISCOVER,
-        tools=[*discover_tools, *user_collections_tools, get_current_time],
+        tools=[*discover_tools, *collection_read_tools, get_current_time],
         prompt_key="client_discover_agent_prompt",
         prompt_path="client/discover_agent_prompt.md",
     )
