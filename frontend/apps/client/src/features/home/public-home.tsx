@@ -50,7 +50,7 @@ export function PublicHome({ season, popular, today }: PublicHomeProps) {
   ];
 
   return (
-    <main className={styles.home}>
+    <main id="main" className={styles.home}>
       {sections.map((section) => (
         <SectionBlock key={section.heading} {...section} />
       ))}

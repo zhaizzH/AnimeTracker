@@ -26,7 +26,7 @@ export function ScheduleView({ params, selectedWeekday, grouped, errorMessage }:
   const seasonText = `${params.year} ${quarterLabel(params.quarter)}`;
 
   return (
-    <main className={styles.page}>
+    <main id="main" className={styles.page}>
       <h1 className={styles.title}>{copy.schedule.title}</h1>
       <p className={styles.season}>{seasonText}</p>
 

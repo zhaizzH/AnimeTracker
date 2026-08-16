@@ -69,7 +69,7 @@ export default async function DiscoverPage({ searchParams }: PageProps) {
       : [];
 
   return (
-    <main className={styles.page}>
+    <main id="main" className={styles.page}>
       <DiscoveryFilters query={query} tags={tags} years={years} />
       <DiscoveryResults query={query} subjects={subjects} total={total} errorMessage={errorMessage} />
     </main>

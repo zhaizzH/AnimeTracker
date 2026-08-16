@@ -52,6 +52,20 @@ export const copy = {
     requestId: '请求编号',
   },
 
+  a11y: {
+    skipToContent: '跳到主要内容',
+  },
+
+  error: {
+    unsafeFallback: '服务暂时不可用，请稍后重试',
+  },
+
+  notFound: {
+    title: '页面不存在',
+    message: '你访问的页面不存在或已被移除',
+    backHome: '返回首页',
+  },
+
   subject: {
     cover: '封面',
     scoreUnit: '分',

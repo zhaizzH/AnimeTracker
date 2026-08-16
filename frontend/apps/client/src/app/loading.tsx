@@ -6,6 +6,7 @@ export default function Loading() {
   const sections = [copy.home.seasonal, copy.home.popular, copy.home.todaySchedule];
   return (
     <main
+      id="main"
       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-10)', padding: 'var(--space-6) var(--space-4) var(--space-12)' }}
     >
       {sections.map((heading) => (

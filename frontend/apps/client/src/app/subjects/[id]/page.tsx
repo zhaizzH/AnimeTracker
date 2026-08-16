@@ -6,15 +6,9 @@ import { ApiError } from '@/lib/api/errors';
 import { SubjectDetail } from '@/features/subjects/subject-detail';
 import type { SubjectDetailModel, EpisodeModel } from '@/features/subjects/subject-detail';
 import { parseSubjectId, detailExcerpt } from '@/features/subjects/detail-meta';
+import { canonicalMeta } from '@/lib/metadata/site-metadata';
 
 type PageProps = { params: Promise<{ id: string }> };
-
-/** 绝对 canonical 地址，来自 NEXT_PUBLIC_SITE_URL（无配置时省略 canonical）。 */
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL;
-
-function buildCanonical(path: string): { alternates?: { canonical: string } } {
-  return SITE_URL ? { alternates: { canonical: `${SITE_URL.replace(/\/$/, '')}${path}` } } : {};
-}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id: raw } = await params;
@@ -35,7 +29,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: `${title} · ${copy.brand}`,
     description,
     ...(subject.image ? { openGraph: { images: [{ url: subject.image }] } } : {}),
-    ...buildCanonical(`/subjects/${id}`),
+    ...canonicalMeta(`/subjects/${id}`),
   };
 }
 

@@ -58,7 +58,7 @@ export function SubjectDetail({ subject, episodes }: SubjectDetailProps) {
   );
 
   return (
-    <main className={styles.page}>
+    <main id="main" className={styles.page}>
       <article>
         <header className={styles.header}>
           <div className={styles.cover}>{cover}</div>
