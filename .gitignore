@@ -135,5 +135,6 @@ docs/api
 .superpowers
 .workbuddy
 .firecrawl
+.worktrees/
 AGENTS.md
 CLAUDE.md
