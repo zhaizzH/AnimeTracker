@@ -11,5 +11,5 @@ import java.util.List;
 @Data
 @ConfigurationProperties(prefix = "at.cors")
 public class CorsProperties {
-    private List<String> allowedOrigins = List.of("http://localhost:5173", "http://localhost:5174");
+    private List<String> allowedOrigins;
 }
