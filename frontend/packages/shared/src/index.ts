@@ -1,1 +1,20 @@
 export const SHARED_SENTINEL = 'shared-ok';
+export * from './types';
+export { useAuthStore } from './store/auth';
+export * from './api/http';
+export * from './sse';
+export { antdTheme } from './theme';
+export { useBootstrapAuth } from './hooks/useBootstrapAuth';
+// API 模块以命名空间暴露，避免跨模块同名导出（list/schedule/remove）在扁平 re-export 时冲突。
+export * as authApi from './api/auth';
+export * as subjectsApi from './api/subjects';
+export * as collectionsApi from './api/collections';
+export * as tagsApi from './api/tags';
+export * as filesApi from './api/files';
+export * as agentApi from './api/agent';
+export * as adminAgentApi from './api/admin/agent';
+export * as adminImportApi from './api/admin/import';
+export * as adminLogsApi from './api/admin/logs';
+export * as adminUsersApi from './api/admin/users';
+export * as adminSubjectsApi from './api/admin/subjects';
+export * as adminDashboardApi from './api/admin/dashboard';

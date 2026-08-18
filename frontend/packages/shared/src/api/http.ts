@@ -42,6 +42,6 @@ async function refreshOnce(): Promise<boolean> {
   } catch { return false; }
 }
 
-export const get = <T>(url: string, params?: Record<string, unknown>) => http.get(url, { params }) as Promise<T>;
+export const get = <T>(url: string, params?: object) => http.get(url, { params }) as Promise<T>;
 export const post = <T>(url: string, data?: unknown) => http.post(url, data) as Promise<T>;
 export const postForm = <T>(url: string, form: FormData) => http.post(url, form) as Promise<T>;

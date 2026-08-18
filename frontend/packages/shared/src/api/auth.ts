@@ -1,0 +1,15 @@
+import { get, post } from './http';
+import type { LoginVO, UserVO } from '../types';
+export const register = (d: { username: string; email: string; password: string }) => post<void>('/client/auth/register', d);
+export const resendCode = (d: { email: string }) => post<void>('/client/auth/resend-code', d);
+export const verifyEmail = (d: { email: string; code: string }) => post<LoginVO>('/client/auth/verify-email', d);
+export const login = (d: { username: string; password: string }) => post<LoginVO>('/client/auth/login', d);
+export const forgotPassword = (d: { email: string }) => post<void>('/client/auth/forgot-password', d);
+export const resetPassword = (d: { email: string; code: string; newPassword: string }) => post<void>('/client/auth/reset-password', d);
+export const refresh = (d: { refreshToken: string }) => post<LoginVO>('/client/auth/refresh', d);
+export const logout = () => post<void>('/client/auth/logout');
+export const me = () => get<UserVO>('/client/me');
+export const updateProfile = (d: { nickname?: string; avatar?: string }) => post<UserVO>('/client/me/update', d);
+export const updatePassword = (d: { oldPassword: string; newPassword: string }) => post<void>('/client/me/update-password', d);
+export const sendEmailCode = (d: { newEmail: string }) => post<void>('/client/me/send-email-code', d);
+export const verifyEmailCode = (d: { newEmail: string; code: string }) => post<void>('/client/me/verify-email-code', d);

@@ -1,0 +1,12 @@
+import { get, post } from './http';
+import type { CollectionCounts, CollectionType, CollectionVO, ExecuteResultVO, Paged, ProgressPreviewVO, WishlistResult } from '../types';
+export const list = (params: { type?: CollectionType; page?: number; size?: number } = {}) => get<Paged<CollectionVO>>('/client/collections', params);
+export const counts = () => get<CollectionCounts>('/client/collections/counts');
+export const getCollection = (subjectId: number | string) => get<CollectionVO | null>(`/client/collections/${subjectId}`);
+export const save = (subjectId: number | string, d: { type: CollectionType; rate?: number; epStatus?: number }) => post<void>(`/client/collections/${subjectId}/save`, d);
+export const wishlist = (subjectId: number | string) => post<WishlistResult>(`/client/collections/${subjectId}/wishlist`);
+export const remove = (subjectId: number | string) => post<void>(`/client/collections/${subjectId}/remove`);
+export const schedule = (params: { weekday?: number; year?: number; quarter?: string; page?: number; size?: number } = {}) => get<Paged<CollectionVO>>('/client/collections/schedule', params);
+export const updateEpStatus = (subjectId: number | string, d: { epStatus: number }) => post<void>(`/client/collections/${subjectId}/ep-status`, d);
+export const progressPreview = () => post<ProgressPreviewVO>('/client/collections/progress-preview');
+export const executePreview = (previewId: string) => post<ExecuteResultVO>(`/client/collections/progress-preview/${previewId}/execute`);
