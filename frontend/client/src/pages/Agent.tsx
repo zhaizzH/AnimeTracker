@@ -1,11 +1,19 @@
 import { useState } from 'react';
 import { Button, Input, Layout, List, Space, Typography } from 'antd';
 import ReactMarkdown from 'react-markdown';
-import { useAgentChat } from '../hooks/useAgentChat';
+import { useAgentChat, agentApi } from '@shared';
 
 const { Sider, Content } = Layout;
 export default function Agent() {
-  const { messages, sessions, activeId, health, streaming, send, select, create, remove } = useAgentChat();
+  const { messages, sessions, activeId, health, streaming, send, select, create, remove } = useAgentChat({
+    listSessions: agentApi.listSessions,
+    createSession: agentApi.createSession,
+    history: agentApi.history,
+    deleteSession: agentApi.deleteSession,
+    streamBody: agentApi.streamBody,
+    streamUrl: '/api/client/agent/stream',
+    health: agentApi.health,
+  });
   const [input, setInput] = useState('');
   const submit = () => { if (!input.trim() || streaming) return; send(input); setInput(''); };
 
