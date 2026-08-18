@@ -1,0 +1,12 @@
+{
+  "name": "animetracker-frontend",
+  "private": true,
+  "workspaces": ["packages/*", "client", "admin"],
+  "scripts": {
+    "dev:client": "npm run dev -w client",
+    "dev:admin": "npm run dev -w admin",
+    "build": "npm run build -w client && npm run build -w admin",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}

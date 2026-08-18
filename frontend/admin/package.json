@@ -1,0 +1,35 @@
+{
+  "name": "admin",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@animetracker/shared": "file:../packages/shared",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-router-dom": "^7",
+    "@tanstack/react-query": "^5",
+    "antd": "^5",
+    "zustand": "^4",
+    "axios": "^1",
+    "dayjs": "^1"
+  },
+  "devDependencies": {
+    "vite": "^5",
+    "@vitejs/plugin-react": "^4",
+    "typescript": "^5",
+    "vitest": "^2",
+    "jsdom": "^25",
+    "@testing-library/react": "^16",
+    "@testing-library/jest-dom": "^6",
+    "@testing-library/user-event": "^14",
+    "@types/react": "^18",
+    "@types/react-dom": "^18"
+  }
+}
