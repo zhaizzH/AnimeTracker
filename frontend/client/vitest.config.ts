@@ -6,6 +6,6 @@ export default defineConfig({
   resolve: { alias: { '@shared': path.resolve(__dirname, '../packages/shared/src') } },
   test: {
     environment: 'jsdom',
-    setupFiles: ['@testing-library/jest-dom/vitest'],
+    setupFiles: ['@testing-library/jest-dom/vitest', './src/test/matchMedia.ts'],
   },
 });
