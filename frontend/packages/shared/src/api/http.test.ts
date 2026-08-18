@@ -11,7 +11,7 @@ const mockRefresh = new MockAdapter(axios, { onNoMatch: 'passthrough' });
 beforeEach(() => { mock.reset(); mockRefresh.reset(); useAuthStore.getState().logout(); });
 
 test('成功响应返回 data 字段', async () => {
-  mock.onGet('/api/client/tags').reply(200, { code: 0, message: 'ok', data: [{ id: 1, name: '科幻', count: 3 }] });
+  mock.onGet('/api/client/tags').reply(200, { code: 200, message: 'ok', data: [{ id: 1, name: '科幻', count: 3 }] });
   const data = await get<Array<{ id: number; name: string; count: number }>>('/client/tags');
   expect(data[0].name).toBe('科幻');
 });
@@ -22,8 +22,8 @@ test('code!=0 时 reject 后端 message', async () => {
 test('401 时用 refreshToken 刷新并重试原请求', async () => {
   const login: LoginVO = { token: 'stale', refreshToken: 'rt', user: { id: 1, username: 'u', email: 'e@x.com', role: 'ADMIN', createdAt: '' } };
   useAuthStore.getState().setLogin(login);
-  mock.onGet('/api/client/me').replyOnce(401).onGet('/api/client/me').reply(200, { code: 0, message: 'ok', data: login.user });
-  mockRefresh.onPost('/api/client/auth/refresh').reply(200, { code: 0, message: 'ok', data: { ...login, token: 'fresh' } });
+  mock.onGet('/api/client/me').replyOnce(401).onGet('/api/client/me').reply(200, { code: 200, message: 'ok', data: login.user });
+  mockRefresh.onPost('/api/client/auth/refresh').reply(200, { code: 200, message: 'ok', data: { ...login, token: 'fresh' } });
   const user = await get<{ username: string }>('/client/me');
   expect(user.username).toBe('u');
   expect(useAuthStore.getState().token).toBe('fresh');

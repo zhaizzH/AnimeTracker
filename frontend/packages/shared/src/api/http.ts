@@ -15,7 +15,8 @@ let refreshing: Promise<boolean> | null = null;
 http.interceptors.response.use(
   (res) => {
     const body = res.data as ApiResult<unknown>;
-    if (body.code === 0) return body.data as never;
+    // 后端 Result.success() 成功 code 为 200（错误码即 HTTP 状态码），见 business Result.java
+    if (body.code === 200) return body.data as never;
     return Promise.reject(new Error(body.message || '请求失败'));
   },
   async (error: AxiosError) => {
@@ -36,7 +37,7 @@ async function refreshOnce(): Promise<boolean> {
   if (!refreshToken) return false;
   try {
     const res = await axios.post<ApiResult<LoginVO>>('/api/client/auth/refresh', { refreshToken });
-    if (res.data.code !== 0) return false;
+    if (res.data.code !== 200) return false;
     useAuthStore.getState().setLogin(res.data.data);
     return true;
   } catch { return false; }
