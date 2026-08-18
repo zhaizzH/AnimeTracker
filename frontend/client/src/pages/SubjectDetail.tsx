@@ -1,14 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
-import { Descriptions, Space, Spin, Table, Tag } from 'antd';
+import { Descriptions, Empty, Space, Spin, Table, Tag } from 'antd';
 import { subjectsApi } from '@shared';
 import { CollectionActions } from '../components/CollectionActions';
 
 export default function SubjectDetail() {
   const { id } = useParams();
-  const { data: sub, isLoading } = useQuery({ queryKey: ['subject', id], queryFn: () => subjectsApi.detail(id!), enabled: !!id });
+  const { data: sub, isLoading, isError } = useQuery({ queryKey: ['subject', id], queryFn: () => subjectsApi.detail(id!), enabled: !!id });
   const { data: eps } = useQuery({ queryKey: ['subject', id, 'episodes'], queryFn: () => subjectsApi.episodes(id!), enabled: !!id });
-  if (isLoading || !sub) return <Spin style={{ display: 'block', margin: 40 }} />;
+  if (isLoading) return <Spin style={{ display: 'block', margin: 40 }} />;
+  if (isError || !sub) return <Empty description="条目加载失败，请稍后重试" style={{ margin: 60 }} />;
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: 24 }}>
       <div style={{ display: 'flex', gap: 24 }}>

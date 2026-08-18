@@ -11,7 +11,7 @@ export default function Agent() {
 
   return (
     <Layout style={{ height: 'calc(100vh - 64px)' }}>
-      <Sider theme="light" width={240} style={{ borderRight: '1px solid #eee' }}>
+      <Sider theme="light" width={240} breakpoint="lg" collapsedWidth={0} style={{ borderRight: '1px solid #eee' }}>
         <Button type="primary" block style={{ margin: 12 }} onClick={create}>新建会话</Button>
         <List size="small" dataSource={sessions} renderItem={(s: Record<string, unknown>) => (
           <List.Item style={{ cursor: 'pointer', padding: '8px 12px', background: String(s.id) === activeId ? '#f0f5f1' : undefined }} onClick={() => select(String(s.id))}>
