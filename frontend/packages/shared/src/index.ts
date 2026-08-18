@@ -1,6 +1,7 @@
 export const SHARED_SENTINEL = 'shared-ok';
 export * from './types';
 export { useAuthStore } from './store/auth';
+export { SubjectCard } from './components/SubjectCard';
 export * from './api/http';
 export * from './sse';
 export { antdTheme } from './theme';
