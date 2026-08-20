@@ -12,7 +12,8 @@ export default function ForgotPassword() {
     } catch (e) { message.error((e as Error).message); }
   };
   return (
-    <div style={{ maxWidth: 360, margin: '60px auto' }}>
+    <div className="od-auth">
+      <div className="od-brand">AnimeTracker</div>
       <Card title="找回密码">
         <Form layout="vertical" onFinish={onFinish}>
           <Form.Item name="email" label="邮箱" rules={[{ required: true, type: 'email' }]}>
@@ -20,7 +21,7 @@ export default function ForgotPassword() {
           </Form.Item>
           <Button type="primary" htmlType="submit" block>发送验证码</Button>
         </Form>
-        <div style={{ marginTop: 12, textAlign: 'center' }}>
+        <div className="od-auth-foot center">
           <Link to="/login">回到登录</Link>
         </div>
       </Card>

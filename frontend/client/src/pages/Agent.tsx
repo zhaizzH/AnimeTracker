@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Button, Input, Layout, List, Space, Typography } from 'antd';
+import { Button, Input, Layout, List, Space, Typography, theme } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import { useAgentChat, agentApi } from '@shared';
 
 const { Sider, Content } = Layout;
 export default function Agent() {
+  const { token } = theme.useToken();
   const { messages, sessions, activeId, health, streaming, send, select, create, remove } = useAgentChat({
     listSessions: agentApi.listSessions,
     createSession: agentApi.createSession,
@@ -19,10 +20,10 @@ export default function Agent() {
 
   return (
     <Layout style={{ height: 'calc(100vh - 64px)' }}>
-      <Sider theme="light" width={240} breakpoint="lg" collapsedWidth={0} style={{ borderRight: '1px solid #eee' }}>
+      <Sider theme="light" width={240} breakpoint="lg" collapsedWidth={0} style={{ borderRight: `1px solid ${token.colorBorderSecondary}`, background: token.colorBgContainer }}>
         <Button type="primary" block style={{ margin: 12 }} onClick={create}>新建会话</Button>
         <List size="small" dataSource={sessions} renderItem={(s: Record<string, unknown>) => (
-          <List.Item style={{ cursor: 'pointer', padding: '8px 12px', background: String(s.id) === activeId ? '#f0f5f1' : undefined }} onClick={() => select(String(s.id))}>
+          <List.Item style={{ cursor: 'pointer', padding: '8px 12px', background: String(s.id) === activeId ? token.colorPrimaryBg : undefined }} onClick={() => select(String(s.id))}>
             <Space>{String((s as { title?: unknown }).title ?? (s as { id?: unknown }).id)}{activeId === String(s.id) && <Button size="small" danger onClick={(e) => { e.stopPropagation(); remove(String(s.id)); }}>删</Button>}</Space>
           </List.Item>
         )} />

@@ -14,8 +14,9 @@ export default function Register() {
     } catch (e) { message.error((e as Error).message); }
   };
   return (
-    <div style={{ maxWidth: 360, margin: '60px auto' }}>
-      <Card title="注册 AnimeTracker">
+    <div className="od-auth">
+      <div className="od-brand">AnimeTracker</div>
+      <Card title="注册">
         <Form layout="vertical" onFinish={onFinish}>
           <Form.Item name="username" label="用户名" rules={[{ required: true }]}>
             <Input aria-label="用户名" />
@@ -44,7 +45,7 @@ export default function Register() {
           </Form.Item>
           <Button type="primary" htmlType="submit" block>注册</Button>
         </Form>
-        <div style={{ marginTop: 12, textAlign: 'center' }}>
+        <div className="od-auth-foot center">
           <Link to="/login">已有账号？去登录</Link>
         </div>
       </Card>

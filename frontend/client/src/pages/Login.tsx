@@ -15,8 +15,9 @@ export default function Login() {
     } catch (e) { message.error((e as Error).message); }
   };
   return (
-    <div style={{ maxWidth: 360, margin: '60px auto' }}>
-      <Card title="登录 AnimeTracker">
+    <div className="od-auth">
+      <div className="od-brand">AnimeTracker</div>
+      <Card title="登录">
         <Form layout="vertical" onFinish={onFinish}>
           <Form.Item name="username" label="用户名/邮箱" rules={[{ required: true }]}>
             <Input aria-label="用户名/邮箱" />
@@ -26,7 +27,7 @@ export default function Login() {
           </Form.Item>
           <Button type="primary" htmlType="submit" block>登录</Button>
         </Form>
-        <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between' }}>
+        <div className="od-auth-foot">
           <Link to="/register">没有账号？去注册</Link>
           <Link to="/forgot-password">忘记密码</Link>
         </div>
