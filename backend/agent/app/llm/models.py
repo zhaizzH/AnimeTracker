@@ -63,16 +63,21 @@ _patch_chat_openai_reasoning()
 
 def create_llm(*, provider: Literal["deepseek", "dashscope"], model: str, temperature: float,
                api_key: str, max_tokens: int, base_url: str | None = None,
-               thinking_budget: int = 2048):
-    """按已解析的 provider 创建对应供应商客户端，禁止再从模型名前缀推断供应商。"""
+               thinking_budget: int = 2048, reasoning_effort: str = "high"):
+    """按已解析的 provider 创建对应供应商客户端。DeepSeek 显式开启思考；百炼 qwen3 显式开启 enable_thinking。"""
     if provider == "deepseek":
-        return ChatDeepSeek(
-            model=model,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            api_key=api_key,
-            base_url=base_url,
-        )
+        # base_url=None 时不传,让 BaseChatOpenAI 用默认地址(显式传 None 会触发校验失败)
+        deepseek_kwargs: dict = {
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "api_key": api_key,
+            "reasoning_effort": reasoning_effort,
+            "extra_body": {"thinking": {"type": "enabled"}},
+        }
+        if base_url:
+            deepseek_kwargs["base_url"] = base_url
+        return ChatDeepSeek(**deepseek_kwargs)
     model_kwargs: dict = {"temperature": temperature, "max_tokens": max_tokens}
     if model.startswith("qwen3"):
         # qwen3 系列默认不输出思考,需显式开启;qwen-plus 等不支持该参数
