@@ -138,6 +138,13 @@ public class AgentServiceImpl implements AgentService {
                 }
                 return null;
             });
+        } catch (HttpStatusCodeException e) {
+            // 上游非 2xx（如请求体校验失败 422）：流未开始则归类到统一 Result，不泄露错误体
+            log.warn("Agent 流式请求失败: {} {} -> status={}", method, url, e.getStatusCode().value());
+            if (e.getStatusCode().is5xxServerError()) {
+                throw new BizException(ErrorType.SERVICE_UNAVAILABLE);
+            }
+            throw new BizException(mapUpstream4xx(e.getStatusCode().value()));
         } catch (ResourceAccessException e) {
             log.error("Agent 流式连接失败: {}", url, e);
             throw new BizException(ErrorType.SERVICE_UNAVAILABLE, "AI 服务暂不可用");

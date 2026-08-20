@@ -11,6 +11,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import os
 import re
 import sys
 import time
@@ -153,10 +154,62 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
 
 
+# ANSI 颜色(人类可读模式)
+_C = {
+    "reset": "\033[0m", "dim": "\033[2m", "bold": "\033[1m",
+    "grey": "\033[90m", "cyan": "\033[36m", "blue": "\033[34m",
+    "yellow": "\033[33m", "magenta": "\033[35m", "green": "\033[32m",
+    "red": "\033[31m",
+}
+_LEVEL_COLOR = {"DEBUG": "grey", "INFO": "green", "WARNING": "yellow",
+                "ERROR": "red", "CRITICAL": "red"}
+_EVENT_COLOR = {"agent.model.completed": "blue", "agent.request.completed": "cyan"}
+
+
+class HumanFormatter(logging.Formatter):
+    """终端人类可读: 单行事件展开为对齐 key-value, access 日志折叠为短格式。"""
+
+    def format(self, record: logging.LogRecord) -> str:
+        t = self.formatTime(record, "%H:%M:%S")
+        level = record.levelname
+        lc = _LEVEL_COLOR.get(level, "grey")
+        head = f"{_C['dim']}{t}{_C['reset']} {_C[lc]}{level:<7}{_C['reset']}"
+
+        trace = _trace_id.get()
+        trace_part = f" {_C['grey']}tid={trace[:8]}{_C['reset']}" if trace else ""
+
+        # 事件日志: message 是 JSON 字符串, 展开成对齐 key-value
+        msg = record.getMessage()
+        if "agent.model.completed" in msg or "agent.request.completed" in msg:
+            try:
+                ev = json.loads(msg)
+            except json.JSONDecodeError:
+                ev = None
+            if ev:
+                color = _EVENT_COLOR.get(ev.get("event", ""), "cyan")
+                name = (f"{_C['bold']}{_C[color]}{ev.get('event')}{_C['reset']}")
+                lines = [f"{head}{trace_part} {name}"]
+                for k, v in ev.items():
+                    if k in ("service", "event", "traceId"):
+                        continue
+                    lines.append(f"    {_C['cyan']}{k:<14}{_C['reset']}{v}")
+                return "\n".join(lines)
+
+        # access 日志: 折叠为 方法 路径 状态
+        if record.name in ("uvicorn.access", "uvicorn.error"):
+            return f"{head} {msg}"
+
+        return f"{head}{trace_part} {msg}"
+
+
 def configure_logging() -> None:
-    """把 root 与 uvicorn 日志统一为输出单行 JSON 到 stdout。"""
+    """把 root 与 uvicorn 日志统一输出到 stdout。
+
+    默认单行 JSON; 设置环境变量 ANIMETRACKER_LOG=human 时切换为彩色人类可读格式。
+    """
+    human = os.getenv("ANIMETRACKER_LOG", "").lower() in ("1", "true", "yes", "human")
     handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(JsonFormatter())
+    handler.setFormatter(HumanFormatter() if human else JsonFormatter())
     for name in ("", "uvicorn", "uvicorn.error", "uvicorn.access"):
         target = logging.getLogger(name)
         target.handlers = [handler]
