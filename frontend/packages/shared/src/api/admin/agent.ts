@@ -9,4 +9,4 @@ export const chatSessions = () => get<Record<string, unknown>[]>('/admin/agent/c
 export const chatCreateSession = () => post<Record<string, unknown>>('/admin/agent/chat/sessions', {});
 export const chatHistory = (sessionId: string) => get<Record<string, unknown>[]>(`/admin/agent/chat/sessions/${encodeURIComponent(sessionId)}/history`);
 export const chatDeleteSession = (sessionId: string) => post<void>(`/admin/agent/chat/sessions/${encodeURIComponent(sessionId)}/remove`);
-export const chatStreamBody = (message: string, sessionId?: string) => ({ message, ...(sessionId ? { sessionId } : {}) });
+export const chatStreamBody = (message: string, sessionId?: string) => ({ content: message, ...(sessionId ? { session_id: sessionId } : {}) });
