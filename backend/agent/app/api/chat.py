@@ -3,7 +3,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from app.config import settings
+from app.config import settings, resolve_llm_provider
 from app.db.redis_store import RedisStore
 from app.schemas.auth import UserInfo
 from app.schemas.chat import ChatRequest
@@ -98,6 +98,11 @@ def create_chat_router(*, prefix: str, auth_dep, include_health: bool = False) -
     if include_health:
         @router.get("/health")
         async def health():
-            return {"status": "ok", "llm_configured": bool(settings.dashscope_api_key or settings.deepseek_api_key)}
+            try:
+                resolve_llm_provider(settings)
+                configured = True
+            except ValueError:
+                configured = False
+            return {"status": "ok", "llm_configured": configured}
 
     return router
