@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     # LLM — DeepSeek 官方直连
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
-    deepseek_model: str = "deepseek-chat"
+    deepseek_model: str = "deepseek-v4-flash"
     deepseek_model_route: str = "deepseek-chat"
 
     # LLM — 供应商显式选择（deepseek/dashscope；空则回退按 key 判断）
