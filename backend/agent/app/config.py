@@ -81,7 +81,7 @@ def _resolve_by_key(s: Settings) -> ResolvedLlmProviderConfig:
 
 
 def resolve_llm_provider(s: Settings) -> ResolvedLlmProviderConfig:
-    provider = s.llm_provider.strip().lower()
+    provider = s.llm_provider.strip()
     use = {"deepseek", "dashscope"}
     if provider:
         if provider not in use:
