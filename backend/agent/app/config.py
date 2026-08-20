@@ -144,6 +144,7 @@ def create_agent_chat_llm(
     resolved_temp = temperature if temperature is not None else rc.get("temperature", cfg.get("temperature", settings.llm_temperature))
     max_tokens = rc.get("maxTokens") or settings.llm_max_tokens
     budget = rc.get("thinkingBudget", settings.llm_thinking_budget)
+    reason_effort = rc.get("reasoningEffort", resolved.reasoning_effort)
     return create_llm(
         provider=resolved.provider,
         model=model,
@@ -152,4 +153,5 @@ def create_agent_chat_llm(
         base_url=resolved.base_url,
         max_tokens=max_tokens,
         thinking_budget=budget,
+        reasoning_effort=reason_effort,
     )
