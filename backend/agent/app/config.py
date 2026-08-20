@@ -10,7 +10,7 @@ from app.llm.models import create_llm
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="forbid")
 
     # LLM — DashScope 百炼
     dashscope_api_key: str = ""
@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_model: str = "deepseek-chat"
     deepseek_model_route: str = "deepseek-chat"
+
+    # LLM — 供应商显式选择（deepseek/dashscope；空则回退按 key 判断）
+    llm_provider: str = ""
+    # LLM — DeepSeek 思考强度（仅 deepseek 生效；low/high/max，默认 high）
+    llm_reasoning_effort: str = "high"
 
     llm_temperature: float = 0.3
     llm_max_tokens: int = 4096
