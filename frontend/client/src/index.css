@@ -1,0 +1,65 @@
+/* 清新杂志感 全局样式：衬线标题 / 正文排版 / 页面约束 */
+:root {
+  --od-serif: 'Noto Serif SC', 'Songti SC', 'SimSun', serif;
+}
+
+/* 页面标题统一采用衬线，营造杂志编辑感 */
+h1,
+h2,
+h3,
+.ant-typography h1,
+.ant-typography h2 {
+  font-family: var(--od-serif);
+  letter-spacing: 0.01em;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Header 品牌字标走衬线回声，与正文形成对比 */
+.od-brand {
+  font-family: var(--od-serif);
+  font-weight: 700;
+}
+
+/* 认证页：暖纸底 + 居中窄卡 + 衬线品牌字标 */
+.od-auth {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  background: #F7F5F0;
+}
+.od-auth .od-brand {
+  font-size: 26px;
+  color: #23261F;
+  letter-spacing: 0.02em;
+  margin-bottom: 24px;
+}
+.od-auth .ant-card {
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 12px 40px rgba(74, 107, 84, 0.08);
+  border: 1px solid #ECE9E1;
+}
+.od-auth .ant-card-head-title {
+  font-family: var(--od-serif);
+  font-size: 18px;
+  color: #23261F;
+}
+.od-auth .od-auth-foot {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.od-auth .od-auth-foot.center {
+  justify-content: center;
+}
+

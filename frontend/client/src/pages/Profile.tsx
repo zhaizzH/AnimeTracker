@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { Avatar, Button, Card, Descriptions, Form, Input, Modal, Space, Upload, message } from 'antd';
+import { Avatar, Button, Card, Descriptions, Form, Input, Modal, Space, Upload, message, theme } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import { authApi, filesApi, useAuthStore } from '@shared';
 
 export default function Profile() {
+  const { token } = theme.useToken();
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const { data } = useQuery({ queryKey: ['me'], queryFn: () => authApi.me() });
@@ -41,7 +42,7 @@ export default function Profile() {
     <div style={{ maxWidth: 720, margin: '0 auto', padding: 24 }}>
       <Card>
         <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-          <Avatar size={80} src={u?.avatar ?? undefined} style={{ background: '#5F7A65' }}>{u?.nickname ?? u?.username?.slice(0, 1)}</Avatar>
+          <Avatar size={80} src={u?.avatar ?? undefined} style={{ background: token.colorPrimary }}>{u?.nickname ?? u?.username?.slice(0, 1)}</Avatar>
           <div>
             <h2 style={{ marginBottom: 4 }}>{u?.nickname ?? u?.username}</h2>
             <Descriptions column={1} size="small" items={[

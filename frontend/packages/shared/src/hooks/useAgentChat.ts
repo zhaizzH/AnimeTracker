@@ -45,7 +45,7 @@ export function useAgentChat(api: AgentChatApi) {
     .then((list) => setSessions(list.map((s) => ({ ...s, id: (s as { session_id?: unknown }).session_id ?? (s as { id?: unknown }).id }))))
     .catch(() => {}), []);
   useEffect(() => {
-    if (apiRef.current.health) apiRef.current.health().then(setHealth).catch(() => setHealth('unavailable'));
+    if (apiRef.current.health) apiRef.current.health().then((h) => setHealth(typeof h === 'string' ? h : (h as { status?: unknown })?.status ?? 'n/a')).catch(() => setHealth('unavailable'));
     refreshSessions();
   }, [refreshSessions]);
 

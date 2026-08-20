@@ -16,7 +16,8 @@ export default function ResetPassword() {
     } catch (e) { message.error((e as Error).message); }
   };
   return (
-    <div style={{ maxWidth: 360, margin: '60px auto' }}>
+    <div className="od-auth">
+      <div className="od-brand">AnimeTracker</div>
       <Card title="重置密码">
         <Form layout="vertical" onFinish={onFinish} initialValues={{ email }}>
           <Form.Item name="email" label="邮箱" rules={[{ required: true, type: 'email' }]}>
