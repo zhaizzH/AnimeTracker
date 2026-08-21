@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, InputNumber, message, Popconfirm, Rate, Space } from 'antd';
+import { Button, InputNumber, message, Popconfirm, Rate } from 'antd';
 import { collectionsApi, useAuthStore } from '@shared';
 import type { CollectionType } from '@shared';
 
@@ -17,19 +17,24 @@ export function CollectionActions({ subjectId, eps }: { subjectId: number; eps: 
   if (!isLoggedIn) return <div>登录后可追番</div>;
   if (isLoading) return null;
   if (!col) return (
-    <Space>
-      {(Object.keys(TYPE_LABEL) as unknown as CollectionType[]).map((t) => <Button key={t} onClick={() => setType.mutate(t)}>{TYPE_LABEL[t]}</Button>)}
-    </Space>
+    <div className="od-col-btns">
+      {(Object.keys(TYPE_LABEL) as unknown as CollectionType[]).map((t) => <Button key={t} block onClick={() => setType.mutate(t)}>{TYPE_LABEL[t]}</Button>)}
+    </div>
   );
   return (
-    <Space wrap>
-      <Space>{Object.keys(TYPE_LABEL).map((k) => { const t = Number(k) as CollectionType; return <Button key={t} type={col.type === t ? 'primary' : 'default'} onClick={() => t !== col.type && setType.mutate(t)}>{TYPE_LABEL[t]}</Button>; })}</Space>
-      <span>评分</span>
-      <Rate count={10} value={col.rate || 0} onChange={(r) => setRate.mutate(r)} />
-      <span>进度</span>
-      <InputNumber min={0} max={eps} value={col.epStatus} onChange={(v) => v != null && setEp.mutate(v)} />
-      <span>{col.epStatus}/{eps} 集</span>
-      <Popconfirm title="确定取消收藏？" onConfirm={() => del.mutate()}><Button danger>取消收藏</Button></Popconfirm>
-    </Space>
+    <div className="od-col-actions">
+      <div className="od-col-btns">
+        {Object.keys(TYPE_LABEL).map((k) => { const t = Number(k) as CollectionType; return <Button key={t} block type={col.type === t ? 'primary' : 'default'} onClick={() => t !== col.type && setType.mutate(t)}>{TYPE_LABEL[t]}</Button>; })}
+      </div>
+      <div className="od-col-meta">
+        <div className="od-col-row"><span>评分</span><Rate count={10} value={col.rate || 0} onChange={(r) => setRate.mutate(r)} /></div>
+        <div className="od-col-row">
+          <span>进度</span>
+          <InputNumber min={0} max={eps} value={col.epStatus} onChange={(v) => v != null && setEp.mutate(v)} />
+          <span className="od-col-ep-count">{col.epStatus}/{eps} 集</span>
+        </div>
+        <Popconfirm title="确定取消收藏？" onConfirm={() => del.mutate()}><Button danger>取消收藏</Button></Popconfirm>
+      </div>
+    </div>
   );
 }

@@ -20,12 +20,14 @@ export default function AnimeIndex() {
   const applyFilters = (patch: Record<string, unknown>) => { setFilters((f) => ({ ...f, ...patch })); setParams({}); };
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: 24 }}>
-      <Space style={{ marginBottom: 16, flexWrap: 'wrap' }}>
-        <Input.Search defaultValue={keyword} placeholder="关键词" onSearch={(v) => { setKeyword(v); setParams({ q: v }); }} style={{ width: 200 }} />
-        <Select allowClear placeholder="年份" style={{ width: 110 }} onChange={(v) => applyFilters({ year: v })} options={Array.from({ length: 16 }, (_, i) => ({ value: 2026 - i, label: `${2026 - i}` }))} />
-        <Select allowClear placeholder="播出星期" style={{ width: 110 }} onChange={(v) => applyFilters({ weekday: v })} options={['周日', '周一', '周二', '周三', '周四', '周五', '周六'].map((label, i) => ({ value: i, label }))} />
-        <Button onClick={() => { setFilters({}); setParams({}); }}>重置</Button>
-      </Space>
+      <div className="od-index-filter" style={{ marginBottom: 20 }}>
+        <Space style={{ flexWrap: 'wrap' }}>
+          <Input.Search defaultValue={keyword} placeholder="关键词" onSearch={(v) => { setKeyword(v); setParams({ q: v }); }} style={{ width: 200 }} />
+          <Select allowClear placeholder="年份" style={{ width: 110 }} onChange={(v) => applyFilters({ year: v })} options={Array.from({ length: 16 }, (_, i) => ({ value: 2026 - i, label: `${2026 - i}` }))} />
+          <Select allowClear placeholder="播出星期" style={{ width: 110 }} onChange={(v) => applyFilters({ weekday: v })} options={['周日', '周一', '周二', '周三', '周四', '周五', '周六'].map((label, i) => ({ value: i, label }))} />
+          <Button onClick={() => { setFilters({}); setParams({}); }}>重置</Button>
+        </Space>
+      </div>
       <SubjectGrid
         items={data?.content ?? []} loading={isLoading}
         total={data?.total} page={data?.page} size={data?.size}
