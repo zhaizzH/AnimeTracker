@@ -25,7 +25,7 @@ export default function MyCollections() {
         <Tabs activeKey={tab} onChange={(k) => { setTab(k); setPage(1); }} items={TABS.map((t) => ({ key: t.key, label: `${t.label}${t.key !== 'all' ? `(${cts.data?.[t.key] ?? 0})` : ''}` }))} />
         <Button onClick={() => setPreviewOpen(true)}>更新本周进度</Button>
       </div>
-      <SubjectGrid items={(data?.content ?? []).map((c) => c.subject)} loading={isLoading} total={data?.total} page={data?.page} size={data?.size} onPageChange={setPage} onItemClick={(s) => navigate(`/subject/${s.id}`)} />
+      <SubjectGrid items={(data?.content ?? []).map((c) => c.subject)} loading={isLoading} emptyText="还没有收藏，去番剧索引逛逛" total={data?.total} page={data?.page} size={data?.size} onPageChange={setPage} onItemClick={(s) => navigate(`/subject/${s.id}`)} />
       <ProgressPreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} />
     </div>
   );

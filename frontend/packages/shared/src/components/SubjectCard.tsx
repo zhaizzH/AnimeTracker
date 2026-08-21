@@ -5,7 +5,7 @@ export function SubjectCard({ subject, onClick }: Props) {
   const { token } = theme.useToken();
   return (
     <div onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
-      <div style={{ aspectRatio: '3/4', background: token.colorBorderSecondary, overflow: 'hidden', borderRadius: token.borderRadius }}>
+      <div className="od-card-img" style={{ aspectRatio: '3/4', background: token.colorBorderSecondary, overflow: 'hidden' }}>
         {subject.image
           ? <img src={subject.image} alt={subject.nameCn ?? subject.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
           : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: token.colorTextTertiary }}>暂无封面</div>}

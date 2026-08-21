@@ -1,6 +1,17 @@
-/* 清新杂志感 全局样式：衬线标题 / 正文排版 / 页面约束 */
+/* 暖纸玻璃 · 赛博青：设计令牌 */
 :root {
   --od-serif: 'Noto Serif SC', 'Songti SC', 'SimSun', serif;
+  --od-paper: #F7F5F0;                                  /* 暖纸底 */
+  --od-glass: rgba(255, 255, 255, 0.62);                /* 玻璃卡片底 */
+  --od-glass-border: rgba(255, 255, 255, 0.7);          /* 玻璃边 */
+  --od-cyan: #2DD4BF;                                   /* 电光青强调 */
+  --od-cyan-soft: rgba(45, 212, 191, 0.18);            /* 青 glow */
+  --od-ink: #23261F;                                    /* 主文字 */
+  --od-ink-2: #6E7266;                                  /* 次文字 */
+  --od-line: #ECE9E1;                                   /* 分割线 */
+  --od-shadow: 0 10px 30px rgba(35, 38, 31, 0.08);      /* 卡片阴影 */
+  --od-shadow-cyan: 0 12px 34px rgba(45, 212, 191, 0.22); /* 青 glow 阴影 */
+  --od-radius: 14px;
 }
 
 /* 页面标题统一采用衬线，营造杂志编辑感 */
@@ -13,9 +24,16 @@ h3,
   letter-spacing: 0.01em;
 }
 
+html {
+  /* 永久预留滚动条轨道：数据加载后内容变高、滚动条出现时，居中布局不左右位移 */
+  scrollbar-gutter: stable;
+  overflow-y: scroll;
+}
+
 body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
 /* Header 品牌字标走衬线回声，与正文形成对比 */
@@ -73,6 +91,8 @@ body {
   align-items: flex-end;
   color: #fff;
   box-shadow: 0 16px 48px rgba(74, 107, 84, 0.12);
+  border: 1px solid var(--od-glass-border);
+  overflow: hidden;
 }
 .od-hero__img {
   position: absolute;
@@ -100,7 +120,8 @@ body {
   font-size: 13px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  opacity: 0.82;
+  color: var(--od-cyan);
+  opacity: 0.92;
   margin-bottom: 10px;
 }
 .od-hero__title {
@@ -129,7 +150,7 @@ body {
 }
 .od-hero__cta {
   background: #fff;
-  color: #23261F;
+  color: var(--od-ink);
   border: none;
   border-radius: 999px;
   padding: 9px 22px;
@@ -140,10 +161,10 @@ body {
 }
 .od-hero__cta:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(35, 38, 31, 0.25);
+  box-shadow: var(--od-shadow-cyan);
 }
 .od-hero__cta:focus-visible {
-  outline: 2px solid #fff;
+  outline: 2px solid var(--od-cyan);
   outline-offset: 2px;
 }
 .od-hero__fallback {
@@ -194,10 +215,10 @@ body {
 }
 .od-hero__dot-btn.is-active {
   width: 22px;
-  background: #fff;
+  background: var(--od-cyan);
 }
 .od-hero__dot-btn:focus-visible {
-  outline: 2px solid #fff;
+  outline: 2px solid var(--od-cyan);
   outline-offset: 2px;
 }
 .od-hero__counter {
@@ -217,35 +238,93 @@ body {
   }
 }
 
-/* ===== 索引页：sticky 筛选 + 卡片 hover 抬升 ===== */
+/* ===== 索引页：sticky 玻璃筛选 + 卡片 hover 抬升 ===== */
 .od-index-filter {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: #F7F5F0;
+  background: var(--od-glass);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--od-glass-border);
   padding: 12px 0;
   margin-left: -24px;
   margin-right: -24px;
   padding-left: 24px;
   padding-right: 24px;
 }
+/* 玻璃表面（详情/个人中心卡片） */
+.od-glass-card.ant-card {
+  background: var(--od-glass);
+  border: 1px solid var(--od-glass-border);
+  box-shadow: var(--od-shadow);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-radius: var(--od-radius);
+}
+
+/* 玻璃卡片 + 焦点环 + 骨架 */
 .od-card-cell {
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-  border-radius: 8px;
+  padding: 10px;
+  border-radius: var(--od-radius);
+  background: var(--od-glass);
+  border: 1px solid var(--od-glass-border);
+  box-shadow: var(--od-shadow);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 .od-card-cell:hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 28px rgba(74, 107, 84, 0.12);
+  border-color: var(--od-cyan);
+  box-shadow: var(--od-shadow-cyan);
+}
+.od-card-cell:focus-visible {
+  outline: none;
+  border-color: var(--od-cyan);
+  box-shadow: 0 0 0 3px var(--od-cyan-soft);
+}
+/* SubjectCard 图框：玻璃内嵌，固定比例零 CLS */
+.od-card-img {
+  aspect-ratio: 3 / 4;
+  border-radius: calc(var(--od-radius) - 6px);
+  overflow: hidden;
+  background: var(--od-line);
+}
+.od-skeleton {
+  padding: 10px;
+  border-radius: var(--od-radius);
+  background: var(--od-glass);
+  border: 1px solid var(--od-glass-border);
+  box-shadow: var(--od-shadow);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.od-skeleton__img {
+  aspect-ratio: 3 / 4;
+  border-radius: calc(var(--od-radius) - 6px);
+  background: linear-gradient(100deg, var(--od-line) 30%, #f3f1ec 50%, var(--od-line) 70%);
+  background-size: 200% 100%;
+  animation: od-shimmer 1.2s ease-in-out infinite;
+}
+.od-skeleton__line {
+  height: 12px;
+  margin-top: 8px;
+  border-radius: 6px;
+  background: linear-gradient(100deg, var(--od-line) 30%, #f3f1ec 50%, var(--od-line) 70%);
+  background-size: 200% 100%;
+  animation: od-shimmer 1.2s ease-in-out infinite;
+}
+@keyframes od-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .od-card-cell {
-    transition: none;
-  }
-  .od-card-cell:hover {
-    transform: none;
-    box-shadow: none;
-  }
+  .od-card-cell { transition: none; }
+  .od-card-cell:hover { transform: none; box-shadow: var(--od-shadow); }
+  .od-skeleton__img,
+  .od-skeleton__line { animation: none; }
 }
 
 /* ===== 详情页：左列 sticky + 右列限宽 + 评分条 + pill 标签 ===== */
@@ -305,5 +384,25 @@ body {
   .od-detail-aside {
     position: static;
   }
+}
+
+/* ===== 全局收尾：玻璃 Header + 横向防溢出 + 评分条青色 ===== */
+.od-header.ant-layout-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: var(--od-glass);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--od-glass-border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.od-rate__bar > span {
+  background: var(--od-cyan);
+}
+.od-rate__bar {
+  background: var(--od-cyan-soft);
 }
 

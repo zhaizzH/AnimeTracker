@@ -4,7 +4,8 @@ import { Spin } from 'antd';
 import { ClientLayout } from './layouts/ClientLayout';
 import { RequireAuth, PublicOnly } from './guards';
 
-const withLoading = (el: React.ReactNode) => <Suspense fallback={<Spin style={{ display: 'block', margin: '40px auto' }} />}>{el}</Suspense>;
+// fallback 与页面同宽居中，避免 chunk 加载时从无约束宽 Spinner 跳到 1100 窄容器
+const withLoading = (el: React.ReactNode) => <Suspense fallback={<div style={{ maxWidth: 1100, margin: '0 auto', padding: 24 }}><Spin style={{ display: 'block', margin: '40px auto' }} /></div>}>{el}</Suspense>;
 const Home = lazy(() => import('./pages/Home'));
 const AnimeIndex = lazy(() => import('./pages/AnimeIndex'));
 const Schedule = lazy(() => import('./pages/Schedule'));
