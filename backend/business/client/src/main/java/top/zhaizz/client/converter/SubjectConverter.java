@@ -6,6 +6,7 @@ import top.zhaizz.pojo.entity.SubjectRelation;
 import top.zhaizz.pojo.vo.subject.EpisodeVO;
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
 import top.zhaizz.pojo.vo.subject.SubjectRelationVO;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,8 +47,17 @@ public class SubjectConverter {
         vo.setDuration(entity.getDuration());
         vo.setAirdate(entity.getAirdate());
         vo.setDescription(entity.getDescription());
-        vo.setStatus(entity.getStatus());
+        vo.setStatus(computeStatus(entity.getAirdate()));
         return vo;
+    }
+
+    /** 按播出日期实时计算状态,防止数据未及时更新,导致前端显示播出状态错误 */
+    private static String computeStatus(LocalDate airdate) {
+        if (airdate == null) return "NA";
+        LocalDate today = LocalDate.now();
+        if (airdate.isBefore(today)) return "Air";
+        if (airdate.isEqual(today)) return "Today";
+        return "NA";
     }
 
     /** Episode 列表转 VO 列表 */
