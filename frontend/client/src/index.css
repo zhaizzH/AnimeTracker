@@ -63,3 +63,247 @@ body {
   justify-content: center;
 }
 
+/* ===== 首页 hero：杂志封面 ===== */
+.od-hero {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  min-height: 320px;
+  display: flex;
+  align-items: flex-end;
+  color: #fff;
+  box-shadow: 0 16px 48px rgba(74, 107, 84, 0.12);
+}
+.od-hero__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.2, 0, 0, 1);
+}
+.od-hero:hover .od-hero__img {
+  transform: scale(1.04);
+}
+.od-hero__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(35, 38, 31, 0.05) 0%, rgba(35, 38, 31, 0.78) 100%);
+}
+.od-hero__body {
+  position: relative;
+  padding: 28px 32px;
+  max-width: 640px;
+}
+.od-hero__kicker {
+  font-family: var(--od-serif);
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.82;
+  margin-bottom: 10px;
+}
+.od-hero__title {
+  font-family: var(--od-serif);
+  font-weight: 700;
+  font-size: 36px;
+  line-height: 1.18;
+  margin: 0 0 12px;
+  text-wrap: balance;
+}
+.od-hero__meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  opacity: 0.9;
+  margin-bottom: 16px;
+}
+.od-hero__meta .od-hero__dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+  align-self: center;
+}
+.od-hero__cta {
+  background: #fff;
+  color: #23261F;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.od-hero__cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(35, 38, 31, 0.25);
+}
+.od-hero__cta:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.od-hero__fallback {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #4A6B54 0%, #3C5C46 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .od-hero__img,
+  .od-hero__cta {
+    transition: none;
+  }
+  .od-hero:hover .od-hero__img {
+    transform: none;
+  }
+}
+
+/* ===== 首页 hero 轮播：当日高分 Top5 ===== */
+.od-hero__slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+}
+.od-hero__slide.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.od-hero__dots {
+  position: absolute;
+  bottom: 18px;
+  right: 28px;
+  display: flex;
+  gap: 8px;
+  z-index: 2;
+}
+.od-hero__dot-btn {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: background 0.2s ease, width 0.2s ease;
+}
+.od-hero__dot-btn.is-active {
+  width: 22px;
+  background: #fff;
+}
+.od-hero__dot-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.od-hero__counter {
+  position: absolute;
+  top: 20px;
+  right: 28px;
+  z-index: 2;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .od-hero__slide {
+    transition: none;
+  }
+}
+
+/* ===== 索引页：sticky 筛选 + 卡片 hover 抬升 ===== */
+.od-index-filter {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #F7F5F0;
+  padding: 12px 0;
+  margin-left: -24px;
+  margin-right: -24px;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+.od-card-cell {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  border-radius: 8px;
+}
+.od-card-cell:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 28px rgba(74, 107, 84, 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .od-card-cell {
+    transition: none;
+  }
+  .od-card-cell:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+/* ===== 详情页：左列 sticky + 右列限宽 + 评分条 + pill 标签 ===== */
+.od-detail-aside {
+  position: sticky;
+  top: 16px;
+  flex: 0 0 200px;
+  width: 200px;
+  min-width: 200px;
+  max-width: 200px;
+}
+.od-detail-aside .ant-space { max-width: 200px; }
+.od-detail-aside .ant-space .ant-btn { flex-shrink: 0; }
+.od-col-actions { display: flex; flex-direction: column; gap: 14px; max-width: 200px; }
+.od-col-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.od-col-meta { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: #6E7266; }
+.od-col-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.od-col-ep-count { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.od-detail-main {
+  flex: 1;
+  min-width: 0;
+  max-width: 680px;
+}
+.od-rate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 4px;
+}
+.od-rate__bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: #E3E0D7;
+  overflow: hidden;
+}
+.od-rate__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #4A6B54;
+  transition: width 0.3s ease;
+}
+.od-rate__num {
+  font-size: 13px;
+  color: #6E7266;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.od-pill.ant-tag {
+  border-radius: 999px;
+  padding: 2px 12px;
+  margin: 0;
+  line-height: 20px;
+}
+@media (max-width: 720px) {
+  .od-detail-aside {
+    position: static;
+  }
+}
+
