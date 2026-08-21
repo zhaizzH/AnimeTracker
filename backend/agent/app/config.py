@@ -48,6 +48,23 @@ class Settings(BaseSettings):
     # CORS (开发环境)
     cors_origins: list[str] = ["http://localhost:5173"]
 
+    # ponytail: 以下字段仅为容身共享 .env（agent/importer 共用），避免 extra=forbid 报错；业务读取仍走 os.getenv
+    animetracker_log: str = ""
+    bangumi_base_url: str = "https://api.bgm.tv"
+    bangumi_image_proxy_url: str = ""
+    bangumi_access_token: str = ""
+    bangumi_user_agent: str = "zhaizzH/AnimeTracker"
+    db_host: str = "127.0.0.1"
+    db_port: int = 3306
+    db_user: str = "root"
+    db_password: str = ""
+    db_name: str = "anime_tracker"
+    minio_endpoint: str = "localhost:9000"
+    minio_secure: bool = False
+    minio_access_key: str = "minioadmin"
+    minio_secret_key: str = "minioadmin"
+    minio_bucket: str = "anime-tracker"
+
 
 settings = Settings()
 
