@@ -40,7 +40,7 @@ export default function Profile() {
   };
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: 24 }}>
-      <Card>
+      <Card className="od-glass-card">
         <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
           <Avatar size={80} src={u?.avatar ?? undefined} style={{ background: token.colorPrimary }}>{u?.nickname ?? u?.username?.slice(0, 1)}</Avatar>
           <div>

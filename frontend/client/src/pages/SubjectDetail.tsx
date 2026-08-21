@@ -17,7 +17,7 @@ export default function SubjectDetail() {
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: 24 }}>
       <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }}>
         <aside className="od-detail-aside">
-          <img src={sub.image ?? undefined} alt={sub.nameCn ?? sub.name} style={{ width: 200, aspectRatio: '3/4', objectFit: 'cover', background: token.colorBorderSecondary, borderRadius: 8 }} />
+          <img src={sub.image ?? undefined} alt={sub.nameCn ?? sub.name} style={{ width: 200, aspectRatio: '3/4', objectFit: 'cover', background: token.colorBorderSecondary, borderRadius: 'calc(var(--od-radius) - 4px)' }} />
           <div style={{ marginTop: 16 }}><CollectionActions subjectId={sub.id} eps={sub.eps} /></div>
         </aside>
         <div className="od-detail-main">
@@ -39,7 +39,7 @@ export default function SubjectDetail() {
           {sub.relations.length > 0 && <section style={{ marginTop: 24 }}><h2 style={{ fontSize: 20 }}>关联条目</h2><Space align="start" wrap>{sub.relations.map((r) => (
             <div key={r.relatedSubject.id} style={{ width: 100 }}>
               <Tag style={{ marginBottom: 4 }} className="od-pill">{r.relation}</Tag>
-              <SubjectCard subject={r.relatedSubject} onClick={() => navigate(`/subject/${r.relatedSubject.id}`)} />
+              <div className="od-card-cell" style={{ width: 100, padding: 8 }}><SubjectCard subject={r.relatedSubject} onClick={() => navigate(`/subject/${r.relatedSubject.id}`)} /></div>
             </div>
           ))}</Space></section>}
           <section style={{ marginTop: 24 }}><h2 style={{ fontSize: 20 }}>剧集</h2><Table rowKey="id" size="small" dataSource={eps} pagination={false} columns={[

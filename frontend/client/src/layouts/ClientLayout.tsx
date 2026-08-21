@@ -21,7 +21,7 @@ export function ClientLayout() {
   };
   return (
     <Layout>
-      <Header style={{ display: 'flex', alignItems: 'center', gap: 24, background: token.colorBgContainer, borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+      <Header className="od-header">
         <Link to="/" className="od-brand" style={{ fontWeight: 700, color: token.colorText, fontSize: 20 }}>AnimeTracker</Link>
         <Menu mode="horizontal" items={[{ key: 'home', label: <Link to="/">首页</Link> }, { key: 'schedule', label: <Link to="/schedule">每周日程</Link> }, { key: 'anime', label: <Link to="/anime">番剧索引</Link> }]} style={{ flex: 1, borderBottom: 'none' }} />
         {screens.md && <Input.Search placeholder="搜索番剧" onSearch={(q) => navigate(`/anime?q=${encodeURIComponent(q)}`)} style={{ width: 220 }} />}
