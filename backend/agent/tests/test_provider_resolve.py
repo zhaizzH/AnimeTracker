@@ -47,6 +47,17 @@ def test_invalid_provider_raises():
         assert "LLM_PROVIDER" in str(e)
 
 
+def test_provider_uppercase_raises_case_sensitive():
+    # 大小写敏感：uppercase/mixed-case 视为无效，避免未来误加 .lower() 回归
+    for bad in ("DEEPSEEK", "DeepSeek"):
+        s = Settings(_env_file=None, llm_provider=bad, deepseek_api_key="k")
+        try:
+            resolve_llm_provider(s)
+            assert False, f"应抛出异常: {bad!r}"
+        except ValueError as e:
+            assert "LLM_PROVIDER" in str(e)
+
+
 def test_no_provider_no_key_raises():
     s = Settings(_env_file=None)
     try:
