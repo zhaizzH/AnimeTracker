@@ -113,7 +113,7 @@ test('send 按事件类型分流:thinking 累积、function_call 记工具、ans
   await act(async () => { sendPromise = result.current.send('帮我搜索'); });
 
   await act(async () => { fireOne({ type: 'thinking', content: { text: '我在' } }); });
-  expect(result.current.thinking).toBe('我在');
+  expect(result.current.messages.filter((m) => m.role === 'assistant')[0]?.thinking).toBe('我在');
 
   await act(async () => { fireOne({ type: 'function_call', content: { state: 'start', name: '搜索番剧', message: '正在调用' } }); });
   expect(result.current.tools).toEqual([{ name: '搜索番剧', status: 'running', message: '正在调用' }]);
