@@ -4,7 +4,7 @@ import { collectionsApi, useAuthStore } from '@shared';
 import type { CollectionType } from '@shared';
 
 const TYPE_LABEL: Record<CollectionType, string> = { 1: '想看', 2: '看过', 3: '在看', 4: '搁置', 5: '抛弃' };
-export function CollectionActions({ subjectId, eps }: { subjectId: number; eps: number }) {
+export function CollectionActions({ subjectId, eps }: { subjectId: string; eps: number }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const qc = useQueryClient();
   const { data: col, isLoading } = useQuery({ queryKey: ['collection', subjectId], queryFn: () => collectionsApi.getCollection(subjectId), enabled: isLoggedIn });
