@@ -73,11 +73,11 @@ at:
 
   # 管理端
   admin:
-    superadmin-id: ${at.admin.superadmin-id:1}  # 管理员用户 ID
+    superadmin-id: 1  # 管理员用户 ID
 
   # CORS 跨域白名单（逗号分隔）
   cors:
-    allowed-origins: ${at.cors.allowed-origins:http://localhost:5173,http://localhost:5174}
+    allowed-origins: ${at.cors.allowed-origins}
 
 # JWT 配置
 jwt:
