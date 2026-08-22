@@ -19,13 +19,13 @@ export default function Register() {
       <Card title="注册">
         <Form layout="vertical" onFinish={onFinish}>
           <Form.Item name="username" label="用户名" rules={[{ required: true }]}>
-            <Input aria-label="用户名" />
+            <Input aria-label="用户名" autoComplete="username" spellCheck={false} />
           </Form.Item>
           <Form.Item name="email" label="邮箱" rules={[{ required: true, type: 'email' }]}>
-            <Input aria-label="邮箱" />
+            <Input aria-label="邮箱" autoComplete="email" spellCheck={false} inputMode="email" />
           </Form.Item>
           <Form.Item name="password" label="密码" rules={[{ required: true, min: 6 }]}>
-            <Input.Password aria-label="密码" />
+            <Input.Password aria-label="密码" autoComplete="new-password" />
           </Form.Item>
           <Form.Item
             name="confirm"
@@ -41,7 +41,7 @@ export default function Register() {
               }),
             ]}
           >
-            <Input.Password aria-label="确认密码" />
+            <Input.Password aria-label="确认密码" autoComplete="new-password" />
           </Form.Item>
           <Button type="primary" htmlType="submit" block>注册</Button>
         </Form>

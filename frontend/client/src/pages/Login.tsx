@@ -20,10 +20,10 @@ export default function Login() {
       <Card title="登录">
         <Form layout="vertical" onFinish={onFinish}>
           <Form.Item name="username" label="用户名/邮箱" rules={[{ required: true }]}>
-            <Input aria-label="用户名/邮箱" />
+            <Input aria-label="用户名/邮箱" autoComplete="username" spellCheck={false} />
           </Form.Item>
           <Form.Item name="password" label="密码" rules={[{ required: true, min: 6 }]}>
-            <Input.Password aria-label="密码" />
+            <Input.Password aria-label="密码" autoComplete="current-password" />
           </Form.Item>
           <Button type="primary" htmlType="submit" block>登录</Button>
         </Form>

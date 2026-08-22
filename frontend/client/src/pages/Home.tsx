@@ -11,7 +11,7 @@ export default function Home() {
   const navigate = useNavigate();
   const today = new Date().getDay(); // 0=周日
   const total = useQuery({ queryKey: ['subjects', 'total'], queryFn: () => subjectsApi.list({ page: 1, size: 1 }) });
-  const todayShows = useQuery({ queryKey: ['schedule', 'today'], queryFn: () => subjectsApi.schedule({ weekday: today, size: 20 }) });
+  const todayShows = useQuery({ queryKey: ['schedule', 'today'], queryFn: () => subjectsApi.schedule({ weekday: today, size: 50 }) });
   const heroItems = todayShows.data?.content?.slice(0, HERO_COUNT) ?? [];
   const [active, setActive] = useState(0);
   const reduceMotion = useRef(
@@ -85,7 +85,7 @@ export default function Home() {
       </Row>
       <h2 style={{ fontSize: 24 }}>今日放送</h2>
       {todayShows.data?.content?.length ? (
-        <SubjectGrid items={todayShows.data.content} loading={todayShows.isLoading} onItemClick={(s) => navigate(`/subject/${s.id}`)} />
+        <SubjectGrid items={todayShows.data.content} loading={todayShows.isLoading} />
       ) : (
         <Empty description="今日暂无放送" style={{ margin: 40 }} />
       )}

@@ -1,10 +1,11 @@
 import { theme } from 'antd';
+import { Link } from 'react-router-dom';
 import type { SubjectListItem } from '../types';
-interface Props { subject: SubjectListItem; onClick?: () => void }
-export function SubjectCard({ subject, onClick }: Props) {
+interface Props { subject: SubjectListItem }
+export function SubjectCard({ subject }: Props) {
   const { token } = theme.useToken();
   return (
-    <div onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
+    <Link to={`/subject/${subject.id}`} style={{ display: 'block', color: 'inherit', textDecoration: 'none' }}>
       <div className="od-card-img" style={{ aspectRatio: '3/4', background: token.colorBorderSecondary, overflow: 'hidden' }}>
         {subject.image
           ? <img src={subject.image} alt={subject.nameCn ?? subject.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
@@ -12,6 +13,6 @@ export function SubjectCard({ subject, onClick }: Props) {
       </div>
       <div style={{ fontSize: 14, lineHeight: '20px', marginTop: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: token.colorText }}>{subject.nameCn ?? subject.name}</div>
       <div style={{ fontSize: 12, color: token.colorTextSecondary }}>{subject.score > 0 ? `${subject.score.toFixed(1)} 分` : '未评分'}</div>
-    </div>
+    </Link>
   );
 }

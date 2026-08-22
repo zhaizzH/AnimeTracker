@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Descriptions, Empty, Space, Spin, Table, Tag, theme } from 'antd';
-import { SubjectCard, subjectsApi } from '@shared';
+import { SubjectCard, subjectsApi, formatDate } from '@shared';
 import { CollectionActions } from '../components/CollectionActions';
+
+const SUBJECT_TYPE_LABEL: Record<number, string> = { 1: '书籍', 2: '动画', 3: '音乐', 4: '游戏', 6: '三次元' };
 
 export default function SubjectDetail() {
   const { token } = theme.useToken();
-  const navigate = useNavigate();
   const { id } = useParams();
   const { data: sub, isLoading, isError } = useQuery({ queryKey: ['subject', id], queryFn: () => subjectsApi.detail(id!), enabled: !!id });
   const { data: eps } = useQuery({ queryKey: ['subject', id, 'episodes'], queryFn: () => subjectsApi.episodes(id!), enabled: !!id });
@@ -30,8 +31,8 @@ export default function SubjectDetail() {
           <Descriptions column={2} size="small" style={{ margin: '12px 0' }} items={[
             { key: 'rank', label: '排名', children: sub.rank || '—' },
             { key: 'eps', label: '集数', children: sub.eps },
-            { key: 'air', label: '放送', children: sub.airDate || '—' },
-            { key: 'type', label: '类型', children: sub.type === 2 ? '动画' : sub.type },
+            { key: 'air', label: '放送', children: formatDate(sub.airDate) },
+            { key: 'type', label: '类型', children: SUBJECT_TYPE_LABEL[sub.type] ?? `未知(${sub.type})` },
             { key: 'hot', label: '收藏', children: sub.collectionTotal },
           ]} />
           {sub.summary && <section style={{ marginTop: 24 }}><h2 style={{ fontSize: 20 }}>简介</h2><p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{sub.summary}</p></section>}
@@ -39,7 +40,7 @@ export default function SubjectDetail() {
           {sub.relations.length > 0 && <section style={{ marginTop: 24 }}><h2 style={{ fontSize: 20 }}>关联条目</h2><Space align="start" wrap>{sub.relations.map((r) => (
             <div key={r.relatedSubject.id} style={{ width: 100 }}>
               <Tag style={{ marginBottom: 4 }} className="od-pill">{r.relation}</Tag>
-              <div className="od-card-cell" style={{ width: 100, padding: 8 }}><SubjectCard subject={r.relatedSubject} onClick={() => navigate(`/subject/${r.relatedSubject.id}`)} /></div>
+              <div className="od-card-cell" style={{ width: 100, padding: 8 }}><SubjectCard subject={r.relatedSubject} /></div>
             </div>
           ))}</Space></section>}
           <section style={{ marginTop: 24 }}><h2 style={{ fontSize: 20 }}>剧集</h2><Table rowKey="id" size="small" dataSource={eps} pagination={false} columns={[
