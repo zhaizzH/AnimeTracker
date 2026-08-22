@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '../store/auth';
 import { streamSse } from '../sse';
 
-export interface ChatMsg { id: string; role: 'user' | 'assistant'; content: string }
+export interface ChatMsg { id: string; role: 'user' | 'assistant'; content: string; thinking?: string }
 export interface ToolStep { name: string; status: 'running' | 'done'; message?: string }
 const nextId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -31,7 +31,6 @@ export function useAgentChat(api: AgentChatApi) {
   const [sessions, setSessions] = useState<Record<string, unknown>[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
-  const [thinking, setThinking] = useState('');
   const [tools, setTools] = useState<ToolStep[]>([]);
   const [health, setHealth] = useState<string>('n/a');
   const [streaming, setStreaming] = useState(false);
@@ -90,7 +89,6 @@ export function useAgentChat(api: AgentChatApi) {
     setMessages((m) => [...m, userMsg]);
     const assistantId = nextId();
     setMessages((m) => [...m, { id: assistantId, role: 'assistant', content: '' }]);
-    setThinking('');
     setTools([]);
     setStreaming(true);
     ab.current = new AbortController();
@@ -100,7 +98,10 @@ export function useAgentChat(api: AgentChatApi) {
         if (!ev) return;
         if (ev.is_end) return;
         const c = ev.content ?? {};
-        if (ev.type === 'thinking' && c.text) setThinking((t) => t + c.text!);
+        if (ev.type === 'thinking' && c.text) {
+          // thinking 挂在对应 assistant 消息上，随消息一起渲染在其上方
+          setMessages((m) => m.map((x) => (x.id === assistantId ? { ...x, thinking: (x.thinking ?? '') + c.text! } : x)));
+        }
         else if (ev.type === 'function_call' && c.name) {
           if (c.state === 'end') setTools((ts) => ts.map((t) => (t.name === c.name ? { ...t, status: 'done', message: c.message } : t)));
           else if (c.state === 'start') setTools((ts) => (ts.some((t) => t.name === c.name) ? ts : [...ts, { name: c.name!, status: 'running', message: c.message }]));
@@ -112,5 +113,5 @@ export function useAgentChat(api: AgentChatApi) {
   }, [token, activeId, streaming, refreshSessions]);
 
   const stop = useCallback(() => ab.current?.abort(), []);
-  return { messages, sessions, activeId, health, streaming, thinking, tools, send, stop, select, create, remove };
+  return { messages, sessions, activeId, health, streaming, tools, send, stop, select, create, remove };
 }

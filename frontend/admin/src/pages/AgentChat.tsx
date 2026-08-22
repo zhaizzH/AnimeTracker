@@ -1,9 +1,25 @@
-import { Button, Input, Layout, List, Space, Typography } from 'antd';
+import { Button, Collapse, Input, Layout, List, Space, Typography } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import { useEffect, useRef, useState } from 'react';
-import { adminAgentApi, useAgentChat } from '@shared';
+import { adminAgentApi, useAgentChat, type ChatMsg } from '@shared';
 
 const { Sider, Content } = Layout;
+
+function ThinkingCollapse({ text, streaming }: { text: string; streaming: boolean }) {
+  const [open, setOpen] = useState(true);
+  // 回答完成后自动收起；流式期间保持展开
+  useEffect(() => { if (!streaming) setOpen(false); }, [streaming]);
+  return (
+    <Collapse
+      ghost
+      size="small"
+      activeKey={open ? 't' : []}
+      onChange={(keys) => setOpen(keys.includes('t'))}
+      items={[{ key: 't', label: <Typography.Text type="secondary">思考过程</Typography.Text>, children: <Typography.Text type="secondary" style={{ whiteSpace: 'pre-wrap' }}>{text}</Typography.Text> }]}
+    />
+  );
+}
+
 export default function AgentChat() {
   const api = {
     listSessions: adminAgentApi.chatSessions,
@@ -13,20 +29,27 @@ export default function AgentChat() {
     streamBody: adminAgentApi.chatStreamBody,
     streamUrl: '/api/admin/agent/chat/stream',
   };
-  const { messages, sessions, activeId, streaming, thinking, send, select, create, remove } = useAgentChat(api);
+  const { messages, sessions, activeId, streaming, send, select, create, remove } = useAgentChat(api);
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages, thinking]);
+  }, [messages]);
 
   const submit = () => {
     if (!input.trim() || streaming) return;
     send(input);
     setInput('');
   };
+
+  const renderItem = (m: ChatMsg) => (
+    <div key={m.id} style={{ textAlign: m.role === 'user' ? 'right' : 'left', marginBottom: 12 }}>
+      {m.thinking && <ThinkingCollapse text={m.thinking} streaming={streaming} />}
+      <div style={{ display: 'inline-block', maxWidth: '80%', textAlign: 'left', background: m.role === 'user' ? '#e6f4ff' : '#f5f5f5', padding: '8px 12px', borderRadius: 8 }}><ReactMarkdown>{m.content}</ReactMarkdown></div>
+    </div>
+  );
 
   return (
     <Layout style={{ height: 'calc(100vh - 120px)' }}>
@@ -40,12 +63,7 @@ export default function AgentChat() {
       </Sider>
       <Content style={{ display: 'flex', flexDirection: 'column', padding: 16 }}>
         <div ref={scrollRef} style={{ flex: 1, overflow: 'auto', marginBottom: 12 }}>
-          {messages.map((m) => <div key={m.id} style={{ textAlign: m.role === 'user' ? 'right' : 'left', marginBottom: 12 }}><div style={{ display: 'inline-block', maxWidth: '80%', textAlign: 'left', background: m.role === 'user' ? '#e6f4ff' : '#f5f5f5', padding: '8px 12px', borderRadius: 8 }}><ReactMarkdown>{m.content}</ReactMarkdown></div></div>)}
-          {thinking && (
-            <div style={{ color: '#8c8c8c', fontSize: 13, marginBottom: 8 }}>
-              <Typography.Text type="secondary"><span style={{ color: '#faad14' }}>思考中…</span> {thinking}</Typography.Text>
-            </div>
-          )}
+          {messages.map(renderItem)}
         </div>
         <Space.Compact style={{ width: '100%' }}>
           <Input placeholder="输入消息…" value={input} onChange={(e) => setInput(e.target.value)} onPressEnter={submit} disabled={streaming} />
