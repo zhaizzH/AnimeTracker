@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, Input, Layout, List, Space, Typography, theme } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import { useAgentChat, agentApi } from '@shared';
@@ -6,7 +6,7 @@ import { useAgentChat, agentApi } from '@shared';
 const { Sider, Content } = Layout;
 export default function Agent() {
   const { token } = theme.useToken();
-  const { messages, sessions, activeId, health, streaming, send, select, create, remove } = useAgentChat({
+  const { messages, sessions, activeId, health, streaming, thinking, send, select, create, remove } = useAgentChat({
     listSessions: agentApi.listSessions,
     createSession: agentApi.createSession,
     history: agentApi.history,
@@ -16,6 +16,13 @@ export default function Agent() {
     health: agentApi.health,
   });
   const [input, setInput] = useState('');
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, thinking]);
+
   const submit = () => { if (!input.trim() || streaming) return; send(input); setInput(''); };
 
   return (
@@ -30,8 +37,9 @@ export default function Agent() {
       </Sider>
       <Content style={{ display: 'flex', flexDirection: 'column', padding: 16 }}>
         <Typography.Text type="secondary">Agent 状态：{health}</Typography.Text>
-        <div style={{ flex: 1, overflow: 'auto', margin: '12px 0' }}>
+        <div ref={scrollRef} style={{ flex: 1, overflow: 'auto', margin: '12px 0' }}>
           {messages.map((m) => <div key={m.id} style={{ textAlign: m.role === 'user' ? 'right' : 'left', marginBottom: 12 }}><ReactMarkdown>{m.content}</ReactMarkdown></div>)}
+          {thinking && <Typography.Text type="secondary">思考中… {thinking}</Typography.Text>}
         </div>
         <Space.Compact style={{ width: '100%' }}>
           <Input placeholder="输入消息…" value={input} onChange={(e) => setInput(e.target.value)} onPressEnter={submit} />

@@ -64,6 +64,31 @@ test('client api（含 health）→ health 有值且发送消息进入 messages'
   expect(streamSseMock).toHaveBeenCalledWith(expect.objectContaining({ url: '/api/client/agent/stream' }));
 });
 
+test('挂载时默认选中最近会话（列表第一个）并加载历史', async () => {
+  useAuthStore.getState().setLogin(login as never);
+  const listSessions = vi.fn().mockResolvedValue([{ session_id: 'new-1', title: '最新' }, { session_id: 'old-1', title: '更旧' }]);
+  const history = vi.fn().mockResolvedValue([{ role: 'user', content: '历史消息' }]);
+  const createSession = vi.fn();
+  const api = { listSessions, createSession, history, deleteSession: vi.fn(), streamBody: vi.fn().mockReturnValue({}), streamUrl: '/x' };
+
+  const { result } = renderHook(() => useAgentChat(api));
+  await waitFor(() => expect(result.current.activeId).toBe('new-1'));
+  expect(result.current.messages).toEqual([{ id: expect.any(String), role: 'user', content: '历史消息' }]);
+  expect(createSession).not.toHaveBeenCalled();
+});
+
+test('无会话时挂载自动新建并选中', async () => {
+  useAuthStore.getState().setLogin(login as never);
+  const listSessions = vi.fn().mockResolvedValue([]);
+  const createSession = vi.fn().mockResolvedValue({ session_id: 'auto-1' });
+  const history = vi.fn().mockResolvedValue([]);
+  const api = { listSessions, createSession, history, deleteSession: vi.fn(), streamBody: vi.fn().mockReturnValue({}), streamUrl: '/x' };
+
+  const { result } = renderHook(() => useAgentChat(api));
+  await waitFor(() => expect(result.current.activeId).toBe('auto-1'));
+  expect(createSession).toHaveBeenCalledOnce();
+});
+
 function fireOne(ev: Record<string, unknown>) {
   const cb = streamSseMock.mock.calls.at(-1)![0].onEvent as (data: string) => void;
   cb(JSON.stringify(ev));

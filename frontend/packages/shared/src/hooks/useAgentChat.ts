@@ -42,12 +42,12 @@ export function useAgentChat(api: AgentChatApi) {
   apiRef.current = api;
 
   const refreshSessions = useCallback(() => apiRef.current.listSessions()
-    .then((list) => setSessions(list.map((s) => ({ ...s, id: (s as { session_id?: unknown }).session_id ?? (s as { id?: unknown }).id }))))
-    .catch(() => {}), []);
-  useEffect(() => {
-    if (apiRef.current.health) apiRef.current.health().then((h) => setHealth(typeof h === 'string' ? h : String((h as { status?: unknown })?.status ?? 'n/a'))).catch(() => setHealth('unavailable'));
-    refreshSessions();
-  }, [refreshSessions]);
+    .then((list) => {
+      const normalized = list.map((s) => ({ ...s, id: (s as { session_id?: unknown }).session_id ?? (s as { id?: unknown }).id }));
+      setSessions(normalized);
+      return normalized;
+    })
+    .catch(() => []), []);
 
   const loadHistory = useCallback(async (id: string) => {
     const h = await apiRef.current.history(id).catch(() => []);
@@ -61,6 +61,16 @@ export function useAgentChat(api: AgentChatApi) {
     const id = String((s as { session_id?: unknown })?.session_id ?? (s as { id?: unknown })?.id ?? '');
     await select(id);
   }, [refreshSessions, select]);
+
+  useEffect(() => {
+    if (apiRef.current.health) apiRef.current.health().then((h) => setHealth(typeof h === 'string' ? h : String((h as { status?: unknown })?.status ?? 'n/a'))).catch(() => setHealth('unavailable'));
+    // 后端已按 updated_at 倒序返回；默认选中最近会话，没有则自动新建
+    void (async () => {
+      const list = await refreshSessions();
+      if (list.length > 0) await select(String(list[0].id));
+      else await create();
+    })().catch(() => {});
+  }, [refreshSessions, select, create]);
   const remove = useCallback(async (id: string) => {
     await apiRef.current.deleteSession(id).catch(() => {});
     if (id === activeId) { setActiveId(null); setMessages([]); }
