@@ -57,7 +57,8 @@ html {
 body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  overflow-x: hidden;
+  /* ponytail: clip 而非 hidden——hidden 会把 body 变成滚动容器，破坏子元素 position:sticky */
+  overflow-x: clip;
   background: var(--od-bg);
   color: var(--od-ink);
   touch-action: manipulation;
@@ -376,12 +377,15 @@ body {
 
 /* ===== 详情页：左列 sticky + 右列限宽 + 评分条 + pill 标签 ===== */
 .od-detail-aside {
-  position: sticky;
-  top: 16px;
   flex: 0 0 200px;
   width: 200px;
   min-width: 200px;
   max-width: 200px;
+}
+/* sticky 放在内层：外层撑满 flex 行高，sticky 元素才有整列的可粘区间 */
+.od-detail-aside__inner {
+  position: sticky;
+  top: 80px; /* 吸顶 Header 64px + 16px 间距 */
 }
 .od-detail-aside .ant-space { max-width: 200px; }
 .od-detail-aside .ant-space .ant-btn { flex-shrink: 0; }
@@ -428,7 +432,7 @@ body {
   line-height: 20px;
 }
 @media (max-width: 720px) {
-  .od-detail-aside {
+  .od-detail-aside__inner {
     position: static;
   }
 }

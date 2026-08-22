@@ -16,10 +16,12 @@ export default function SubjectDetail() {
   const scorePct = sub.score > 0 ? Math.min(sub.score, 10) / 10 * 100 : 0;
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: 24 }}>
-      <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: 32 }}>
         <aside className="od-detail-aside">
-          <img src={sub.image ?? undefined} alt={sub.nameCn ?? sub.name} style={{ width: 200, aspectRatio: '3/4', objectFit: 'cover', background: token.colorBorderSecondary, borderRadius: 'calc(var(--od-radius) - 4px)' }} />
-          <div style={{ marginTop: 16 }}><CollectionActions subjectId={sub.id} eps={sub.eps} /></div>
+          <div className="od-detail-aside__inner">
+            <img src={sub.image ?? undefined} alt={sub.nameCn ?? sub.name} style={{ width: 200, aspectRatio: '3/4', objectFit: 'cover', background: token.colorBorderSecondary, borderRadius: 'calc(var(--od-radius) - 4px)' }} />
+            <div style={{ marginTop: 16 }}><CollectionActions subjectId={sub.id} eps={sub.eps} /></div>
+          </div>
         </aside>
         <div className="od-detail-main">
           <h1 style={{ fontSize: 28, textWrap: 'balance' }}>{sub.nameCn ?? sub.name}</h1>
