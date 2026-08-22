@@ -250,12 +250,17 @@ def upsert_relations(session: Session, subject_id: int, relations: list[dict]):
 
 def _inverse_relation(relation: str) -> str:
     """返回关联类型的反向关系。"""
+    # Bangumi API 返回中文关系名，映射表必须用中文 key（英文 key 永远匹配不上）
     mapping = {
         "prequel": "sequel",
         "sequel": "prequel",
+        "前传": "续集",
+        "续集": "前传",
         "side_story": "parent_story",
         "parent_story": "side_story",
         "spin_off": "parent_story",
+        "衍生": "主线故事",
+        "主线故事": "衍生",
     }
     return mapping.get(relation, relation)
 
