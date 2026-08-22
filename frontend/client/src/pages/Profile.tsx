@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Avatar, Button, Card, Descriptions, Form, Input, Modal, Space, Upload, message, theme } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { useState } from 'react';
-import { authApi, filesApi, useAuthStore } from '@shared';
+import { authApi, filesApi, useAuthStore, formatDate } from '@shared';
 
 export default function Profile() {
   const { token } = theme.useToken();
@@ -49,7 +49,7 @@ export default function Profile() {
               { key: 'u', label: '用户名', children: u?.username },
               { key: 'e', label: '邮箱', children: u?.email },
               { key: 'r', label: '角色', children: u?.role },
-              { key: 'c', label: '注册时间', children: u?.createdAt },
+              { key: 'c', label: '注册时间', children: formatDate(u?.createdAt) },
             ]} />
             <Space style={{ marginTop: 8 }}>
               <Button onClick={() => { editForm.setFieldsValue({ nickname: u?.nickname, avatar: u?.avatar }); setEditOpen(true); }}>编辑资料</Button>
@@ -62,23 +62,23 @@ export default function Profile() {
 
       <Modal open={pwdOpen} title="修改密码" okText="确认" onCancel={() => setPwdOpen(false)} onOk={onPwd} destroyOnHidden>
         <Form form={pwdForm} layout="vertical">
-          <Form.Item name="oldPassword" label="旧密码" rules={[{ required: true }]}><Input.Password aria-label="旧密码" /></Form.Item>
-          <Form.Item name="newPassword" label="新密码" rules={[{ required: true, min: 6 }]}><Input.Password aria-label="新密码" /></Form.Item>
+          <Form.Item name="oldPassword" label="旧密码" rules={[{ required: true }]}><Input.Password aria-label="旧密码" autoComplete="current-password" /></Form.Item>
+          <Form.Item name="newPassword" label="新密码" rules={[{ required: true, min: 6 }]}><Input.Password aria-label="新密码" autoComplete="new-password" /></Form.Item>
         </Form>
       </Modal>
 
       <Modal open={emailOpen} title="修改邮箱" okText="确认" onCancel={() => { setEmailOpen(false); setEmailStep('send'); }} onOk={emailStep === 'send' ? onSendCode : onVerifyEmail} destroyOnHidden>
         <Form form={emailForm} layout="vertical">
-          <Form.Item name="newEmail" label="新邮箱" rules={[{ required: true, type: 'email' }]}><Input aria-label="新邮箱" /></Form.Item>
-          {emailStep === 'verify' && <Form.Item name="code" label="验证码" rules={[{ required: true, len: 6 }]}><Input aria-label="验证码" maxLength={6} /></Form.Item>}
+          <Form.Item name="newEmail" label="新邮箱" rules={[{ required: true, type: 'email' }]}><Input aria-label="新邮箱" autoComplete="email" spellCheck={false} inputMode="email" /></Form.Item>
+          {emailStep === 'verify' && <Form.Item name="code" label="验证码" rules={[{ required: true, len: 6 }]}><Input aria-label="验证码" maxLength={6} inputMode="numeric" spellCheck={false} /></Form.Item>}
         </Form>
       </Modal>
 
       <Modal open={editOpen} title="编辑资料" okText="确认" onCancel={() => setEditOpen(false)} onOk={onEdit} destroyOnHidden>
         <Form form={editForm} layout="vertical">
-          <Form.Item name="nickname" label="昵称" rules={[{ max: 64 }]}><Input aria-label="昵称" /></Form.Item>
+          <Form.Item name="nickname" label="昵称" rules={[{ max: 64 }]}><Input aria-label="昵称" autoComplete="off" /></Form.Item>
           <Form.Item name="avatar" label="头像">
-            <Input aria-label="头像" />
+            <Input aria-label="头像" autoComplete="off" />
           </Form.Item>
           <Upload accept="image/jpeg,image/png,image/webp" showUploadList={false} customRequest={async ({ file, onSuccess, onError }) => {
             try { const url = await filesApi.upload(file as File, 'avatar'); editForm.setFieldValue('avatar', url); onSuccess?.(url); message.success('已上传'); }

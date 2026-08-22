@@ -8,10 +8,34 @@
   --od-cyan-soft: rgba(45, 212, 191, 0.18);            /* 青 glow */
   --od-ink: #23261F;                                    /* 主文字 */
   --od-ink-2: #6E7266;                                  /* 次文字 */
+  --od-ink-3: #A2A69A;                                  /* 三级文字 */
   --od-line: #ECE9E1;                                   /* 分割线 */
+  --od-line-2: #E3E0D7;                                 /* 深一档分割线 */
   --od-shadow: 0 10px 30px rgba(35, 38, 31, 0.08);      /* 卡片阴影 */
   --od-shadow-cyan: 0 12px 34px rgba(45, 212, 191, 0.22); /* 青 glow 阴影 */
   --od-radius: 14px;
+  --od-bg: #F7F5F0;                                     /* 页面底色，随主题切换 */
+  --od-surface: #FFFFFF;                                /* 卡片/容器底 */
+  --od-shimmer: #f3f1ec;                                /* 骨架微光高光 */
+}
+
+/* ===== 深色：暖纸玻璃的夜间镜像 ===== */
+.dark {
+  --od-paper: #1A1D17;
+  --od-glass: rgba(35, 39, 31, 0.55);
+  --od-glass-border: rgba(255, 255, 255, 0.08);
+  --od-cyan: #2DD4BF;
+  --od-cyan-soft: rgba(45, 212, 191, 0.22);
+  --od-ink: #EDEBE4;
+  --od-ink-2: #B4B8AE;
+  --od-ink-3: #868A80;
+  --od-line: #2E332A;
+  --od-line-2: #3A3F34;
+  --od-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  --od-shadow-cyan: 0 12px 34px rgba(45, 212, 191, 0.28);
+  --od-bg: #1A1D17;
+  --od-surface: #23271F;
+  --od-shimmer: #2E332A;
 }
 
 /* 页面标题统一采用衬线，营造杂志编辑感 */
@@ -34,6 +58,28 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
+  background: var(--od-bg);
+  color: var(--od-ink);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 键盘用户跳转到主内容 */
+.od-skip-link {
+  position: absolute;
+  left: 16px;
+  top: -48px;
+  z-index: 1000;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--od-cyan);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+.od-skip-link:focus {
+  top: 16px;
 }
 
 /* Header 品牌字标走衬线回声，与正文形成对比 */
@@ -50,24 +96,24 @@ body {
   align-items: center;
   justify-content: center;
   padding: 32px 16px;
-  background: #F7F5F0;
+  background: var(--od-bg);
 }
 .od-auth .od-brand {
   font-size: 26px;
-  color: #23261F;
+  color: var(--od-ink);
   letter-spacing: 0.02em;
   margin-bottom: 24px;
 }
 .od-auth .ant-card {
   width: 100%;
   max-width: 400px;
-  box-shadow: 0 12px 40px rgba(74, 107, 84, 0.08);
-  border: 1px solid #ECE9E1;
+  box-shadow: var(--od-shadow);
+  border: 1px solid var(--od-line);
 }
 .od-auth .ant-card-head-title {
   font-family: var(--od-serif);
   font-size: 18px;
-  color: #23261F;
+  color: var(--od-ink);
 }
 .od-auth .od-auth-foot {
   margin-top: 16px;
@@ -76,6 +122,7 @@ body {
   gap: 12px;
   flex-wrap: wrap;
   font-size: 13px;
+  color: var(--od-ink-2);
 }
 .od-auth .od-auth-foot.center {
   justify-content: center;
@@ -90,7 +137,7 @@ body {
   display: flex;
   align-items: flex-end;
   color: #fff;
-  box-shadow: 0 16px 48px rgba(74, 107, 84, 0.12);
+  box-shadow: var(--od-shadow);
   border: 1px solid var(--od-glass-border);
   overflow: hidden;
 }
@@ -170,7 +217,7 @@ body {
 .od-hero__fallback {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #4A6B54 0%, #3C5C46 100%);
+  background: linear-gradient(135deg, var(--od-cyan) 0%, var(--od-line-2) 100%);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -303,7 +350,7 @@ body {
 .od-skeleton__img {
   aspect-ratio: 3 / 4;
   border-radius: calc(var(--od-radius) - 6px);
-  background: linear-gradient(100deg, var(--od-line) 30%, #f3f1ec 50%, var(--od-line) 70%);
+  background: linear-gradient(100deg, var(--od-line) 30%, var(--od-shimmer) 50%, var(--od-line) 70%);
   background-size: 200% 100%;
   animation: od-shimmer 1.2s ease-in-out infinite;
 }
@@ -311,7 +358,7 @@ body {
   height: 12px;
   margin-top: 8px;
   border-radius: 6px;
-  background: linear-gradient(100deg, var(--od-line) 30%, #f3f1ec 50%, var(--od-line) 70%);
+  background: linear-gradient(100deg, var(--od-line) 30%, var(--od-shimmer) 50%, var(--od-line) 70%);
   background-size: 200% 100%;
   animation: od-shimmer 1.2s ease-in-out infinite;
 }
@@ -340,7 +387,7 @@ body {
 .od-detail-aside .ant-space .ant-btn { flex-shrink: 0; }
 .od-col-actions { display: flex; flex-direction: column; gap: 14px; max-width: 200px; }
 .od-col-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.od-col-meta { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: #6E7266; }
+.od-col-meta { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--od-ink-2); }
 .od-col-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .od-col-ep-count { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .od-detail-main {
@@ -358,19 +405,19 @@ body {
   flex: 1;
   height: 6px;
   border-radius: 999px;
-  background: #E3E0D7;
+  background: var(--od-line-2);
   overflow: hidden;
 }
 .od-rate__bar > span {
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: #4A6B54;
+  background: var(--od-cyan);
   transition: width 0.3s ease;
 }
 .od-rate__num {
   font-size: 13px;
-  color: #6E7266;
+  color: var(--od-ink-2);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
