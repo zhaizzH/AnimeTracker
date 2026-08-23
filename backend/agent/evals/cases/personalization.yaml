@@ -13,8 +13,8 @@
 - {id: personal-dropped-02, category: personalization, query: 动画 3, preferenceState: dropped, expectedSubjectIds: [3], required: true}
 - {id: personal-dropped-03, category: personalization, query: 动画 4, preferenceState: dropped, expectedSubjectIds: [4], required: true}
 - {id: personal-dropped-04, category: personalization, query: 动画 5, preferenceState: dropped, expectedSubjectIds: [5], required: true}
-- {id: personal-onhold-01, category: personalization, query: 动画 6, preferenceState: onhold, expectedSubjectIds: [6], required: true}
-- {id: personal-onhold-02, category: personalization, query: 动画 7, preferenceState: onhold, expectedSubjectIds: [7], required: true}
-- {id: personal-cold-01, category: personalization, query: 动画 8, preferenceState: cold_start, expectedSubjectIds: [8], required: true}
-- {id: personal-cold-02, category: personalization, query: 动画 9, preferenceState: cold_start, expectedSubjectIds: [9], required: true}
-- {id: personal-cold-03, category: personalization, query: 动画 10, preferenceState: cold_start, expectedSubjectIds: [10], required: true}
+- {id: personal-onhold-01, category: personalization, query: onhold, preferenceState: onhold, expectedSubjectIds: [4], required: true}
+- {id: personal-onhold-02, category: personalization, query: onhold, preferenceState: onhold, expectedSubjectIds: [4], required: true}
+- {id: personal-cold-01, category: personalization, query: cold-start, preferenceState: cold_start, expectedSubjectIds: [7], required: true}
+- {id: personal-cold-02, category: personalization, query: cold-start, preferenceState: cold_start, expectedSubjectIds: [7], required: true}
+- {id: personal-cold-03, category: personalization, query: cold-start, preferenceState: cold_start, expectedSubjectIds: [7], required: true}

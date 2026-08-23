@@ -47,3 +47,23 @@ def test_semantic_query_uses_fixture_feature_without_title_text():
     })
 
     assert OfflineAdapter(load_subjects()).evaluate(case).ranked == [3]
+
+def test_onhold_uses_fixed_fixture_state_instead_of_query_title():
+    case = EvalCase.model_validate({
+        "id": "onhold-state", "category": "personalization", "query": "topic7",
+        "preferenceState": "onhold", "expectedSubjectIds": [4], "required": True,
+    })
+
+    assert OfflineAdapter(load_subjects()).evaluate(case).ranked == [4]
+
+
+def test_cold_start_uses_fixed_popularity_order_for_any_query():
+    adapter = OfflineAdapter(load_subjects())
+    first = EvalCase.model_validate({
+        "id": "cold-first", "category": "personalization", "query": "topic1",
+        "preferenceState": "cold_start", "expectedSubjectIds": [7], "required": True,
+    })
+    second = first.model_copy(update={"id": "cold-second", "query": "topic10"})
+
+    assert adapter.evaluate(first).ranked == [7]
+    assert adapter.evaluate(second).ranked == [7]

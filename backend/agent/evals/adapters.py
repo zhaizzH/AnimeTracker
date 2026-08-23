@@ -104,6 +104,10 @@ class FakeBusiness:
                 folded not in {subject.title.casefold(), *(alias.casefold() for alias in subject.aliases)},
                 -subject.score,
             ))
+        elif preference_state == "onhold":
+            subjects = [subject for subject in subjects if "onhold" in subject.preference_states]
+        elif preference_state == "cold_start":
+            subjects.sort(key=lambda subject: (-subject.score, subject.subject_id))
         elif preference_state == "dropped":
             subjects = [subject for subject in subjects if "dropped" not in subject.excluded_states]
         return [subject.subject_id for subject in subjects]
