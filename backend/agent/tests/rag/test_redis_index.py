@@ -151,8 +151,8 @@ def test_search_uses_active_alias_knn_and_returns_redis_result():
     command = fake_redis.first("FT.SEARCH")
     assert command[1] == "idx:test:rag:subject:active"
     assert "KNN" in command[2]
-    assert "@type:{2}" in command[2]
-    assert "@nsfw:{0}" in command[2]
+    assert "@type:[2 2]" in command[2]
+    assert "@nsfw:{false}" in command[2]
     assert ("PARAMS", "2") in adjacent_pairs(command)
     assert command[command.index("vector") + 1] == vector_bytes([0.0] * 1024)
     assert ("RETURN", "18") in adjacent_pairs(command)

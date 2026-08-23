@@ -14,10 +14,16 @@ def _build_headers(token: str | None) -> dict[str, str]:
     return headers
 
 
-def call_api(method: str, path: str, params: dict | None = None, token: str | None = None) -> dict | list:
+def call_api(
+    method: str,
+    path: str,
+    params: dict | None = None,
+    token: str | None = None,
+    json_body: dict | None = None,
+) -> dict | list:
     headers = _build_headers(token)
     try:
-        resp = httpx.request(method, f"{BASE}{path}", params=params, headers=headers, timeout=10)
+        resp = httpx.request(method, f"{BASE}{path}", params=params, json=json_body, headers=headers, timeout=10)
         resp.raise_for_status()
         body = resp.json()
     except httpx.TimeoutException:

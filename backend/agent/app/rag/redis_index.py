@@ -103,6 +103,8 @@ class RedisSubjectIndex:
                 "TEXT",
                 "profile",
                 "TEXT",
+                "subject_id",
+                "NUMERIC",
                 "year",
                 "NUMERIC",
                 "quarter",
@@ -116,7 +118,7 @@ class RedisSubjectIndex:
                 "air_status",
                 "TAG",
                 "type",
-                "TAG",
+                "NUMERIC",
                 "nsfw",
                 "TAG",
                 "vector",
@@ -140,6 +142,7 @@ class RedisSubjectIndex:
         if document.type != 2 or document.nsfw:
             raise ValueError("RAG 索引仅接收 type=2 且非 NSFW 的动画条目")
         mapping: dict[str, Any] = {
+            "subject_id": document.subject_id,
             "title": document.title,
             "aliases": self._join(document.aliases),
             "summary": document.summary,
@@ -151,7 +154,7 @@ class RedisSubjectIndex:
             "schema_version": document.profile.schema_version,
             "air_status": document.air_status,
             "type": document.type,
-            "nsfw": "1" if document.nsfw else "0",
+            "nsfw": "true" if document.nsfw else "false",
             "vector": vector_bytes(document.vector),
         }
         for field in ("year", "quarter", "score", "rating_total", "collection_total"):
@@ -164,14 +167,17 @@ class RedisSubjectIndex:
         """原子切换检索别名；绝不删除旧索引、文档或会话键。"""
         self._redis.execute_command("FT.ALIASUPDATE", self.active_alias, self.index_name(index_version))
 
-    def search(self, query: str, vector: Sequence[float], *, limit: int = 10) -> Any:
-        """在当前别名上运行全文/过滤条件与 KNN 联合查询。"""
+    def lexical_search(self, query: str, *, limit: int = 50) -> Any:
+        """在当前别名上运行受控的全文和结构化过滤查询。"""
         if limit < 1:
             raise ValueError("limit 必须大于 0")
-        expression = query.strip()
-        filters = "@type:{2} @nsfw:{0}"
-        expression = filters if not expression or expression == "*" else f"({expression}) {filters}"
-        knn_query = f"{expression}=>[KNN {limit} @vector $vector AS vector_score]"
+        return self._search(query, limit=limit)
+
+    def semantic_search(self, query: str, vector: Sequence[float], *, limit: int = 50) -> Any:
+        """在当前别名上运行受控过滤与 KNN 查询。"""
+        if limit < 1:
+            raise ValueError("limit 必须大于 0")
+        knn_query = f"{query.strip()}=>[KNN {limit} @vector $vector AS vector_score]"
         return self._redis.execute_command(
             "FT.SEARCH",
             self.active_alias,
@@ -209,6 +215,48 @@ class RedisSubjectIndex:
             "DIALECT",
             "2",
         )
+
+    def search(self, query: str, vector: Sequence[float], *, limit: int = 10) -> Any:
+        """兼容既有调用；新检索服务应分别调用 lexical_search/semantic_search。"""
+        return self.semantic_search(self._with_safety_filters(query), vector, limit=limit)
+
+    def _search(self, query: str, *, limit: int) -> Any:
+        return self._redis.execute_command(
+            "FT.SEARCH",
+            self.active_alias,
+            self._with_safety_filters(query),
+            "RETURN",
+            "18",
+            "subject_id",
+            "title",
+            "aliases",
+            "summary",
+            "meta_tags",
+            "trusted_tags",
+            "credits",
+            "profile",
+            "content_hash",
+            "schema_version",
+            "year",
+            "quarter",
+            "score",
+            "rating_total",
+            "collection_total",
+            "air_status",
+            "type",
+            "nsfw",
+            "LIMIT",
+            "0",
+            str(limit),
+            "DIALECT",
+            "2",
+        )
+
+    @staticmethod
+    def _with_safety_filters(query: str) -> str:
+        expression = query.strip()
+        filters = "@type:[2 2] @nsfw:{false}"
+        return filters if not expression or expression == "*" else f"({expression}) {filters}"
 
     @staticmethod
     def _join(values: Sequence[str]) -> str:
