@@ -161,6 +161,21 @@ def test_search_uses_active_alias_knn_and_returns_redis_result():
     assert "vector" in command[return_start + 2 : command.index("PARAMS")]
 
 
+def test_custom_active_alias_is_used_and_alias_key_is_controlled():
+    fake_redis = FakeRedis()
+    index = RedisSubjectIndex(
+        fake_redis,
+        key_prefix="test:rag:",
+        index_prefix="idx:test:rag:",
+        active_alias="idx:custom:subject:active",
+    )
+    index.semantic_search("", [0.0] * 1024, limit=1)
+    assert index.active_alias == "idx:custom:subject:active"
+    assert fake_redis.first("FT.SEARCH")[1] == "idx:custom:subject:active"
+    with pytest.raises(ValueError):
+        RedisSubjectIndex(fake_redis, active_alias="idx:custom subject")
+
+
 def test_semantic_search_enforces_non_nsfw_anime_filters_without_caller_help():
     """Removing the index boundary guard would let a direct KNN caller bypass RAG safety."""
     fake_redis = FakeRedis()

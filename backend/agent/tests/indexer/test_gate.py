@@ -4,7 +4,7 @@ from dataclasses import replace
 import json
 
 import pytest
-from indexer.gate import GateInputs, _contract_match, activate_alias, evaluate_gate, load_gate_inputs
+from indexer.gate import GateInputs, _content_hash_match, _contract_match, activate_alias, evaluate_gate, load_gate_inputs
 
 
 def _passing_inputs() -> GateInputs:
@@ -48,13 +48,33 @@ def test_gate_rejects_missing_reports_and_inconsistent_evidence():
     assert evaluate_gate(replace(_passing_inputs(), embedding_contract_match=False)).allowed is False
 
 
+def test_gate_rejects_missing_required_and_human_evidence():
+    assert evaluate_gate(replace(_passing_inputs(), required_total=None)).allowed is False
+    assert evaluate_gate(replace(_passing_inputs(), required_total=119)).allowed is False
+    assert evaluate_gate(replace(_passing_inputs(), human_check_count=None)).allowed is False
+    assert evaluate_gate(replace(_passing_inputs(), human_check_count=19)).allowed is False
+
+
+def test_content_hash_samples_are_non_empty_and_have_expected_observed():
+    assert _content_hash_match({"contentHashSamples": {}})[0] is None
+    assert _content_hash_match({"contentHashSamples": []})[0] is None
+    assert _content_hash_match({"contentHashSamples": [{"expected": "", "observed": "x"}]})[0] is None
+    assert _content_hash_match({"contentHashSamples": [{"expected": "x", "observed": "x"}]}) == (True, None)
+
+
 def test_contract_check_does_not_accept_first_true_when_reports_disagree():
     match, reason = _contract_match(
-        {"embeddingContractMatch": True, "embeddingContract": {"model": "v4", "dimensions": 1024}},
-        {"embeddingContract": {"model": "v3", "dimensions": 1024}},
+        {"embeddingContract": {"provider": "dashscope", "model": "v4", "dimensions": 1024, "profileVersion": "v1"}},
+        {"embeddingContract": {"provider": "dashscope", "model": "v3", "dimensions": 1024, "profileVersion": "v1"}},
     )
     assert match is False
     assert reason == "embedding contract mismatch"
+
+
+def test_boolean_contract_match_cannot_replace_complete_contract():
+    match, reason = _contract_match({"embeddingContractMatch": True}, {"embeddingContractMatch": True})
+    assert match is None
+    assert reason == "missing embedding contract evidence"
 
 
 def test_load_gate_inputs_is_fail_closed_for_missing_and_version_mismatch(tmp_path):
@@ -70,6 +90,20 @@ def test_load_gate_inputs_is_fail_closed_for_missing_and_version_mismatch(tmp_pa
     decision = evaluate_gate(load_gate_inputs(tmp_path, "v1"))
     assert decision.allowed is False
     assert any("inconsistent" in reason for reason in decision.reasons)
+
+
+def test_loader_accepts_actual_eval_snake_case_and_safe_filename_version(tmp_path):
+    contract = {"provider": "dashscope", "model": "text-embedding-v4", "dimensions": 1024, "profileVersion": "subject-profile-v1"}
+    reports = {
+        "quality.json": {"indexVersion": "v1", "coverage": .995, "counts": {"NSFW": 0, "NON_ANIME": 0}, "contentHashSamples": [{"expected": "a", "observed": "a"}], "embeddingContract": contract},
+        "capacity.json": {"indexVersion": "v1", "utilization": .6, "embeddingContract": contract},
+        "eval-v1.json": {"required_total": 120, "required_passed": 120, "mrr_at_10": .9, "recall_at_20": .85, "ndcg_at_10": .75, "embeddingContract": contract},
+        "latency.json": {"indexVersion": "v1", "redisP95Ms": 1, "hydratedP95Ms": 1, "embeddingContract": contract},
+        "human.json": {"indexVersion": "v1", "severeErrors": 0, "checkCount": 20, "embeddingContract": contract},
+    }
+    for filename, payload in reports.items():
+        (tmp_path / filename).write_text(json.dumps(payload), encoding="utf-8")
+    assert evaluate_gate(load_gate_inputs(tmp_path, "v1")).allowed is True
 
 
 def test_activate_alias_only_calls_alias_update_and_never_deletes():

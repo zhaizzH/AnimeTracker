@@ -230,6 +230,8 @@ def main(argv: list[str] | None = None) -> int:
             redis_used_memory_before=before_memory,
             redis_used_memory_after=after_memory,
             redis_memory_delta=max(0, after_memory - before_memory),
+            indexVersion=args.index_version,
+            embeddingContract={"provider": "dashscope", "model": "text-embedding-v4", "dimensions": 1024, "profileVersion": "subject-profile-v1"},
         )
     return 0
 

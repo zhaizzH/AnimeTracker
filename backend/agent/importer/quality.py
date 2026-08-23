@@ -50,13 +50,15 @@ class QualityReport:
     database_fingerprint: str
     minio_fingerprint: str
     categories: Mapping[Category, tuple[QualityItem, ...]]
+    index_version: str | None = None
+    embedding_contract: Mapping[str, Any] | None = None
 
     @property
     def items(self) -> tuple[QualityItem, ...]:
         return tuple(item for category in CATEGORIES for item in self.categories[category])
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "generatedAt": self.generated_at.isoformat(),
             "commit": self.commit,
             "dirty": self.dirty,
@@ -65,6 +67,11 @@ class QualityReport:
             "counts": {category: len(self.categories[category]) for category in CATEGORIES},
             "items": [item.as_dict() for item in self.items],
         }
+        if self.index_version:
+            payload["indexVersion"] = self.index_version
+        if self.embedding_contract:
+            payload["embeddingContract"] = dict(self.embedding_contract)
+        return payload
 
 
 def database_fingerprint(db) -> str:
@@ -91,7 +98,14 @@ def minio_fingerprint(minio) -> str:
     return hashlib.sha256("\n".join(names).encode("utf-8")).hexdigest()
 
 
-def build_quality_report(db, minio, as_of: datetime) -> QualityReport:
+def build_quality_report(
+    db,
+    minio,
+    as_of: datetime,
+    *,
+    index_version: str | None = None,
+    embedding_contract: Mapping[str, Any] | None = None,
+) -> QualityReport:
     """检查约定的 11 类问题，所有查询均为只读。"""
     if as_of.tzinfo is None:
         as_of = as_of.replace(tzinfo=timezone.utc)
@@ -144,7 +158,7 @@ def build_quality_report(db, minio, as_of: datetime) -> QualityReport:
         grouped["UNREFERENCED_OBJECT"].append(_item("UNREFERENCED_OBJECT", "DELETE", name, {}))
 
     commit, dirty = git_state()
-    return QualityReport(as_of, commit, dirty, database_fingerprint(db), minio_fingerprint(minio), {key: tuple(value) for key, value in grouped.items()})
+    return QualityReport(as_of, commit, dirty, database_fingerprint(db), minio_fingerprint(minio), {key: tuple(value) for key, value in grouped.items()}, index_version, embedding_contract)
 
 
 def write_quality_report(report: QualityReport, path: str | Path) -> str:
@@ -222,6 +236,7 @@ def _item(category: Category, action: Action, target: int | str, details: Mappin
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Generate a read-only RAG data quality report")
     parser.add_argument("--output", required=True)
+    parser.add_argument("--index-version")
     args = parser.parse_args(argv)
     from dotenv import load_dotenv
     from sqlalchemy.orm import Session
@@ -236,7 +251,8 @@ def main(argv: list[str] | None = None) -> int:
     load_dotenv()
     engine = get_engine(os.getenv("DB_HOST", "127.0.0.1"), int(os.getenv("DB_PORT", "3306")), os.getenv("DB_USER", "root"), os.getenv("DB_PASSWORD", ""), os.getenv("DB_NAME", "anime_tracker"))
     with Session(engine) as db:
-        report = build_quality_report(db, ObjectStorage(), datetime.now(timezone.utc))
+        contract = {"provider": "dashscope", "model": os.getenv("RAG_EMBEDDING_MODEL", "text-embedding-v4"), "dimensions": int(os.getenv("RAG_EMBEDDING_DIM", "1024")), "profileVersion": os.getenv("RAG_PROFILE_VERSION", "subject-profile-v1")}
+        report = build_quality_report(db, ObjectStorage(), datetime.now(timezone.utc), index_version=args.index_version, embedding_contract=contract)
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     digest = write_quality_report(report, output)

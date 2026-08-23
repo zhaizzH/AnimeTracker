@@ -49,7 +49,7 @@ def get_retrieval_service(mode: Literal["search", "discover", "recommend"]) -> R
         return RagRetrievalService(_UnavailableIndex(), _UnavailableEmbeddings(), business_search=fallback)
     client = redis.Redis.from_url(settings.effective_rag_redis_url)
     return RagRetrievalService(
-        RedisSubjectIndex(client),
+        RedisSubjectIndex(client, active_alias=settings.rag_index_alias),
         DashScopeEmbeddingClient(settings.dashscope_api_key),
         business_search=fallback,
     )

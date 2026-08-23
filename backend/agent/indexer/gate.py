@@ -106,8 +106,7 @@ def evaluate_gate(inputs: GateInputs) -> GateDecision:
     require("nsfw_count", inputs.nsfw_count == 0, "index contains NSFW entries")
     require("non_anime_count", inputs.non_anime_count == 0, "index contains non-anime entries")
     require("required_failed", inputs.required_failed == 0, "required eval cases failed")
-    if inputs.required_total is not None:
-        require("required_total", inputs.required_total >= 120, "fewer than 120 required eval cases were reported")
+    require("required_total", inputs.required_total == 120, "required eval count is missing or is not exactly 120")
     require("mrr10", _at_least(inputs.mrr10, MRR10_MIN), "MRR@10 is below 0.90")
     require("recall20", _at_least(inputs.recall20, RECALL20_MIN), "Recall@20 is below 0.85")
     require("ndcg10", _at_least(inputs.ndcg10, NDCG10_MIN), "nDCG@10 is below 0.75")
@@ -115,8 +114,7 @@ def evaluate_gate(inputs: GateInputs) -> GateDecision:
     require("hydrated_p95_ms", _strictly_below(inputs.hydrated_p95_ms, HYDRATED_P95_MAX_MS), "hydrated P95 is not below 500 ms")
     require("memory_utilization", _at_most(inputs.memory_utilization, MEMORY_UTILIZATION_MAX), "memory utilization exceeds 60%")
     require("human_severe_errors", inputs.human_severe_errors == 0, "human review found severe errors")
-    if inputs.human_check_count is not None:
-        require("human_check_count", inputs.human_check_count >= 20, "fewer than 20 human checks were reported")
+    require("human_check_count", inputs.human_check_count is not None and inputs.human_check_count >= 20, "human check count is missing or below 20")
 
     # Preserve report order while avoiding duplicate messages from one failed
     # requirement being surfaced twice.
@@ -150,7 +148,7 @@ def load_gate_inputs(report_dir: str | Path, index_version: str) -> GateInputs:
             errors.append(f"invalid report root: {name}")
             continue
         payloads[name] = raw
-        version = _text(raw, "indexVersion", "index_version", "version")
+        version = _text(raw, "indexVersion", "index_version", "version") or _version_from_filename(path, index_version)
         if version is None:
             errors.append(f"missing report version: {name}")
         else:
@@ -165,7 +163,7 @@ def load_gate_inputs(report_dir: str | Path, index_version: str) -> GateInputs:
     content_match, content_error = _content_hash_match(quality)
     if content_error:
         errors.append(content_error)
-    contract_match, contract_error = _contract_match(quality, capacity, evaluation)
+    contract_match, contract_error = _contract_match(*(payloads.get(name, {}) for name in REPORT_NAMES))
     if contract_error:
         errors.append(contract_error)
 
@@ -173,13 +171,23 @@ def load_gate_inputs(report_dir: str | Path, index_version: str) -> GateInputs:
     latency_values = _mapping(latency.get("latency"))
     human_values = _human_values(human)
     summaries = {name: dict(payload) for name, payload in payloads.items()}
+    required_total = _integer(evaluation, "requiredTotal", "required_total")
+    required_passed = _integer(evaluation, "requiredPassed", "required_passed")
+    required_failed = _integer(evaluation, "requiredFailed", "required_failed")
+    if required_total is None:
+        errors.append("missing required eval count")
+    if required_passed is not None and required_failed is None and required_total is not None:
+        required_failed = required_total - required_passed
+    human_check_count = _integer(human_values, "checkCount", "humanCheckCount", "human_check_count")
+    if human_check_count is None:
+        errors.append("missing human check count")
     return GateInputs(
         index_version=index_version,
         coverage=_number(quality, "coverage", "indexCoverage", "coverageRatio"),
         nsfw_count=_integer(counts, "NSFW", "nsfw", "nsfwCount") if counts else _integer(quality, "nsfwCount", "nsfw_count"),
         non_anime_count=_integer(counts, "NON_ANIME", "nonAnime", "nonAnimeCount") if counts else _integer(quality, "nonAnimeCount", "non_anime_count"),
-        required_failed=_integer(evaluation, "requiredFailed", "required_failed"),
-        required_total=_integer(evaluation, "requiredTotal", "required_total"),
+        required_failed=required_failed,
+        required_total=required_total,
         mrr10=_number(evaluation, "mrr10", "mrrAt10", "mrr_at_10"),
         recall20=_number(evaluation, "recall20", "recallAt20", "recall_at_20"),
         ndcg10=_number(evaluation, "ndcg10", "ndcgAt10", "ndcg_at_10"),
@@ -187,7 +195,7 @@ def load_gate_inputs(report_dir: str | Path, index_version: str) -> GateInputs:
         hydrated_p95_ms=_first_number(latency_values, latency, "hydratedP95Ms", "hydrated_p95_ms", "hydratedP95"),
         memory_utilization=_number(capacity, "memoryUtilization", "memory_utilization", "utilization"),
         human_severe_errors=_integer(human_values, "severeErrors", "humanSevereErrors", "human_severe_errors"),
-        human_check_count=_integer(human_values, "checkCount", "humanCheckCount", "human_check_count"),
+        human_check_count=human_check_count,
         report_versions=versions,
         content_hash_sample_match=content_match,
         embedding_contract_match=contract_match,
@@ -267,6 +275,13 @@ def _valid_version(value: str | None) -> bool:
     return bool(value and value.strip() and ":" not in value and all(char.isalnum() or char in "._-" for char in value))
 
 
+def _version_from_filename(path: Path, expected: str) -> str | None:
+    stem = path.stem
+    if any(stem.endswith(f"{separator}{expected}") for separator in ("-", "_", ".")):
+        return expected
+    return None
+
+
 def _all_versions_match(versions: Mapping[str, str], expected: str | None) -> bool:
     return _valid_version(expected) and len(versions) == len(REPORT_NAMES) and all(value == expected for value in versions.values())
 
@@ -318,41 +333,79 @@ def _integer(payload: Mapping[str, Any], *keys: str) -> int | None:
 
 
 def _content_hash_match(payload: Mapping[str, Any]) -> tuple[bool | None, str | None]:
-    for key in ("contentHashSampleMatch", "content_hash_sample_match"):
-        if isinstance(payload.get(key), bool):
-            return payload[key], None if payload[key] else "content_hash sample mismatch"
     samples = payload.get("contentHashSamples", payload.get("content_hash_samples"))
     if isinstance(samples, Mapping):
-        expected = samples.get("expected")
-        observed = samples.get("observed")
-        if isinstance(expected, list) and isinstance(observed, list):
-            match = expected == observed
-            return match, None if match else "content_hash sample mismatch"
-    if isinstance(samples, list) and samples:
-        valid = all(isinstance(item, Mapping) and item.get("expected") == item.get("observed") for item in samples)
-        return valid, None if valid else "content_hash sample mismatch"
-    return None, "missing content_hash sample evidence"
+        if not samples:
+            return None, "missing content_hash sample evidence"
+        if "expected" in samples or "observed" in samples:
+            pairs = (samples,)
+        else:
+            pairs = tuple(value for value in samples.values() if isinstance(value, Mapping))
+            if len(pairs) != len(samples):
+                return None, "invalid content_hash sample evidence"
+    elif isinstance(samples, list) and samples:
+        pairs = tuple(item for item in samples if isinstance(item, Mapping))
+        if len(pairs) != len(samples):
+            return None, "invalid content_hash sample evidence"
+    else:
+        return None, "missing content_hash sample evidence"
+    if not pairs or any(not _nonempty(pair.get("expected")) or not _nonempty(pair.get("observed")) for pair in pairs):
+        return None, "invalid content_hash sample evidence"
+    match = all(pair["expected"] == pair["observed"] for pair in pairs)
+    reported = payload.get("contentHashSampleMatch", payload.get("content_hash_sample_match"))
+    if isinstance(reported, bool) and reported != match:
+        match = False
+    return match, None if match else "content_hash sample mismatch"
+
+
+def _nonempty(value: object) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    return bool(value)
 
 
 def _contract_match(*payloads: Mapping[str, Any]) -> tuple[bool | None, str | None]:
-    flags = []
+    contracts: list[dict[str, Any]] = []
     for payload in payloads:
-        for key in ("embeddingContractMatch", "embedding_contract_match", "profileConsistent", "profile_consistent"):
-            value = payload.get(key)
-            if isinstance(value, bool):
-                flags.append(value)
-                break
-    if any(value is False for value in flags):
+        raw = payload.get("embeddingContract", payload.get("embedding_contract"))
+        if not isinstance(raw, Mapping):
+            flag = next((payload[key] for key in ("embeddingContractMatch", "embedding_contract_match", "profileConsistent", "profile_consistent") if isinstance(payload.get(key), bool)), None)
+            return (False, "embedding contract mismatch") if flag is False else (None, "missing embedding contract evidence")
+        contract = _normalize_contract(raw)
+        if contract is None:
+            return False, "embedding contract is incomplete"
+        contracts.append(contract)
+    if not contracts:
+        return None, "missing embedding contract evidence"
+    normalized = {json.dumps(item, sort_keys=True, ensure_ascii=False) for item in contracts}
+    if len(normalized) != 1:
         return False, "embedding contract mismatch"
-    contracts = [payload.get("embeddingContract") for payload in payloads]
-    present = [item for item in contracts if isinstance(item, Mapping)]
-    if present:
-        normalized = {json.dumps(dict(item), sort_keys=True, ensure_ascii=False) for item in present}
-        match = len(normalized) == 1
-        return match, None if match else "embedding contract mismatch"
-    if flags:
-        return True, None
-    return None, "missing embedding contract evidence"
+    return True, None
+
+
+def _normalize_contract(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    aliases = {
+        "provider": ("provider", "embeddingProvider", "embedding_provider"),
+        "model": ("model", "embeddingModel", "embedding_model"),
+        "dimensions": ("dimensions", "dimension", "embeddingDimensions", "embedding_dimensions"),
+        "profileVersion": ("profileVersion", "profile_version", "schemaVersion", "schema_version"),
+    }
+    values: dict[str, Any] = {}
+    for name, keys in aliases.items():
+        value = next((payload[key] for key in keys if key in payload), None)
+        if not _nonempty(value):
+            return None
+        if name == "dimensions":
+            try:
+                value = int(value)
+            except (TypeError, ValueError, OverflowError):
+                return None
+            if value < 1:
+                return None
+        values[name] = value if name == "dimensions" else str(value).strip()
+    return values
 
 
 def _human_values(payload: Mapping[str, Any]) -> Mapping[str, Any]:

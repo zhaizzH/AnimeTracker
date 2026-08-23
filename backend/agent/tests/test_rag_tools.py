@@ -31,6 +31,29 @@ class FakeRetrieval:
         )
 
 
+def test_retrieval_service_and_index_share_configured_active_alias(monkeypatch):
+    class FakeRedis:
+        pass
+
+    class FakeIndex:
+        def __init__(self, _client, *, active_alias):
+            self.active_alias = active_alias
+
+    class FakeService:
+        def __init__(self, index, _embeddings, *, business_search):
+            self.index = index
+
+    alias = "idx:custom:subject:active"
+    monkeypatch.setattr(rag_tools.settings, "rag_enabled", True)
+    monkeypatch.setattr(rag_tools.settings, "rag_index_alias", alias)
+    monkeypatch.setattr(rag_tools.redis.Redis, "from_url", lambda *_args, **_kwargs: FakeRedis())
+    monkeypatch.setattr(rag_tools, "RedisSubjectIndex", FakeIndex)
+    monkeypatch.setattr(rag_tools, "RagRetrievalService", FakeService)
+
+    service = rag_tools.get_retrieval_service("search")
+    assert service.index.active_alias == alias
+
+
 def test_search_tool_returns_only_verified_compact_evidence(monkeypatch):
     fake = FakeRetrieval()
     monkeypatch.setattr(rag_tools, "get_retrieval_service", lambda mode: fake)

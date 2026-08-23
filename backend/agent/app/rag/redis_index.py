@@ -59,14 +59,16 @@ def vector_bytes(values: Sequence[float]) -> bytes:
 class RedisSubjectIndex:
     """RediSearch 的版本化条目索引；调用方负责索引重建门禁。"""
 
-    def __init__(self, redis: Any, key_prefix: str = "rag:", index_prefix: str = "idx:rag:"):
+    def __init__(self, redis: Any, key_prefix: str = "rag:", index_prefix: str = "idx:rag:", active_alias: str | None = None):
         self._redis = redis
         self._key_prefix = key_prefix
         self._index_prefix = index_prefix
+        default_alias = f"{self._index_prefix}subject:active"
+        self._active_alias = self._validate_alias(active_alias or default_alias)
 
     @property
     def active_alias(self) -> str:
-        return f"{self._index_prefix}subject:active"
+        return self._active_alias
 
     def index_name(self, index_version: str) -> str:
         return f"{self._index_prefix}subject:{self._validate_version(index_version)}"
@@ -276,3 +278,9 @@ class RedisSubjectIndex:
         if not index_version or ":" in index_version:
             raise ValueError("index_version 不能为空且不能包含冒号")
         return index_version
+
+    @staticmethod
+    def _validate_alias(alias: str) -> str:
+        if not alias or not all(char.isalnum() or char in "._:-" for char in alias):
+            raise ValueError("active_alias 必须是受控 Redis key")
+        return alias
