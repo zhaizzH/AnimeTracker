@@ -28,10 +28,12 @@ def isolated_index():
     index_prefix = os.getenv("RAG_TEST_INDEX_PREFIX", "idx:test:rag:")
     if not redis_url:
         pytest.fail("RAG_INTEGRATION_TESTS=true 时必须提供 RAG_TEST_REDIS_URL")
+    if not key_prefix.startswith("test:rag:") or not index_prefix.startswith("idx:test:rag:"):
+        pytest.fail("集成测试只能使用 test:rag: 键前缀和 idx:test:rag: 索引前缀")
     if not _is_test_database(redis_url) and not key_prefix.startswith("test:rag:"):
         pytest.fail("非测试 Redis DB 必须使用 test:rag: 键前缀")
 
-    client = redis.Redis.from_url(redis_url, decode_responses=True)
+    client = redis.Redis.from_url(redis_url, decode_responses=False)
     index = RedisSubjectIndex(client, key_prefix=key_prefix, index_prefix=index_prefix)
     version = "v1"
     name = index.ensure_version(version)
@@ -50,7 +52,7 @@ def isolated_index():
         if keys:
             client.delete(*keys)
         indexes = client.execute_command("FT._LIST")
-        assert not any(str(item) == name for item in indexes)
+        assert not any(item.decode() == name for item in indexes)
         assert list(client.scan_iter(match=f"{key_prefix}subject:*")) == []
 
 
@@ -66,7 +68,7 @@ def _document(subject_id: int, title: str, air_status: str, vector: list[float])
         vector=vector,
         title=title,
         air_status=air_status,
-        type="anime",
+        type=2,
     )
 
 

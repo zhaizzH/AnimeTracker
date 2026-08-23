@@ -60,7 +60,7 @@ def document() -> SubjectIndexDocument:
         rating_total=100,
         collection_total=200,
         air_status="airing",
-        type="anime",
+        type=2,
         nsfw=False,
     )
 
@@ -97,6 +97,25 @@ def test_write_uses_versioned_hash_key_and_validated_float32_vector():
         vector_bytes([0.0] * 3)
     with pytest.raises(ValueError, match="有限"):
         vector_bytes([math.nan] * 1024)
+    with pytest.raises(ValueError, match="有限"):
+        vector_bytes([1e100] * 1024)
+
+
+def test_write_accepts_only_non_nsfw_anime_documents():
+    """RAG 索引只接纳 type=2 且非 NSFW 的动画条目。"""
+    fake_redis = FakeRedis()
+    index = RedisSubjectIndex(fake_redis, key_prefix="test:rag:", index_prefix="idx:test:rag:")
+
+    index.write(document())
+
+    assert fake_redis.first("HSET")[2]["type"] == 2
+    for unsafe_document in (
+        document().__class__(**{**document().__dict__, "type": 1}),
+        document().__class__(**{**document().__dict__, "nsfw": True}),
+    ):
+        with pytest.raises(ValueError, match="type=2.*NSFW"):
+            index.write(unsafe_document)
+    assert len([command for command in fake_redis.commands if command[0] == "HSET"]) == 1
 
 
 def test_write_omits_missing_numeric_filters_instead_of_writing_invalid_empty_values():
@@ -132,8 +151,13 @@ def test_search_uses_active_alias_knn_and_returns_redis_result():
     command = fake_redis.first("FT.SEARCH")
     assert command[1] == "idx:test:rag:subject:active"
     assert "KNN" in command[2]
+    assert "@type:{2}" in command[2]
+    assert "@nsfw:{0}" in command[2]
     assert ("PARAMS", "2") in adjacent_pairs(command)
     assert command[command.index("vector") + 1] == vector_bytes([0.0] * 1024)
+    assert ("RETURN", "18") in adjacent_pairs(command)
+    return_start = command.index("RETURN")
+    assert "vector" not in command[return_start + 2 : return_start + 20]
 
 
 def test_activate_never_deletes_session_keys():

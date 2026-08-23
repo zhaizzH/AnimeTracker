@@ -33,7 +33,7 @@ class SubjectIndexDocument:
     rating_total: int | None = None
     collection_total: int | None = None
     air_status: str = ""
-    type: str = ""
+    type: int = 2
     nsfw: bool = False
 
 
@@ -48,9 +48,12 @@ def vector_bytes(values: Sequence[float]) -> bytes:
     if not all(math.isfinite(value) for value in normalized):
         raise ValueError("embedding 必须是 1024 个有限浮点数")
     try:
-        return array("f", normalized).tobytes()
+        encoded = array("f", normalized)
     except OverflowError as exc:
         raise ValueError("embedding 必须是 1024 个有限浮点数") from exc
+    if not all(math.isfinite(value) for value in encoded):
+        raise ValueError("embedding 必须是 1024 个有限浮点数")
+    return encoded.tobytes()
 
 
 class RedisSubjectIndex:
@@ -134,6 +137,8 @@ class RedisSubjectIndex:
 
     def write(self, document: SubjectIndexDocument) -> None:
         """写入指定版本的 HASH 文档，向量必须先通过 Float32 验证。"""
+        if document.type != 2 or document.nsfw:
+            raise ValueError("RAG 索引仅接收 type=2 且非 NSFW 的动画条目")
         mapping: dict[str, Any] = {
             "title": document.title,
             "aliases": self._join(document.aliases),
@@ -163,12 +168,34 @@ class RedisSubjectIndex:
         """在当前别名上运行全文/过滤条件与 KNN 联合查询。"""
         if limit < 1:
             raise ValueError("limit 必须大于 0")
-        expression = query.strip() or "*"
+        expression = query.strip()
+        filters = "@type:{2} @nsfw:{0}"
+        expression = filters if not expression or expression == "*" else f"({expression}) {filters}"
         knn_query = f"{expression}=>[KNN {limit} @vector $vector AS vector_score]"
         return self._redis.execute_command(
             "FT.SEARCH",
             self.active_alias,
             knn_query,
+            "RETURN",
+            "18",
+            "title",
+            "aliases",
+            "summary",
+            "meta_tags",
+            "trusted_tags",
+            "credits",
+            "profile",
+            "content_hash",
+            "schema_version",
+            "year",
+            "quarter",
+            "score",
+            "rating_total",
+            "collection_total",
+            "air_status",
+            "type",
+            "nsfw",
+            "vector_score",
             "PARAMS",
             "2",
             "vector",
