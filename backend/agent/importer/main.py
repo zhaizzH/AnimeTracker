@@ -156,7 +156,7 @@ def _stagger(ids, workers):
 
 def _run_batch(bangumi_ids, resume, access_token, user_agent,
                host, port, user, password, db_name, max_workers=MAX_WORKERS, base_done=0,
-               record_id=None, mode="", resume_checkpoint=None):
+               record_id=None, mode="", resume_checkpoint=None, track_progress=True):
     """并行导入一批 subject_id，返回成功数。
 
     base_done: 扫描阶段已发现条数，导入进度从该值继续累加（full 模式页面计数连续）。
@@ -208,7 +208,8 @@ def _run_batch(bangumi_ids, resume, access_token, user_agent,
                     progress_db.commit()
                 finally:
                     progress_db.close()
-            _done_count = done
+            if track_progress:
+                _done_count = done
             _safe_progress(done - base_done, total)
     return done - base_done
 
@@ -409,7 +410,17 @@ def import_single_subject(client, db, bangumi_id, resume):
             try:
                 relations = client.get_relations(bangumi_id)
                 if relations:
-                    anime_relations = [r for r in relations if r.get("type") == 2 and not r.get("nsfw")]
+                    for relation in relations:
+                        relation_id = relation.get("id")
+                        if not isinstance(relation_id, int):
+                            continue
+                        try:
+                            target = client.get_subject(relation_id)
+                        except Exception as e:
+                            logger.warning("  -> 关联目标校验失败 subject %d -> %d: %s", bangumi_id, relation_id, sanitize_import_error(e))
+                            continue
+                        if target.get("type") == 2 and target.get("nsfw") is False:
+                            anime_relations.append(relation)
             except Exception as e:
                 logger.warning("  -> 关联条目导入失败 subject %d: %s", bangumi_id, sanitize_import_error(e))
 
@@ -457,6 +468,7 @@ def run_full(client, db, resume, *, limit: int | None = None, **kw):
     catchup_kw.pop("record_id", None)
     catchup_kw.pop("mode", None)
     catchup_kw.pop("resume_checkpoint", None)
+    catchup_kw["track_progress"] = False
     return imported + run_recent(client, db, resume, **catchup_kw)
 
 

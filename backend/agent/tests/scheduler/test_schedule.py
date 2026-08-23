@@ -43,3 +43,39 @@ def test_scheduler_logs_exit_code_and_next_run(monkeypatch, caplog):
 
     assert '"exit_code": 9' in caplog.text
     assert '"next_run_at"' in caplog.text
+
+
+def test_scheduler_does_not_block_on_long_import_and_logs_after_poll(monkeypatch, caplog):
+    from scheduler.main import ImportScheduler, ScheduledImport
+
+    class Process:
+        def __init__(self):
+            self.exit_code = None
+
+        def poll(self):
+            return self.exit_code
+
+    process = Process()
+    now = datetime(2026, 8, 23, 3, 0, tzinfo=SHANGHAI)
+    scheduler = ImportScheduler(lambda _job: process)
+    monkeypatch.setattr("scheduler.main.next_run_at", lambda _now: datetime(2026, 8, 24, 3, 0, tzinfo=SHANGHAI))
+
+    with caplog.at_level("INFO"):
+        assert scheduler.execute(ScheduledImport("recent"), now) is None
+        assert "import_scheduler_finished" not in caplog.text
+        scheduler.poll_completed(now)
+        process.exit_code = 7
+        scheduler.poll_completed(now)
+
+    assert '"exit_code": 7' in caplog.text
+
+
+def test_scheduler_starts_importer_with_popen(monkeypatch):
+    from scheduler.main import ImportScheduler, ScheduledImport
+
+    captured = {}
+    process = object()
+    monkeypatch.setattr("scheduler.main.subprocess.Popen", lambda command, cwd: captured.update(command=command, cwd=cwd) or process)
+
+    assert ImportScheduler._start_importer(ScheduledImport("weekly_since", ("--since", "2025-08-23"))) is process
+    assert captured["command"][-4:] == ["--mode", "since", "--since", "2025-08-23"]

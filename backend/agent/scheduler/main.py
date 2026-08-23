@@ -57,8 +57,10 @@ class ImportScheduler:
     def __init__(self, run_importer=None):
         self._run_importer = run_importer or self._start_importer
         self._executed_minutes: set[tuple[datetime, str]] = set()
+        self._running: list[tuple[ScheduledImport, object]] = []
 
     def run_due(self, now: datetime) -> list[ScheduledImport]:
+        self.poll_completed(now)
         jobs = []
         minute = now.astimezone(SHANGHAI).replace(second=0, microsecond=0)
         for job in due_jobs(now):
@@ -70,25 +72,40 @@ class ImportScheduler:
             jobs.append(job)
         return jobs
 
-    def execute(self, job: ScheduledImport, now: datetime) -> int:
-        exit_code = self._run_importer(job)
+    def execute(self, job: ScheduledImport, now: datetime) -> int | None:
+        process = self._run_importer(job)
+        if isinstance(process, int):
+            self._log_finished(job, process, now)
+            return process
+        self._running.append((job, process))
+        return None
+
+    def poll_completed(self, now: datetime) -> None:
+        still_running = []
+        for job, process in self._running:
+            exit_code = process.poll()
+            if exit_code is None:
+                still_running.append((job, process))
+                continue
+            self._log_finished(job, exit_code, now)
+        self._running = still_running
+
+    @staticmethod
+    def _log_finished(job: ScheduledImport, exit_code: int, now: datetime) -> None:
         logger.info(json.dumps({
             "event": "import_scheduler_finished",
             "mode": job.mode,
             "exit_code": exit_code,
             "next_run_at": next_run_at(now).isoformat(),
         }, ensure_ascii=False))
-        return exit_code
 
     @staticmethod
-    def _start_importer(job: ScheduledImport) -> int:
+    def _start_importer(job: ScheduledImport):
         importer_mode = {"recent": "recent", "weekly_since": "since", "quarterly_full": "full"}[job.mode]
-        completed = subprocess.run(
+        return subprocess.Popen(
             [sys.executable, "-m", "importer.main", "--mode", importer_mode, *job.args],
             cwd=Path(__file__).resolve().parent.parent,
-            check=False,
         )
-        return completed.returncode
 
 
 def main() -> None:

@@ -50,6 +50,7 @@ def test_full_scan_runs_recent_catchup_without_reusing_full_checkpoint(monkeypat
     assert main.run_full(CatalogClient([1]), None, False, record_id=7, mode="full", resume_checkpoint=ImportCheckpoint("full", 0, None, main._ids_sha256([1])), access_token="", user_agent="", host="", port=0, user="", password="", db_name="") == 5
     assert "record_id" not in calls[0]
     assert "resume_checkpoint" not in calls[0]
+    assert calls[0]["track_progress"] is False
 
 
 def test_import_single_subject_uses_all_episode_pages_and_safe_relations(monkeypatch):
@@ -58,8 +59,14 @@ def test_import_single_subject_uses_all_episode_pages_and_safe_relations(monkeyp
     recorded = {}
 
     class Client:
-        def get_subject(self, _):
-            return {"id": 42, "type": 2, "nsfw": False, "eps": 201, "images": {}}
+        def get_subject(self, subject_id):
+            if subject_id == 42:
+                return {"id": 42, "type": 2, "nsfw": False, "eps": 201, "images": {}}
+            if subject_id == 3:
+                return {"id": 3, "type": 2, "nsfw": False}
+            if subject_id == 4:
+                return {"id": 4, "type": 2, "nsfw": True}
+            return {"id": subject_id, "type": 2}  # missing nsfw must fail closed
 
         def get_subject_persons(self, _):
             return []
@@ -68,7 +75,7 @@ def test_import_single_subject_uses_all_episode_pages_and_safe_relations(monkeyp
             return [{"id": 1}, {"id": 201}]
 
         def get_relations(self, _):
-            return [{"id": 3, "type": 2, "nsfw": False}, {"id": 4, "type": 2, "nsfw": True}, {"id": 5, "type": 1, "nsfw": False}]
+            return [{"id": 3, "type": 2, "nsfw": False}, {"id": 4, "type": 2, "nsfw": False}, {"id": 5, "type": 2, "nsfw": False}]
 
     class Storage:
         def put_raw_subject(self, *_):
