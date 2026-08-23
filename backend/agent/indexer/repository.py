@@ -1,0 +1,198 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+import os
+import re
+from typing import Callable
+
+from sqlalchemy import text
+
+
+MAX_ATTEMPTS = 5
+
+
+@dataclass(frozen=True)
+class IndexJob:
+    id: int
+    subject_id: int
+    index_version: str
+    content_hash: str
+    attempts: int
+    status: str
+
+
+@dataclass(frozen=True)
+class IndexSubject:
+    subject_id: int
+    title: str
+    summary: str
+    aliases: tuple[str, ...]
+    meta_tags: tuple[str, ...]
+    trusted_tags: tuple[str, ...]
+    credits: tuple[str, ...]
+    relations: tuple[str, ...]
+    year: int | None
+    quarter: int | None
+    score: float | None
+    rating_total: int | None
+    collection_total: int | None
+    air_status: str
+    type: int
+    nsfw: bool
+
+
+class IndexJobRepository:
+    """MySQL 是索引进度的权威来源，Redis 从不反向决定任务状态。"""
+
+    def __init__(
+        self,
+        session,
+        *,
+        now: Callable[[], datetime] = datetime.now,
+        trusted_tag_min_count: int | None = None,
+    ):
+        self._session = session
+        self._now = now
+        self._trusted_tag_min_count = trusted_tag_min_count if trusted_tag_min_count is not None else int(
+            os.getenv("RAG_TRUSTED_TAG_MIN_COUNT", "100")
+        )
+
+    def claim_batch(self, index_version: str, limit: int) -> list[IndexJob]:
+        if not index_version:
+            raise ValueError("index_version 不能为空")
+        if limit < 1:
+            return []
+        capped_limit = min(limit, 10)
+        now = self._now()
+        with self._session.begin():
+            rows = self._session.execute(
+                text(
+                    "SELECT id, subject_id, index_version, content_hash, attempts "
+                    "FROM rag_index_job WHERE index_version=:index_version AND "
+                    "(status = 'PENDING' OR (status = 'RETRY' AND (next_retry_at IS NULL OR next_retry_at <= :now))) "
+                    "ORDER BY id LIMIT :limit FOR UPDATE SKIP LOCKED"
+                ),
+                {"index_version": index_version, "now": now, "limit": capped_limit},
+            ).mappings().all()
+            jobs: list[IndexJob] = []
+            for row in rows:
+                attempts = int(row["attempts"]) + 1
+                job_id = int(row["id"])
+                self._session.execute(
+                    text(
+                        "UPDATE rag_index_job SET status='RUNNING', attempts=:attempts, "
+                        "next_retry_at=NULL, updated_at=:now WHERE id=:id"
+                    ),
+                    {"id": job_id, "attempts": attempts, "now": now},
+                )
+                jobs.append(
+                    IndexJob(job_id, int(row["subject_id"]), str(row["index_version"]), str(row["content_hash"]), attempts, "RUNNING")
+                )
+        return jobs
+
+    def load_subject(self, job: IndexJob) -> IndexSubject:
+        with self._session.begin():
+            row = self._session.execute(
+                text(
+                    "SELECT s.id AS subject_id, s.name AS title, s.summary, "
+                    "(SELECT GROUP_CONCAT(name ORDER BY name SEPARATOR '\\n') FROM subject_alias WHERE subject_id=s.id) AS aliases, "
+                    "(SELECT GROUP_CONCAT(name ORDER BY name SEPARATOR '\\n') FROM subject_meta_tag WHERE subject_id=s.id) AS meta_tags, "
+                    "(SELECT GROUP_CONCAT(CONCAT(role, '：', name) ORDER BY sort_order, name SEPARATOR '\\n') FROM subject_credit WHERE subject_id=s.id) AS credits, "
+                    "(SELECT GROUP_CONCAT(CONCAT(sr.relation, '：', related.name) ORDER BY related.name SEPARATOR '\\n') "
+                    "FROM subject_relation sr JOIN subject related ON related.id=sr.related_subject_id WHERE sr.subject_id=s.id) AS relations, "
+                    "YEAR(s.air_date) AS year, QUARTER(s.air_date) AS quarter, s.score, s.rating_total, s.collection_total, "
+                    "CASE WHEN s.air_date IS NULL THEN 'unknown' WHEN s.air_date > CURDATE() THEN 'upcoming' ELSE 'finished' END AS air_status, "
+                    "s.type, s.nsfw FROM subject s WHERE s.id=:subject_id AND s.type=2 AND s.nsfw=0"
+                ),
+                {"subject_id": job.subject_id},
+            ).mappings().one()
+            trusted = self._session.execute(
+                text(
+                    "SELECT current_tag.name FROM subject_tag current_tag JOIN "
+                    "(SELECT name, COUNT(DISTINCT subject_id) AS coverage, SUM(count) AS total_count FROM subject_tag GROUP BY name) stats "
+                    "ON stats.name=current_tag.name WHERE current_tag.subject_id=:subject_id "
+                    "AND CHAR_LENGTH(current_tag.name)<=24 AND stats.coverage>=3 AND stats.total_count>=:min_count "
+                    "ORDER BY current_tag.name"
+                ),
+                {"subject_id": job.subject_id, "min_count": self._trusted_tag_min_count},
+            ).scalars().all()
+        return IndexSubject(
+            int(row["subject_id"]),
+            str(row["title"] or ""),
+            str(row["summary"] or ""),
+            _split(row["aliases"]),
+            _split(row["meta_tags"]),
+            tuple(str(item) for item in trusted),
+            _split(row["credits"]),
+            _split(row["relations"]),
+            _optional_int(row["year"]),
+            _optional_int(row["quarter"]),
+            _optional_float(row["score"]),
+            _optional_int(row["rating_total"]),
+            _optional_int(row["collection_total"]),
+            str(row["air_status"] or "unknown"),
+            int(row["type"]),
+            bool(row["nsfw"]),
+        )
+
+    def mark_indexed(self, job_id: int) -> None:
+        now = self._now()
+        with self._session.begin():
+            self._session.execute(
+                text(
+                    "UPDATE rag_index_job SET status='INDEXED', indexed_at=:now, next_retry_at=NULL, "
+                    "last_error_code=NULL, last_error_message=NULL, updated_at=:now WHERE id=:id"
+                ),
+                {"id": job_id, "now": now},
+            )
+
+    def mark_retry(self, job_id: int, *, attempts: int, error: Exception) -> None:
+        now = self._now()
+        code, message = _error_details(error)
+        if attempts >= MAX_ATTEMPTS:
+            status, retry_at = "FAILED", None
+        else:
+            status = "RETRY"
+            retry_at = now + timedelta(seconds=min(3600, 2**attempts * 30))
+        with self._session.begin():
+            self._session.execute(
+                text(
+                    "UPDATE rag_index_job SET status=:status, last_error_code=:code, last_error_message=:message, "
+                    "next_retry_at=:next_retry_at, updated_at=:now WHERE id=:id"
+                ),
+                {"id": job_id, "status": status, "code": code, "message": message, "next_retry_at": retry_at, "now": now},
+            )
+
+    def mark_failed(self, job_id: int, *, error: Exception) -> None:
+        now = self._now()
+        code, message = _error_details(error)
+        with self._session.begin():
+            self._session.execute(
+                text(
+                    "UPDATE rag_index_job SET status='FAILED', last_error_code=:code, last_error_message=:message, "
+                    "next_retry_at=NULL, updated_at=:now WHERE id=:id"
+                ),
+                {"id": job_id, "code": code, "message": message, "now": now},
+            )
+
+
+def _error_details(error: Exception) -> tuple[str, str]:
+    message = re.sub(r"[\x00-\x1f\x7f]", " ", str(error))
+    message = re.sub(r"(?i)\bauthorization\s*:\s*bearer\s+[^\s,;]+", "Authorization: Bearer ***", message)
+    message = re.sub(r"(?i)\bbearer\s+[^\s,;]+", "Bearer ***", message)
+    message = re.sub(r"(?i)\b(?:password|passwd|pwd|token|api[_-]?key)\s*[:=]\s*[^\s,;]+", "***", message)
+    message = re.sub(r"//[^:/@\s]+:[^@/\s]+@", "//***:***@", message)
+    return type(error).__name__[:64], f"{type(error).__name__}: {message}"[:512]
+
+
+def _split(value: object) -> tuple[str, ...]:
+    return tuple(item for item in str(value or "").split("\n") if item)
+
+
+def _optional_int(value: object) -> int | None:
+    return None if value is None else int(value)
+
+
+def _optional_float(value: object) -> float | None:
+    return None if value is None else float(value)
