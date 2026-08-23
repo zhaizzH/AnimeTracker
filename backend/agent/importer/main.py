@@ -247,8 +247,10 @@ def parse_args(argv=None):
                         help="skip already imported subjects")
     parser.add_argument("--workers", type=int, default=MAX_WORKERS,
                         help=f"number of import threads (default: {MAX_WORKERS}, max: {MAX_WORKERS_LIMIT})")
-    parser.add_argument("--limit", type=int, default=500,
-                        help="sample mode item limit (default: 500)")
+    parser.add_argument("--limit", type=int,
+                        help="maximum items for full/sample mode; full defaults to no limit")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="scan only; never open the database or write remote storage")
     return parser.parse_args(argv)
 
 
@@ -337,7 +339,7 @@ def parse_season_key(key: str):
 def _fetch_related(client, bangumi_id):
     """网络预取关联条目（subject + 封面 + 剧集），不写库；nsfw 返回 None。"""
     data = client.get_subject(bangumi_id)
-    if data.get("nsfw"):
+    if data.get("type") != 2 or data.get("nsfw"):
         return None
 
     storage = _get_object_storage()
@@ -347,8 +349,7 @@ def _fetch_related(client, bangumi_id):
     episodes = []
     total_eps = data.get("eps") or data.get("total_episodes") or 0
     if total_eps > 0:
-        eps_data = client.get_episodes(bangumi_id)
-        episodes = eps_data.get("data") or []
+        episodes = client.get_all_episodes(bangumi_id)
 
     return {"data": data, "cover": cover, "episodes": episodes}
 
@@ -383,8 +384,8 @@ def import_single_subject(client, db, bangumi_id, resume):
             logger.info("  -> 获取条目 %d", bangumi_id)
             data = client.get_subject(bangumi_id)
 
-            if data.get("nsfw"):
-                logger.info("  -> 跳过 NSFW 条目 %d", bangumi_id)
+            if data.get("type") != 2 or data.get("nsfw"):
+                logger.info("  -> 跳过非公开动画条目 %d", bangumi_id)
                 return OUTCOME_SKIPPED
 
             storage = _get_object_storage()
@@ -401,15 +402,14 @@ def import_single_subject(client, db, bangumi_id, resume):
             total_eps = data.get("eps") or data.get("total_episodes") or 0
             if total_eps > 0:
                 logger.info("  -> 获取剧集 subject %d（共 %d 集）", bangumi_id, total_eps)
-                eps_data = client.get_episodes(bangumi_id)
-                episodes = eps_data.get("data") or []
+                episodes = client.get_all_episodes(bangumi_id)
 
             # 关联条目只保留动画关系；仓储层按本地自然键写入已存在的关联目标。
             anime_relations = []
             try:
                 relations = client.get_relations(bangumi_id)
                 if relations:
-                    anime_relations = [r for r in relations if r.get("type") == 2]
+                    anime_relations = [r for r in relations if r.get("type") == 2 and not r.get("nsfw")]
             except Exception as e:
                 logger.warning("  -> 关联条目导入失败 subject %d: %s", bangumi_id, sanitize_import_error(e))
 
@@ -433,32 +433,31 @@ def import_single_subject(client, db, bangumi_id, resume):
             return OUTCOME_FAILURE
 
 
-def run_full(client, db, resume, **kw):
-    global _done_count
-    now = datetime.now()
+def _full_catalog_ids(client, limit: int | None = None) -> list[int]:
+    """读取 type=2 全目录，保持首次出现顺序并限制实际导入数。"""
     ids = []
-    for year in range(2000, now.year + 1):
-        max_month = now.month if year == now.year else 12
-        for month in range(1, max_month + 1):
-            logger.info("扫描 %d-%d...", year, month)
-            offset = 0
-            while True:
-                try:
-                    result = client.browse_subjects(type=2, year=year, month=month, offset=offset)
-                except Exception as e:
-                    logger.error("扫描 %d-%d 失败: %s", year, month, sanitize_import_error(e))
-                    break
-                items = result.get("data") or []
-                if not items:
-                    break
-                ids.extend(item["id"] for item in items if item.get("id"))
-                total_count = result.get("total", 0)
-                offset += len(items)
-                if offset >= total_count:
-                    break
-            # 扫描进度实时刷到 import_record.subject_count，页面可看到数量增长
-            _done_count = len(ids)
-    return _run_batch(ids, resume, base_done=len(ids), **kw)
+    seen = set()
+    for subject_id in client.iter_subject_ids(2, limit=100):
+        if subject_id in seen:
+            continue
+        seen.add(subject_id)
+        ids.append(subject_id)
+        if limit is not None and len(ids) >= limit:
+            break
+    return ids
+
+
+def run_full(client, db, resume, *, limit: int | None = None, **kw):
+    global _done_count
+    ids = _full_catalog_ids(client, limit)
+    _done_count = len(ids)
+    imported = _run_batch(ids, resume, base_done=len(ids), **kw)
+    # full 的断点只描述完整目录；追赶批次不覆盖它，也不复用它。
+    catchup_kw = dict(kw)
+    catchup_kw.pop("record_id", None)
+    catchup_kw.pop("mode", None)
+    catchup_kw.pop("resume_checkpoint", None)
+    return imported + run_recent(client, db, resume, **catchup_kw)
 
 
 def run_season(client, db, key, resume, **kw):
@@ -533,8 +532,14 @@ def run_since(client, db, since_date, resume, **kw):
     return _run_batch(ids, resume, **kw)
 
 
-def main():
-    args = parse_args()
+def _dry_run_full(client, limit: int | None) -> int:
+    ids = _full_catalog_ids(client, limit)
+    logger.info("dry-run full：预计导入 %d 个条目；只读取 Bangumi 目录，不创建 import_record，也不写 MySQL/MinIO/Redis", len(ids))
+    return 0
+
+
+def main(argv=None):
+    args = parse_args(argv)
 
     load_dotenv()
     db_host = os.getenv("DB_HOST", "127.0.0.1")
@@ -546,6 +551,10 @@ def main():
     user_agent = os.getenv("BANGUMI_USER_AGENT", "zhaizzH/AnimeTracker")
 
     client = BangumiClient(access_token=access_token, user_agent=user_agent)
+    if args.dry_run:
+        if args.mode != "full":
+            raise ValueError("dry-run currently supports full mode only")
+        return _dry_run_full(client, args.limit)
     engine = get_engine(db_host, db_port, db_user, db_password, db_name)
     # 保持主连接在整个导入期间被检出，MySQL GET_LOCK 不会在 commit 后漂移到连接池。
     main_connection = engine.connect()
@@ -588,7 +597,7 @@ def main():
 
         logger.info("Bangumi 数据导入模式: %s", args.mode)
         if args.mode == "full":
-            count = run_full(client, db, args.resume, **pool_kw)
+            count = run_full(client, db, args.resume, limit=args.limit, **pool_kw)
         elif args.mode == "season":
             if not args.key:
                 raise ValueError("season mode needs --key")
@@ -600,7 +609,7 @@ def main():
                 raise ValueError("since mode needs --since")
             count = run_since(client, db, args.since, args.resume, **pool_kw)
         elif args.mode == "sample":
-            summary = run_sample(client, db, args.resume, limit=args.limit, **pool_kw)
+            summary = run_sample(client, db, args.resume, limit=args.limit or 500, **pool_kw)
             count = summary.processed
             logger.info("样本实际分布: %s", summary.distribution)
         else:
@@ -626,7 +635,7 @@ def main():
         if record_id is not None:
             complete_import_record(db, record_id, 0, "FAILED", sanitized)
             db.commit()
-        sys.exit(1)
+        return 1
     finally:
         if stop_flusher is not None:
             stop_flusher.set()
@@ -636,7 +645,8 @@ def main():
             release_import_lock(db)
         db.close()
         main_connection.close()
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
