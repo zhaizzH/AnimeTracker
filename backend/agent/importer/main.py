@@ -19,17 +19,21 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlparse
 
-import requests
 from dotenv import load_dotenv
-from minio import Minio
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from client import BangumiClient
-from db import get_engine, upsert_subject, upsert_episodes, upsert_tags, \
-    upsert_relations, create_import_record, complete_import_record
+try:
+    from .client import BangumiClient
+    from .db import get_engine, upsert_subject, upsert_episodes, upsert_tags, \
+        upsert_relations, create_import_record, complete_import_record
+    from .storage import ObjectStorage
+except ImportError:
+    from client import BangumiClient
+    from db import get_engine, upsert_subject, upsert_episodes, upsert_tags, \
+        upsert_relations, create_import_record, complete_import_record
+    from storage import ObjectStorage
 
 logging.basicConfig(
     level=logging.INFO,
@@ -52,15 +56,9 @@ _progress_lock = threading.Lock()
 _db_lock = threading.Lock()
 
 # ponytail: 模块级单例，避免层层传递
-_minio_client = None
+_object_storage = None
 _start_time = None
 _done_count = 0  # 已处理成功条目数，后台线程周期刷到 import_record.subject_count
-
-EXT_MAP = {
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/webp": "webp",
-}
 
 # import_runner 靠这个 PID 文件跨 worker 重启识别仍存活的导入子进程
 PID_FILE = Path(__file__).with_name("importer.pid")
@@ -117,61 +115,11 @@ def _start_count_flusher(record_id: int, engine, every: float = 3.0):
     return stop, thread
 
 
-def _minio_secure() -> bool:
-    return os.getenv("MINIO_SECURE", "false").lower() == "true"
-
-
-def _get_minio_client():
-    global _minio_client
-    if _minio_client is None:
-        _minio_client = Minio(
-            os.getenv("MINIO_ENDPOINT", "localhost:9000"),
-            access_key=os.getenv("MINIO_ACCESS_KEY", "minioadmin"),
-            secret_key=os.getenv("MINIO_SECRET_KEY", "minioadmin"),
-            secure=_minio_secure(),
-        )
-    return _minio_client
-
-
-def _get_ext_from_url(url: str) -> str | None:
-    path = urlparse(url).path.lower()
-    for ext in [".jpg", ".jpeg", ".png", ".webp"]:
-        if path.endswith(ext):
-            return ext.lstrip(".")
-    return None
-
-
-def upload_cover(subject_id: int, image_url: str) -> str:
-    """下载封面 → 上传 MinIO → 返回 MinIO 公开 URL；失败重试 2 次后回退。"""
-    if not image_url:
-        return image_url
-    proxy = os.getenv("BANGUMI_IMAGE_PROXY_URL", "").rstrip("/")
-    if proxy:
-        image_url = f"{proxy}/{image_url}"
-    for attempt in range(3):
-        try:
-            resp = requests.get(image_url, timeout=15, stream=True)
-            resp.raise_for_status()
-            content_type = resp.headers.get("Content-Type", "")
-            ext = EXT_MAP.get(content_type) or _get_ext_from_url(image_url) or "jpg"
-            object_name = f"covers/{subject_id}.{ext}"
-
-            mc = _get_minio_client()
-            bucket = os.getenv("MINIO_BUCKET", "anime-tracker")
-            if not mc.bucket_exists(bucket):
-                mc.make_bucket(bucket)
-
-            mc.put_object(bucket, object_name, resp.raw, length=-1, part_size=10 * 1024 * 1024,
-                          content_type=content_type or "image/jpeg")
-            scheme = "https" if _minio_secure() else "http"
-            public_url = f"{scheme}://{os.getenv('MINIO_ENDPOINT', 'localhost:9000')}".rstrip("/")
-            return f"{public_url}/{bucket}/{object_name}"
-        except Exception as e:
-            if attempt < 2:
-                logger.warning("  封面上传失败 subject %d（第 %d 次重试）: %s", subject_id, attempt + 1, e)
-            else:
-                logger.warning("  封面上传失败 subject %d（已重试 2 次），回退到原始 URL: %s", subject_id, e)
-    return image_url
+def _get_object_storage() -> ObjectStorage:
+    global _object_storage
+    if _object_storage is None:
+        _object_storage = ObjectStorage()
+    return _object_storage
 
 
 def _import_worker(bangumi_id, resume, access_token, user_agent, engine):
@@ -262,11 +210,9 @@ def _fetch_related(client, bangumi_id):
     if data.get("nsfw"):
         return None
 
-    raw_image = (data.get("images") or {}).get("large")
-    if raw_image:
-        minio_url = upload_cover(data["id"], raw_image)
-        if minio_url != raw_image:
-            data.setdefault("images", {})["large"] = minio_url
+    storage = _get_object_storage()
+    storage.put_raw_subject(data["id"], data)
+    cover = storage.put_cover(data["id"], (data.get("images") or {}).get("large") or "")
 
     episodes = []
     total_eps = data.get("eps") or data.get("total_episodes") or 0
@@ -274,13 +220,13 @@ def _fetch_related(client, bangumi_id):
         eps_data = client.get_episodes(bangumi_id)
         episodes = eps_data.get("data") or []
 
-    return {"data": data, "episodes": episodes}
+    return {"data": data, "cover": cover, "episodes": episodes}
 
 
 def _write_related(db, pkg):
     """把预取的关联条目写入 DB（仅在 _db_lock 内调用）。"""
     data = pkg["data"]
-    subject_id = upsert_subject(db, data)
+    subject_id = upsert_subject(db, data, pkg["cover"])
 
     tags = data.get("tags") or []
     if tags:
@@ -314,12 +260,9 @@ def import_single_subject(client, db, bangumi_id, resume):
                 logger.info("  -> 跳过 NSFW 条目 %d", bangumi_id)
                 return True
 
-            # 封面下载 → MinIO 转存 → 替换 URL 让 upsert_subject 直接写入 MinIO 路径
-            raw_image = (data.get("images") or {}).get("large")
-            if raw_image:
-                minio_url = upload_cover(data["id"], raw_image)
-                if minio_url != raw_image:
-                    data.setdefault("images", {})["large"] = minio_url
+            storage = _get_object_storage()
+            storage.put_raw_subject(data["id"], data)
+            cover = storage.put_cover(data["id"], (data.get("images") or {}).get("large") or "")
 
             episodes = []
             total_eps = data.get("eps") or data.get("total_episodes") or 0
@@ -364,7 +307,7 @@ def import_single_subject(client, db, bangumi_id, resume):
 
             # DB 写阶段：同一时刻仅一个事务在写，commit 后即释放锁
             with _db_lock:
-                subject_id = upsert_subject(db, data)
+                subject_id = upsert_subject(db, data, cover)
 
                 tags = data.get("tags") or []
                 if tags:

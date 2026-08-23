@@ -2,12 +2,15 @@
 
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from storage import CoverResult
 
 # ponytail: 直接写 SQL 和 SQLAlchemy ORM 配合，不用 declarative base 减少一层概念
 
@@ -28,7 +31,7 @@ def _infer_weekday(air_date: str | None) -> int | None:
         return None
 
 
-def upsert_subject(session: Session, data: dict) -> int:
+def upsert_subject(session: Session, data: dict, cover: "CoverResult | None" = None) -> int:
     """INSERT … ON DUPLICATE KEY UPDATE subject，返回 subject.id。"""
     bangumi_id = data["id"]
     existing = session.execute(
@@ -62,7 +65,7 @@ def upsert_subject(session: Session, data: dict) -> int:
                 "eps": max(data.get("eps") or 0, data.get("total_episodes") or 0) or None,
                 "air_date": air_date,
                 "air_weekday": air_weekday,
-                "image": (data.get("images") or {}).get("large"),
+                "image": cover.display_url if cover else (data.get("images") or {}).get("large"),
                 "score": (data.get("rating") or {}).get("score"),
                 "rank": (data.get("rating") or {}).get("rank"),
                 "collection_total": (data.get("collection") or {}).get("collect", 0),
@@ -92,7 +95,7 @@ def upsert_subject(session: Session, data: dict) -> int:
                 "eps": max(data.get("eps") or 0, data.get("total_episodes") or 0) or None,
                 "air_date": air_date,
                 "air_weekday": air_weekday,
-                "image": (data.get("images") or {}).get("large"),
+                "image": cover.display_url if cover else (data.get("images") or {}).get("large"),
                 "score": (data.get("rating") or {}).get("score"),
                 "rank": (data.get("rating") or {}).get("rank"),
                 "collection_total": (data.get("collection") or {}).get("collect", 0),
