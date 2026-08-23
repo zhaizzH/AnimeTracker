@@ -10,6 +10,9 @@ Usage:
 """
 
 import argparse
+import hashlib
+import json
+from dataclasses import dataclass
 import logging
 import os
 import random
@@ -27,12 +30,16 @@ from sqlalchemy.orm import Session
 try:
     from .client import BangumiClient
     from .db import get_engine, upsert_subject, upsert_episodes, upsert_tags, \
-        upsert_relations, create_import_record, complete_import_record
+        upsert_relations, create_import_record, complete_import_record, acquire_import_lock, release_import_lock, update_import_progress
+    from .normalize import normalize_subject
+    from .repository import ImportBundle, ImportCheckpoint, ImportRepository
     from .storage import ObjectStorage
 except ImportError:
     from client import BangumiClient
     from db import get_engine, upsert_subject, upsert_episodes, upsert_tags, \
-        upsert_relations, create_import_record, complete_import_record
+        upsert_relations, create_import_record, complete_import_record, acquire_import_lock, release_import_lock, update_import_progress
+    from normalize import normalize_subject
+    from repository import ImportBundle, ImportCheckpoint, ImportRepository
     from storage import ObjectStorage
 
 logging.basicConfig(
@@ -51,6 +58,10 @@ SEASON_MONTHS = {
 
 MAX_WORKERS = 10
 MAX_WORKERS_LIMIT = 10
+SAMPLE_STRATA = (50, 100, 150, 200)
+OUTCOME_SUCCESS = "success"
+OUTCOME_SKIPPED = "skipped"
+OUTCOME_FAILURE = "failure"
 
 _progress_lock = threading.Lock()
 _db_lock = threading.Lock()
@@ -144,7 +155,8 @@ def _stagger(ids, workers):
 
 
 def _run_batch(bangumi_ids, resume, access_token, user_agent,
-               host, port, user, password, db_name, max_workers=MAX_WORKERS, base_done=0):
+               host, port, user, password, db_name, max_workers=MAX_WORKERS, base_done=0,
+               record_id=None, mode=""):
     """并行导入一批 subject_id，返回成功数。
 
     base_done: 扫描阶段已发现条数，导入进度从该值继续累加（full 模式页面计数连续）。
@@ -154,6 +166,7 @@ def _run_batch(bangumi_ids, resume, access_token, user_agent,
     if not total:
         return 0
     engine = get_engine(host, port, user, password, db_name)
+    scanned_ids_sha256 = hashlib.sha256(",".join(map(str, bangumi_ids)).encode()).hexdigest()
     done = base_done
     ordered_ids = _stagger(bangumi_ids, max_workers)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -161,9 +174,28 @@ def _run_batch(bangumi_ids, resume, access_token, user_agent,
             executor.submit(_import_worker, bid, resume, access_token, user_agent, engine): bid
             for bid in ordered_ids
         }
-        for future in as_completed(futures):
-            if future.result():
+        for offset, future in enumerate(as_completed(futures), start=1):
+            subject_id = futures[future]
+            outcome = future.result()
+            success = outcome == OUTCOME_SUCCESS
+            skipped = outcome == OUTCOME_SKIPPED
+            if success:
                 done += 1
+            if record_id is not None:
+                progress_db = Session(engine)
+                try:
+                    checkpoint = ImportCheckpoint(mode, offset, subject_id, scanned_ids_sha256)
+                    update_import_progress(
+                        progress_db,
+                        record_id,
+                        checkpoint_json=json.dumps(checkpoint.as_json()),
+                        success=int(success),
+                        failure=int(outcome == OUTCOME_FAILURE),
+                        skipped=int(skipped),
+                    )
+                    progress_db.commit()
+                finally:
+                    progress_db.close()
             _done_count = done
             _safe_progress(done - base_done, total)
     return done - base_done
@@ -181,7 +213,7 @@ def _progress(done: int, total: int | None = None):
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Bangumi data importer")
     parser.add_argument("--mode", required=True,
-                        choices=["full", "season", "recent", "since"],
+                        choices=["full", "season", "recent", "since", "sample"],
                         help="import mode")
     parser.add_argument("--key", help="season key, e.g. 2026-summer (required for season mode)")
     parser.add_argument("--since", help="start date, e.g. 2026-01-01 (required for since mode)")
@@ -189,7 +221,79 @@ def parse_args(argv=None):
                         help="skip already imported subjects")
     parser.add_argument("--workers", type=int, default=MAX_WORKERS,
                         help=f"number of import threads (default: {MAX_WORKERS}, max: {MAX_WORKERS_LIMIT})")
+    parser.add_argument("--limit", type=int, default=500,
+                        help="sample mode item limit (default: 500)")
     return parser.parse_args(argv)
+
+
+@dataclass(frozen=True)
+class ImportSummary:
+    processed: int
+    distribution: dict[str, int]
+
+
+def _sample_bucket(date: str) -> int:
+    year = int(date[:4]) if len(date) >= 4 and date[:4].isdigit() else 2020
+    if year < 1990:
+        return 0
+    if year < 2010:
+        return 1
+    if year < 2020:
+        return 2
+    return 3
+
+
+def _sample_ids(items, *, limit: int = 500, strata: tuple[int, int, int, int] = SAMPLE_STRATA):
+    """在内存中挑选样本；不足配额按最近年代层补齐。"""
+    if limit < 1 or len(strata) != 4 or any(value < 0 for value in strata):
+        raise ValueError("sample limit and strata must be positive")
+    buckets = [[] for _ in strata]
+    for subject_id, date in items:
+        if subject_id:
+            buckets[_sample_bucket(date or "")].append(subject_id)
+    wanted = list(strata)
+    if sum(wanted) > limit:
+        remaining = limit
+        wanted = [min(value, remaining) for value in wanted]
+        remaining -= sum(wanted)
+    chosen = [bucket[:wanted[index]] for index, bucket in enumerate(buckets)]
+    deficit = min(limit, sum(len(bucket) for bucket in buckets)) - sum(map(len, chosen))
+    while deficit:
+        progress = False
+        for target in range(4):
+            if deficit == 0:
+                break
+            for distance in range(1, 4):
+                candidates = (target - distance, target + distance)
+                for source in candidates:
+                    if 0 <= source < 4 and len(chosen[source]) < len(buckets[source]):
+                        chosen[source].append(buckets[source][len(chosen[source])])
+                        deficit -= 1
+                        progress = True
+                        break
+                if progress or deficit == 0:
+                    break
+        if not progress:
+            break
+    selected_set = {subject_id for bucket in chosen for subject_id in bucket}
+    selected = [subject_id for subject_id, _ in items if subject_id in selected_set]
+    labels = ("before_1990", "1990_2009", "2010_2019", "2020_plus")
+    return selected, dict(zip(labels, map(len, chosen)))
+
+
+def run_sample(client, db, resume=False, *, limit: int = 500, strata: tuple[int, int, int, int] = SAMPLE_STRATA, **kw) -> ImportSummary:
+    """仅供样本门禁；不影响 full 的扫描与导入顺序。"""
+    offset = 0
+    items = []
+    while True:
+        page = client.browse_subjects(type=2, offset=offset, limit=100)
+        page_items = page.get("data") or []
+        items.extend((entry.get("id"), entry.get("date") or "") for entry in page_items)
+        offset += len(page_items)
+        if not page_items or offset >= int(page.get("total") or 0):
+            break
+    ids, distribution = _sample_ids(items, limit=limit, strata=strata)
+    return ImportSummary(_run_batch(ids, resume, **kw), distribution)
 
 
 def parse_season_key(key: str):
@@ -237,11 +341,7 @@ def _write_related(db, pkg):
 
 
 def import_single_subject(client, db, bangumi_id, resume):
-    """网络请求（锁外并行）与 DB 写（锁内串行）分离。
-
-    并发事务各自拿到多把行/间隙锁再互相等待，是死锁环的成因；全局锁保证
-    同一时刻只有一个事务在写库，从结构上消除死锁。网络是耗时大头，不受影响。
-    """
+    """预取公开资料后，将单条目交给仓储层原子写入。"""
     for _retry in range(5):
         try:
             if resume:
@@ -251,18 +351,25 @@ def import_single_subject(client, db, bangumi_id, resume):
                 ).scalar()
                 if existing:
                     logger.info("  -> 跳过已导入条目 %d", bangumi_id)
-                    return True
+                    return OUTCOME_SKIPPED
+                db.rollback()  # 让 write_bundle 自己建立唯一的写事务
 
             logger.info("  -> 获取条目 %d", bangumi_id)
             data = client.get_subject(bangumi_id)
 
             if data.get("nsfw"):
                 logger.info("  -> 跳过 NSFW 条目 %d", bangumi_id)
-                return True
+                return OUTCOME_SKIPPED
 
             storage = _get_object_storage()
             storage.put_raw_subject(data["id"], data)
             cover = storage.put_cover(data["id"], (data.get("images") or {}).get("large") or "")
+
+            persons = client.get_subject_persons(bangumi_id)
+            normalized = normalize_subject(data, persons)
+            if normalized is None:
+                logger.info("  -> 跳过非公开动画条目 %d", bangumi_id)
+                return OUTCOME_SKIPPED
 
             episodes = []
             total_eps = data.get("eps") or data.get("total_episodes") or 0
@@ -271,59 +378,22 @@ def import_single_subject(client, db, bangumi_id, resume):
                 eps_data = client.get_episodes(bangumi_id)
                 episodes = eps_data.get("data") or []
 
-            # 关联条目：网络部分（拉取 + 判缺失 + 预取数据）全部在加锁前完成
+            # 关联条目只保留动画关系；仓储层按本地自然键写入已存在的关联目标。
             anime_relations = []
-            related_pkgs = []
             try:
                 relations = client.get_relations(bangumi_id)
                 if relations:
                     anime_relations = [r for r in relations if r.get("type") == 2]
-                    if not anime_relations:
-                        logger.info("  -> 无非番剧关联条目")
-                    else:
-                        for rel in anime_relations:
-                            related_bid = rel.get("id")
-                            if not related_bid:
-                                continue
-                            exists = db.execute(
-                                text("SELECT 1 FROM subject WHERE bangumi_id = :bid"),
-                                {"bid": related_bid},
-                            ).scalar()
-                            if not exists:
-                                logger.info("  -> 导入缺失的关联条目 %d（主条目 %d）", related_bid, bangumi_id)
-                                try:
-                                    pkg = _fetch_related(client, related_bid)
-                                    if pkg:
-                                        related_pkgs.append(pkg)
-                                except Exception as e:
-                                    logger.warning("  -> 关联条目 %d 预导入失败: %s", related_bid, e)
-
-                    non_anime = [r for r in relations if r.get("type") not in (None, 2)]
-                    if non_anime:
-                        for r in non_anime:
-                            logger.info("  -> 跳过非番剧关联条目 %d（type=%s）", r["id"], r.get("type"))
             except Exception as e:
                 logger.warning("  -> 关联条目导入失败 subject %d: %s", bangumi_id, e)
 
-            # DB 写阶段：同一时刻仅一个事务在写，commit 后即释放锁
+            # 每个主条目及其索引任务均由 repository 的同一事务提交。
             with _db_lock:
-                subject_id = upsert_subject(db, data, cover)
-
-                tags = data.get("tags") or []
-                if tags:
-                    upsert_tags(db, subject_id, tags)
-
-                if episodes:
-                    upsert_episodes(db, subject_id, episodes)
-
-                for pkg in related_pkgs:
-                    _write_related(db, pkg)
-
-                if anime_relations:
-                    upsert_relations(db, subject_id, anime_relations)
-
-                db.commit()
-            return True
+                ImportRepository(db).write_bundle(
+                    ImportBundle(normalized, cover, tuple(episodes), tuple(anime_relations)),
+                    os.getenv("RAG_INDEX_VERSION", "v1"),
+                )
+            return OUTCOME_SUCCESS
 
         except Exception as e:
             db.rollback()
@@ -334,7 +404,7 @@ def import_single_subject(client, db, bangumi_id, resume):
                 time.sleep(0.5 * (_retry + 1))
                 continue
             logger.error("  x subject %d 导入失败: %s", bangumi_id, e)
-            return False
+            return OUTCOME_FAILURE
 
 
 def run_full(client, db, resume, **kw):
@@ -451,7 +521,9 @@ def main():
 
     client = BangumiClient(access_token=access_token, user_agent=user_agent)
     engine = get_engine(db_host, db_port, db_user, db_password, db_name)
-    db = Session(engine)
+    # 保持主连接在整个导入期间被检出，MySQL GET_LOCK 不会在 commit 后漂移到连接池。
+    main_connection = engine.connect()
+    db = Session(bind=main_connection)
 
     # 线程池共享参数
     pool_kw = dict(
@@ -460,27 +532,25 @@ def main():
         max_workers=min(args.workers, MAX_WORKERS_LIMIT),
     )
 
-    PID_FILE.write_text(str(os.getpid()))
-    record_id = create_import_record(db, args.mode, getattr(args, "key", None))
-    db.commit()
-    stop_flusher, flusher_thread = _start_count_flusher(record_id, engine)
-
     global _start_time
     _start_time = time.time()
-
-    logger.info("")
-    logger.info("=" * 60)
-    logger.info("  Bangumi 数据导入")
-    logger.info("  模式: %s", args.mode)
-    if args.key:
-        logger.info("  季度: %s", args.key)
-    if args.since:
-        logger.info("  起始: %s", args.since)
-    if args.resume:
-        logger.info("  启用跳过已导入条目")
-    logger.info("=" * 60)
-    logger.info("")
+    record_id = None
+    stop_flusher = flusher_thread = None
+    lock_acquired = False
     try:
+        acquire_import_lock(db)
+        lock_acquired = True
+        PID_FILE.write_text(str(os.getpid()))
+        record_id = create_import_record(db, args.mode, getattr(args, "key", None))
+        ImportRepository(db).save_checkpoint(
+            record_id,
+            ImportCheckpoint(args.mode, 0, None, hashlib.sha256(b"").hexdigest()),
+        )
+        db.commit()
+        stop_flusher, flusher_thread = _start_count_flusher(record_id, engine)
+        pool_kw.update(record_id=record_id, mode=args.mode)
+
+        logger.info("Bangumi 数据导入模式: %s", args.mode)
         if args.mode == "full":
             count = run_full(client, db, args.resume, **pool_kw)
         elif args.mode == "season":
@@ -493,11 +563,16 @@ def main():
             if not args.since:
                 raise ValueError("since mode needs --since")
             count = run_since(client, db, args.since, args.resume, **pool_kw)
+        elif args.mode == "sample":
+            summary = run_sample(client, db, args.resume, limit=args.limit, **pool_kw)
+            count = summary.processed
+            logger.info("样本实际分布: %s", summary.distribution)
         else:
             raise ValueError(f"Unknown mode: {args.mode}")
 
         stop_flusher.set()
         flusher_thread.join(timeout=5)
+        stop_flusher = flusher_thread = None
         complete_import_record(db, record_id, count, "COMPLETED")
         db.commit()
         elapsed = _fmt_duration(time.time() - _start_time)
@@ -511,12 +586,19 @@ def main():
     except Exception as e:
         elapsed = _fmt_duration(time.time() - _start_time)
         logger.exception("导入异常终止（耗时 %s）", elapsed)
-        complete_import_record(db, record_id, 0, "FAILED", str(e))
-        db.commit()
+        if record_id is not None:
+            complete_import_record(db, record_id, 0, "FAILED", str(e))
+            db.commit()
         sys.exit(1)
     finally:
+        if stop_flusher is not None:
+            stop_flusher.set()
+            flusher_thread.join(timeout=5)
         PID_FILE.unlink(missing_ok=True)
+        if lock_acquired:
+            release_import_lock(db)
         db.close()
+        main_connection.close()
 
 
 if __name__ == "__main__":

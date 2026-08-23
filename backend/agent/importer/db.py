@@ -280,6 +280,45 @@ def create_import_record(session: Session, mode: str, season_key: Optional[str] 
     return result.lastrowid
 
 
+def acquire_import_lock(session: Session) -> None:
+    """在 importer 主连接上取得 MySQL 单飞锁。"""
+    locked = session.execute(text("SELECT GET_LOCK('animetracker:import', 0)")).scalar()
+    if locked != 1:
+        raise RuntimeError("已有导入任务正在运行，未获得 animetracker:import 锁")
+
+
+def release_import_lock(session: Session) -> None:
+    """释放当前主连接持有的 MySQL 单飞锁。"""
+    session.execute(text("SELECT RELEASE_LOCK('animetracker:import')"))
+
+
+def update_import_progress(
+    session: Session,
+    record_id: int,
+    *,
+    checkpoint_json: str,
+    success: int = 0,
+    failure: int = 0,
+    skipped: int = 0,
+) -> None:
+    """每处理一项刷新断点、计数和心跳；调用方负责所属事务。"""
+    session.execute(
+        text(
+            "UPDATE import_record SET checkpoint_json=CAST(:checkpoint_json AS JSON), "
+            "success_count=success_count+:success, failure_count=failure_count+:failure, "
+            "skipped_count=skipped_count+:skipped, heartbeat_at=:now WHERE id=:id"
+        ),
+        {
+            "id": record_id,
+            "checkpoint_json": checkpoint_json,
+            "success": success,
+            "failure": failure,
+            "skipped": skipped,
+            "now": datetime.now(),
+        },
+    )
+
+
 def complete_import_record(session: Session, record_id: int, subject_count: int,
                            status: str = "COMPLETED", error_message: Optional[str] = None):
     """完成导入记录。"""
@@ -307,6 +346,7 @@ def fail_stale_running_records(session: Session, message: str = "导入进程提
             UPDATE import_record
             SET status = 'FAILED', completed_at = :now, error_message = :message
             WHERE status = 'RUNNING'
+              AND (heartbeat_at IS NULL OR heartbeat_at < DATE_SUB(:now, INTERVAL 10 MINUTE))
         """),
         {"now": datetime.now(), "message": message},
     )
