@@ -153,7 +153,7 @@ def _validate_item(item: Mapping[str, Any]) -> None:
             raise ConfirmationMismatch("invalid quality object target")
     elif not isinstance(target, int) or isinstance(target, bool) or target < 1:
         raise ConfirmationMismatch("invalid quality database target")
-    if category == "MISSING_COVER_OBJECT" and (not isinstance(details.get("subjectId"), int) or details["subjectId"] < 1):
+    if category == "MISSING_COVER_OBJECT" and (not isinstance(details.get("subjectId"), int) or isinstance(details["subjectId"], bool) or details["subjectId"] < 1):
         raise ConfirmationMismatch("invalid missing-cover details")
     if category == "EPISODE_STATUS_DRIFT" and details.get("expectedStatus") not in {"Air", "Today", "NA"}:
         raise ConfirmationMismatch("invalid episode-status details")

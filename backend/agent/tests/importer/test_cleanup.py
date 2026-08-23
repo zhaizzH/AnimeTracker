@@ -228,6 +228,27 @@ def test_cleanup_repairs_cover_and_episode_status_or_marks_reimport_pending(tmp_
     ]
 
 
+@pytest.mark.parametrize("action", ["KEEP_SOURCE_FALLBACK", "REIMPORT"])
+def test_cleanup_rejects_boolean_missing_cover_subject_id_before_any_write(tmp_path, action):
+    from importer.cleanup import ConfirmationMismatch, apply_cleanup_plan
+
+    payload = report_payload()
+    payload["counts"]["MISSING_COVER_OBJECT"] = 1
+    payload["items"].append({"category": "MISSING_COVER_OBJECT", "action": action, "target": "covers/7.jpg", "details": {"subjectId": True}})
+    path = tmp_path / "quality.json"
+    content = json.dumps(payload).encode("utf-8")
+    path.write_bytes(content)
+    digest = hashlib.sha256(content).hexdigest()
+    db, minio = FakeDatabase(), FakeMinio()
+
+    with pytest.raises(ConfirmationMismatch):
+        apply_cleanup_plan(path, digest, db, minio, commit="abc123", dirty=False)
+
+    assert db.deleted == []
+    assert db.updated == []
+    assert minio.deleted == []
+
+
 def test_cleanup_reports_manual_review_items_without_counting_them_as_applied(tmp_path):
     from importer.cleanup import apply_cleanup_plan, write_cleanup_plan
 
