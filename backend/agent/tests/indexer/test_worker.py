@@ -7,7 +7,7 @@ from app.rag.profile import build_subject_profile
 from app.rag.schemas import SubjectProfileSource
 from indexer.main import _profile, run_batch
 from indexer.repository import IndexJob, IndexSubject
-from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import ConnectionError as RedisConnectionError, TimeoutError as RedisTimeoutError
 
 
 @dataclass
@@ -158,6 +158,22 @@ def test_worker_retries_claimed_jobs_when_creating_redis_version_is_unavailable(
         repository=repo,
         embedding_client=FakeEmbedding(),
         redis_index=FakeIndex(ensure_error=RedisConnectionError("connection refused")),
+    )
+
+    assert result.retried == 1
+    assert repo.retries == [(7, 1, "EmbeddingUnavailable")]
+
+
+def test_worker_retries_claimed_jobs_when_redis_socket_times_out():
+    """若 Redis socket timeout 被标记 FAILED，暂时网络抖动会永久丢失索引任务。"""
+    repo = FakeRepo([_job()])
+
+    result = run_batch(
+        limit=10,
+        index_version="v1",
+        repository=repo,
+        embedding_client=FakeEmbedding(),
+        redis_index=FakeIndex(error=RedisTimeoutError("Timeout reading from socket")),
     )
 
     assert result.retried == 1

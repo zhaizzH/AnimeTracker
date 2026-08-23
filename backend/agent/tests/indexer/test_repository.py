@@ -97,10 +97,31 @@ def test_claim_batch_only_returns_due_jobs_and_marks_them_running():
     select_sql = next(sql for sql, _ in session.queries if "FOR UPDATE SKIP LOCKED" in sql)
     assert "status = 'PENDING'" in select_sql
     assert "status = 'RETRY' AND (next_retry_at IS NULL OR next_retry_at <= :now)" in select_sql
-    update_sql, update_params = next((sql, params) for sql, params in session.queries if "status='RUNNING'" in sql)
+    update_sql, update_params = next(
+        (sql, params) for sql, params in session.queries if "status='RUNNING'" in sql and params.get("id") == 7
+    )
     assert update_params["id"] == 7
     assert update_params["attempts"] == 2
     assert "LIMIT :limit" in select_sql
+
+
+def test_claim_batch_recovers_expired_running_lease_before_claiming():
+    """若进程在领取后崩溃，过期 RUNNING 必须在同一领取事务中恢复，不能永久卡住。"""
+    session = FakeSession(
+        [{"id": 8, "subject_id": 43, "index_version": "v1", "content_hash": "b" * 64, "attempts": 1}]
+    )
+    repo = IndexJobRepository(session, now=lambda: datetime(2026, 8, 23, 12, 0, 0))
+
+    jobs = repo.claim_batch("v1", limit=10)
+
+    recovery_position, recovery = next(
+        (position, sql) for position, (sql, _) in enumerate(session.queries) if "LEASE_EXPIRED" in sql
+    )
+    claim_position = next(position for position, (sql, _) in enumerate(session.queries) if "FOR UPDATE SKIP LOCKED" in sql)
+    assert recovery_position < claim_position
+    assert "status='RUNNING'" in recovery
+    assert "updated_at <= :lease_before" in recovery
+    assert jobs[0].attempts == 2
 
 
 def test_retry_stops_after_fifth_attempt_and_redacts_credentials():
@@ -119,3 +140,18 @@ def test_retry_stops_after_fifth_attempt_and_redacts_credentials():
     assert "\x00" not in failed["message"]
     assert retry["status"] == "RETRY"
     assert retry["next_retry_at"] == datetime(2026, 8, 23, 12, 2, 0)
+
+
+def test_error_redaction_hides_redis_url_secrets_for_empty_user_and_quoted_json_values():
+    """若 redis://:secret@ 或 JSON 引号形式漏脱敏，任务错误列会持久化认证信息。"""
+    session = FakeSession(())
+    repo = IndexJobRepository(session)
+
+    repo.mark_failed(
+        12,
+        error=RuntimeError('{"url":"redis://:empty-user-secret@cache:6379/0"} redis://user:"quoted-secret"@cache:6379/0'),
+    )
+
+    _, params = next((sql, params) for sql, params in session.queries if params.get("id") == 12)
+    assert "empty-user-secret" not in params["message"]
+    assert "quoted-secret" not in params["message"]

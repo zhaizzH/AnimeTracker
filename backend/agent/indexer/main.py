@@ -9,7 +9,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 import redis
-from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import ConnectionError as RedisConnectionError, TimeoutError as RedisTimeoutError
 from sqlalchemy.orm import Session
 
 from app.rag.embeddings import DashScopeEmbeddingClient, EmbeddingRateLimited, EmbeddingUnavailable
@@ -220,7 +220,7 @@ def _percentile(values: tuple[float, ...], percentile: int) -> float | None:
 
 
 def _is_unavailable(error: Exception) -> bool:
-    return isinstance(error, (ConnectionError, RedisConnectionError, OSError)) or "unavailable" in str(error).lower()
+    return isinstance(error, (ConnectionError, RedisConnectionError, RedisTimeoutError, OSError)) or "unavailable" in str(error).lower()
 
 
 if __name__ == "__main__":

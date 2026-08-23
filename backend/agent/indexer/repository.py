@@ -10,6 +10,7 @@ from sqlalchemy import text
 
 
 MAX_ATTEMPTS = 5
+RUNNING_LEASE_SECONDS = 15 * 60
 
 
 @dataclass(frozen=True)
@@ -66,6 +67,22 @@ class IndexJobRepository:
         capped_limit = min(limit, 10)
         now = self._now()
         with self._session.begin():
+            self._session.execute(
+                text(
+                    "UPDATE rag_index_job SET "
+                    "status=CASE WHEN attempts >= :max_attempts THEN 'FAILED' ELSE 'RETRY' END, "
+                    "last_error_code='LEASE_EXPIRED', last_error_message='index worker lease expired', "
+                    "next_retry_at=CASE WHEN attempts >= :max_attempts THEN NULL ELSE :now END, "
+                    "updated_at=:now WHERE index_version=:index_version AND status='RUNNING' "
+                    "AND updated_at <= :lease_before"
+                ),
+                {
+                    "index_version": index_version,
+                    "max_attempts": MAX_ATTEMPTS,
+                    "now": now,
+                    "lease_before": now - timedelta(seconds=RUNNING_LEASE_SECONDS),
+                },
+            )
             rows = self._session.execute(
                 text(
                     "SELECT id, subject_id, index_version, content_hash, attempts "
@@ -182,7 +199,7 @@ def _error_details(error: Exception) -> tuple[str, str]:
     message = re.sub(r"(?i)\bauthorization\s*:\s*bearer\s+[^\s,;]+", "Authorization: Bearer ***", message)
     message = re.sub(r"(?i)\bbearer\s+[^\s,;]+", "Bearer ***", message)
     message = re.sub(r"(?i)\b(?:password|passwd|pwd|token|api[_-]?key)\s*[:=]\s*[^\s,;]+", "***", message)
-    message = re.sub(r"//[^:/@\s]+:[^@/\s]+@", "//***:***@", message)
+    message = re.sub(r"//[^@/\s]*:[^@/\s]+@", "//***:***@", message)
     return type(error).__name__[:64], f"{type(error).__name__}: {message}"[:512]
 
 
