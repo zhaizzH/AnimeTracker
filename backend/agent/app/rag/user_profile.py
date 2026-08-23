@@ -11,6 +11,8 @@ from typing import Any, Callable, Sequence
 
 _CACHE_TTL_SECONDS = 24 * 60 * 60
 _WEIGHTS = {1: 0.35, 2: 1.0, 3: 1.0, 4: 0.0, 5: -0.75}
+_VECTOR_DIMENSIONS = 1024
+_VECTOR_BYTES = _VECTOR_DIMENSIONS * 4
 
 
 @dataclass(frozen=True)
@@ -27,6 +29,12 @@ class UserPreference:
     exclude_subject_ids: tuple[int, ...]
     sample_count: int
     collection_version: str
+
+    def __post_init__(self) -> None:
+        vector = _float32_vector(self.vector)
+        if vector is None:
+            raise ValueError("用户画像必须是 1024 维有限 Float32 向量")
+        object.__setattr__(self, "vector", vector)
 
 
 VectorLookup = Callable[[int], Sequence[float] | None]
@@ -50,15 +58,12 @@ def build_preference(items: Sequence[CollectionItem], *, vector_lookup: VectorLo
         weight = _WEIGHTS.get(int(item.type), 0.0)
         if weight == 0.0:
             continue
-        vector = _finite_vector(vector_lookup(int(item.subject_id)))
+        vector = _float32_vector(vector_lookup(int(item.subject_id)))
         if vector is not None:
             weighted.append((weight, vector))
     if len(weighted) < 3:
         return None
-    dimensions = len(weighted[0][1])
-    if not dimensions or any(len(vector) != dimensions for _, vector in weighted):
-        return None
-    totals = [0.0] * dimensions
+    totals = [0.0] * _VECTOR_DIMENSIONS
     total_weight = sum(abs(weight) for weight, _ in weighted)
     if total_weight == 0.0:
         return None
@@ -129,9 +134,12 @@ class UserProfileService:
         excludes = value.get("excludeSubjectIds")
         if not isinstance(encoded, str) or not isinstance(sample_count, int) or not isinstance(excludes, list):
             return None
+        encoded_bytes = b64decode(encoded, validate=True)
+        if len(encoded_bytes) != _VECTOR_BYTES:
+            return None
         decoded = array("f")
-        decoded.frombytes(b64decode(encoded, validate=True))
-        vector = _finite_vector(decoded)
+        decoded.frombytes(encoded_bytes)
+        vector = _float32_vector(decoded)
         if vector is None or sample_count < 3:
             return None
         return UserPreference(
@@ -142,14 +150,17 @@ class UserProfileService:
         )
 
 
-def _finite_vector(values: Sequence[float] | None) -> tuple[float, ...] | None:
+def _float32_vector(values: Sequence[float] | None) -> tuple[float, ...] | None:
     if values is None:
         return None
     try:
         vector = tuple(float(value) for value in values)
+        if len(vector) != _VECTOR_DIMENSIONS or not all(math.isfinite(value) for value in vector):
+            return None
+        encoded = array("f", vector)
     except (TypeError, ValueError, OverflowError):
         return None
-    return vector if vector and all(math.isfinite(value) for value in vector) else None
+    return tuple(encoded) if all(math.isfinite(value) for value in encoded) else None
 
 
 def _value(value: Any) -> str:

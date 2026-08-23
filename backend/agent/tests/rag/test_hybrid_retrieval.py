@@ -9,6 +9,10 @@ from app.rag.schemas import RetrievalQuery
 from app.rag.user_profile import UserPreference
 
 
+def profile_vector(*head: float) -> tuple[float, ...]:
+    return tuple([*head, *([0.0] * (1024 - len(head)))])
+
+
 def candidate(subject_id: int) -> RetrievalCandidate:
     return RetrievalCandidate(subject_id=subject_id, retrieval_score=0.0, retrieval_reason="test")
 
@@ -240,15 +244,15 @@ def test_user_profile_vector_reranks_candidates_by_cosine_similarity():
     service = RagRetrievalService(
         FakeIndex(
             lexical=[
-                {"subject_id": 7, "title": "非偏好", "vector": [0.0, 1.0]},
-                {"subject_id": 8, "title": "偏好", "vector": [1.0, 0.0]},
+                {"subject_id": 7, "title": "非偏好", "vector": profile_vector(0.0, 1.0)},
+                {"subject_id": 8, "title": "偏好", "vector": profile_vector(1.0, 0.0)},
             ],
             semantic=[],
         ),
         VectorEmbedding(),
         authority_lookup=_authority,
     )
-    preference = UserPreference((1.0, 0.0), (), 3, "version")
+    preference = UserPreference(profile_vector(1.0, 0.0), (), 3, "version")
 
     result = service.retrieve(RetrievalQuery(keywords=["治愈"]), "search", preference=preference)
 
