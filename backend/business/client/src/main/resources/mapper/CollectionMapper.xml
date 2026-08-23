@@ -45,4 +45,14 @@
         ORDER BY s.air_weekday, s.score DESC
     </select>
 
+    <select id="findCollectedSubjectIds" resultType="java.lang.Long">
+        SELECT subject_id
+        FROM user_collection
+        WHERE user_id = #{userId}
+          AND subject_id IN
+        <foreach collection="subjectIds" item="subjectId" open="(" separator="," close=")">
+            #{subjectId}
+        </foreach>
+    </select>
+
 </mapper>

@@ -35,4 +35,10 @@ public interface CollectionMapper extends BaseMapper<UserCollection> {
             @Param("endDate") LocalDate endDate,
             @Param("weekday") Integer weekday
     );
+
+    /** 查询用户已收藏的指定条目。 */
+    List<Long> findCollectedSubjectIds(
+            @Param("userId") Long userId,
+            @Param("subjectIds") List<Long> subjectIds
+    );
 }

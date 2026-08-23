@@ -6,7 +6,10 @@ import top.zhaizz.pojo.dto.subject.SeasonQueryDTO;
 import top.zhaizz.pojo.dto.subject.SubjectListQueryDTO;
 import top.zhaizz.pojo.dto.subject.SubjectSearchQueryDTO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
+import top.zhaizz.pojo.vo.subject.SubjectBatchResultVO;
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
+
+import java.util.List;
 
 /** 番剧查询服务接口 */
 public interface ClientSubjectService {
@@ -25,4 +28,7 @@ public interface ClientSubjectService {
 
     /** 按周追番列表（分页） */
     PageResult<SubjectListVO> listSchedule(ScheduleQueryDTO request);
+
+    /** 批量回查条目，并按可见性、收藏状态分类。 */
+    SubjectBatchResultVO batch(List<Long> subjectIds, boolean excludeCollected, Long userId);
 }

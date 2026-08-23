@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import top.zhaizz.client.converter.SubjectConverter;
+import top.zhaizz.client.mapper.CollectionMapper;
 import top.zhaizz.client.mapper.SubjectMapper;
 import top.zhaizz.client.mapper.SubjectRelationMapper;
 import top.zhaizz.client.mapper.SubjectTagMapper;
@@ -23,14 +24,20 @@ import top.zhaizz.pojo.dto.subject.SubjectSearchQueryDTO;
 import top.zhaizz.pojo.entity.Subject;
 import top.zhaizz.pojo.entity.SubjectRelation;
 import top.zhaizz.pojo.entity.SubjectTag;
+import top.zhaizz.pojo.vo.subject.SubjectBatchItemVO;
+import top.zhaizz.pojo.vo.subject.SubjectBatchResultVO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
 import top.zhaizz.pojo.vo.subject.SubjectRelationVO;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -52,6 +59,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
     private final SubjectMapper subjectMapper;
     private final SubjectTagMapper subjectTagMapper;
     private final SubjectRelationMapper subjectRelationMapper;
+    private final CollectionMapper collectionMapper;
 
     @Override
     public PageResult<SubjectListVO> listSubjects(SubjectListQueryDTO request) {
@@ -168,6 +176,46 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
                 (int) mpPage.getCurrent(),
                 (int) mpPage.getSize()
         );
+    }
+
+    @Override
+    public SubjectBatchResultVO batch(List<Long> subjectIds, boolean excludeCollected, Long userId) {
+        List<Long> uniqueIds = new ArrayList<>(new LinkedHashSet<>(subjectIds));
+        Map<Long, Subject> subjectsById = subjectMapper.selectBatchIds(uniqueIds).stream()
+                .collect(Collectors.toMap(Subject::getId, subject -> subject));
+        Set<Long> collectedIds = excludeCollected && userId != null
+                ? new HashSet<>(collectionMapper.findCollectedSubjectIds(userId, uniqueIds))
+                : Set.of();
+
+        SubjectBatchResultVO result = new SubjectBatchResultVO();
+        for (Long id : uniqueIds) {
+            Subject subject = subjectsById.get(id);
+            if (subject == null) {
+                result.getMissingIds().add(id);
+            } else if (!Integer.valueOf(2).equals(subject.getType()) || Boolean.TRUE.equals(subject.getNsfw())) {
+                result.getFilteredIds().add(id);
+            } else if (collectedIds.contains(id)) {
+                result.getCollectedIds().add(id);
+            } else {
+                result.getItems().add(toBatchItemVO(subject));
+            }
+        }
+        return result;
+    }
+
+    private SubjectBatchItemVO toBatchItemVO(Subject subject) {
+        SubjectBatchItemVO item = new SubjectBatchItemVO();
+        item.setId(subject.getId());
+        item.setName(subject.getName());
+        item.setNameCn(subject.getNameCn());
+        item.setImage(subject.getImage());
+        item.setScore(subject.getScore());
+        item.setRatingTotal(subject.getRatingTotal());
+        item.setCollectionTotal(subject.getCollectionTotal());
+        item.setAirDate(subject.getAirDate());
+        item.setType(subject.getType());
+        item.setNsfw(subject.getNsfw());
+        return item;
     }
 
     private SFunction<Subject, ?> buildSortField(String sort) {

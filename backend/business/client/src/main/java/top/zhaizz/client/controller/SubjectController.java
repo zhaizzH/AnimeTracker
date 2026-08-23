@@ -7,12 +7,15 @@ import top.zhaizz.client.service.ClientSubjectService;
 import top.zhaizz.client.service.EpisodeService;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
+import top.zhaizz.common.util.SecurityUtil;
 import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
 import top.zhaizz.pojo.dto.subject.SeasonQueryDTO;
+import top.zhaizz.pojo.dto.subject.SubjectBatchRequestDTO;
 import top.zhaizz.pojo.dto.subject.SubjectListQueryDTO;
 import top.zhaizz.pojo.dto.subject.SubjectSearchQueryDTO;
 import top.zhaizz.pojo.vo.subject.EpisodeVO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
+import top.zhaizz.pojo.vo.subject.SubjectBatchResultVO;
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
 
 import java.util.List;
@@ -58,6 +61,15 @@ public class SubjectController {
     @GetMapping("/schedule")
     public Result<PageResult<SubjectListVO>> listSchedule(@Valid ScheduleQueryDTO request) {
         return Result.success(clientSubjectService.listSchedule(request));
+    }
+
+    /**
+     * 批量回查候选条目的权威可见状态。
+     */
+    @PostMapping("/batch")
+    public Result<SubjectBatchResultVO> batchSubjects(@Valid @RequestBody SubjectBatchRequestDTO request) {
+        return Result.success(clientSubjectService.batch(
+                request.getSubjectIds(), request.isExcludeCollected(), SecurityUtil.getCurrentUserIdQuietly()));
     }
 
     /**
