@@ -30,14 +30,14 @@ from sqlalchemy.orm import Session
 try:
     from .client import BangumiClient
     from .db import get_engine, upsert_subject, upsert_episodes, upsert_tags, \
-        upsert_relations, create_import_record, complete_import_record, acquire_import_lock, release_import_lock, update_import_progress
+        upsert_relations, create_import_record, complete_import_record, acquire_import_lock, release_import_lock, update_import_progress, load_resume_record, resume_import_record, sanitize_import_error
     from .normalize import normalize_subject
     from .repository import ImportBundle, ImportCheckpoint, ImportRepository
     from .storage import ObjectStorage
 except ImportError:
     from client import BangumiClient
     from db import get_engine, upsert_subject, upsert_episodes, upsert_tags, \
-        upsert_relations, create_import_record, complete_import_record, acquire_import_lock, release_import_lock, update_import_progress
+        upsert_relations, create_import_record, complete_import_record, acquire_import_lock, release_import_lock, update_import_progress, load_resume_record, resume_import_record, sanitize_import_error
     from normalize import normalize_subject
     from repository import ImportBundle, ImportCheckpoint, ImportRepository
     from storage import ObjectStorage
@@ -111,7 +111,7 @@ def _start_count_flusher(record_id: int, engine, every: float = 3.0):
             db.commit()
         except Exception as e:
             db.rollback()
-            logger.warning("刷新 import_record.subject_count 失败: %s", e)
+            logger.warning("刷新 import_record.subject_count 失败: %s", sanitize_import_error(e))
 
     def _loop():
         db = Session(engine)
@@ -156,35 +156,47 @@ def _stagger(ids, workers):
 
 def _run_batch(bangumi_ids, resume, access_token, user_agent,
                host, port, user, password, db_name, max_workers=MAX_WORKERS, base_done=0,
-               record_id=None, mode=""):
+               record_id=None, mode="", resume_checkpoint=None):
     """并行导入一批 subject_id，返回成功数。
 
     base_done: 扫描阶段已发现条数，导入进度从该值继续累加（full 模式页面计数连续）。
     """
     global _done_count
+    source_ids = list(bangumi_ids)
+    if resume_checkpoint is not None:
+        bangumi_ids = _resume_batch_ids(source_ids, resume_checkpoint)
     total = len(bangumi_ids)
     if not total:
         return 0
     engine = get_engine(host, port, user, password, db_name)
-    scanned_ids_sha256 = hashlib.sha256(",".join(map(str, bangumi_ids)).encode()).hexdigest()
+    scanned_ids_sha256 = _ids_sha256(source_ids)
+    start_offset = resume_checkpoint.offset if resume_checkpoint else 0
     done = base_done
     ordered_ids = _stagger(bangumi_ids, max_workers)
+    positions = {subject_id: index for index, subject_id in enumerate(source_ids)}
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
             executor.submit(_import_worker, bid, resume, access_token, user_agent, engine): bid
             for bid in ordered_ids
         }
-        for offset, future in enumerate(as_completed(futures), start=1):
+        completed_positions = set()
+        confirmed_offset = start_offset
+        for future in as_completed(futures):
             subject_id = futures[future]
             outcome = future.result()
             success = outcome == OUTCOME_SUCCESS
             skipped = outcome == OUTCOME_SKIPPED
             if success:
                 done += 1
+            if outcome != OUTCOME_FAILURE:
+                completed_positions.add(positions[subject_id])
+                while confirmed_offset in completed_positions:
+                    confirmed_offset += 1
             if record_id is not None:
                 progress_db = Session(engine)
                 try:
-                    checkpoint = ImportCheckpoint(mode, offset, subject_id, scanned_ids_sha256)
+                    last_subject_id = source_ids[confirmed_offset - 1] if confirmed_offset else None
+                    checkpoint = ImportCheckpoint(mode, confirmed_offset, last_subject_id, scanned_ids_sha256)
                     update_import_progress(
                         progress_db,
                         record_id,
@@ -199,6 +211,20 @@ def _run_batch(bangumi_ids, resume, access_token, user_agent,
             _done_count = done
             _safe_progress(done - base_done, total)
     return done - base_done
+
+
+def _ids_sha256(ids) -> str:
+    return hashlib.sha256(",".join(map(str, ids)).encode()).hexdigest()
+
+
+def _resume_batch_ids(ids, checkpoint: ImportCheckpoint):
+    if checkpoint.offset < 0 or checkpoint.offset > len(ids):
+        raise ValueError("导入断点 offset 无效")
+    if checkpoint.scanned_ids_sha256 != _ids_sha256(ids):
+        raise ValueError("扫描结果已变化，拒绝使用旧断点")
+    if checkpoint.offset and checkpoint.last_subject_id != ids[checkpoint.offset - 1]:
+        raise ValueError("导入断点最后条目不匹配")
+    return ids[checkpoint.offset:]
 
 
 def _progress(done: int, total: int | None = None):
@@ -346,7 +372,7 @@ def import_single_subject(client, db, bangumi_id, resume):
         try:
             if resume:
                 existing = db.execute(
-                    "SELECT id FROM subject WHERE bangumi_id = :bid AND import_status = 1",
+                    text("SELECT id FROM subject WHERE bangumi_id = :bid AND import_status = 1"),
                     {"bid": bangumi_id},
                 ).scalar()
                 if existing:
@@ -385,7 +411,7 @@ def import_single_subject(client, db, bangumi_id, resume):
                 if relations:
                     anime_relations = [r for r in relations if r.get("type") == 2]
             except Exception as e:
-                logger.warning("  -> 关联条目导入失败 subject %d: %s", bangumi_id, e)
+                logger.warning("  -> 关联条目导入失败 subject %d: %s", bangumi_id, sanitize_import_error(e))
 
             # 每个主条目及其索引任务均由 repository 的同一事务提交。
             with _db_lock:
@@ -397,13 +423,13 @@ def import_single_subject(client, db, bangumi_id, resume):
 
         except Exception as e:
             db.rollback()
-            if "Deadlock" in str(e) and _retry < 4:
+            if "Deadlock" in sanitize_import_error(e) and _retry < 4:
                 delay = random.uniform(0.3, 1.0) * (_retry + 1)
                 logger.warning("  -> subject %d 死锁，重试 (%d/4) delay=%.1fs", bangumi_id, _retry + 1, delay)
                 time.sleep(delay)
                 time.sleep(0.5 * (_retry + 1))
                 continue
-            logger.error("  x subject %d 导入失败: %s", bangumi_id, e)
+            logger.error("  x subject %d 导入失败: %s", bangumi_id, sanitize_import_error(e))
             return OUTCOME_FAILURE
 
 
@@ -420,7 +446,7 @@ def run_full(client, db, resume, **kw):
                 try:
                     result = client.browse_subjects(type=2, year=year, month=month, offset=offset)
                 except Exception as e:
-                    logger.error("扫描 %d-%d 失败: %s", year, month, e)
+                    logger.error("扫描 %d-%d 失败: %s", year, month, sanitize_import_error(e))
                     break
                 items = result.get("data") or []
                 if not items:
@@ -445,7 +471,7 @@ def run_season(client, db, key, resume, **kw):
             try:
                 result = client.browse_subjects(type=2, year=year, month=month, offset=offset)
             except Exception as e:
-                logger.error("扫描 %d-%d 失败: %s", year, month, e)
+                logger.error("扫描 %d-%d 失败: %s", year, month, sanitize_import_error(e))
                 break
             items = result.get("data") or []
             if not items:
@@ -463,7 +489,7 @@ def run_recent(client, db, resume, **kw):
     try:
         calendar = client.get_calendar()
     except Exception as e:
-        logger.error("日历获取失败: %s", e)
+        logger.error("日历获取失败: %s", sanitize_import_error(e))
         return 0
     seen = set()
     ids = []
@@ -490,7 +516,7 @@ def run_since(client, db, since_date, resume, **kw):
                 try:
                     result = client.browse_subjects(type=2, year=year, month=month, offset=offset)
                 except Exception as e:
-                    logger.error("扫描 %d-%d 失败: %s", year, month, e)
+                    logger.error("扫描 %d-%d 失败: %s", year, month, sanitize_import_error(e))
                     break
                 items = result.get("data") or []
                 if not items:
@@ -537,18 +563,28 @@ def main():
     record_id = None
     stop_flusher = flusher_thread = None
     lock_acquired = False
+    resume_checkpoint = None
     try:
         acquire_import_lock(db)
         lock_acquired = True
         PID_FILE.write_text(str(os.getpid()))
-        record_id = create_import_record(db, args.mode, getattr(args, "key", None))
-        ImportRepository(db).save_checkpoint(
-            record_id,
-            ImportCheckpoint(args.mode, 0, None, hashlib.sha256(b"").hexdigest()),
-        )
+        if args.resume:
+            saved = load_resume_record(db, args.mode, getattr(args, "key", None))
+            if saved is not None:
+                record_id, checkpoint_json = saved
+                resume_checkpoint = ImportCheckpoint.from_json(checkpoint_json)
+                if resume_checkpoint.mode != args.mode:
+                    raise ValueError("导入断点模式不匹配")
+                resume_import_record(db, record_id)
+        if record_id is None:
+            record_id = create_import_record(db, args.mode, getattr(args, "key", None))
+            ImportRepository(db).save_checkpoint(
+                record_id,
+                ImportCheckpoint(args.mode, 0, None, hashlib.sha256(b"").hexdigest()),
+            )
         db.commit()
         stop_flusher, flusher_thread = _start_count_flusher(record_id, engine)
-        pool_kw.update(record_id=record_id, mode=args.mode)
+        pool_kw.update(record_id=record_id, mode=args.mode, resume_checkpoint=resume_checkpoint)
 
         logger.info("Bangumi 数据导入模式: %s", args.mode)
         if args.mode == "full":
@@ -585,9 +621,10 @@ def main():
 
     except Exception as e:
         elapsed = _fmt_duration(time.time() - _start_time)
-        logger.exception("导入异常终止（耗时 %s）", elapsed)
+        sanitized = sanitize_import_error(e)
+        logger.error("导入异常终止（耗时 %s）: %s", elapsed, sanitized)
         if record_id is not None:
-            complete_import_record(db, record_id, 0, "FAILED", str(e))
+            complete_import_record(db, record_id, 0, "FAILED", sanitized)
             db.commit()
         sys.exit(1)
     finally:

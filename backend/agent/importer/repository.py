@@ -47,6 +47,18 @@ class ImportCheckpoint:
             "scannedIdsSha256": self.scanned_ids_sha256,
         }
 
+    @classmethod
+    def from_json(cls, value: dict[str, object]) -> "ImportCheckpoint":
+        expected = {"mode", "offset", "lastSubjectId", "scannedIdsSha256"}
+        if set(value) != expected or not isinstance(value["mode"], str) or not isinstance(value["offset"], int):
+            raise ValueError("导入断点格式无效")
+        last_subject_id = value["lastSubjectId"]
+        if last_subject_id is not None and not isinstance(last_subject_id, int):
+            raise ValueError("导入断点格式无效")
+        if not isinstance(value["scannedIdsSha256"], str):
+            raise ValueError("导入断点格式无效")
+        return cls(value["mode"], value["offset"], last_subject_id, value["scannedIdsSha256"])
+
 
 class ImportRepository:
     """保持导入数据与向量任务一致的最小写入边界。"""

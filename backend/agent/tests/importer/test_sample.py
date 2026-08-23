@@ -27,3 +27,54 @@ def test_sample_mode_and_limit_are_internal_cli_options():
 
     assert args.mode == "sample"
     assert args.limit == 500
+
+
+def test_import_errors_are_redacted_from_record_and_logs(caplog, monkeypatch):
+    from importer import main
+    from importer.db import complete_import_record
+
+    secret = "mysql://root:password@db/?token=eyJ.secret.jwt Authorization: Bearer abcdef"
+    assert "password" not in main.sanitize_import_error(RuntimeError(secret))
+    assert "eyJ.secret.jwt" not in main.sanitize_import_error(RuntimeError(secret))
+
+    class Session:
+        def __init__(self):
+            self.params = None
+
+        def execute(self, _, params):
+            self.params = params
+
+        def rollback(self):
+            pass
+
+    session = Session()
+    complete_import_record(session, 1, 0, "FAILED", RuntimeError(secret))
+    assert "password" not in session.params["error_message"]
+    assert "eyJ.secret.jwt" not in session.params["error_message"]
+
+    class Client:
+        def get_subject(self, _):
+            raise RuntimeError(secret)
+
+    with caplog.at_level("ERROR"):
+        assert main.import_single_subject(Client(), Session(), 42, False) == main.OUTCOME_FAILURE
+    assert "password" not in caplog.text
+    assert "eyJ.secret.jwt" not in caplog.text
+
+
+def test_resume_query_uses_sqlalchemy_text_with_real_session():
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.orm import Session
+    from importer.main import OUTCOME_SKIPPED, import_single_subject
+
+    engine = create_engine("sqlite://")
+    with Session(engine) as session:
+        session.execute(text("CREATE TABLE subject (id INTEGER, bangumi_id INTEGER, import_status INTEGER)"))
+        session.execute(text("INSERT INTO subject VALUES (7, 42, 1)"))
+        session.commit()
+
+        class Client:
+            def get_subject(self, _):
+                raise AssertionError("resume should not fetch")
+
+        assert import_single_subject(Client(), session, 42, True) == OUTCOME_SKIPPED

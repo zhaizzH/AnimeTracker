@@ -1,6 +1,8 @@
 """数据库模型与 upsert 操作"""
 
 import logging
+import re
+import json
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 
@@ -13,6 +15,17 @@ if TYPE_CHECKING:
     from storage import CoverResult
 
 # ponytail: 直接写 SQL 和 SQLAlchemy ORM 配合，不用 declarative base 减少一层概念
+
+
+def sanitize_import_error(error: Exception | str) -> str:
+    """保留可诊断的异常类型，同时移除连接串、凭据与令牌。"""
+    message = str(error).replace("\r", " ").replace("\n", " ")
+    message = re.sub(r"(?i)\b(?:authorization|password|passwd|pwd|token|api[_-]?key)\s*[:=]\s*[^\s,;]+", "***", message)
+    message = re.sub(r"(?i)\bbearer\s+[^\s,;]+", "Bearer ***", message)
+    message = re.sub(r"//[^:/@\s]+:[^@/\s]+@", "//***:***@", message)
+    message = re.sub(r"\beyJ[A-Za-z0-9._-]+", "***", message)
+    message = re.sub(r"(?i)\b(?:password|passwd|pwd|token|api[_-]?key|authorization)\b", "***", message)
+    return f"{type(error).__name__}: {message[:240]}"
 
 
 def get_engine(host: str, port: int, user: str, password: str, db: str):
@@ -200,19 +213,13 @@ def upsert_tags(session: Session, subject_id: int, tags: list[dict]):
         )
 
 
-def upsert_relations(session: Session, subject_id: int, relations: list[dict]):
-    """先删后插条目关联，双向写入。
+def upsert_relations(session: Session, subject_id: int, relations: list[dict]) -> bool:
+    """验证全部关系目标后，再替换条目关联并双向写入。
 
     subject_id 为本地 PK。relations 中每个元素的 id 为 Bangumi API ID，
     需先解析为本地 subject.id 再写入，否则 FK 约束会失败。
     """
-    # 1. 删除该条目的所有原有关联
-    session.execute(
-        text("DELETE FROM subject_relation WHERE subject_id = :sid OR related_subject_id = :sid2"),
-        {"sid": subject_id, "sid2": subject_id},
-    )
-
-    # 2. 写入新的关联
+    resolved = []
     for rel in relations:
         bangumi_id = rel.get("id")
         relation_type = rel.get("relation", "")
@@ -227,7 +234,16 @@ def upsert_relations(session: Session, subject_id: int, relations: list[dict]):
         ).scalar()
         if not local_id:
             logger.warning("  -> 跳过关联条目 %d（bangumi_id），数据库中不存在（主条目 %d）", bangumi_id, subject_id)
-            continue
+            return False
+        resolved.append((int(local_id), relation_type))
+
+    # 只有所有可写关系均已解析才删除旧边，避免临时缺失造成图谱退化。
+    session.execute(
+        text("DELETE FROM subject_relation WHERE subject_id = :sid OR related_subject_id = :sid2"),
+        {"sid": subject_id, "sid2": subject_id},
+    )
+
+    for local_id, relation_type in resolved:
 
         # 正向：subject_id → local_id
         session.execute(
@@ -249,6 +265,7 @@ def upsert_relations(session: Session, subject_id: int, relations: list[dict]):
             """),
             {"sid": local_id, "rid": subject_id, "rel": inverse_rel, "rel2": inverse_rel},
         )
+    return True
 
 
 def _inverse_relation(relation: str) -> str:
@@ -305,12 +322,13 @@ def update_import_progress(
     session.execute(
         text(
             "UPDATE import_record SET checkpoint_json=CAST(:checkpoint_json AS JSON), "
-            "success_count=success_count+:success, failure_count=failure_count+:failure, "
+            "scanned_count=GREATEST(scanned_count, :offset), success_count=success_count+:success, failure_count=failure_count+:failure, "
             "skipped_count=skipped_count+:skipped, heartbeat_at=:now WHERE id=:id"
         ),
         {
             "id": record_id,
             "checkpoint_json": checkpoint_json,
+            "offset": json.loads(checkpoint_json)["offset"],
             "success": success,
             "failure": failure,
             "skipped": skipped,
@@ -320,7 +338,7 @@ def update_import_progress(
 
 
 def complete_import_record(session: Session, record_id: int, subject_count: int,
-                           status: str = "COMPLETED", error_message: Optional[str] = None):
+                           status: str = "COMPLETED", error_message: Exception | str | None = None):
     """完成导入记录。"""
     session.execute(
         text("""
@@ -334,7 +352,7 @@ def complete_import_record(session: Session, record_id: int, subject_count: int,
             "now": datetime.now(),
             "status": status,
             "subject_count": subject_count,
-            "error_message": error_message,
+            "error_message": sanitize_import_error(error_message) if error_message else None,
         },
     )
 
@@ -348,5 +366,32 @@ def fail_stale_running_records(session: Session, message: str = "导入进程提
             WHERE status = 'RUNNING'
               AND (heartbeat_at IS NULL OR heartbeat_at < DATE_SUB(:now, INTERVAL 10 MINUTE))
         """),
-        {"now": datetime.now(), "message": message},
+        {"now": datetime.now(), "message": sanitize_import_error(message)},
+    )
+
+
+def load_resume_record(session: Session, mode: str, season_key: Optional[str] = None):
+    """读取最近一个可恢复记录；已完成记录绝不复用。"""
+    row = session.execute(
+        text(
+            "SELECT id, checkpoint_json FROM import_record WHERE mode=:mode "
+            "AND ((:season_key IS NULL AND season_key IS NULL) OR season_key=:season_key) "
+            "AND status IN ('RUNNING', 'FAILED') AND checkpoint_json IS NOT NULL "
+            "ORDER BY heartbeat_at DESC, id DESC LIMIT 1"
+        ),
+        {"mode": mode, "season_key": season_key},
+    ).mappings().first()
+    if row is None:
+        return None
+    checkpoint = row["checkpoint_json"]
+    return int(row["id"]), (json.loads(checkpoint) if isinstance(checkpoint, str) else checkpoint)
+
+
+def resume_import_record(session: Session, record_id: int) -> None:
+    session.execute(
+        text(
+            "UPDATE import_record SET status='RUNNING', completed_at=NULL, error_message=NULL, "
+            "heartbeat_at=:now WHERE id=:id"
+        ),
+        {"id": record_id, "now": datetime.now()},
     )

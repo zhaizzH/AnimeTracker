@@ -132,3 +132,40 @@ def test_checkpoint_is_saved_with_fixed_shape(repo, session):
 
     query = next(sql for sql in session.queries if "checkpoint_json" in sql)
     assert "heartbeat_at" in query
+
+
+def test_relation_target_missing_preserves_existing_edges():
+    from importer.db import upsert_relations
+
+    class Session:
+        def __init__(self):
+            self.sql = []
+
+        def execute(self, statement, _=None):
+            sql = str(statement)
+            self.sql.append(sql)
+            return Result(None)
+
+    session = Session()
+
+    assert upsert_relations(session, 7, [{"id": 99, "relation": "续集"}]) is False
+    assert not any("DELETE FROM subject_relation" in sql for sql in session.sql)
+
+
+def test_resolved_relation_replaces_edges_and_writes_both_directions():
+    from importer.db import upsert_relations
+
+    class Session:
+        def __init__(self):
+            self.sql = []
+
+        def execute(self, statement, _=None):
+            sql = str(statement)
+            self.sql.append(sql)
+            return Result(8 if "SELECT id FROM subject" in sql else None)
+
+    session = Session()
+
+    assert upsert_relations(session, 7, [{"id": 99, "relation": "续集"}]) is True
+    assert any("DELETE FROM subject_relation" in sql for sql in session.sql)
+    assert sum("INSERT INTO subject_relation" in sql for sql in session.sql) == 2
