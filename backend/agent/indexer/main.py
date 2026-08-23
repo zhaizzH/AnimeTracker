@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import os
 from statistics import quantiles
 import time
+import threading
 from typing import Any
 
 from dotenv import load_dotenv
@@ -18,7 +19,10 @@ from app.rag.redis_index import RedisSubjectIndex, SubjectIndexDocument
 from app.rag.schemas import SubjectProfile, SubjectProfileSource
 from importer.db import get_engine
 from indexer.report import build_capacity_report, physical_available_memory, write_report
-from indexer.repository import IndexJob, IndexJobRepository, IndexSubject
+from indexer.repository import IndexJob, IndexJobRepository, IndexSubject, RUNNING_LEASE_SECONDS
+
+
+LEASE_HEARTBEAT_SECONDS = min(60, RUNNING_LEASE_SECONDS // 3)
 
 
 @dataclass(frozen=True)
@@ -50,54 +54,74 @@ def run_batch(
         if _is_unavailable(exc):
             retry_error = EmbeddingUnavailable("redis unavailable")
             for job in jobs:
-                repository.mark_retry(job.id, attempts=job.attempts, error=retry_error)
+                repository.mark_retry(job.id, attempts=job.attempts, error=retry_error, lease_updated_at=job.lease_updated_at)
             return IndexBatchResult(len(jobs), 0, len(jobs), 0, 0, 0)
         for job in jobs:
-            repository.mark_failed(job.id, error=exc)
+            repository.mark_failed(job.id, error=exc, lease_updated_at=job.lease_updated_at)
         return IndexBatchResult(len(jobs), 0, 0, len(jobs), 0, 0)
     try:
         subjects = [repository.load_subject(job) for job in jobs]
         profiles = [_profile(subject, job) for subject, job in zip(subjects, jobs)]
     except Exception as exc:
         for job in jobs:
-            repository.mark_failed(job.id, error=exc)
+            repository.mark_failed(job.id, error=exc, lease_updated_at=job.lease_updated_at)
         return IndexBatchResult(len(jobs), 0, 0, len(jobs), 0, 0)
 
     texts = [profile.text for profile in profiles]
     started = time.monotonic()
+    lease_keeper = _LeaseHeartbeat(repository, jobs)
+    lease_keeper.start()
     try:
         vectors = embedding_client.embed_documents(texts)
     except (EmbeddingRateLimited, EmbeddingUnavailable) as exc:
+        jobs, lost_job_ids = lease_keeper.stop()
+        retried = 0
         for job in jobs:
-            repository.mark_retry(job.id, attempts=job.attempts, error=exc)
-        return IndexBatchResult(len(jobs), 0, len(jobs), 0, 1, sum(map(len, texts)))
+            if job.id not in lost_job_ids and repository.mark_retry(
+                job.id, attempts=job.attempts, error=exc, lease_updated_at=job.lease_updated_at,
+            ):
+                retried += 1
+        return IndexBatchResult(len(jobs), 0, retried, 0, 1, sum(map(len, texts)))
     except Exception as exc:
+        jobs, lost_job_ids = lease_keeper.stop()
+        failed = 0
         for job in jobs:
-            repository.mark_failed(job.id, error=exc)
-        return IndexBatchResult(len(jobs), 0, 0, len(jobs), 1, sum(map(len, texts)))
+            if job.id not in lost_job_ids and repository.mark_failed(job.id, error=exc, lease_updated_at=job.lease_updated_at):
+                failed += 1
+        return IndexBatchResult(len(jobs), 0, 0, failed, 1, sum(map(len, texts)))
+    jobs, lost_job_ids = lease_keeper.stop()
 
     if len(vectors) != len(jobs):
         error = ValueError("embedding response 条数不匹配")
+        failed = 0
         for job in jobs:
-            repository.mark_failed(job.id, error=error)
-        return IndexBatchResult(len(jobs), 0, 0, len(jobs), 1, sum(map(len, texts)))
+            if job.id not in lost_job_ids and repository.mark_failed(
+                job.id, error=error, lease_updated_at=job.lease_updated_at,
+            ):
+                failed += 1
+        return IndexBatchResult(len(jobs), 0, 0, failed, 1, sum(map(len, texts)))
 
     elapsed_ms = (time.monotonic() - started) * 1000
     indexed = retried = failed = 0
     for job, subject, profile, vector in zip(jobs, subjects, profiles, vectors):
+        if job.id in lost_job_ids:
+            continue
         document = _document(subject, job, profile, vector)
         try:
             redis_index.write(document)
         except Exception as exc:
             if _is_unavailable(exc):
-                repository.mark_retry(job.id, attempts=job.attempts, error=EmbeddingUnavailable("redis unavailable"))
-                retried += 1
+                if repository.mark_retry(
+                    job.id, attempts=job.attempts, error=EmbeddingUnavailable("redis unavailable"),
+                    lease_updated_at=job.lease_updated_at,
+                ):
+                    retried += 1
             else:
-                repository.mark_failed(job.id, error=exc)
-                failed += 1
+                if repository.mark_failed(job.id, error=exc, lease_updated_at=job.lease_updated_at):
+                    failed += 1
             continue
-        repository.mark_indexed(job.id)
-        indexed += 1
+        if repository.mark_indexed(job.id, lease_updated_at=job.lease_updated_at):
+            indexed += 1
     return IndexBatchResult(len(jobs), indexed, retried, failed, 1, sum(map(len, texts)), (elapsed_ms,))
 
 
@@ -155,7 +179,7 @@ def main(argv: list[str] | None = None) -> int:
     client = redis.Redis.from_url(os.getenv("RAG_REDIS_URL") or os.getenv("REDIS_URL", "redis://localhost:6379/0"))
     before_memory = int(client.info("memory").get("used_memory", 0))
     with Session(engine) as session:
-        repository = IndexJobRepository(session)
+        repository = IndexJobRepository(session, lease_session_factory=lambda: Session(engine))
         embedding_client = DashScopeEmbeddingClient(os.getenv("DASHSCOPE_API_KEY", ""))
         index = RedisSubjectIndex(client)
         remaining = max(0, args.limit)
@@ -221,6 +245,43 @@ def _percentile(values: tuple[float, ...], percentile: int) -> float | None:
 
 def _is_unavailable(error: Exception) -> bool:
     return isinstance(error, (ConnectionError, RedisConnectionError, RedisTimeoutError, OSError)) or "unavailable" in str(error).lower()
+
+
+class _LeaseHeartbeat:
+    """使用独立 Session 周期续租，避免长 embedding 调用误触发崩溃回收。"""
+
+    def __init__(self, repository: IndexJobRepository, jobs: list[IndexJob]):
+        self._repository = repository
+        self._jobs = list(jobs)
+        self._lost_job_ids: set[int] = set()
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+
+    def start(self) -> None:
+        if not getattr(self._repository, "supports_lease_heartbeat", False):
+            return
+        self._thread = threading.Thread(target=self._run, name="rag-index-lease", daemon=True)
+        self._thread.start()
+
+    def stop(self) -> tuple[list[IndexJob], set[int]]:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=LEASE_HEARTBEAT_SECONDS + 1)
+        return self._jobs, self._lost_job_ids
+
+    def _run(self) -> None:
+        while not self._stop.wait(LEASE_HEARTBEAT_SECONDS):
+            for position, job in enumerate(self._jobs):
+                if job.id in self._lost_job_ids:
+                    continue
+                try:
+                    renewed = self._repository.renew_lease(job.id, lease_updated_at=job.lease_updated_at)
+                except Exception:
+                    renewed = None
+                if renewed is None:
+                    self._lost_job_ids.add(job.id)
+                else:
+                    self._jobs[position] = replace(job, lease_updated_at=renewed)
 
 
 if __name__ == "__main__":

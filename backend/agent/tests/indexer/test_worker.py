@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 
 from app.rag.embeddings import EmbeddingRateLimited
 from app.rag.profile import build_subject_profile
@@ -62,18 +63,21 @@ class FakeRepo:
     def load_subject(self, job):
         return IndexSubject(job.subject_id, "测试动画", "简介", (), (), (), (), (), 2024, 4, 8.0, 30, 40, "airing", 2, False)
 
-    def mark_indexed(self, job_id):
+    def mark_indexed(self, job_id, *, lease_updated_at=None):
         self.indexed.append(job_id)
+        return True
 
-    def mark_retry(self, job_id, *, attempts, error):
+    def mark_retry(self, job_id, *, attempts, error, lease_updated_at=None):
         self.retries.append((job_id, attempts, type(error).__name__))
+        return True
 
-    def mark_failed(self, job_id, *, error):
+    def mark_failed(self, job_id, *, error, lease_updated_at=None):
         self.failed.append((job_id, type(error).__name__))
+        return True
 
 
 def _job(attempts=1):
-    return IndexJob(7, 42, "v1", "a" * 64, attempts, "RUNNING")
+    return IndexJob(7, 42, "v1", "a" * 64, attempts, "RUNNING", datetime(2026, 8, 23, 12, 0, 0))
 
 
 def test_index_profile_uses_the_same_stable_fields_as_importer_profile():
@@ -178,3 +182,17 @@ def test_worker_retries_claimed_jobs_when_redis_socket_times_out():
 
     assert result.retried == 1
     assert repo.retries == [(7, 1, "EmbeddingUnavailable")]
+
+
+def test_worker_does_not_count_indexed_when_it_loses_the_lease_before_confirmation():
+    """旧 worker 失去租约时不得把 Redis 旧写入确认成 MySQL INDEXED。"""
+    class LostLeaseRepo(FakeRepo):
+        def mark_indexed(self, job_id, *, lease_updated_at=None):
+            self.indexed.append(job_id)
+            return False
+
+    repo = LostLeaseRepo([_job()])
+    result = run_batch(limit=10, index_version="v1", repository=repo, embedding_client=FakeEmbedding(), redis_index=FakeIndex())
+
+    assert result.indexed == 0
+    assert repo.indexed == [7]

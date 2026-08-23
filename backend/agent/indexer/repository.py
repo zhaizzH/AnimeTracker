@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 import os
 import re
-from typing import Callable
+from typing import Any, Callable
 
 from sqlalchemy import text
 
@@ -21,6 +21,7 @@ class IndexJob:
     content_hash: str
     attempts: int
     status: str
+    lease_updated_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -52,9 +53,11 @@ class IndexJobRepository:
         *,
         now: Callable[[], datetime] = datetime.now,
         trusted_tag_min_count: int | None = None,
+        lease_session_factory: Callable[[], Any] | None = None,
     ):
         self._session = session
         self._now = now
+        self._lease_session_factory = lease_session_factory
         self._trusted_tag_min_count = trusted_tag_min_count if trusted_tag_min_count is not None else int(
             os.getenv("RAG_TRUSTED_TAG_MIN_COUNT", "100")
         )
@@ -65,7 +68,7 @@ class IndexJobRepository:
         if limit < 1:
             return []
         capped_limit = min(limit, 10)
-        now = self._now()
+        now = _datetime_seconds(self._now())
         with self._session.begin():
             self._session.execute(
                 text(
@@ -104,7 +107,10 @@ class IndexJobRepository:
                     {"id": job_id, "attempts": attempts, "now": now},
                 )
                 jobs.append(
-                    IndexJob(job_id, int(row["subject_id"]), str(row["index_version"]), str(row["content_hash"]), attempts, "RUNNING")
+                    IndexJob(
+                        job_id, int(row["subject_id"]), str(row["index_version"]), str(row["content_hash"]),
+                        attempts, "RUNNING", now,
+                    )
                 )
         return jobs
 
@@ -153,19 +159,45 @@ class IndexJobRepository:
             bool(row["nsfw"]),
         )
 
-    def mark_indexed(self, job_id: int) -> None:
-        now = self._now()
+    @property
+    def supports_lease_heartbeat(self) -> bool:
+        return self._lease_session_factory is not None
+
+    def renew_lease(self, job_id: int, *, lease_updated_at: datetime | None) -> datetime | None:
+        """在独立短事务中续租；未匹配说明所有权已被回收。"""
+        if lease_updated_at is None:
+            return None
+        now = _datetime_seconds(self._now())
+        session = self._lease_session_factory() if self._lease_session_factory is not None else self._session
+        try:
+            with session.begin():
+                result = session.execute(
+                    text(
+                        "UPDATE rag_index_job SET updated_at=:now WHERE id=:id AND status='RUNNING' "
+                        "AND updated_at=:lease_updated_at"
+                    ),
+                    {"id": job_id, "now": now, "lease_updated_at": lease_updated_at},
+                )
+            return now if _updated(result) else None
+        finally:
+            if self._lease_session_factory is not None:
+                session.close()
+
+    def mark_indexed(self, job_id: int, *, lease_updated_at: datetime | None) -> bool:
+        now = _datetime_seconds(self._now())
         with self._session.begin():
-            self._session.execute(
+            result = self._session.execute(
                 text(
                     "UPDATE rag_index_job SET status='INDEXED', indexed_at=:now, next_retry_at=NULL, "
-                    "last_error_code=NULL, last_error_message=NULL, updated_at=:now WHERE id=:id"
+                    "last_error_code=NULL, last_error_message=NULL, updated_at=:now WHERE id=:id "
+                    "AND status='RUNNING' AND updated_at=:lease_updated_at"
                 ),
-                {"id": job_id, "now": now},
+                {"id": job_id, "now": now, "lease_updated_at": lease_updated_at},
             )
+        return _updated(result)
 
-    def mark_retry(self, job_id: int, *, attempts: int, error: Exception) -> None:
-        now = self._now()
+    def mark_retry(self, job_id: int, *, attempts: int, error: Exception, lease_updated_at: datetime | None) -> bool:
+        now = _datetime_seconds(self._now())
         code, message = _error_details(error)
         if attempts >= MAX_ATTEMPTS:
             status, retry_at = "FAILED", None
@@ -173,25 +205,32 @@ class IndexJobRepository:
             status = "RETRY"
             retry_at = now + timedelta(seconds=min(3600, 2**attempts * 30))
         with self._session.begin():
-            self._session.execute(
+            result = self._session.execute(
                 text(
                     "UPDATE rag_index_job SET status=:status, last_error_code=:code, last_error_message=:message, "
-                    "next_retry_at=:next_retry_at, updated_at=:now WHERE id=:id"
+                    "next_retry_at=:next_retry_at, updated_at=:now WHERE id=:id "
+                    "AND status='RUNNING' AND updated_at=:lease_updated_at"
                 ),
-                {"id": job_id, "status": status, "code": code, "message": message, "next_retry_at": retry_at, "now": now},
+                {
+                    "id": job_id, "status": status, "code": code, "message": message,
+                    "next_retry_at": retry_at, "now": now, "lease_updated_at": lease_updated_at,
+                },
             )
+        return _updated(result)
 
-    def mark_failed(self, job_id: int, *, error: Exception) -> None:
-        now = self._now()
+    def mark_failed(self, job_id: int, *, error: Exception, lease_updated_at: datetime | None) -> bool:
+        now = _datetime_seconds(self._now())
         code, message = _error_details(error)
         with self._session.begin():
-            self._session.execute(
+            result = self._session.execute(
                 text(
                     "UPDATE rag_index_job SET status='FAILED', last_error_code=:code, last_error_message=:message, "
-                    "next_retry_at=NULL, updated_at=:now WHERE id=:id"
+                    "next_retry_at=NULL, updated_at=:now WHERE id=:id "
+                    "AND status='RUNNING' AND updated_at=:lease_updated_at"
                 ),
-                {"id": job_id, "code": code, "message": message, "now": now},
+                {"id": job_id, "code": code, "message": message, "now": now, "lease_updated_at": lease_updated_at},
             )
+        return _updated(result)
 
 
 def _error_details(error: Exception) -> tuple[str, str]:
@@ -213,3 +252,12 @@ def _optional_int(value: object) -> int | None:
 
 def _optional_float(value: object) -> float | None:
     return None if value is None else float(value)
+
+
+def _datetime_seconds(value: datetime) -> datetime:
+    return value.replace(microsecond=0)
+
+
+def _updated(result: object) -> bool:
+    rowcount = getattr(result, "rowcount", None)
+    return rowcount is None or rowcount == 1
