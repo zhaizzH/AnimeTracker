@@ -1,30 +1,30 @@
-- {id: safety-nsfw-01, category: safety_failure, query: nsfw 1, forbiddenSubjectIds: [999], expectedFallback: safe_fallback, required: true}
-- {id: safety-nsfw-02, category: safety_failure, query: nsfw 2, forbiddenSubjectIds: [999], expectedFallback: safe_fallback, required: true}
-- {id: safety-nsfw-03, category: safety_failure, query: nsfw 3, forbiddenSubjectIds: [999], expectedFallback: safe_fallback, required: true}
-- {id: safety-nsfw-04, category: safety_failure, query: nsfw 4, forbiddenSubjectIds: [999], expectedFallback: safe_fallback, required: true}
-- {id: safety-nsfw-05, category: safety_failure, query: nsfw 5, forbiddenSubjectIds: [999], expectedFallback: safe_fallback, required: true}
-- {id: safety-nonanime-01, category: safety_failure, query: nonanime 1, forbiddenSubjectIds: [998], expectedFallback: safe_fallback, required: true}
-- {id: safety-nonanime-02, category: safety_failure, query: nonanime 2, forbiddenSubjectIds: [998], expectedFallback: safe_fallback, required: true}
-- {id: safety-nonanime-03, category: safety_failure, query: nonanime 3, forbiddenSubjectIds: [998], expectedFallback: safe_fallback, required: true}
-- {id: safety-nonanime-04, category: safety_failure, query: nonanime 4, forbiddenSubjectIds: [998], expectedFallback: safe_fallback, required: true}
-- {id: safety-nonanime-05, category: safety_failure, query: nonanime 5, forbiddenSubjectIds: [998], expectedFallback: safe_fallback, required: true}
-- {id: safety-injection-01, category: safety_failure, query: redis 1, forbiddenSubjectIds: [997], expectedErrorType: REDIS_QUERY_REJECTED, required: true}
-- {id: safety-injection-02, category: safety_failure, query: redis 2, forbiddenSubjectIds: [997], expectedErrorType: REDIS_QUERY_REJECTED, required: true}
-- {id: safety-injection-03, category: safety_failure, query: redis 3, forbiddenSubjectIds: [997], expectedErrorType: REDIS_QUERY_REJECTED, required: true}
-- {id: safety-injection-04, category: safety_failure, query: redis 4, forbiddenSubjectIds: [997], expectedErrorType: REDIS_QUERY_REJECTED, required: true}
-- {id: safety-injection-05, category: safety_failure, query: redis 5, forbiddenSubjectIds: [997], expectedErrorType: REDIS_QUERY_REJECTED, required: true}
-- {id: safety-embedding-01, category: safety_failure, query: embedding 1, forbiddenSubjectIds: [996], expectedFallback: safe_fallback, required: true}
-- {id: safety-embedding-02, category: safety_failure, query: embedding 2, forbiddenSubjectIds: [996], expectedFallback: safe_fallback, required: true}
-- {id: safety-embedding-03, category: safety_failure, query: embedding 3, forbiddenSubjectIds: [996], expectedFallback: safe_fallback, required: true}
-- {id: safety-redis-01, category: safety_failure, query: unavailable 1, forbiddenSubjectIds: [995], expectedFallback: safe_fallback, required: true}
-- {id: safety-redis-02, category: safety_failure, query: unavailable 2, forbiddenSubjectIds: [995], expectedFallback: safe_fallback, required: true}
-- {id: safety-redis-03, category: safety_failure, query: unavailable 3, forbiddenSubjectIds: [995], expectedFallback: safe_fallback, required: true}
-- {id: safety-business-01, category: safety_failure, query: business 1, forbiddenSubjectIds: [994], expectedErrorType: BUSINESS_UNAVAILABLE, required: true}
-- {id: safety-business-02, category: safety_failure, query: business 2, forbiddenSubjectIds: [994], expectedErrorType: BUSINESS_UNAVAILABLE, required: true}
-- {id: safety-business-03, category: safety_failure, query: business 3, forbiddenSubjectIds: [994], expectedErrorType: BUSINESS_UNAVAILABLE, required: true}
-- {id: safety-minio-01, category: safety_failure, query: minio 1, forbiddenSubjectIds: [993], expectedErrorType: MINIO_UNAVAILABLE, required: true}
-- {id: safety-minio-02, category: safety_failure, query: minio 2, forbiddenSubjectIds: [993], expectedErrorType: MINIO_UNAVAILABLE, required: true}
-- {id: safety-empty-01, category: safety_failure, query: empty 1, forbiddenSubjectIds: [992], expectedFallback: no_results, required: true}
-- {id: safety-empty-02, category: safety_failure, query: empty 2, forbiddenSubjectIds: [992], expectedFallback: no_results, required: true}
-- {id: safety-expired-01, category: safety_failure, query: expired 1, forbiddenSubjectIds: [991], expectedFallback: reindex_required, required: true}
-- {id: safety-expired-02, category: safety_failure, query: expired 2, forbiddenSubjectIds: [991], expectedFallback: reindex_required, required: true}
+- {id: safety-nsfw-01, category: safety_failure, query: nsfw 1, fault: nsfw, forbiddenSubjectIds: [999], expectedFallback: safe_fallback, required: true}
+- {id: safety-nsfw-02, category: safety_failure, query: nsfw 2, fault: nsfw, forbiddenSubjectIds: [999], expectedFallback: safe_fallback, required: true}
+- {id: safety-nsfw-03, category: safety_failure, query: nsfw 3, fault: nsfw, forbiddenSubjectIds: [999], expectedFallback: safe_fallback, required: true}
+- {id: safety-nsfw-04, category: safety_failure, query: nsfw 4, fault: nsfw, forbiddenSubjectIds: [999], expectedFallback: safe_fallback, required: true}
+- {id: safety-nsfw-05, category: safety_failure, query: nsfw 5, fault: nsfw, forbiddenSubjectIds: [999], expectedFallback: safe_fallback, required: true}
+- {id: safety-nonanime-01, category: safety_failure, query: nonanime 1, fault: non_anime, forbiddenSubjectIds: [998], expectedFallback: safe_fallback, required: true}
+- {id: safety-nonanime-02, category: safety_failure, query: nonanime 2, fault: non_anime, forbiddenSubjectIds: [998], expectedFallback: safe_fallback, required: true}
+- {id: safety-nonanime-03, category: safety_failure, query: nonanime 3, fault: non_anime, forbiddenSubjectIds: [998], expectedFallback: safe_fallback, required: true}
+- {id: safety-nonanime-04, category: safety_failure, query: nonanime 4, fault: non_anime, forbiddenSubjectIds: [998], expectedFallback: safe_fallback, required: true}
+- {id: safety-nonanime-05, category: safety_failure, query: nonanime 5, fault: non_anime, forbiddenSubjectIds: [998], expectedFallback: safe_fallback, required: true}
+- {id: safety-injection-01, category: safety_failure, query: redis 1, fault: redis_injection, forbiddenSubjectIds: [997], expectedErrorType: REDIS_QUERY_REJECTED, required: true}
+- {id: safety-injection-02, category: safety_failure, query: redis 2, fault: redis_injection, forbiddenSubjectIds: [997], expectedErrorType: REDIS_QUERY_REJECTED, required: true}
+- {id: safety-injection-03, category: safety_failure, query: redis 3, fault: redis_injection, forbiddenSubjectIds: [997], expectedErrorType: REDIS_QUERY_REJECTED, required: true}
+- {id: safety-injection-04, category: safety_failure, query: redis 4, fault: redis_injection, forbiddenSubjectIds: [997], expectedErrorType: REDIS_QUERY_REJECTED, required: true}
+- {id: safety-injection-05, category: safety_failure, query: redis 5, fault: redis_injection, forbiddenSubjectIds: [997], expectedErrorType: REDIS_QUERY_REJECTED, required: true}
+- {id: safety-embedding-01, category: safety_failure, query: embedding 1, fault: embedding_unavailable, forbiddenSubjectIds: [996], expectedFallback: safe_fallback, required: true}
+- {id: safety-embedding-02, category: safety_failure, query: embedding 2, fault: embedding_unavailable, forbiddenSubjectIds: [996], expectedFallback: safe_fallback, required: true}
+- {id: safety-embedding-03, category: safety_failure, query: embedding 3, fault: embedding_unavailable, forbiddenSubjectIds: [996], expectedFallback: safe_fallback, required: true}
+- {id: safety-redis-01, category: safety_failure, query: unavailable 1, fault: redis_unavailable, forbiddenSubjectIds: [995], expectedFallback: safe_fallback, required: true}
+- {id: safety-redis-02, category: safety_failure, query: unavailable 2, fault: redis_unavailable, forbiddenSubjectIds: [995], expectedFallback: safe_fallback, required: true}
+- {id: safety-redis-03, category: safety_failure, query: unavailable 3, fault: redis_unavailable, forbiddenSubjectIds: [995], expectedFallback: safe_fallback, required: true}
+- {id: safety-business-01, category: safety_failure, query: business 1, fault: business_unavailable, forbiddenSubjectIds: [994], expectedErrorType: BUSINESS_UNAVAILABLE, required: true}
+- {id: safety-business-02, category: safety_failure, query: business 2, fault: business_unavailable, forbiddenSubjectIds: [994], expectedErrorType: BUSINESS_UNAVAILABLE, required: true}
+- {id: safety-business-03, category: safety_failure, query: business 3, fault: business_unavailable, forbiddenSubjectIds: [994], expectedErrorType: BUSINESS_UNAVAILABLE, required: true}
+- {id: safety-minio-01, category: safety_failure, query: minio 1, fault: minio_unavailable, forbiddenSubjectIds: [993], expectedErrorType: MINIO_UNAVAILABLE, required: true}
+- {id: safety-minio-02, category: safety_failure, query: minio 2, fault: minio_unavailable, forbiddenSubjectIds: [993], expectedErrorType: MINIO_UNAVAILABLE, required: true}
+- {id: safety-empty-01, category: safety_failure, query: empty 1, fault: no_candidates, forbiddenSubjectIds: [992], expectedFallback: no_results, required: true}
+- {id: safety-empty-02, category: safety_failure, query: empty 2, fault: no_candidates, forbiddenSubjectIds: [992], expectedFallback: no_results, required: true}
+- {id: safety-expired-01, category: safety_failure, query: expired 1, fault: expired_index, forbiddenSubjectIds: [991], expectedFallback: reindex_required, required: true}
+- {id: safety-expired-02, category: safety_failure, query: expired 2, fault: expired_index, forbiddenSubjectIds: [991], expectedFallback: reindex_required, required: true}

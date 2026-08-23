@@ -53,6 +53,10 @@ def load_subjects(path: Path = DEFAULT_SUBJECT_PATH) -> list[FixtureSubject]:
         return [FixtureSubject(
             subject_id=int(item["subjectId"]), title=str(item["title"]),
             aliases=tuple(str(alias) for alias in item.get("aliases", [])), text=str(item["text"]),
+            year=int(item["year"]), quarter=int(item["quarter"]), score=float(item["score"]),
+            tags=tuple(str(tag) for tag in item.get("tags", [])),
+            preference_states=tuple(str(state) for state in item.get("preferenceStates", [])),
+            excluded_states=tuple(str(state) for state in item.get("excludedStates", [])),
             nsfw=bool(item.get("nsfw", False)), subject_type=int(item.get("type", 2)),
         ) for item in _documents(path)]
     except (KeyError, TypeError, ValueError) as error:

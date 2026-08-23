@@ -1,30 +1,30 @@
-- {id: semantic-genre-01, category: semantic, query: 动画 1, expectedSubjectIds: [1], required: true}
-- {id: semantic-genre-02, category: semantic, query: 动画 2, expectedSubjectIds: [2], required: true}
-- {id: semantic-genre-03, category: semantic, query: 动画 3, expectedSubjectIds: [3], required: true}
-- {id: semantic-genre-04, category: semantic, query: 动画 4, expectedSubjectIds: [4], required: true}
-- {id: semantic-genre-05, category: semantic, query: 动画 5, expectedSubjectIds: [5], required: true}
-- {id: semantic-genre-06, category: semantic, query: 动画 6, expectedSubjectIds: [6], required: true}
-- {id: semantic-mood-01, category: semantic, query: 动画 7, expectedSubjectIds: [7], required: true}
-- {id: semantic-mood-02, category: semantic, query: 动画 8, expectedSubjectIds: [8], required: true}
-- {id: semantic-mood-03, category: semantic, query: 动画 9, expectedSubjectIds: [9], required: true}
-- {id: semantic-mood-04, category: semantic, query: 动画 10, expectedSubjectIds: [10], required: true}
-- {id: semantic-mood-05, category: semantic, query: 动画 1, expectedSubjectIds: [1], required: true}
-- {id: semantic-mood-06, category: semantic, query: 动画 2, expectedSubjectIds: [2], required: true}
-- {id: semantic-similar-01, category: semantic, query: 动画 3, expectedSubjectIds: [3], required: true}
-- {id: semantic-similar-02, category: semantic, query: 动画 4, expectedSubjectIds: [4], required: true}
-- {id: semantic-similar-03, category: semantic, query: 动画 5, expectedSubjectIds: [5], required: true}
-- {id: semantic-similar-04, category: semantic, query: 动画 6, expectedSubjectIds: [6], required: true}
-- {id: semantic-similar-05, category: semantic, query: 动画 7, expectedSubjectIds: [7], required: true}
-- {id: semantic-similar-06, category: semantic, query: 动画 8, expectedSubjectIds: [8], required: true}
-- {id: semantic-credit-01, category: semantic, query: 动画 9, expectedSubjectIds: [9], required: true}
-- {id: semantic-credit-02, category: semantic, query: 动画 10, expectedSubjectIds: [10], required: true}
-- {id: semantic-credit-03, category: semantic, query: 动画 1, expectedSubjectIds: [1], required: true}
-- {id: semantic-credit-04, category: semantic, query: 动画 2, expectedSubjectIds: [2], required: true}
-- {id: semantic-credit-05, category: semantic, query: 动画 3, expectedSubjectIds: [3], required: true}
-- {id: semantic-credit-06, category: semantic, query: 动画 4, expectedSubjectIds: [4], required: true}
-- {id: semantic-cross-01, category: semantic, query: 动画 5, expectedSubjectIds: [5], required: true}
-- {id: semantic-cross-02, category: semantic, query: 动画 6, expectedSubjectIds: [6], required: true}
-- {id: semantic-cross-03, category: semantic, query: 动画 7, expectedSubjectIds: [7], required: true}
-- {id: semantic-cross-04, category: semantic, query: 动画 8, expectedSubjectIds: [8], required: true}
-- {id: semantic-cross-05, category: semantic, query: 动画 9, expectedSubjectIds: [9], required: true}
-- {id: semantic-cross-06, category: semantic, query: 动画 10, expectedSubjectIds: [10], required: true}
+- {id: semantic-genre-01, category: semantic, query: topic1, expectedSubjectIds: [1], required: true}
+- {id: semantic-genre-02, category: semantic, query: topic2, expectedSubjectIds: [2], required: true}
+- {id: semantic-genre-03, category: semantic, query: topic3, expectedSubjectIds: [3], required: true}
+- {id: semantic-genre-04, category: semantic, query: topic4, expectedSubjectIds: [4], required: true}
+- {id: semantic-genre-05, category: semantic, query: topic5, expectedSubjectIds: [5], required: true}
+- {id: semantic-genre-06, category: semantic, query: topic6, expectedSubjectIds: [6], required: true}
+- {id: semantic-mood-01, category: semantic, query: topic7, expectedSubjectIds: [7], required: true}
+- {id: semantic-mood-02, category: semantic, query: topic8, expectedSubjectIds: [8], required: true}
+- {id: semantic-mood-03, category: semantic, query: topic9, expectedSubjectIds: [9], required: true}
+- {id: semantic-mood-04, category: semantic, query: topic10, expectedSubjectIds: [10], required: true}
+- {id: semantic-mood-05, category: semantic, query: topic1, expectedSubjectIds: [1], required: true}
+- {id: semantic-mood-06, category: semantic, query: topic2, expectedSubjectIds: [2], required: true}
+- {id: semantic-similar-01, category: semantic, query: topic3, expectedSubjectIds: [3], required: true}
+- {id: semantic-similar-02, category: semantic, query: topic4, expectedSubjectIds: [4], required: true}
+- {id: semantic-similar-03, category: semantic, query: topic5, expectedSubjectIds: [5], required: true}
+- {id: semantic-similar-04, category: semantic, query: topic6, expectedSubjectIds: [6], required: true}
+- {id: semantic-similar-05, category: semantic, query: topic7, expectedSubjectIds: [7], required: true}
+- {id: semantic-similar-06, category: semantic, query: topic8, expectedSubjectIds: [8], required: true}
+- {id: semantic-credit-01, category: semantic, query: topic9, expectedSubjectIds: [9], required: true}
+- {id: semantic-credit-02, category: semantic, query: topic10, expectedSubjectIds: [10], required: true}
+- {id: semantic-credit-03, category: semantic, query: topic1, expectedSubjectIds: [1], required: true}
+- {id: semantic-credit-04, category: semantic, query: topic2, expectedSubjectIds: [2], required: true}
+- {id: semantic-credit-05, category: semantic, query: topic3, expectedSubjectIds: [3], required: true}
+- {id: semantic-credit-06, category: semantic, query: topic4, expectedSubjectIds: [4], required: true}
+- {id: semantic-cross-01, category: semantic, query: topic5, expectedSubjectIds: [5], required: true}
+- {id: semantic-cross-02, category: semantic, query: topic6, expectedSubjectIds: [6], required: true}
+- {id: semantic-cross-03, category: semantic, query: topic7, expectedSubjectIds: [7], required: true}
+- {id: semantic-cross-04, category: semantic, query: topic8, expectedSubjectIds: [8], required: true}
+- {id: semantic-cross-05, category: semantic, query: topic9, expectedSubjectIds: [9], required: true}
+- {id: semantic-cross-06, category: semantic, query: topic10, expectedSubjectIds: [10], required: true}

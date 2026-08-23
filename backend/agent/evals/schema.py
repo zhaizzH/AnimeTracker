@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 Category = Literal["title_alias", "semantic", "filters", "personalization", "safety_failure"]
+PreferenceState = Literal["watched", "watching", "wish", "dropped", "onhold", "cold_start"]
 
 
 class EvalCase(BaseModel):
@@ -19,6 +20,12 @@ class EvalCase(BaseModel):
     required: bool
     expectedFallback: str | None = None
     expectedErrorType: str | None = None
+    fault: str | None = None
+    year: int | None = None
+    quarter: int | None = None
+    scoreMin: float | None = None
+    tags: tuple[str, ...] = Field(default_factory=tuple)
+    preferenceState: PreferenceState | None = None
 
 
 class EvalReport(BaseModel):
