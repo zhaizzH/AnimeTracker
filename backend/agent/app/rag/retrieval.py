@@ -95,22 +95,22 @@ class RagRetrievalService:
                 vector = None
         try:
             for expression in self._expressions(query):
-                if query.keywords or vector is None:
+                if self._lexical_terms(query) or vector is None:
                     lexical = self._as_candidates(self._index.lexical_search(expression, limit=50), "lexical")
                 if vector is not None:
                     semantic = self._as_candidates(self._index.semantic_search(expression, vector, limit=50), "semantic")
-                if lexical or semantic:
-                    break
+                if not lexical and not semantic:
+                    continue
+                result = self._authoritative_result(reciprocal_rank_fusion(lexical, semantic), query, token, preference)
+                if not result.available or result.items:
+                    return result
         except Exception:
             redis_failed = True
             lexical, semantic = [], []
 
-        candidates = reciprocal_rank_fusion(lexical, semantic) if lexical or semantic else []
         if redis_failed:
             return self._business_fallback(query, token, preference)
-        if not candidates:
-            return RetrievalResult(available=True, items=[], reason="no_results")
-        return self._authoritative_result(candidates, query, token, preference)
+        return RetrievalResult(available=True, items=[], reason="no_results")
 
     def _expressions(self, query: RetrievalQuery) -> list[str]:
         attempts = [query]
@@ -124,8 +124,9 @@ class RagRetrievalService:
 
     def _build_expression(self, query: RetrievalQuery) -> str:
         parts: list[str] = []
-        if query.keywords:
-            words = " ".join(escape_redis_term(word) for word in query.keywords)
+        terms = self._lexical_terms(query)
+        if terms:
+            words = " ".join(escape_redis_term(word) for word in terms)
             parts.append(f"(@title:({words})|@aliases:({words})|@summary:({words}))")
         if query.year_from is not None or query.year_to is not None:
             parts.append(f"@year:[{query.year_from if query.year_from is not None else '-inf'} {query.year_to if query.year_to is not None else '+inf'}]")
@@ -137,12 +138,25 @@ class RagRetrievalService:
         if query.rating_total_min is not None:
             parts.append(f"@rating_total:[{query.rating_total_min} +inf]")
         for tag in query.meta_tags:
-            parts.append(f"@meta_tags:({escape_redis_term(tag)})")
+            parts.append(f"@meta_tags:{{{escape_redis_term(tag)}}}")
         if query.air_status:
             parts.append(f"@air_status:{{{escape_redis_term(query.air_status.lower())}}}")
         for subject_id in query.exclude_subject_ids:
             parts.append(f"-@subject_id:[{int(subject_id)} {int(subject_id)}]")
         return " ".join(parts) or "*"
+
+    @staticmethod
+    def _lexical_terms(query: RetrievalQuery) -> list[str]:
+        if query.keywords:
+            return list(query.keywords)
+        if not query.semantic_query:
+            return []
+        terms: list[str] = []
+        for token in query.semantic_query.split():
+            terms.extend(token[offset : offset + 48] for offset in range(0, len(token), 48))
+            if len(terms) >= 8:
+                break
+        return terms[:8]
 
     def _authoritative_result(
         self,
@@ -178,9 +192,9 @@ class RagRetrievalService:
         if _is_error(response):
             return RetrievalResult(available=False, items=[], reason="business_unavailable")
         candidates = [
-            RetrievalCandidate(int(item["id"]), 0.0, "business_fallback", str(item.get("nameCn") or item.get("name") or ""), item)
+            RetrievalCandidate(int(item["id"]), 0.0, "business_fallback", str(item.get("nameCn") or item.get("name") or ""))
             for item in _items(response)
-            if isinstance(item, Mapping) and item.get("id") is not None and self._is_safe_detail(item, query)
+            if isinstance(item, Mapping) and item.get("id") is not None and int(item["id"]) not in query.exclude_subject_ids
         ]
         if not candidates:
             return RetrievalResult(available=True, items=[])

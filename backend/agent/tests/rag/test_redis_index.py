@@ -160,6 +160,32 @@ def test_search_uses_active_alias_knn_and_returns_redis_result():
     assert "vector" not in command[return_start + 2 : return_start + 20]
 
 
+def test_semantic_search_enforces_non_nsfw_anime_filters_without_caller_help():
+    """Removing the index boundary guard would let a direct KNN caller bypass RAG safety."""
+    fake_redis = FakeRedis()
+    index = RedisSubjectIndex(fake_redis, key_prefix="test:rag:", index_prefix="idx:test:rag:")
+
+    index.semantic_search("@year:[2024 2024]", [0.0] * 1024, limit=3)
+
+    query = fake_redis.first("FT.SEARCH")[2]
+    assert "@year:[2024 2024]" in query
+    assert "@type:[2 2]" in query
+    assert "@nsfw:{false}" in query
+
+
+def test_meta_tags_are_tag_values_and_keep_each_tag_queryable():
+    """Joining tag values with spaces would make single-tag filtering unreliable."""
+    fake_redis = FakeRedis()
+    index = RedisSubjectIndex(fake_redis, key_prefix="test:rag:", index_prefix="idx:test:rag:")
+
+    index.ensure_version("v1")
+    index.write(document().__class__(**{**document().__dict__, "meta_tags": ("TV", "治愈")}))
+
+    create = fake_redis.first("FT.CREATE")
+    assert ("meta_tags", "TAG") in adjacent_pairs(create)
+    assert fake_redis.first("HSET")[2]["meta_tags"] == "TV,治愈"
+
+
 def test_activate_never_deletes_session_keys():
     """切换仅更新别名，绝不能清理任何键或会话键。"""
     fake_redis = FakeRedis()

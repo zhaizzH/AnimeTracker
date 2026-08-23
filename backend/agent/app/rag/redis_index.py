@@ -96,7 +96,7 @@ class RedisSubjectIndex:
                 "summary",
                 "TEXT",
                 "meta_tags",
-                "TEXT",
+                "TAG",
                 "trusted_tags",
                 "TEXT",
                 "credits",
@@ -146,7 +146,7 @@ class RedisSubjectIndex:
             "title": document.title,
             "aliases": self._join(document.aliases),
             "summary": document.summary,
-            "meta_tags": self._join(document.meta_tags),
+            "meta_tags": self._join_tags(document.meta_tags),
             "trusted_tags": self._join(document.trusted_tags),
             "credits": self._join(document.credits),
             "profile": document.profile.text,
@@ -177,7 +177,7 @@ class RedisSubjectIndex:
         """在当前别名上运行受控过滤与 KNN 查询。"""
         if limit < 1:
             raise ValueError("limit 必须大于 0")
-        knn_query = f"{query.strip()}=>[KNN {limit} @vector $vector AS vector_score]"
+        knn_query = f"{self._with_safety_filters(query)}=>[KNN {limit} @vector $vector AS vector_score]"
         return self._redis.execute_command(
             "FT.SEARCH",
             self.active_alias,
@@ -218,7 +218,7 @@ class RedisSubjectIndex:
 
     def search(self, query: str, vector: Sequence[float], *, limit: int = 10) -> Any:
         """兼容既有调用；新检索服务应分别调用 lexical_search/semantic_search。"""
-        return self.semantic_search(self._with_safety_filters(query), vector, limit=limit)
+        return self.semantic_search(query, vector, limit=limit)
 
     def _search(self, query: str, *, limit: int) -> Any:
         return self._redis.execute_command(
@@ -261,6 +261,11 @@ class RedisSubjectIndex:
     @staticmethod
     def _join(values: Sequence[str]) -> str:
         return " ".join(str(value) for value in values)
+
+    @staticmethod
+    def _join_tags(values: Sequence[str]) -> str:
+        """RediSearch TAG 默认以逗号分隔；内容中的分隔符必须转义。"""
+        return ",".join(str(value).replace("\\", "\\\\").replace(",", "\\,") for value in values)
 
     @staticmethod
     def _validate_version(index_version: str) -> str:
