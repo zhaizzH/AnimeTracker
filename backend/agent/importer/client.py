@@ -3,7 +3,7 @@
 import logging
 import os
 import time
-from typing import Any, Optional
+from typing import Any, Iterator, Optional
 
 import requests
 
@@ -76,6 +76,22 @@ class BangumiClient:
             params["type"] = type
         return self._request("GET", "/v0/episodes", params=params)
 
+    def get_all_episodes(self, subject_id: int, limit: int = 200) -> list[dict]:
+        """获取条目的全部剧集，按响应实际条数推进分页偏移量。"""
+        offset = 0
+        episodes = []
+        while True:
+            page = self.get_episodes(subject_id, limit=limit, offset=offset)
+            items = page.get("data") or []
+            episodes.extend(items)
+            offset += len(items)
+            if not items or offset >= int(page.get("total") or 0):
+                return episodes
+
+    def get_subject_persons(self, subject_id: int) -> list[dict]:
+        """GET /v0/subjects/{subject_id}/persons — 条目的关联人物。"""
+        return self._request("GET", f"/v0/subjects/{subject_id}/persons")
+
     def browse_subjects(self, type: int = 2, year: Optional[int] = None,
                         month: Optional[int] = None, offset: int = 0,
                         limit: int = 25) -> dict:
@@ -86,6 +102,22 @@ class BangumiClient:
         if month is not None:
             params["month"] = month
         return self._request("GET", "/v0/subjects", params=params)
+
+    def iter_subject_ids(self, subject_type: int = 2, limit: int = 100) -> Iterator[int]:
+        """按页遍历 Bangumi 条目 ID，保留首次出现的顺序。"""
+        offset = 0
+        seen = set()
+        while True:
+            page = self.browse_subjects(type=subject_type, offset=offset, limit=limit)
+            items = page.get("data") or []
+            for item in items:
+                subject_id = item.get("id")
+                if subject_id and subject_id not in seen:
+                    seen.add(subject_id)
+                    yield subject_id
+            offset += len(items)
+            if not items or offset >= int(page.get("total") or 0):
+                return
 
     def search_subjects(self, keyword: str, filter: Optional[dict] = None,
                         limit: int = 25, offset: int = 0) -> dict:
