@@ -168,22 +168,31 @@ def test_semantic_search_enforces_non_nsfw_anime_filters_without_caller_help():
     index.semantic_search("@year:[2024 2024]", [0.0] * 1024, limit=3)
 
     query = fake_redis.first("FT.SEARCH")[2]
-    assert "@year:[2024 2024]" in query
-    assert "@type:[2 2]" in query
-    assert "@nsfw:{false}" in query
+    assert query == "((@year:[2024 2024]) @type:[2 2] @nsfw:{false})=>[KNN 3 @vector $vector AS vector_score]"
 
 
-def test_meta_tags_are_tag_values_and_keep_each_tag_queryable():
-    """Joining tag values with spaces would make single-tag filtering unreliable."""
+def test_semantic_search_without_a_primary_query_still_filters_before_knn():
+    fake_redis = FakeRedis()
+    index = RedisSubjectIndex(fake_redis, key_prefix="test:rag:", index_prefix="idx:test:rag:")
+
+    index.semantic_search("", [0.0] * 1024, limit=3)
+
+    assert fake_redis.first("FT.SEARCH")[2] == "(@type:[2 2] @nsfw:{false})=>[KNN 3 @vector $vector AS vector_score]"
+
+
+def test_meta_tags_are_tag_values_with_a_separator_that_preserves_commas():
+    """The default comma separator would split a single comma-containing tag during indexing."""
     fake_redis = FakeRedis()
     index = RedisSubjectIndex(fake_redis, key_prefix="test:rag:", index_prefix="idx:test:rag:")
 
     index.ensure_version("v1")
-    index.write(document().__class__(**{**document().__dict__, "meta_tags": ("TV", "治愈")}))
+    index.write(document().__class__(**{**document().__dict__, "meta_tags": ("TV", "科幻,太空", "校园|日常")}))
 
     create = fake_redis.first("FT.CREATE")
     assert ("meta_tags", "TAG") in adjacent_pairs(create)
-    assert fake_redis.first("HSET")[2]["meta_tags"] == "TV,治愈"
+    assert ("TAG", "SEPARATOR") in adjacent_pairs(create)
+    assert ("SEPARATOR", "|") in adjacent_pairs(create)
+    assert fake_redis.first("HSET")[2]["meta_tags"] == r"TV|科幻,太空|校园\|日常"
 
 
 def test_activate_never_deletes_session_keys():

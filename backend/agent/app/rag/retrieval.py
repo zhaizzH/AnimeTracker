@@ -13,11 +13,12 @@ from app.rag.schemas import RetrievalQuery
 _REDIS_RESERVED = re.compile(r'([,\.<>\{\}\[\}"\':;!@#$%^&*()\-+=~|\\/])')
 _QUARTERS = {"spring": 1, "summer": 2, "autumn": 3, "winter": 4}
 _MAX_RESULTS = 15
+_REDIS_TAG_RESERVED = re.compile(r'([\.< >\{\}\[\}"\':;!@#$%^&*()\-+=~|\\/])')
 
 
-def escape_redis_term(value: str) -> str:
+def escape_redis_term(value: str, *, preserve_comma: bool = False) -> str:
     """唯一的 RediSearch 词元转义入口；调用方不能提供查询片段。"""
-    return _REDIS_RESERVED.sub(r"\\\1", value)
+    return (_REDIS_TAG_RESERVED if preserve_comma else _REDIS_RESERVED).sub(r"\\\1", value)
 
 
 @dataclass(frozen=True)
@@ -138,7 +139,7 @@ class RagRetrievalService:
         if query.rating_total_min is not None:
             parts.append(f"@rating_total:[{query.rating_total_min} +inf]")
         for tag in query.meta_tags:
-            parts.append(f"@meta_tags:{{{escape_redis_term(tag)}}}")
+            parts.append(f"@meta_tags:{{{escape_redis_term(tag, preserve_comma=True)}}}")
         if query.air_status:
             parts.append(f"@air_status:{{{escape_redis_term(query.air_status.lower())}}}")
         for subject_id in query.exclude_subject_ids:

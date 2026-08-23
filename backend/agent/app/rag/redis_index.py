@@ -97,6 +97,8 @@ class RedisSubjectIndex:
                 "TEXT",
                 "meta_tags",
                 "TAG",
+                "SEPARATOR",
+                "|",
                 "trusted_tags",
                 "TEXT",
                 "credits",
@@ -177,7 +179,7 @@ class RedisSubjectIndex:
         """在当前别名上运行受控过滤与 KNN 查询。"""
         if limit < 1:
             raise ValueError("limit 必须大于 0")
-        knn_query = f"{self._with_safety_filters(query)}=>[KNN {limit} @vector $vector AS vector_score]"
+        knn_query = f"({self._with_safety_filters(query)})=>[KNN {limit} @vector $vector AS vector_score]"
         return self._redis.execute_command(
             "FT.SEARCH",
             self.active_alias,
@@ -264,8 +266,8 @@ class RedisSubjectIndex:
 
     @staticmethod
     def _join_tags(values: Sequence[str]) -> str:
-        """RediSearch TAG 默认以逗号分隔；内容中的分隔符必须转义。"""
-        return ",".join(str(value).replace("\\", "\\\\").replace(",", "\\,") for value in values)
+        """使用自定义 | 分隔符，保留标签值内的逗号。"""
+        return "|".join(str(value).replace("\\", "\\\\").replace("|", "\\|") for value in values)
 
     @staticmethod
     def _validate_version(index_version: str) -> str:

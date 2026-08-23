@@ -121,9 +121,9 @@ def test_meta_tag_filter_uses_a_single_escaped_tag_clause():
     index = CapturingIndex(lexical=[{"subject_id": 7, "title": "动画 7"}], semantic=[])
     service = RagRetrievalService(index, VectorEmbedding(), authority_lookup=_authority)
 
-    service.retrieve(RetrievalQuery(meta_tags=["科幻,太空"]), "search")
+    service.retrieve(RetrievalQuery(meta_tags=["科幻,太空", "校园|日常"]), "search")
 
-    assert index.expressions == [r"@meta_tags:{科幻\,太空}"]
+    assert index.expressions == [r"@meta_tags:{科幻,太空} @meta_tags:{校园\|日常}"]
 
 
 def test_business_failure_never_returns_unvalidated_redis_candidates():
