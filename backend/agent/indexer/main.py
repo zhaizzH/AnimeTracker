@@ -53,19 +53,27 @@ def run_batch(
     except Exception as exc:
         if _is_unavailable(exc):
             retry_error = EmbeddingUnavailable("redis unavailable")
+            retried = 0
             for job in jobs:
-                repository.mark_retry(job.id, attempts=job.attempts, error=retry_error, lease_updated_at=job.lease_updated_at)
-            return IndexBatchResult(len(jobs), 0, len(jobs), 0, 0, 0)
+                if repository.mark_retry(
+                    job.id, attempts=job.attempts, error=retry_error, lease_updated_at=job.lease_updated_at,
+                ):
+                    retried += 1
+            return IndexBatchResult(len(jobs), 0, retried, 0, 0, 0)
+        failed = 0
         for job in jobs:
-            repository.mark_failed(job.id, error=exc, lease_updated_at=job.lease_updated_at)
-        return IndexBatchResult(len(jobs), 0, 0, len(jobs), 0, 0)
+            if repository.mark_failed(job.id, error=exc, lease_updated_at=job.lease_updated_at):
+                failed += 1
+        return IndexBatchResult(len(jobs), 0, 0, failed, 0, 0)
     try:
         subjects = [repository.load_subject(job) for job in jobs]
         profiles = [_profile(subject, job) for subject, job in zip(subjects, jobs)]
     except Exception as exc:
+        failed = 0
         for job in jobs:
-            repository.mark_failed(job.id, error=exc, lease_updated_at=job.lease_updated_at)
-        return IndexBatchResult(len(jobs), 0, 0, len(jobs), 0, 0)
+            if repository.mark_failed(job.id, error=exc, lease_updated_at=job.lease_updated_at):
+                failed += 1
+        return IndexBatchResult(len(jobs), 0, 0, failed, 0, 0)
 
     texts = [profile.text for profile in profiles]
     started = time.monotonic()
@@ -250,12 +258,22 @@ def _is_unavailable(error: Exception) -> bool:
 class _LeaseHeartbeat:
     """使用独立 Session 周期续租，避免长 embedding 调用误触发崩溃回收。"""
 
-    def __init__(self, repository: IndexJobRepository, jobs: list[IndexJob]):
+    def __init__(
+        self,
+        repository: IndexJobRepository,
+        jobs: list[IndexJob],
+        *,
+        interval_seconds: float = LEASE_HEARTBEAT_SECONDS,
+        stop_timeout_seconds: float = 5,
+    ):
         self._repository = repository
         self._jobs = list(jobs)
         self._lost_job_ids: set[int] = set()
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
+        self._interval_seconds = interval_seconds
+        self._stop_timeout_seconds = stop_timeout_seconds
+        self._lock = threading.Lock()
 
     def start(self) -> None:
         if not getattr(self._repository, "supports_lease_heartbeat", False):
@@ -266,22 +284,34 @@ class _LeaseHeartbeat:
     def stop(self) -> tuple[list[IndexJob], set[int]]:
         self._stop.set()
         if self._thread is not None:
-            self._thread.join(timeout=LEASE_HEARTBEAT_SECONDS + 1)
-        return self._jobs, self._lost_job_ids
+            self._thread.join(timeout=self._stop_timeout_seconds)
+        with self._lock:
+            if self._thread is not None and self._thread.is_alive():
+                # 有不可中断的数据库调用时，主线程放弃最终状态写回；后台恢复后也会看到 stop。
+                self._lost_job_ids.update(job.id for job in self._jobs)
+            return list(self._jobs), set(self._lost_job_ids)
 
     def _run(self) -> None:
-        while not self._stop.wait(LEASE_HEARTBEAT_SECONDS):
-            for position, job in enumerate(self._jobs):
-                if job.id in self._lost_job_ids:
+        while not self._stop.wait(self._interval_seconds):
+            with self._lock:
+                jobs = list(enumerate(self._jobs))
+                lost_job_ids = set(self._lost_job_ids)
+            for position, job in jobs:
+                if job.id in lost_job_ids:
                     continue
                 try:
                     renewed = self._repository.renew_lease(job.id, lease_updated_at=job.lease_updated_at)
                 except Exception:
                     renewed = None
-                if renewed is None:
-                    self._lost_job_ids.add(job.id)
-                else:
-                    self._jobs[position] = replace(job, lease_updated_at=renewed)
+                if self._stop.is_set():
+                    return
+                with self._lock:
+                    if self._stop.is_set():
+                        return
+                    if renewed is None:
+                        self._lost_job_ids.add(job.id)
+                    else:
+                        self._jobs[position] = replace(job, lease_updated_at=renewed)
 
 
 if __name__ == "__main__":

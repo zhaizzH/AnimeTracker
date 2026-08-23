@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+import threading
 
 from app.rag.embeddings import EmbeddingRateLimited
 from app.rag.profile import build_subject_profile
 from app.rag.schemas import SubjectProfileSource
-from indexer.main import _profile, run_batch
+from indexer.main import _LeaseHeartbeat, _profile, run_batch
 from indexer.repository import IndexJob, IndexSubject
 from redis.exceptions import ConnectionError as RedisConnectionError, TimeoutError as RedisTimeoutError
 
@@ -196,3 +197,60 @@ def test_worker_does_not_count_indexed_when_it_loses_the_lease_before_confirmati
 
     assert result.indexed == 0
     assert repo.indexed == [7]
+
+
+def test_worker_does_not_count_ensure_failure_when_lost_lease_blocks_retry_update():
+    """FT.CREATE 失败后若 lease 已丢失，结果不能谎报已转 RETRY。"""
+    class LostLeaseRepo(FakeRepo):
+        def mark_retry(self, job_id, *, attempts, error, lease_updated_at=None):
+            self.retries.append((job_id, attempts, type(error).__name__))
+            return False
+
+    repo = LostLeaseRepo([_job()])
+    result = run_batch(
+        limit=10, index_version="v1", repository=repo, embedding_client=FakeEmbedding(),
+        redis_index=FakeIndex(ensure_error=RedisConnectionError("connection refused")),
+    )
+
+    assert result.retried == 0
+    assert repo.retries == [(7, 1, "EmbeddingUnavailable")]
+
+
+def test_worker_does_not_count_profile_failure_when_lost_lease_blocks_failed_update():
+    """资料读取失败时 lease 已丢失，结果不能谎报已转 FAILED。"""
+    class LostLeaseRepo(FakeRepo):
+        def load_subject(self, job):
+            raise RuntimeError("profile read failed")
+
+        def mark_failed(self, job_id, *, error, lease_updated_at=None):
+            self.failed.append((job_id, type(error).__name__))
+            return False
+
+    repo = LostLeaseRepo([_job()])
+    result = run_batch(limit=10, index_version="v1", repository=repo, embedding_client=FakeEmbedding(), redis_index=FakeIndex())
+
+    assert result.failed == 0
+    assert repo.failed == [(7, "RuntimeError")]
+
+
+def test_heartbeat_stop_marks_jobs_lost_when_a_renew_call_cannot_finish_in_time():
+    """停止等待超时后，主线程必须放弃最终状态写回，不能与后台续租竞争。"""
+    entered = threading.Event()
+    release = threading.Event()
+
+    class BlockingRepo:
+        supports_lease_heartbeat = True
+
+        def renew_lease(self, _job_id, *, lease_updated_at):
+            entered.set()
+            release.wait(1)
+            return lease_updated_at
+
+    keeper = _LeaseHeartbeat(BlockingRepo(), [_job()], interval_seconds=0, stop_timeout_seconds=0.01)
+    keeper.start()
+    assert entered.wait(0.2)
+
+    _, lost_job_ids = keeper.stop()
+    release.set()
+
+    assert lost_job_ids == {7}
