@@ -128,7 +128,7 @@ CREATE TABLE `subject_alias`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_subject_alias`(`subject_id` ASC, `name` ASC) USING BTREE,
   INDEX `idx_alias_name`(`name` ASC) USING BTREE,
-  CONSTRAINT `fk_alias_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `fk_alias_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '条目别名表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -143,7 +143,7 @@ CREATE TABLE `subject_meta_tag`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_subject_meta_tag`(`subject_id` ASC, `name` ASC) USING BTREE,
   INDEX `idx_meta_tag_name`(`name` ASC) USING BTREE,
-  CONSTRAINT `fk_meta_tag_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `fk_meta_tag_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '条目官方标签表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -163,7 +163,7 @@ CREATE TABLE `subject_credit`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_subject_credit`(`subject_id` ASC, `name` ASC, `role` ASC) USING BTREE,
   INDEX `idx_credit_name_role`(`name` ASC, `role` ASC) USING BTREE,
-  CONSTRAINT `fk_credit_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `fk_credit_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '条目主创表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -189,7 +189,7 @@ CREATE TABLE `rag_index_job`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_rag_job_subject_version`(`subject_id` ASC, `index_version` ASC) USING BTREE,
   INDEX `idx_rag_job_status_retry`(`status` ASC, `next_retry_at` ASC) USING BTREE,
-  CONSTRAINT `fk_rag_job_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `fk_rag_job_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'RAG 索引任务表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------

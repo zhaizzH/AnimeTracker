@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     rag_redis_url: str = ""
     rag_index_alias: str = "idx:rag:subject:active"
     rag_index_version: str = "v1"
-    rag_embedding_model: str = "text-embedding-v4"
+    rag_embedding_model: Literal["text-embedding-v4"] = "text-embedding-v4"
     rag_embedding_dim: Literal[1024] = 1024
     rag_enabled: bool = False
 

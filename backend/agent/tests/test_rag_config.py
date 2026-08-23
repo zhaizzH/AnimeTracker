@@ -27,6 +27,12 @@ def test_rag_redis_url_overrides_session_redis():
     assert s.effective_rag_redis_url == "redis://rag/1"
 
 
+def test_rag_embedding_model_rejects_model_switch():
+    """RAG 向量维度契约仅允许指定的 Embedding 模型。"""
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, rag_embedding_model="text-embedding-v3")
+
+
 def test_raw_bucket_must_not_match_public_cover_bucket():
     """原始快照不得落入公开封面桶。"""
     with pytest.raises(ValidationError, match="MINIO_RAW_BUCKET"):

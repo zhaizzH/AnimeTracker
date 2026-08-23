@@ -52,3 +52,11 @@ def test_complete_schema_includes_rag_tables_and_columns():
         assert f"CREATE TABLE `{name}`" in sql
     for column in (*SUBJECT_COLUMNS, *IMPORT_RECORD_COLUMNS):
         assert f"`{column.upper()}`" in sql
+    for foreign_key in (
+        "FK_ALIAS_SUBJECT",
+        "FK_META_TAG_SUBJECT",
+        "FK_CREDIT_SUBJECT",
+        "FK_RAG_JOB_SUBJECT",
+    ):
+        definition = sql.split(f"CONSTRAINT `{foreign_key}`", maxsplit=1)[1].split(";", maxsplit=1)[0]
+        assert "ON UPDATE CASCADE" not in definition
