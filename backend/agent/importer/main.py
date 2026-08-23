@@ -27,6 +27,8 @@ from dotenv import load_dotenv
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.core.observability import log_event
+
 try:
     from .client import BangumiClient
     from .db import get_engine, upsert_subject, upsert_episodes, upsert_tags, \
@@ -647,6 +649,7 @@ def main(argv=None):
         if record_id is not None:
             complete_import_record(db, record_id, 0, "FAILED", sanitized)
             db.commit()
+        log_event("rag.import.completed", jobId=record_id, success=False, errorType=type(e).__name__)
         return 1
     finally:
         if stop_flusher is not None:
@@ -657,6 +660,7 @@ def main(argv=None):
             release_import_lock(db)
         db.close()
         main_connection.close()
+    log_event("rag.import.completed", jobId=record_id, candidateCount=count, success=True)
     return 0
 
 

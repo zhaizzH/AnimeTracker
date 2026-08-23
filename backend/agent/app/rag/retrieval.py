@@ -8,6 +8,7 @@ import re
 from typing import Any, Callable, Mapping, Sequence
 
 from app.agent.http import call_api
+from app.core.observability import log_event
 from app.rag.embeddings import EmbeddingClient
 from app.rag.schemas import RetrievalQuery
 from app.rag.user_profile import UserPreference
@@ -110,18 +111,22 @@ class RagRetrievalService:
                     continue
                 result = self._authoritative_result(reciprocal_rank_fusion(lexical, semantic), query, token, preference)
                 if not result.available or result.items:
-                    return self._with_personalization_notice(result, personalization_missing)
+                    return self._complete(result, personalization_missing)
         except Exception:
             redis_failed = True
             lexical, semantic = [], []
 
         if redis_failed:
-            return self._with_personalization_notice(
-                self._business_fallback(query, token, preference), personalization_missing
-            )
-        return self._with_personalization_notice(
-            RetrievalResult(available=True, items=[], reason="no_results"), personalization_missing
-        )
+            return self._complete(self._business_fallback(query, token, preference), personalization_missing, "business")
+        return self._complete(RetrievalResult(available=True, items=[], reason="no_results"), personalization_missing)
+
+    @staticmethod
+    def _complete(result: RetrievalResult, personalization_missing: bool, fallback_type: str | None = None) -> RetrievalResult:
+        result = RagRetrievalService._with_personalization_notice(result, personalization_missing)
+        log_event("rag.retrieval.completed", candidateCount=len(result.items), success=result.available)
+        if fallback_type is not None:
+            log_event("rag.fallback.used", fallbackType=fallback_type, success=result.available)
+        return result
 
     def _expressions(self, query: RetrievalQuery) -> list[str]:
         attempts = [query]

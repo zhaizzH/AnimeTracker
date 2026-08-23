@@ -39,7 +39,18 @@ _ALLOWED_FIELDS = {
     "success", "errorType", "toolName", "routeTarget", "businessStatus",
     "inputTokens", "outputTokens", "totalTokens",
     "sessionHash", "userHash", "toolCount",
+    "jobId", "indexVersion", "dimensions", "candidateCount", "filteredCount", "fallbackType",
 }
+
+_RAG_EVENTS = frozenset({
+    "rag.import.completed", "rag.index.completed", "rag.retrieval.completed",
+    "rag.index.switch", "rag.fallback.used", "rag.data_quality.completed",
+})
+
+_RAG_ALLOWED_FIELDS = frozenset({
+    "jobId", "indexVersion", "dimensions", "candidateCount", "filteredCount", "fallbackType",
+    "success", "errorType",
+})
 
 # 服务端固定 salt(不可逆摘要；无配置时上层省略 sessionHash/userHash 字段)
 _HASH_SALT = "animetracker-agent-observability-salt-v1"
@@ -132,8 +143,11 @@ def classify_error(exc: BaseException) -> str:
 
 def log_event(event: str, **fields) -> None:
     """输出单行结构化 JSON 事件；仅白名单字段被写入，None 值省略。"""
+    if event.startswith("rag.") and event not in _RAG_EVENTS:
+        return
     payload = {"service": SERVICE_NAME, "event": event, "traceId": _trace_id.get()}
-    payload.update({k: v for k, v in fields.items() if k in _ALLOWED_FIELDS})
+    allowed_fields = _RAG_ALLOWED_FIELDS if event in _RAG_EVENTS else _ALLOWED_FIELDS
+    payload.update({k: v for k, v in fields.items() if k in allowed_fields})
     payload = {k: v for k, v in payload.items() if v is not None}
     logger.info(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
 

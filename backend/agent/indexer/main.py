@@ -13,6 +13,8 @@ import redis
 from redis.exceptions import ConnectionError as RedisConnectionError, TimeoutError as RedisTimeoutError
 from sqlalchemy.orm import Session
 
+from app.core.observability import log_event
+
 from app.rag.embeddings import DashScopeEmbeddingClient, EmbeddingRateLimited, EmbeddingUnavailable
 from app.rag.profile import build_subject_profile
 from app.rag.redis_index import RedisSubjectIndex, SubjectIndexDocument
@@ -205,6 +207,7 @@ def main(argv: list[str] | None = None) -> int:
             if result.claimed == 0:
                 break
     total = _combine(batches)
+    log_event("rag.index.completed", indexVersion=args.index_version, dimensions=1024, candidateCount=total.indexed, filteredCount=total.failed + total.retried, success=total.failed == 0)
     if args.report:
         after_memory = int(client.info("memory").get("used_memory", 0))
         report = build_capacity_report(

@@ -14,6 +14,8 @@ from urllib.parse import urlparse
 
 from sqlalchemy import text
 
+from app.core.observability import log_event
+
 
 Category = Literal[
     "NON_ANIME", "NSFW", "SOURCE_MISSING", "SELF_RELATION", "MISSING_COVER_OBJECT",
@@ -238,6 +240,7 @@ def main(argv: list[str] | None = None) -> int:
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     digest = write_quality_report(report, output)
+    log_event("rag.data_quality.completed", candidateCount=len(report.items), success=True)
     print(f"report={output}")
     print(f"sha256={digest}")
     return 0

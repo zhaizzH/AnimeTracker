@@ -1,0 +1,20 @@
+- {id: title-original-01, category: title_alias, query: 动画 1, expectedSubjectIds: [1], required: true}
+- {id: title-original-02, category: title_alias, query: 动画 2, expectedSubjectIds: [2], required: true}
+- {id: title-original-03, category: title_alias, query: 动画 3, expectedSubjectIds: [3], required: true}
+- {id: title-original-04, category: title_alias, query: 动画 4, expectedSubjectIds: [4], required: true}
+- {id: title-original-05, category: title_alias, query: 动画 5, expectedSubjectIds: [5], required: true}
+- {id: title-cn-01, category: title_alias, query: 动画 6, expectedSubjectIds: [6], required: true}
+- {id: title-cn-02, category: title_alias, query: 动画 7, expectedSubjectIds: [7], required: true}
+- {id: title-cn-03, category: title_alias, query: 动画 8, expectedSubjectIds: [8], required: true}
+- {id: title-cn-04, category: title_alias, query: 动画 9, expectedSubjectIds: [9], required: true}
+- {id: title-cn-05, category: title_alias, query: 动画 10, expectedSubjectIds: [10], required: true}
+- {id: title-alias-01, category: title_alias, query: 原名1, expectedSubjectIds: [1], required: true}
+- {id: title-alias-02, category: title_alias, query: 原名2, expectedSubjectIds: [2], required: true}
+- {id: title-alias-03, category: title_alias, query: 原名3, expectedSubjectIds: [3], required: true}
+- {id: title-alias-04, category: title_alias, query: 原名4, expectedSubjectIds: [4], required: true}
+- {id: title-alias-05, category: title_alias, query: 原名5, expectedSubjectIds: [5], required: true}
+- {id: title-space-01, category: title_alias, query: 动画 1, expectedSubjectIds: [1], required: true}
+- {id: title-space-02, category: title_alias, query: 动画 2, expectedSubjectIds: [2], required: true}
+- {id: title-space-03, category: title_alias, query: 动画 3, expectedSubjectIds: [3], required: true}
+- {id: title-disambiguate-01, category: title_alias, query: 动画 4, expectedSubjectIds: [4], forbiddenSubjectIds: [5], required: true}
+- {id: title-disambiguate-02, category: title_alias, query: 动画 5, expectedSubjectIds: [5], forbiddenSubjectIds: [4], required: true}
