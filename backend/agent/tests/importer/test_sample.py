@@ -36,6 +36,7 @@ def test_import_errors_are_redacted_from_record_and_logs(caplog, monkeypatch):
     secret = "mysql://root:password@db/?token=eyJ.secret.jwt Authorization: Bearer abcdef"
     assert "password" not in main.sanitize_import_error(RuntimeError(secret))
     assert "eyJ.secret.jwt" not in main.sanitize_import_error(RuntimeError(secret))
+    assert "abcdef" not in main.sanitize_import_error(RuntimeError(secret))
 
     class Session:
         def __init__(self):
@@ -51,6 +52,7 @@ def test_import_errors_are_redacted_from_record_and_logs(caplog, monkeypatch):
     complete_import_record(session, 1, 0, "FAILED", RuntimeError(secret))
     assert "password" not in session.params["error_message"]
     assert "eyJ.secret.jwt" not in session.params["error_message"]
+    assert "abcdef" not in session.params["error_message"]
 
     class Client:
         def get_subject(self, _):
@@ -60,6 +62,7 @@ def test_import_errors_are_redacted_from_record_and_logs(caplog, monkeypatch):
         assert main.import_single_subject(Client(), Session(), 42, False) == main.OUTCOME_FAILURE
     assert "password" not in caplog.text
     assert "eyJ.secret.jwt" not in caplog.text
+    assert "abcdef" not in caplog.text
 
 
 def test_resume_query_uses_sqlalchemy_text_with_real_session():

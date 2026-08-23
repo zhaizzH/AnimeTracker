@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 def sanitize_import_error(error: Exception | str) -> str:
     """保留可诊断的异常类型，同时移除连接串、凭据与令牌。"""
     message = str(error).replace("\r", " ").replace("\n", " ")
+    message = re.sub(r"(?i)\bauthorization\s*:\s*bearer\s+[^\s,;]+", "Authorization: Bearer ***", message)
     message = re.sub(r"(?i)\b(?:authorization|password|passwd|pwd|token|api[_-]?key)\s*[:=]\s*[^\s,;]+", "***", message)
     message = re.sub(r"(?i)\bbearer\s+[^\s,;]+", "Bearer ***", message)
     message = re.sub(r"//[^:/@\s]+:[^@/\s]+@", "//***:***@", message)
