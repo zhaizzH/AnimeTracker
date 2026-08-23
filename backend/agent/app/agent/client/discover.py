@@ -1,6 +1,7 @@
 from langchain_core.tools import tool
 
 from app.agent.client.collections import collection_read_tools
+from app.agent.client.rag_tools import rag_discover_subjects
 from app.agent.http import call_api
 from app.agent.run import run_domain_agent
 from app.agent.time_tool import get_current_time
@@ -24,8 +25,7 @@ def get_schedule(weekday: int = -1, year: int = 0, quarter: str = "") -> dict:
 @tool_call_status(display_name="查看季度新番")
 def get_season_subjects(year: int, quarter: str, page: int = 1, size: int = 20) -> list:
     """按季度获取新番。year: 年份；quarter: spring/summer/autumn/winter"""
-    data = call_api("GET", "/api/client/subjects/season",
-                    params={"year": year, "quarter": quarter, "page": page, "size": size})
+    data = call_api("GET", "/api/client/subjects/season", params={"year": year, "quarter": quarter, "page": page, "size": size})
     return data.get("content") if isinstance(data, dict) else data
 
 
@@ -33,8 +33,7 @@ def get_season_subjects(year: int, quarter: str, page: int = 1, size: int = 20) 
 @tool_call_status(display_name="查看热度榜")
 def get_popular_subjects(page: int = 1, size: int = 10) -> list:
     """获取热度榜（按收藏数降序）"""
-    data = call_api("GET", "/api/client/subjects",
-                    params={"sort": "collectionTotal", "order": "desc", "page": page, "size": size})
+    data = call_api("GET", "/api/client/subjects", params={"sort": "collectionTotal", "order": "desc", "page": page, "size": size})
     return data.get("content") if isinstance(data, dict) else data
 
 
@@ -42,8 +41,7 @@ def get_popular_subjects(page: int = 1, size: int = 10) -> list:
 @tool_call_status(display_name="查看评分榜")
 def get_top_rated(page: int = 1, size: int = 10) -> list:
     """获取评分榜（按评分降序）"""
-    data = call_api("GET", "/api/client/subjects",
-                    params={"sort": "score", "order": "desc", "page": page, "size": size})
+    data = call_api("GET", "/api/client/subjects", params={"sort": "score", "order": "desc", "page": page, "size": size})
     return data.get("content") if isinstance(data, dict) else data
 
 
@@ -57,7 +55,7 @@ def get_stats() -> dict:
     return data
 
 
-discover_tools = [get_schedule, get_season_subjects, get_popular_subjects, get_top_rated, get_stats]
+discover_tools = [rag_discover_subjects, get_schedule]
 
 
 def discover_agent(state):
