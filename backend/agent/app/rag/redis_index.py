@@ -167,6 +167,29 @@ class RedisSubjectIndex:
                 mapping[field] = value
         self._redis.hset(self.document_key(document.index_version, document.subject_id), mapping=mapping)
 
+    def content_hashes(self, index_version: str) -> dict[int, str]:
+        """读取指定版本实际写入的 subjectId/content_hash，失败不伪造空结果。"""
+        version = self._validate_version(index_version)
+        scan_iter = getattr(self._redis, "scan_iter", None)
+        hget = getattr(self._redis, "hget", None)
+        if not callable(scan_iter) or not callable(hget):
+            raise RuntimeError("Redis 不支持索引文档抽样读取")
+        prefix = f"{self._key_prefix}subject:{version}:"
+        result: dict[int, str] = {}
+        for raw_key in scan_iter(match=f"{prefix}*"):
+            key = raw_key.decode("utf-8") if isinstance(raw_key, bytes) else str(raw_key)
+            if not key.startswith(prefix):
+                continue
+            raw_subject_id = key[len(prefix):]
+            try:
+                subject_id = int(raw_subject_id)
+            except (TypeError, ValueError):
+                continue
+            raw_hash = hget(raw_key, "content_hash")
+            result[subject_id] = raw_hash.decode("utf-8") if isinstance(raw_hash, bytes) else str(raw_hash or "")
+
+        return result
+
     def activate(self, index_version: str) -> None:
         """原子切换检索别名；绝不删除旧索引、文档或会话键。"""
         self._redis.execute_command("FT.ALIASUPDATE", self.active_alias, self.index_name(index_version))

@@ -49,9 +49,12 @@ class FakeDatabase:
             "self_relation": [{"id": 8, "subject_id": 3, "related_subject_id": 3}],
             "tag": [{"id": 9, "subject_id": 3, "name": ""}, {"id": 10, "subject_id": 3, "name": "a" * 65}],
         }
+        self.index_jobs = [{"subject_id": 3, "content_hash": "expected-hash"}]
 
     def execute(self, statement, _params=None):
         sql = str(statement).lower()
+        if "from rag_index_job" in sql:
+            return Result(self.index_jobs)
         if "database_fingerprint" in sql:
             return Result([("db-fingerprint",)])
         if "from subject_relation" in sql:
@@ -76,6 +79,14 @@ class FakeMinio:
 
     def fingerprint(self):
         return "minio-fingerprint"
+
+
+class FakeIndex:
+    def __init__(self, hashes):
+        self.hashes = hashes
+
+    def content_hashes(self, _version):
+        return dict(self.hashes)
 
 
 def test_quality_report_contains_every_category_and_fixed_root_fields():
@@ -109,11 +120,41 @@ def test_quality_report_with_index_version_emits_gate_coverage_and_hash_samples(
         datetime(2026, 8, 23, tzinfo=timezone.utc),
         index_version="v1",
         embedding_contract={"provider": "dashscope", "model": "text-embedding-v4", "dimensions": 1024, "profileVersion": "subject-profile-v1"},
+        redis_index=FakeIndex({3: "expected-hash"}),
     )
     payload = report.as_dict()
     assert 0 <= payload["coverage"] <= 1
     assert payload["contentHashSamples"]
     assert all(sample["expected"] and sample["observed"] for sample in payload["contentHashSamples"])
+
+
+def test_quality_coverage_uses_all_qualified_subjects_and_compares_independent_redis_hashes():
+    from importer.quality import build_quality_report
+
+    db = FakeDatabase()
+    db.index_jobs = []
+    missing = build_quality_report(
+        db, FakeMinio(), datetime(2026, 8, 23, tzinfo=timezone.utc),
+        index_version="v1", redis_index=FakeIndex({3: "observed-hash"}),
+    ).as_dict()
+    assert missing["coverage"] == 0
+    assert missing["contentHashSamples"][0]["expected"] == ""
+    assert missing["contentHashSamples"][0]["observed"] == "observed-hash"
+
+    db.index_jobs = [{"subject_id": 3, "content_hash": "expected-hash"}]
+    changed = build_quality_report(
+        db, FakeMinio(), datetime(2026, 8, 23, tzinfo=timezone.utc),
+        index_version="v1", redis_index=FakeIndex({3: "changed-hash"}),
+    ).as_dict()
+    assert changed["coverage"] == 1
+    assert changed["contentHashSamples"][0]["expected"] != changed["contentHashSamples"][0]["observed"]
+
+    absent = build_quality_report(
+        db, FakeMinio(), datetime(2026, 8, 23, tzinfo=timezone.utc),
+        index_version="v1", redis_index=FakeIndex({}),
+    ).as_dict()
+    assert absent["coverage"] == 0
+    assert absent["contentHashSamples"][0]["observed"] == ""
 
 
 def test_volumes_null_is_not_an_anime_quality_defect():

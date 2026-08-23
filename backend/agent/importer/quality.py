@@ -111,6 +111,7 @@ def build_quality_report(
     *,
     index_version: str | None = None,
     embedding_contract: Mapping[str, Any] | None = None,
+    redis_index: Any | None = None,
 ) -> QualityReport:
     """检查约定的 11 类问题，所有查询均为只读。"""
     if as_of.tzinfo is None:
@@ -168,10 +169,19 @@ def build_quality_report(
     coverage = None
     samples = None
     if index_version:
-        total = len(subjects)
-        qualified = [subject for subject in subjects if int(subject.get("type") or 0) == 2 and not bool(subject.get("nsfw"))]
-        coverage = len(qualified) / total if total else 0.0
-        samples = tuple({"subjectId": int(subject["id"]), "expected": _subject_digest(subject), "observed": _subject_digest(subject)} for subject in sorted(qualified, key=lambda item: int(item["id"]))[:20])
+        if redis_index is None:
+            raise RuntimeError("带 index_version 的质量报告必须读取目标 Redis 索引")
+        expected_hashes = _expected_content_hashes(db, index_version)
+        reader = getattr(redis_index, "content_hashes", None)
+        if not callable(reader):
+            raise RuntimeError("目标 Redis 索引不支持 content_hash 抽样读取")
+        observed_hashes = reader(index_version)
+        if not isinstance(observed_hashes, Mapping):
+            raise RuntimeError("目标 Redis content_hash 读取结果无效")
+        qualified_ids = {int(subject["id"]) for subject in subjects if int(subject.get("type") or 0) == 2 and not bool(subject.get("nsfw"))}
+        indexed_ids = {subject_id for subject_id in qualified_ids if expected_hashes.get(subject_id) and observed_hashes.get(subject_id)}
+        coverage = len(indexed_ids) / len(qualified_ids) if qualified_ids else 0.0
+        samples = tuple({"subjectId": subject_id, "expected": expected_hashes.get(subject_id, ""), "observed": str(observed_hashes.get(subject_id) or "")} for subject_id in sorted(qualified_ids)[:20])
     return QualityReport(as_of, commit, dirty, database_digest, minio_fingerprint(minio), {key: tuple(value) for key, value in grouped.items()}, index_version, embedding_contract, coverage, samples)
 
 
@@ -247,6 +257,21 @@ def _item(category: Category, action: Action, target: int | str, details: Mappin
     return QualityItem(category, action, target, details)
 
 
+def _expected_content_hashes(db, index_version: str) -> dict[int, str]:
+    try:
+        rows = db.execute(text("SELECT subject_id, content_hash FROM rag_index_job WHERE index_version=:index_version"), {"index_version": index_version}).mappings().all()
+    except Exception as error:
+        raise RuntimeError("无法读取 MySQL 权威 content_hash") from error
+    result: dict[int, str] = {}
+    for row in rows:
+        subject_id = int(row["subject_id"])
+        content_hash = str(row.get("content_hash") or "").strip()
+        if not content_hash:
+            raise RuntimeError("MySQL content_hash 为空")
+        result[subject_id] = content_hash
+    return result
+
+
 def _subject_digest(subject: Mapping[str, Any]) -> str:
     content = json.dumps(dict(subject), ensure_ascii=False, sort_keys=True, default=str).encode("utf-8")
     return hashlib.sha256(content).hexdigest()
@@ -269,9 +294,15 @@ def main(argv: list[str] | None = None) -> int:
 
     load_dotenv()
     engine = get_engine(os.getenv("DB_HOST", "127.0.0.1"), int(os.getenv("DB_PORT", "3306")), os.getenv("DB_USER", "root"), os.getenv("DB_PASSWORD", ""), os.getenv("DB_NAME", "anime_tracker"))
+    redis_index = None
+    if args.index_version:
+        import redis
+        from app.rag.redis_index import RedisSubjectIndex
+        redis_url = os.getenv("RAG_REDIS_URL") or os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        redis_index = RedisSubjectIndex(redis.Redis.from_url(redis_url))
     with Session(engine) as db:
         contract = {"provider": "dashscope", "model": os.getenv("RAG_EMBEDDING_MODEL", "text-embedding-v4"), "dimensions": int(os.getenv("RAG_EMBEDDING_DIM", "1024")), "profileVersion": os.getenv("RAG_PROFILE_VERSION", "subject-profile-v1")}
-        report = build_quality_report(db, ObjectStorage(), datetime.now(timezone.utc), index_version=args.index_version, embedding_contract=contract)
+        report = build_quality_report(db, ObjectStorage(), datetime.now(timezone.utc), index_version=args.index_version, embedding_contract=contract, redis_index=redis_index)
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     digest = write_quality_report(report, output)
