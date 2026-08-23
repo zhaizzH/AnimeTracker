@@ -136,7 +136,7 @@ def rag_discover_subjects(
     """优先按年份、季度、评分、标签和播出状态发现符合条件的目录番剧。"""
     try:
         query = RetrievalQuery(
-            semantic_query=semantic_query or "热门动画",
+            semantic_query=semantic_query,
             year_from=year_from,
             year_to=year_to,
             quarter=quarter,

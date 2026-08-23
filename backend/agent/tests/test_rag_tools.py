@@ -145,3 +145,36 @@ def test_recommend_injects_user_preference_and_excludes_collections(monkeypatch)
     assert mode == "recommend" and token == "signed-token"
     assert query.exclude_subject_ids == [11, 12]
     assert actual_preference is preference and personalization_missing is False
+
+
+def test_discover_keeps_semantic_query_empty_for_structured_filters(monkeypatch):
+    fake = FakeRetrieval()
+    monkeypatch.setattr(rag_tools, "get_retrieval_service", lambda mode: fake)
+
+    result = rag_tools.rag_discover_subjects.func(year_from=2024, year_to=2024, quarter="spring")
+
+    query, mode, *_ = fake.calls[0]
+    assert result[0]["subjectId"] == 7
+    assert mode == "discover"
+    assert query.semantic_query == ""
+    assert "热门动画" not in query.semantic_query
+
+def test_recommend_without_query_builds_a_valid_default_query(monkeypatch):
+    fake = FakeRetrieval()
+    monkeypatch.setattr(rag_tools, "get_retrieval_service", lambda mode: fake)
+
+    result = rag_tools.rag_recommend_subjects.func()
+
+    assert result[0]["subjectId"] == 7
+    assert len(fake.calls) == 1
+    assert fake.calls[0][0].semantic_query == "热门动画"
+
+def test_recommend_empty_query_uses_the_default_query(monkeypatch):
+    fake = FakeRetrieval()
+    monkeypatch.setattr(rag_tools, "get_retrieval_service", lambda mode: fake)
+
+    result = rag_tools.rag_recommend_subjects.func("")
+
+    assert result[0]["subjectId"] == 7
+    assert len(fake.calls) == 1
+    assert fake.calls[0][0].semantic_query == "热门动画"
