@@ -11,7 +11,7 @@ from typing import Any, Mapping
 
 from sqlalchemy import text
 
-from .quality import database_fingerprint, git_state, minio_fingerprint
+from .quality import CATEGORIES, database_fingerprint, git_state, minio_fingerprint
 
 
 class ConfirmationMismatch(RuntimeError):
@@ -21,7 +21,7 @@ class ConfirmationMismatch(RuntimeError):
 @dataclass(frozen=True)
 class CleanupResult:
     applied: int
-    skipped: int
+    manual_review: int
 
 
 def write_cleanup_plan(report, path: str | Path) -> str:
@@ -52,17 +52,20 @@ def apply_cleanup_plan(path: str | Path, confirm_sha256: str | None, db, minio, 
     if hasattr(db, "commit"):
         db.commit()
 
-    applied = skipped = 0
+    applied = manual_review = 0
     for item in payload["items"]:
-        if item["action"] == "DELETE" and item["category"] == "UNREFERENCED_OBJECT":
+        if item["action"] == "REVIEW":
+            manual_review += 1
+        elif item["action"] == "DELETE" and item["category"] == "UNREFERENCED_OBJECT":
             _delete_reported_object(minio, item["target"])
             applied += 1
         elif item["action"] == "DELETE":
             _delete_database_target(db, item)
             applied += 1
         else:
-            skipped += 1
-    return CleanupResult(applied, skipped)
+            _apply_database_action(db, item)
+            applied += 1
+    return CleanupResult(applied, manual_review)
 
 
 def _delete_database_target(db, item: Mapping[str, Any]) -> None:
@@ -77,6 +80,20 @@ def _delete_database_target(db, item: Mapping[str, Any]) -> None:
         raise ConfirmationMismatch("report includes an unsupported database deletion")
     with db.begin():
         db.execute(text(statement), {"id": int(item["target"])})
+
+
+def _apply_database_action(db, item: Mapping[str, Any]) -> None:
+    category, action = item["category"], item["action"]
+    with db.begin():
+        if action == "REIMPORT":
+            subject_id = item["target"] if isinstance(item["target"], int) else item["details"]["subjectId"]
+            db.execute(text("UPDATE subject SET import_status=0 WHERE id=:id"), {"id": int(subject_id)})
+        elif category == "MISSING_COVER_OBJECT" and action == "KEEP_SOURCE_FALLBACK":
+            db.execute(text("UPDATE subject SET image=image_source_url, image_storage_status='SOURCE_FALLBACK' WHERE id=:id"), {"id": int(item["details"]["subjectId"])})
+        elif category == "EPISODE_STATUS_DRIFT" and action == "REPAIR":
+            db.execute(text("UPDATE episode SET status=:status WHERE id=:id"), {"id": int(item["target"]), "status": item["details"]["expectedStatus"]})
+        else:
+            raise ConfirmationMismatch("report includes an unsupported repair action")
 
 
 def _delete_reported_object(minio, target: object) -> None:
@@ -94,15 +111,39 @@ def _delete_reported_object(minio, target: object) -> None:
 
 def _validate_report(payload: Mapping[str, Any]) -> None:
     expected = {"generatedAt", "commit", "dirty", "databaseFingerprint", "minioFingerprint", "counts", "items"}
-    if set(payload) != expected or not isinstance(payload["items"], list):
+    if set(payload) != expected or not isinstance(payload["items"], list) or set(payload["counts"]) != set(CATEGORIES):
         raise ConfirmationMismatch("invalid quality report")
+    actual_counts = {category: 0 for category in CATEGORIES}
     for item in payload["items"]:
-        if set(item) != {"category", "action", "target", "details"}:
+        if not isinstance(item, Mapping) or set(item) != {"category", "action", "target", "details"} or not isinstance(item["details"], Mapping):
             raise ConfirmationMismatch("invalid quality report item")
-        if item["category"] not in {"NON_ANIME", "NSFW", "SOURCE_MISSING", "SELF_RELATION", "MISSING_COVER_OBJECT", "UNREFERENCED_OBJECT", "NO_EPISODES", "EPISODE_SHORTAGE", "EPISODE_STATUS_DRIFT", "BLANK_TAG", "NOISY_TAG"}:
+        if item["category"] not in CATEGORIES:
             raise ConfirmationMismatch("invalid quality report category")
-        if item["action"] not in {"DELETE", "REPAIR", "REIMPORT", "KEEP_SOURCE_FALLBACK", "REVIEW"}:
-            raise ConfirmationMismatch("invalid quality report action")
+        _validate_item(item)
+        actual_counts[item["category"]] += 1
+    if any(not isinstance(payload["counts"][category], int) or isinstance(payload["counts"][category], bool) or payload["counts"][category] < 0 or payload["counts"][category] != actual_counts[category] for category in CATEGORIES):
+        raise ConfirmationMismatch("quality report counts do not match items")
+
+
+def _validate_item(item: Mapping[str, Any]) -> None:
+    category, action, target, details = item["category"], item["action"], item["target"], item["details"]
+    rules = {
+        "NON_ANIME": {"DELETE"}, "NSFW": {"DELETE"}, "SOURCE_MISSING": {"REIMPORT"},
+        "SELF_RELATION": {"DELETE"}, "MISSING_COVER_OBJECT": {"KEEP_SOURCE_FALLBACK", "REIMPORT"},
+        "UNREFERENCED_OBJECT": {"DELETE"}, "NO_EPISODES": {"REIMPORT"}, "EPISODE_SHORTAGE": {"REIMPORT"},
+        "EPISODE_STATUS_DRIFT": {"REPAIR"}, "BLANK_TAG": {"DELETE"}, "NOISY_TAG": {"REVIEW"},
+    }
+    if action not in rules[category]:
+        raise ConfirmationMismatch("invalid quality report action")
+    if category in {"MISSING_COVER_OBJECT", "UNREFERENCED_OBJECT"}:
+        if not isinstance(target, str) or not target.startswith("covers/") or any(char in target for char in "*?\\") or "://" in target:
+            raise ConfirmationMismatch("invalid quality object target")
+    elif not isinstance(target, int) or isinstance(target, bool) or target < 1:
+        raise ConfirmationMismatch("invalid quality database target")
+    if category == "MISSING_COVER_OBJECT" and (not isinstance(details.get("subjectId"), int) or details["subjectId"] < 1):
+        raise ConfirmationMismatch("invalid missing-cover details")
+    if category == "EPISODE_STATUS_DRIFT" and details.get("expectedStatus") not in {"Air", "Today", "NA"}:
+        raise ConfirmationMismatch("invalid episode-status details")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -130,7 +171,7 @@ def main(argv: list[str] | None = None) -> int:
     except ConfirmationMismatch as error:
         print(str(error))
         return 2
-    print(json.dumps({"applied": result.applied, "skipped": result.skipped}))
+    print(json.dumps({"applied": result.applied, "manualReview": result.manual_review}))
     return 0
 
 

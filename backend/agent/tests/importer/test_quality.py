@@ -37,12 +37,12 @@ class FakeDatabase:
         self.rows = {
             "subject": [
                 {"id": 1, "bangumi_id": 11, "type": 1, "nsfw": 0, "image": None, "image_source_url": None,
-                 "image_storage_status": "MISSING", "eps": 12, "source_fetched_at": None},
+                 "image_storage_status": "MISSING", "eps": 12, "source_fetched_at": None, "import_status": 1},
                 {"id": 2, "bangumi_id": 22, "type": 2, "nsfw": 1, "image": None, "image_source_url": None,
-                 "image_storage_status": "MISSING", "eps": 0, "source_fetched_at": "2026-08-23"},
+                 "image_storage_status": "MISSING", "eps": 0, "source_fetched_at": "2026-08-23", "import_status": 1},
                 {"id": 3, "bangumi_id": 33, "type": 2, "nsfw": 0,
                  "image": "http://minio/anime-tracker/covers/33.jpg", "image_source_url": "https://source/33.jpg",
-                 "image_storage_status": "STORED", "eps": 2, "source_fetched_at": "2026-08-23"},
+                 "image_storage_status": "STORED", "eps": 2, "source_fetched_at": "2026-08-23", "import_status": 1},
             ],
             "episode_count": [{"subject_id": 3, "episode_count": 1}],
             "episode_drift": [{"id": 7, "subject_id": 3, "status": "Air", "airdate": "2999-01-01"}],
@@ -69,6 +69,7 @@ class FakeDatabase:
 
 class FakeMinio:
     bucket_name = "anime-tracker"
+    endpoint = "minio"
 
     def list_objects(self):
         return ["covers/unreferenced.jpg"]
@@ -105,6 +106,42 @@ def test_volumes_null_is_not_an_anime_quality_defect():
     report = build_quality_report(FakeDatabase(), FakeMinio(), datetime(2026, 8, 23, tzinfo=timezone.utc))
 
     assert all("volume" not in item.category.lower() for item in report.items)
+
+
+def test_past_na_episode_is_reported_as_status_drift():
+    from importer.quality import build_quality_report
+
+    db = FakeDatabase()
+    db.rows["episode_drift"] = [{"id": 7, "subject_id": 3, "status": "NA", "airdate": "2026-08-22"}]
+
+    report = build_quality_report(db, FakeMinio(), datetime(2026, 8, 23, tzinfo=timezone.utc))
+
+    drift = [item for item in report.items if item.category == "EPISODE_STATUS_DRIFT"]
+    assert drift[0].details["expectedStatus"] == "Air"
+
+
+def test_external_cover_url_is_not_treated_as_a_minio_object_reference():
+    from importer.quality import canonical_cover_object_path
+
+    assert canonical_cover_object_path("https://source.example/covers/33.jpg", FakeMinio()) is None
+
+
+def test_database_fingerprint_covers_every_cleanup_target_table():
+    from importer.quality import database_fingerprint
+
+    class Database:
+        def __init__(self):
+            self.query = ""
+
+        def execute(self, statement):
+            self.query = str(statement).lower()
+            return type("Result", (), {"scalar": lambda _: "fingerprint"})()
+
+    db = Database()
+
+    assert database_fingerprint(db) == "fingerprint"
+    assert all(table in db.query for table in ("subject", "subject_relation", "subject_tag", "episode"))
+    assert "sum(id)" in db.query
 
 
 def test_quality_report_writer_returns_the_confirmation_digest(tmp_path):

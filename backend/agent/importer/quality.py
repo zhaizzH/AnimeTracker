@@ -66,9 +66,15 @@ class QualityReport:
 
 
 def database_fingerprint(db) -> str:
-    """用目录行数和最后更新时间生成轻量的执行前指纹。"""
+    """覆盖所有清理目标表的稳定摘要，供 apply 前失效检测使用。"""
     result = db.execute(text(
-        "SELECT SHA2(CONCAT(COUNT(*), ':', COALESCE(MAX(updated_at), '')), 256) AS database_fingerprint FROM subject"
+        "SELECT SHA2(CONCAT_WS('|', "
+        "(SELECT CONCAT(COUNT(*), ':', COALESCE(MAX(updated_at), ''), ':', COALESCE(SUM(id), 0), ':', "
+        "COALESCE(SUM(CRC32(CONCAT_WS(':', id, type, nsfw, import_status, image, image_storage_status, source_fetched_at))), 0)) FROM subject), "
+        "(SELECT CONCAT(COUNT(*), ':', COALESCE(SUM(id), 0), ':', COALESCE(SUM(CRC32(CONCAT_WS(':', id, subject_id, related_subject_id, relation))), 0)) FROM subject_relation), "
+        "(SELECT CONCAT(COUNT(*), ':', COALESCE(SUM(id), 0), ':', COALESCE(SUM(CRC32(CONCAT_WS(':', id, subject_id, name))), 0)) FROM subject_tag), "
+        "(SELECT CONCAT(COUNT(*), ':', COALESCE(SUM(id), 0), ':', COALESCE(SUM(CRC32(CONCAT_WS(':', id, subject_id, status, airdate))), 0)) FROM episode)"
+        "), 256) AS database_fingerprint"
     ))
     value = result.scalar()
     return str(value or "empty")
@@ -88,7 +94,7 @@ def build_quality_report(db, minio, as_of: datetime) -> QualityReport:
     if as_of.tzinfo is None:
         as_of = as_of.replace(tzinfo=timezone.utc)
     grouped: dict[Category, list[QualityItem]] = {category: [] for category in CATEGORIES}
-    subjects = _rows(db, "SELECT id, bangumi_id, type, nsfw, image, image_source_url, image_storage_status, eps, source_fetched_at FROM subject")
+    subjects = _rows(db, "SELECT id, bangumi_id, type, nsfw, image, image_source_url, image_storage_status, eps, source_fetched_at, import_status FROM subject")
     episode_counts = {int(row["subject_id"]): int(row["episode_count"] or 0) for row in _rows(
         db, "SELECT subject_id, COUNT(*) AS episode_count FROM episode GROUP BY subject_id"
     )}
@@ -101,7 +107,8 @@ def build_quality_report(db, minio, as_of: datetime) -> QualityReport:
             grouped["NON_ANIME"].append(_item("NON_ANIME", "DELETE", subject_id, {"bangumiId": subject.get("bangumi_id")}))
         if bool(subject.get("nsfw")):
             grouped["NSFW"].append(_item("NSFW", "DELETE", subject_id, {"bangumiId": subject.get("bangumi_id")}))
-        if not subject.get("source_fetched_at"):
+        active_import = int(subject.get("import_status") or 0) == 1
+        if active_import and not subject.get("source_fetched_at"):
             grouped["SOURCE_MISSING"].append(_item("SOURCE_MISSING", "REIMPORT", subject_id, {}))
 
         object_name = canonical_cover_object_path(subject.get("image"), minio)
@@ -113,7 +120,7 @@ def build_quality_report(db, minio, as_of: datetime) -> QualityReport:
 
         expected_eps = subject.get("eps")
         actual_eps = episode_counts.get(subject_id, 0)
-        if isinstance(expected_eps, int) and expected_eps > 0:
+        if active_import and isinstance(expected_eps, int) and expected_eps > 0:
             if actual_eps == 0:
                 grouped["NO_EPISODES"].append(_item("NO_EPISODES", "REIMPORT", subject_id, {"expected": expected_eps}))
             elif actual_eps < expected_eps:
@@ -121,9 +128,10 @@ def build_quality_report(db, minio, as_of: datetime) -> QualityReport:
 
     for row in _rows(db, "SELECT id, subject_id, related_subject_id FROM subject_relation WHERE subject_id = related_subject_id"):
         grouped["SELF_RELATION"].append(_item("SELF_RELATION", "DELETE", int(row["id"]), {"subjectId": int(row["subject_id"])}))
-    for row in _rows(db, "SELECT id, subject_id, status, airdate FROM episode WHERE status <> 'NA' AND airdate IS NOT NULL"):
-        if _episode_status_drift(row, as_of):
-            grouped["EPISODE_STATUS_DRIFT"].append(_item("EPISODE_STATUS_DRIFT", "REPAIR", int(row["id"]), {"subjectId": int(row["subject_id"])}))
+    for row in _rows(db, "SELECT id, subject_id, status, airdate FROM episode WHERE airdate IS NOT NULL"):
+        expected_status = _expected_episode_status(row.get("airdate"), as_of)
+        if expected_status is not None and row.get("status") != expected_status:
+            grouped["EPISODE_STATUS_DRIFT"].append(_item("EPISODE_STATUS_DRIFT", "REPAIR", int(row["id"]), {"subjectId": int(row["subject_id"]), "expectedStatus": expected_status}))
     for row in _rows(db, "SELECT id, subject_id, name FROM subject_tag"):
         name = str(row.get("name") or "")
         if not name.strip():
@@ -150,13 +158,15 @@ def canonical_cover_object_path(image: object, minio) -> str | None:
         return None
     parsed = urlparse(image)
     if not parsed.scheme or not parsed.netloc:
-        return image.lstrip("/") if image.startswith("covers/") else None
+        return None
     parts = [part for part in parsed.path.split("/") if part]
     bucket = getattr(minio, "bucket_name", None) or getattr(minio, "_bucket", None)
-    if bucket and parts[:1] == [bucket]:
-        parts = parts[1:]
-    elif parts and parts[0] == "anime-tracker":
-        parts = parts[1:]
+    endpoint = getattr(minio, "endpoint", None) or getattr(minio, "_endpoint", None)
+    if not bucket or not endpoint or parsed.netloc.lower() != _endpoint_netloc(str(endpoint)):
+        return None
+    if parts[:1] != [bucket]:
+        return None
+    parts = parts[1:]
     object_name = "/".join(parts)
     return object_name if object_name.startswith("covers/") else None
 
@@ -187,17 +197,20 @@ def _list_object_names(minio) -> list[str]:
     return [item if isinstance(item, str) else item.object_name for item in objects]
 
 
-def _episode_status_drift(row: Mapping[str, Any], as_of: datetime) -> bool:
-    airdate = row.get("airdate")
+def _expected_episode_status(airdate: object, as_of: datetime) -> str | None:
     if isinstance(airdate, str):
         try:
             airdate = datetime.fromisoformat(airdate).date()
         except ValueError:
-            return False
+            return None
     if not hasattr(airdate, "isoformat"):
-        return False
-    expected = "Air" if airdate < as_of.date() else "Today" if airdate == as_of.date() else "NA"
-    return row.get("status") != expected
+        return None
+    return "Air" if airdate < as_of.date() else "Today" if airdate == as_of.date() else "NA"
+
+
+def _endpoint_netloc(endpoint: str) -> str:
+    parsed = urlparse(endpoint if "://" in endpoint else f"//{endpoint}")
+    return parsed.netloc.lower()
 
 
 def _item(category: Category, action: Action, target: int | str, details: Mapping[str, Any]) -> QualityItem:
