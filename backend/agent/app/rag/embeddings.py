@@ -131,7 +131,10 @@ def _validate_embedding(item: Any, index: int, dimensions: int) -> list[float]:
     for value in vector:
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             raise EmbeddingResponseError("embedding vector value invalid")
-        normalized = float(value)
+        try:
+            normalized = float(value)
+        except (OverflowError, TypeError):
+            raise EmbeddingResponseError("embedding vector must contain 有限浮点数") from None
         if not math.isfinite(normalized):
             raise EmbeddingResponseError("embedding vector must contain 有限浮点数")
         values.append(normalized)

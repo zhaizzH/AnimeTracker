@@ -70,6 +70,14 @@ def test_embedding_rejects_non_finite_values(value):
         client.embed_documents(["档案"])
 
 
+def test_embedding_normalizes_overflowing_integer_values():
+    """极大整数转换为浮点数失败时也必须返回稳定响应错误。"""
+    client = DashScopeEmbeddingClient("key", transport=lambda **_: [[10**4000] * 1024])
+
+    with pytest.raises(EmbeddingResponseError, match="有限"):
+        client.embed_documents(["档案"])
+
+
 def test_embedding_rejects_response_count_mismatch():
     """批次响应缺项必须失败，不能静默错配文本。"""
     client = DashScopeEmbeddingClient("key", transport=lambda **_: [])
