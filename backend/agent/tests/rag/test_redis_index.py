@@ -154,10 +154,11 @@ def test_search_uses_active_alias_knn_and_returns_redis_result():
     assert "@type:[2 2]" in command[2]
     assert "@nsfw:{false}" in command[2]
     assert ("PARAMS", "2") in adjacent_pairs(command)
-    assert command[command.index("vector") + 1] == vector_bytes([0.0] * 1024)
-    assert ("RETURN", "18") in adjacent_pairs(command)
+    params_start = command.index("PARAMS")
+    assert command[params_start + 3] == vector_bytes([0.0] * 1024)
+    assert ("RETURN", "19") in adjacent_pairs(command)
     return_start = command.index("RETURN")
-    assert "vector" not in command[return_start + 2 : return_start + 20]
+    assert "vector" in command[return_start + 2 : command.index("PARAMS")]
 
 
 def test_semantic_search_enforces_non_nsfw_anime_filters_without_caller_help():

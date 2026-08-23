@@ -3,8 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.rag.embeddings import EmbeddingUnavailable
-from app.rag.retrieval import RagRetrievalService, RetrievalCandidate, reciprocal_rank_fusion
+from app.rag.redis_index import vector_bytes
+from app.rag.retrieval import RagRetrievalService, RetrievalCandidate, _items, reciprocal_rank_fusion
 from app.rag.schemas import RetrievalQuery
+from app.rag.user_profile import UserPreference
 
 
 def candidate(subject_id: int) -> RetrievalCandidate:
@@ -231,3 +233,43 @@ def test_relaxation_continues_when_first_redis_candidates_fail_authority_gate():
 
     assert [item.subject_id for item in result.items] == [8]
     assert authority_calls == 2
+
+
+def test_user_profile_vector_reranks_candidates_by_cosine_similarity():
+    """Removing profile cosine would keep generic order even when vectors strongly disagree."""
+    service = RagRetrievalService(
+        FakeIndex(
+            lexical=[
+                {"subject_id": 7, "title": "非偏好", "vector": [0.0, 1.0]},
+                {"subject_id": 8, "title": "偏好", "vector": [1.0, 0.0]},
+            ],
+            semantic=[],
+        ),
+        VectorEmbedding(),
+        authority_lookup=_authority,
+    )
+    preference = UserPreference((1.0, 0.0), (), 3, "version")
+
+    result = service.retrieve(RetrievalQuery(keywords=["治愈"]), "search", preference=preference)
+
+    assert [item.subject_id for item in result.items] == [8, 7]
+
+
+def test_missing_profile_marks_cold_start_notice():
+    """Without a notice callers cannot explain why early recommendations are generic."""
+    service = RagRetrievalService(
+        FakeIndex(lexical=[{"subject_id": 7, "title": "动画 7"}], semantic=[]),
+        VectorEmbedding(),
+        authority_lookup=_authority,
+    )
+
+    result = service.retrieve(RetrievalQuery(keywords=["治愈"]), "search", personalization_missing=True)
+
+    assert result.personalization_notice == "基于你当前的收藏还不多，先给你看热门"
+
+
+def test_redis_binary_subject_vector_is_available_for_profile_reranking():
+    """Converting Redis Float32 bytes to text would silently disable production personalization."""
+    rows = _items([1, b"test:rag:subject:v1:7", [b"vector", vector_bytes([0.0] * 1024)]])
+
+    assert rows[0]["vector"] == [0.0] * 1024

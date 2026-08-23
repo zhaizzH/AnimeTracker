@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+from array import array
 from dataclasses import dataclass, replace
 from datetime import date
+import math
 import re
 from typing import Any, Callable, Mapping, Sequence
 
 from app.agent.http import call_api
 from app.rag.embeddings import EmbeddingClient
 from app.rag.schemas import RetrievalQuery
+from app.rag.user_profile import UserPreference
 
 
 _REDIS_RESERVED = re.compile(r'([,\.<>\{\}\[\}"\':;!@#$%^&*()\-+=~|\\/])')
@@ -28,6 +31,7 @@ class RetrievalCandidate:
     retrieval_reason: str
     title: str = ""
     details: Mapping[str, Any] | None = None
+    vector: Sequence[float] | None = None
 
 
 @dataclass(frozen=True)
@@ -35,6 +39,7 @@ class RetrievalResult:
     available: bool
     items: list[RetrievalCandidate]
     reason: str = ""
+    personalization_notice: str = ""
 
 
 def reciprocal_rank_fusion(
@@ -82,7 +87,8 @@ class RagRetrievalService:
         query: RetrievalQuery,
         mode: str,
         token: str | None = None,
-        preference: Mapping[int | str, float] | None = None,
+        preference: Mapping[int | str, float] | UserPreference | None = None,
+        personalization_missing: bool = False,
     ) -> RetrievalResult:
         del mode  # 召回策略固定，mode 仅供上层路由保留接口。
         lexical: list[RetrievalCandidate] = []
@@ -104,14 +110,18 @@ class RagRetrievalService:
                     continue
                 result = self._authoritative_result(reciprocal_rank_fusion(lexical, semantic), query, token, preference)
                 if not result.available or result.items:
-                    return result
+                    return self._with_personalization_notice(result, personalization_missing)
         except Exception:
             redis_failed = True
             lexical, semantic = [], []
 
         if redis_failed:
-            return self._business_fallback(query, token, preference)
-        return RetrievalResult(available=True, items=[], reason="no_results")
+            return self._with_personalization_notice(
+                self._business_fallback(query, token, preference), personalization_missing
+            )
+        return self._with_personalization_notice(
+            RetrievalResult(available=True, items=[], reason="no_results"), personalization_missing
+        )
 
     def _expressions(self, query: RetrievalQuery) -> list[str]:
         attempts = [query]
@@ -164,7 +174,7 @@ class RagRetrievalService:
         candidates: Sequence[RetrievalCandidate],
         query: RetrievalQuery,
         token: str | None,
-        preference: Mapping[int | str, float] | None,
+        preference: Mapping[int | str, float] | UserPreference | None,
     ) -> RetrievalResult:
         try:
             response = self._authority_lookup([item.subject_id for item in candidates[:50]], token=token, exclude_collected=True)
@@ -184,7 +194,7 @@ class RagRetrievalService:
         self,
         query: RetrievalQuery,
         token: str | None,
-        preference: Mapping[int | str, float] | None,
+        preference: Mapping[int | str, float] | UserPreference | None,
     ) -> RetrievalResult:
         try:
             response = self._business_search(query, token=token)
@@ -217,14 +227,23 @@ class RagRetrievalService:
                 subject_id = int(raw_id)
             except (TypeError, ValueError):
                 continue
-            candidates.append(RetrievalCandidate(subject_id, 0.0, reason, str(item.get("title") or "")))
+            vector = item.get("vector")
+            candidates.append(
+                RetrievalCandidate(
+                    subject_id,
+                    0.0,
+                    reason,
+                    str(item.get("title") or ""),
+                    vector=vector if isinstance(vector, Sequence) and not isinstance(vector, (str, bytes)) else None,
+                )
+            )
         return candidates
 
     @staticmethod
     def _rerank(
         candidates: Sequence[RetrievalCandidate],
         query: RetrievalQuery,
-        preference: Mapping[int | str, float] | None,
+        preference: Mapping[int | str, float] | UserPreference | None,
     ) -> list[RetrievalCandidate]:
         maximum = max((candidate.retrieval_score for candidate in candidates), default=1.0) or 1.0
         today = date.today()
@@ -234,7 +253,7 @@ class RagRetrievalService:
             rating = min(max(float(details.get("ratingTotal") or 0) / 1000.0, 0.0), 1.0)
             popularity = min(max(float(details.get("collectionTotal") or 0) / 10000.0, 0.0), 1.0)
             freshness = _freshness(details.get("airDate"), today)
-            preferred = min(max(float((preference or {}).get(candidate.subject_id, (preference or {}).get(str(candidate.subject_id), 0.0))), 0.0), 1.0)
+            preferred = _preference_score(candidate, preference)
             result = 0.55 * (candidate.retrieval_score / maximum) + 0.15 * rating + 0.10 * popularity + 0.10 * freshness + 0.10 * preferred
             title = str(details.get("nameCn") or details.get("name") or candidate.title)
             exact_terms = [query.semantic_query, *query.keywords]
@@ -243,6 +262,12 @@ class RagRetrievalService:
             return min(result, 1.0)
 
         return sorted(candidates, key=lambda item: (-score(item), item.subject_id))
+
+    @staticmethod
+    def _with_personalization_notice(result: RetrievalResult, missing: bool) -> RetrievalResult:
+        if not missing:
+            return result
+        return replace(result, personalization_notice="基于你当前的收藏还不多，先给你看热门")
 
     @staticmethod
     def _batch_lookup(subject_ids: list[int], *, token: str | None, exclude_collected: bool) -> dict | list:
@@ -273,7 +298,10 @@ def _items(response: Any) -> list[Any]:
                 if offset + 1 >= len(response) or not isinstance(response[offset + 1], (list, tuple)):
                     continue
                 fields = response[offset + 1]
-                row = {_text(fields[i]): _text(fields[i + 1]) for i in range(0, len(fields) - 1, 2)}
+                row = {
+                    _text(fields[i]): _decode_subject_vector(fields[i + 1]) if _text(fields[i]) == "vector" else _text(fields[i + 1])
+                    for i in range(0, len(fields) - 1, 2)
+                }
                 row.setdefault("subject_id", _text(response[offset]).rsplit(":", 1)[-1])
                 rows.append(row)
             return rows
@@ -291,6 +319,39 @@ def _freshness(value: Any, today: date) -> float:
     except (TypeError, ValueError):
         return 0.0
     return min(max(1.0 - (today.year - year) / 10.0, 0.0), 1.0)
+
+
+def _preference_score(candidate: RetrievalCandidate, preference: Mapping[int | str, float] | UserPreference | None) -> float:
+    if preference is None:
+        return 0.0
+    if isinstance(preference, Mapping):
+        return min(
+            max(float(preference.get(candidate.subject_id, preference.get(str(candidate.subject_id), 0.0))), 0.0),
+            1.0,
+        )
+    profile_vector = getattr(preference, "vector", None)
+    candidate_vector = candidate.vector
+    if not isinstance(profile_vector, Sequence) or not isinstance(candidate_vector, Sequence):
+        return 0.0
+    if len(profile_vector) != len(candidate_vector) or not profile_vector:
+        return 0.0
+    try:
+        dot = sum(float(left) * float(right) for left, right in zip(profile_vector, candidate_vector))
+        profile_size = math.sqrt(sum(float(value) ** 2 for value in profile_vector))
+        candidate_size = math.sqrt(sum(float(value) ** 2 for value in candidate_vector))
+    except (TypeError, ValueError, OverflowError):
+        return 0.0
+    if not all(math.isfinite(value) for value in (dot, profile_size, candidate_size)) or not profile_size or not candidate_size:
+        return 0.0
+    return min(max((dot / (profile_size * candidate_size) + 1.0) / 2.0, 0.0), 1.0)
+
+
+def _decode_subject_vector(value: Any) -> list[float] | None:
+    if not isinstance(value, bytes) or len(value) != 1024 * 4:
+        return None
+    decoded = array("f")
+    decoded.frombytes(value)
+    return list(decoded) if all(math.isfinite(number) for number in decoded) else None
 
 
 def _text(value: Any) -> str:
