@@ -18,5 +18,12 @@ public class ImportRecord {
     private String status;              // 状态: RUNNING, COMPLETED, FAILED
     private int subjectCount;           // 本次导入的条目数
     private String errorMessage;        // 错误信息（失败时记录）
+    private String checkpointJson;      // 导入断点 JSON
+    private Integer scannedCount;       // 已扫描条目数
+    private Integer successCount;       // 成功处理条目数
+    private Integer failureCount;       // 失败处理条目数
+    private Integer skippedCount;       // 跳过条目数
+    private LocalDateTime sourceSnapshotAt; // 源数据快照时间
+    private LocalDateTime heartbeatAt;  // 最近任务心跳时间
     private LocalDateTime createdAt;    // 创建时间
 }

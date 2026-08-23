@@ -54,6 +54,13 @@ CREATE TABLE `import_record`  (
   `status` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'RUNNING' COMMENT '状态: RUNNING, COMPLETED, FAILED',
   `subject_count` int NOT NULL DEFAULT 0 COMMENT '本次导入的条目数',
   `error_message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '错误信息（失败时记录）',
+  `checkpoint_json` json NULL COMMENT '导入断点 JSON',
+  `scanned_count` int NOT NULL DEFAULT 0 COMMENT '已扫描条目数',
+  `success_count` int NOT NULL DEFAULT 0 COMMENT '成功处理条目数',
+  `failure_count` int NOT NULL DEFAULT 0 COMMENT '失败处理条目数',
+  `skipped_count` int NOT NULL DEFAULT 0 COMMENT '跳过条目数',
+  `source_snapshot_at` datetime NULL DEFAULT NULL COMMENT '源数据快照时间',
+  `heartbeat_at` datetime NULL DEFAULT NULL COMMENT '最近任务心跳时间',
   `created_at` datetime NOT NULL COMMENT '创建时间',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_import_status`(`status` ASC) USING BTREE,
@@ -79,6 +86,17 @@ CREATE TABLE `subject`  (
   `score` decimal(3, 1) NULL DEFAULT NULL COMMENT 'Bangumi 评分（0.0~10.0）',
   `rank` int NULL DEFAULT NULL COMMENT 'Bangumi 排名',
   `collection_total` int NULL DEFAULT NULL COMMENT '收藏数',
+  `rating_total` int NULL DEFAULT NULL COMMENT '评分总人数',
+  `rating_count_json` json NULL COMMENT '各评分人数 JSON',
+  `collection_wish` int NULL DEFAULT NULL COMMENT '想看人数',
+  `collection_collect` int NULL DEFAULT NULL COMMENT '看过人数',
+  `collection_doing` int NULL DEFAULT NULL COMMENT '在看人数',
+  `collection_on_hold` int NULL DEFAULT NULL COMMENT '搁置人数',
+  `collection_dropped` int NULL DEFAULT NULL COMMENT '抛弃人数',
+  `image_source_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '原始封面 URL',
+  `image_storage_status` varchar(24) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'PENDING' COMMENT '封面存储状态',
+  `image_checked_at` datetime NULL DEFAULT NULL COMMENT '最近封面检查时间',
+  `source_fetched_at` datetime NULL DEFAULT NULL COMMENT '本系统最近成功抓取源详情时间',
   `nsfw` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否 NSFW: 0=否, 1=是',
   `import_status` tinyint NOT NULL DEFAULT 0 COMMENT '导入状态: 0=待导入, 1=已导入',
   `last_imported_at` datetime NULL DEFAULT NULL COMMENT '最近导入时间',
@@ -94,6 +112,85 @@ CREATE TABLE `subject`  (
   INDEX `idx_subject_import_status`(`import_status` ASC) USING BTREE,
   INDEX `idx_subject_air_weekday`(`air_weekday` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '条目表（动漫）' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for subject_alias
+-- ----------------------------
+DROP TABLE IF EXISTS `subject_alias`;
+CREATE TABLE `subject_alias`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '别名 ID',
+  `subject_id` bigint NOT NULL COMMENT '条目 ID',
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '别名',
+  `language` varchar(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'und' COMMENT '语言',
+  `source` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '来源',
+  `created_at` datetime NOT NULL COMMENT '创建时间',
+  `updated_at` datetime NOT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_subject_alias`(`subject_id` ASC, `name` ASC) USING BTREE,
+  INDEX `idx_alias_name`(`name` ASC) USING BTREE,
+  CONSTRAINT `fk_alias_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '条目别名表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for subject_meta_tag
+-- ----------------------------
+DROP TABLE IF EXISTS `subject_meta_tag`;
+CREATE TABLE `subject_meta_tag`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '官方标签关联 ID',
+  `subject_id` bigint NOT NULL COMMENT '条目 ID',
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '官方标签名',
+  `created_at` datetime NOT NULL COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_subject_meta_tag`(`subject_id` ASC, `name` ASC) USING BTREE,
+  INDEX `idx_meta_tag_name`(`name` ASC) USING BTREE,
+  CONSTRAINT `fk_meta_tag_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '条目官方标签表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for subject_credit
+-- ----------------------------
+DROP TABLE IF EXISTS `subject_credit`;
+CREATE TABLE `subject_credit`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主创关联 ID',
+  `subject_id` bigint NOT NULL COMMENT '条目 ID',
+  `bangumi_person_id` int NULL DEFAULT NULL COMMENT 'Bangumi 人物 ID',
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '主创或组织名称',
+  `role` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '职责',
+  `credit_type` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'PERSON 或 ORGANIZATION',
+  `sort_order` int NOT NULL DEFAULT 0 COMMENT '来源排序',
+  `created_at` datetime NOT NULL COMMENT '创建时间',
+  `updated_at` datetime NOT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_subject_credit`(`subject_id` ASC, `name` ASC, `role` ASC) USING BTREE,
+  INDEX `idx_credit_name_role`(`name` ASC, `role` ASC) USING BTREE,
+  CONSTRAINT `fk_credit_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '条目主创表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for rag_index_job
+-- ----------------------------
+DROP TABLE IF EXISTS `rag_index_job`;
+CREATE TABLE `rag_index_job`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '索引任务 ID',
+  `subject_id` bigint NOT NULL COMMENT '条目 ID',
+  `index_version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '索引版本',
+  `content_hash` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '档案内容哈希',
+  `embedding_provider` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Embedding 供应商',
+  `embedding_model` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Embedding 模型',
+  `embedding_dimensions` int NOT NULL COMMENT '向量维度',
+  `status` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'PENDING' COMMENT '任务状态',
+  `attempts` int NOT NULL DEFAULT 0 COMMENT '尝试次数',
+  `last_error_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '最近错误码',
+  `last_error_message` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '脱敏后的最近错误信息',
+  `next_retry_at` datetime NULL DEFAULT NULL COMMENT '下次重试时间',
+  `indexed_at` datetime NULL DEFAULT NULL COMMENT '完成索引时间',
+  `created_at` datetime NOT NULL COMMENT '创建时间',
+  `updated_at` datetime NOT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_rag_job_subject_version`(`subject_id` ASC, `index_version` ASC) USING BTREE,
+  INDEX `idx_rag_job_status_retry`(`status` ASC, `next_retry_at` ASC) USING BTREE,
+  CONSTRAINT `fk_rag_job_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'RAG 索引任务表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for subject_tag

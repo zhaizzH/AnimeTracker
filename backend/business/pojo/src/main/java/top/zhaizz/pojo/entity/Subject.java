@@ -30,6 +30,17 @@ public class Subject {
     @TableField("`rank`")
     private Integer rank;               // Bangumi 排名
     private Integer collectionTotal;    // 收藏数
+    private Integer ratingTotal;        // 评分总人数
+    private String ratingCountJson;     // 各评分人数 JSON
+    private Integer collectionWish;     // 想看人数
+    private Integer collectionCollect;  // 看过人数
+    private Integer collectionDoing;    // 在看人数
+    private Integer collectionOnHold;   // 搁置人数
+    private Integer collectionDropped;  // 抛弃人数
+    private String imageSourceUrl;      // 原始封面 URL
+    private String imageStorageStatus;  // 封面存储状态
+    private LocalDateTime imageCheckedAt; // 最近封面检查时间
+    private LocalDateTime sourceFetchedAt; // 本系统最近成功抓取源详情时间
     private Boolean nsfw;               // 是否 NSFW: 0=否, 1=是
     private Integer importStatus;       // 导入状态: 0=待导入, 1=已导入
     private LocalDateTime lastImportedAt; // 最近导入时间

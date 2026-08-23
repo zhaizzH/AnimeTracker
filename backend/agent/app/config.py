@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import SecretStr
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.runtime_config import get_runtime_model_config
@@ -44,6 +44,12 @@ class Settings(BaseSettings):
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
+    rag_redis_url: str = ""
+    rag_index_alias: str = "idx:rag:subject:active"
+    rag_index_version: str = "v1"
+    rag_embedding_model: str = "text-embedding-v4"
+    rag_embedding_dim: Literal[1024] = 1024
+    rag_enabled: bool = False
 
     # CORS (开发环境)
     cors_origins: list[str] = ["http://localhost:5173"]
@@ -64,6 +70,17 @@ class Settings(BaseSettings):
     minio_access_key: str = "minioadmin"
     minio_secret_key: str = "minioadmin"
     minio_bucket: str = "anime-tracker"
+    minio_raw_bucket: str = "anime-tracker-private"
+
+    @model_validator(mode="after")
+    def raw_bucket_must_be_private(self) -> "Settings":
+        if self.minio_raw_bucket == self.minio_bucket:
+            raise ValueError("MINIO_RAW_BUCKET must differ from MINIO_BUCKET")
+        return self
+
+    @property
+    def effective_rag_redis_url(self) -> str:
+        return self.rag_redis_url or self.redis_url
 
 
 settings = Settings()
