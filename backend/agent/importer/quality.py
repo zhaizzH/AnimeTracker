@@ -70,7 +70,7 @@ def database_fingerprint(db) -> str:
     result = db.execute(text(
         "SELECT SHA2(CONCAT_WS('|', "
         "(SELECT CONCAT(COUNT(*), ':', COALESCE(MAX(updated_at), ''), ':', COALESCE(SUM(id), 0), ':', "
-        "COALESCE(SUM(CRC32(CONCAT_WS(':', id, type, nsfw, import_status, image, image_storage_status, source_fetched_at))), 0)) FROM subject), "
+        "COALESCE(SUM(CRC32(CONCAT_WS(':', id, bangumi_id, type, nsfw, import_status, eps, image, image_source_url, image_storage_status, source_fetched_at))), 0)) FROM subject), "
         "(SELECT CONCAT(COUNT(*), ':', COALESCE(SUM(id), 0), ':', COALESCE(SUM(CRC32(CONCAT_WS(':', id, subject_id, related_subject_id, relation))), 0)) FROM subject_relation), "
         "(SELECT CONCAT(COUNT(*), ':', COALESCE(SUM(id), 0), ':', COALESCE(SUM(CRC32(CONCAT_WS(':', id, subject_id, name))), 0)) FROM subject_tag), "
         "(SELECT CONCAT(COUNT(*), ':', COALESCE(SUM(id), 0), ':', COALESCE(SUM(CRC32(CONCAT_WS(':', id, subject_id, status, airdate))), 0)) FROM episode)"

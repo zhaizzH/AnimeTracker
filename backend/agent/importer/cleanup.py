@@ -25,7 +25,10 @@ class CleanupResult:
 
 
 def write_cleanup_plan(report, path: str | Path) -> str:
-    payload = report.as_dict() if hasattr(report, "as_dict") else dict(report)
+    try:
+        payload = report.as_dict() if hasattr(report, "as_dict") else dict(report)
+    except (TypeError, ValueError) as error:
+        raise ConfirmationMismatch("invalid quality report") from error
     _validate_report(payload)
     target = Path(path)
     content = json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2).encode("utf-8") + b"\n"
@@ -35,11 +38,17 @@ def write_cleanup_plan(report, path: str | Path) -> str:
 
 def apply_cleanup_plan(path: str | Path, confirm_sha256: str | None, db, minio, *, commit: str | None = None, dirty: bool | None = None) -> CleanupResult:
     target = Path(path)
-    content = target.read_bytes()
+    try:
+        content = target.read_bytes()
+    except OSError as error:
+        raise ConfirmationMismatch("unable to read quality report") from error
     digest = hashlib.sha256(content).hexdigest()
     if not confirm_sha256 or confirm_sha256 != digest:
         raise ConfirmationMismatch("cleanup requires the exact report SHA-256")
-    payload = json.loads(content)
+    try:
+        payload = json.loads(content)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ConfirmationMismatch("invalid quality report JSON") from error
     _validate_report(payload)
     actual_commit, actual_dirty = git_state() if commit is None or dirty is None else (commit, dirty)
     if payload["commit"] != actual_commit or bool(payload["dirty"]) != bool(actual_dirty):
@@ -109,9 +118,13 @@ def _delete_reported_object(minio, target: object) -> None:
     client.remove_object(bucket, target)
 
 
-def _validate_report(payload: Mapping[str, Any]) -> None:
+def _validate_report(payload: object) -> None:
     expected = {"generatedAt", "commit", "dirty", "databaseFingerprint", "minioFingerprint", "counts", "items"}
-    if set(payload) != expected or not isinstance(payload["items"], list) or set(payload["counts"]) != set(CATEGORIES):
+    if not isinstance(payload, Mapping) or set(payload) != expected:
+        raise ConfirmationMismatch("invalid quality report")
+    if not isinstance(payload["generatedAt"], str) or not isinstance(payload["commit"], str) or not isinstance(payload["dirty"], bool) or not isinstance(payload["databaseFingerprint"], str) or not isinstance(payload["minioFingerprint"], str):
+        raise ConfirmationMismatch("invalid quality report metadata")
+    if not isinstance(payload["items"], list) or not isinstance(payload["counts"], Mapping) or set(payload["counts"]) != set(CATEGORIES):
         raise ConfirmationMismatch("invalid quality report")
     actual_counts = {category: 0 for category in CATEGORIES}
     for item in payload["items"]:

@@ -106,6 +106,22 @@ def test_cleanup_refuses_changed_database_target_fingerprint_before_any_write(tm
     assert minio.deleted == []
 
 
+@pytest.mark.parametrize("changed_field", ["image_source_url", "eps"])
+def test_cleanup_refuses_fingerprint_after_subject_decision_field_changes(tmp_path, changed_field):
+    from importer.cleanup import ConfirmationMismatch, apply_cleanup_plan, write_cleanup_plan
+
+    path = tmp_path / "quality.json"
+    digest = write_cleanup_plan(report_payload(), path)
+    db, minio = FakeDatabase(), FakeMinio()
+    db.fingerprint = f"subject-{changed_field}-changed"
+
+    with pytest.raises(ConfirmationMismatch):
+        apply_cleanup_plan(path, digest, db, minio, commit="abc123", dirty=False)
+
+    assert db.deleted == []
+    assert db.updated == []
+
+
 def test_cleanup_only_deletes_reported_targets_in_independent_transactions(tmp_path):
     from importer.cleanup import apply_cleanup_plan, write_cleanup_plan
 
@@ -225,3 +241,50 @@ def test_cleanup_reports_manual_review_items_without_counting_them_as_applied(tm
 
     assert result.applied == 2
     assert result.manual_review == 1
+
+
+@pytest.mark.parametrize("payload", [[], {"generatedAt": "missing fields"}])
+def test_cleanup_rejects_malformed_signed_reports_before_any_write(tmp_path, payload):
+    from importer.cleanup import ConfirmationMismatch, apply_cleanup_plan
+
+    path = tmp_path / "quality.json"
+    content = json.dumps(payload).encode("utf-8")
+    path.write_bytes(content)
+    digest = hashlib.sha256(content).hexdigest()
+    db, minio = FakeDatabase(), FakeMinio()
+
+    with pytest.raises(ConfirmationMismatch):
+        apply_cleanup_plan(path, digest, db, minio, commit="abc123", dirty=False)
+
+    assert db.deleted == []
+    assert db.updated == []
+    assert minio.deleted == []
+
+
+def test_cleanup_rejects_signed_report_with_non_mapping_counts_before_any_write(tmp_path):
+    from importer.cleanup import ConfirmationMismatch, apply_cleanup_plan
+
+    payload = report_payload()
+    payload["counts"] = 1
+    path = tmp_path / "quality.json"
+    content = json.dumps(payload).encode("utf-8")
+    path.write_bytes(content)
+    digest = hashlib.sha256(content).hexdigest()
+    db, minio = FakeDatabase(), FakeMinio()
+
+    with pytest.raises(ConfirmationMismatch):
+        apply_cleanup_plan(path, digest, db, minio, commit="abc123", dirty=False)
+
+    assert db.deleted == []
+    assert db.updated == []
+    assert minio.deleted == []
+
+
+def test_cleanup_cli_returns_2_for_a_signed_json_array(tmp_path):
+    from importer.cleanup import main
+
+    path = tmp_path / "quality.json"
+    content = b"[]"
+    path.write_bytes(content)
+
+    assert main(["--plan", str(path), "--confirm-sha256", hashlib.sha256(content).hexdigest()]) == 2

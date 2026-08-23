@@ -142,6 +142,8 @@ def test_database_fingerprint_covers_every_cleanup_target_table():
     assert database_fingerprint(db) == "fingerprint"
     assert all(table in db.query for table in ("subject", "subject_relation", "subject_tag", "episode"))
     assert "sum(id)" in db.query
+    assert "image_source_url" in db.query
+    assert "eps" in db.query
 
 
 def test_quality_report_writer_returns_the_confirmation_digest(tmp_path):
