@@ -44,7 +44,9 @@ class GateInputs:
     nsfw_count: int | None = None
     non_anime_count: int | None = None
     required_failed: int | None = None
+    required_passed: int | None = None
     required_total: int | None = None
+    eval_failures: tuple[str, ...] | None = None
     mrr10: float | None = None
     recall20: float | None = None
     ndcg10: float | None = None
@@ -106,7 +108,10 @@ def evaluate_gate(inputs: GateInputs) -> GateDecision:
     require("nsfw_count", inputs.nsfw_count == 0, "index contains NSFW entries")
     require("non_anime_count", inputs.non_anime_count == 0, "index contains non-anime entries")
     require("required_failed", inputs.required_failed == 0, "required eval cases failed")
+    require("required_passed", inputs.required_passed == 120, "required eval passed count is missing or is not 120")
     require("required_total", inputs.required_total == 120, "required eval count is missing or is not exactly 120")
+    require("required_consistency", inputs.required_passed is not None and inputs.required_failed is not None and inputs.required_total is not None and inputs.required_passed + inputs.required_failed == inputs.required_total, "required eval counts are inconsistent")
+    require("eval_failures", inputs.eval_failures == (), "eval report contains failures or is missing failures")
     require("mrr10", _at_least(inputs.mrr10, MRR10_MIN), "MRR@10 is below 0.90")
     require("recall20", _at_least(inputs.recall20, RECALL20_MIN), "Recall@20 is below 0.85")
     require("ndcg10", _at_least(inputs.ndcg10, NDCG10_MIN), "nDCG@10 is below 0.75")
@@ -148,7 +153,7 @@ def load_gate_inputs(report_dir: str | Path, index_version: str) -> GateInputs:
             errors.append(f"invalid report root: {name}")
             continue
         payloads[name] = raw
-        version = _text(raw, "indexVersion", "index_version", "version") or _version_from_filename(path, index_version)
+        version = _text(raw, "indexVersion", "index_version", "version")
         if version is None:
             errors.append(f"missing report version: {name}")
         else:
@@ -174,10 +179,14 @@ def load_gate_inputs(report_dir: str | Path, index_version: str) -> GateInputs:
     required_total = _integer(evaluation, "requiredTotal", "required_total")
     required_passed = _integer(evaluation, "requiredPassed", "required_passed")
     required_failed = _integer(evaluation, "requiredFailed", "required_failed")
-    if required_total is None:
-        errors.append("missing required eval count")
-    if required_passed is not None and required_failed is None and required_total is not None:
-        required_failed = required_total - required_passed
+    if required_total is None or required_passed is None or required_failed is None:
+        errors.append("missing required eval counts")
+    failures_value = evaluation.get("failures")
+    if not isinstance(failures_value, list):
+        errors.append("missing eval failures")
+        eval_failures = None
+    else:
+        eval_failures = tuple(str(item) for item in failures_value)
     human_check_count = _integer(human_values, "checkCount", "humanCheckCount", "human_check_count")
     if human_check_count is None:
         errors.append("missing human check count")
@@ -187,7 +196,9 @@ def load_gate_inputs(report_dir: str | Path, index_version: str) -> GateInputs:
         nsfw_count=_integer(counts, "NSFW", "nsfw", "nsfwCount") if counts else _integer(quality, "nsfwCount", "nsfw_count"),
         non_anime_count=_integer(counts, "NON_ANIME", "nonAnime", "nonAnimeCount") if counts else _integer(quality, "nonAnimeCount", "non_anime_count"),
         required_failed=required_failed,
+        required_passed=required_passed,
         required_total=required_total,
+        eval_failures=eval_failures,
         mrr10=_number(evaluation, "mrr10", "mrrAt10", "mrr_at_10"),
         recall20=_number(evaluation, "recall20", "recallAt20", "recall_at_20"),
         ndcg10=_number(evaluation, "ndcg10", "ndcgAt10", "ndcg_at_10"),
@@ -273,13 +284,6 @@ def _report_path(directory: Path, name: str, version: str) -> Path | None:
 
 def _valid_version(value: str | None) -> bool:
     return bool(value and value.strip() and ":" not in value and all(char.isalnum() or char in "._-" for char in value))
-
-
-def _version_from_filename(path: Path, expected: str) -> str | None:
-    stem = path.stem
-    if any(stem.endswith(f"{separator}{expected}") for separator in ("-", "_", ".")):
-        return expected
-    return None
 
 
 def _all_versions_match(versions: Mapping[str, str], expected: str | None) -> bool:

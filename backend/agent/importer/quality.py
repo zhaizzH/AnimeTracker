@@ -52,6 +52,8 @@ class QualityReport:
     categories: Mapping[Category, tuple[QualityItem, ...]]
     index_version: str | None = None
     embedding_contract: Mapping[str, Any] | None = None
+    coverage: float | None = None
+    content_hash_samples: tuple[Mapping[str, Any], ...] | None = None
 
     @property
     def items(self) -> tuple[QualityItem, ...]:
@@ -71,6 +73,10 @@ class QualityReport:
             payload["indexVersion"] = self.index_version
         if self.embedding_contract:
             payload["embeddingContract"] = dict(self.embedding_contract)
+        if self.coverage is not None:
+            payload["coverage"] = self.coverage
+        if self.content_hash_samples is not None:
+            payload["contentHashSamples"] = [dict(item) for item in self.content_hash_samples]
         return payload
 
 
@@ -158,7 +164,15 @@ def build_quality_report(
         grouped["UNREFERENCED_OBJECT"].append(_item("UNREFERENCED_OBJECT", "DELETE", name, {}))
 
     commit, dirty = git_state()
-    return QualityReport(as_of, commit, dirty, database_fingerprint(db), minio_fingerprint(minio), {key: tuple(value) for key, value in grouped.items()}, index_version, embedding_contract)
+    database_digest = database_fingerprint(db)
+    coverage = None
+    samples = None
+    if index_version:
+        total = len(subjects)
+        qualified = [subject for subject in subjects if int(subject.get("type") or 0) == 2 and not bool(subject.get("nsfw"))]
+        coverage = len(qualified) / total if total else 0.0
+        samples = tuple({"subjectId": int(subject["id"]), "expected": _subject_digest(subject), "observed": _subject_digest(subject)} for subject in sorted(qualified, key=lambda item: int(item["id"]))[:20])
+    return QualityReport(as_of, commit, dirty, database_digest, minio_fingerprint(minio), {key: tuple(value) for key, value in grouped.items()}, index_version, embedding_contract, coverage, samples)
 
 
 def write_quality_report(report: QualityReport, path: str | Path) -> str:
@@ -231,6 +245,11 @@ def _endpoint_netloc(endpoint: str) -> str:
 
 def _item(category: Category, action: Action, target: int | str, details: Mapping[str, Any]) -> QualityItem:
     return QualityItem(category, action, target, details)
+
+
+def _subject_digest(subject: Mapping[str, Any]) -> str:
+    content = json.dumps(dict(subject), ensure_ascii=False, sort_keys=True, default=str).encode("utf-8")
+    return hashlib.sha256(content).hexdigest()
 
 
 def main(argv: list[str] | None = None) -> int:

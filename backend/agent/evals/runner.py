@@ -99,7 +99,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run deterministic offline RAG evaluation")
     parser.add_argument("--mode", choices=("offline",), required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--index-version")
+    parser.add_argument("--index-version", required=True)
     args = parser.parse_args(argv)
     try:
         report = run_offline()
@@ -108,8 +108,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
     args.output.parent.mkdir(parents=True, exist_ok=True)
     payload = report.model_dump()
-    if args.index_version:
-        payload["indexVersion"] = args.index_version
+    payload["indexVersion"] = args.index_version
+    payload["required_failed"] = report.required_total - report.required_passed
     payload["embeddingContract"] = {"provider": "dashscope", "model": "text-embedding-v4", "dimensions": 1024, "profileVersion": "subject-profile-v1"}
     content = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
     args.output.write_text(content, encoding="utf-8")

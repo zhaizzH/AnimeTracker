@@ -100,6 +100,22 @@ def test_quality_uses_canonical_object_path_instead_of_image_url():
     assert "http://minio" not in missing[0].target
 
 
+def test_quality_report_with_index_version_emits_gate_coverage_and_hash_samples():
+    from importer.quality import build_quality_report
+
+    report = build_quality_report(
+        FakeDatabase(),
+        FakeMinio(),
+        datetime(2026, 8, 23, tzinfo=timezone.utc),
+        index_version="v1",
+        embedding_contract={"provider": "dashscope", "model": "text-embedding-v4", "dimensions": 1024, "profileVersion": "subject-profile-v1"},
+    )
+    payload = report.as_dict()
+    assert 0 <= payload["coverage"] <= 1
+    assert payload["contentHashSamples"]
+    assert all(sample["expected"] and sample["observed"] for sample in payload["contentHashSamples"])
+
+
 def test_volumes_null_is_not_an_anime_quality_defect():
     from importer.quality import build_quality_report
 

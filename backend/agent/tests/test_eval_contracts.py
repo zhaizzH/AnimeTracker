@@ -31,10 +31,10 @@ def test_cli_returns_one_for_a_quality_gate_failure(monkeypatch):
     monkeypatch.setattr(runner, "run_offline", lambda: report)
     monkeypatch.setattr(Path, "write_text", lambda *_args, **_kwargs: 0)
 
-    assert runner.main(["--mode", "offline", "--output", "ignored.json"]) == 1
+    assert runner.main(["--mode", "offline", "--output", "ignored.json", "--index-version", "v1"]) == 1
 
 
 def test_cli_returns_two_for_invalid_dataset(monkeypatch):
     monkeypatch.setattr(runner, "run_offline", lambda: (_ for _ in ()).throw(runner.DatasetError("bad yaml")))
 
-    assert runner.main(["--mode", "offline", "--output", "ignored.json"]) == 2
+    assert runner.main(["--mode", "offline", "--output", "ignored.json", "--index-version", "v1"]) == 2
