@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 
 SHANGHAI = timezone(timedelta(hours=8), "Asia/Shanghai")
@@ -73,9 +74,11 @@ def test_scheduler_does_not_block_on_long_import_and_logs_after_poll(monkeypatch
 def test_scheduler_starts_importer_with_popen(monkeypatch):
     from jobs.scheduler.main import ImportScheduler, ScheduledImport
 
+    agent_root = Path(__file__).resolve().parents[2]
     captured = {}
     process = object()
     monkeypatch.setattr("jobs.scheduler.main.subprocess.Popen", lambda command, cwd: captured.update(command=command, cwd=cwd) or process)
 
     assert ImportScheduler._start_importer(ScheduledImport("weekly_since", ("--since", "2025-08-23"))) is process
     assert captured["command"][-4:] == ["--mode", "since", "--since", "2025-08-23"]
+    assert captured["cwd"] == agent_root

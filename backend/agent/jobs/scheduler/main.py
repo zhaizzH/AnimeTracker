@@ -104,7 +104,7 @@ class ImportScheduler:
         importer_mode = {"recent": "recent", "weekly_since": "since", "quarterly_full": "full"}[job.mode]
         return subprocess.Popen(
             [sys.executable, "-m", "jobs.importer.main", "--mode", importer_mode, *job.args],
-            cwd=Path(__file__).resolve().parent.parent,
+            cwd=Path(__file__).resolve().parents[2],
         )
 
 

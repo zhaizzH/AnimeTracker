@@ -73,7 +73,7 @@ _object_storage = None
 _start_time = None
 _done_count = 0  # 已处理成功条目数，后台线程周期刷到 import_record.subject_count
 
-# import_runner 靠这个 PID 文件跨 worker 重启识别仍存活的导入子进程
+# jobs/importer launcher 靠这个 PID 文件跨 worker 重启识别仍存活的导入子进程
 PID_FILE = Path(__file__).with_name("importer.pid")
 
 
