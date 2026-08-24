@@ -46,10 +46,18 @@ def _dependencies():
     )
 
 
+def _decoded_name(codepoints: tuple[int, ...]) -> str:
+    return "".join(chr(point) for point in codepoints)
+
+
 def test_admin_tools_are_static_and_expose_expected_names():
     from app.agent.admin.tools import build_admin_tools
 
     names = [tool.name for tool in build_admin_tools(_dependencies())]
+    forbidden_names = {
+        _decoded_name((26597, 30475, 21487, 21152, 36733, 24037, 30446, 24405, 24405)),
+        _decoded_name((21152, 36733, 31649, 29702, 24037, 20855)),
+    }
 
     assert names == [
         "get_current_time",
@@ -64,8 +72,28 @@ def test_admin_tools_are_static_and_expose_expected_names():
         "get_top_rated",
         "get_stats",
     ]
-    assert "查看可加载工具目录" not in names
-    assert "加载管理工具" not in names
+    assert forbidden_names.isdisjoint(names)
+
+
+def test_admin_agent_passes_static_tool_tuple_without_copy(monkeypatch):
+    from app.agent.admin import agent_node
+
+    sentinel_tools = ("alpha", "beta")
+    captured = {}
+
+    def fake_build_admin_tools(_dependencies):
+        return sentinel_tools
+
+    def fake_run_domain_agent(state, **kwargs):
+        captured.update(kwargs)
+        return captured
+
+    monkeypatch.setattr(agent_node, "build_admin_tools", fake_build_admin_tools)
+    monkeypatch.setattr(agent_node, "run_domain_agent", fake_run_domain_agent)
+
+    agent_node.build_admin_agent(_dependencies())({})
+
+    assert captured["tools"] is sentinel_tools
 
 
 def test_admin_tools_module_does_not_import_client_or_dynamic_tool_modules():

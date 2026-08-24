@@ -5,7 +5,7 @@ from app.agent.run import run_domain_agent
 
 
 def build_admin_agent(dependencies: AgentDependencies):
-    admin_tools = list(build_admin_tools(dependencies))
+    admin_tools = build_admin_tools(dependencies)
 
     def admin_agent(state):
         return run_domain_agent(
