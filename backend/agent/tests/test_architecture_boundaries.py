@@ -20,16 +20,42 @@ ALLOWED_APP_IMPORTS = {
 }
 
 
-def imports(path: Path) -> set[str]:
-    tree = ast.parse(path.read_text(encoding="utf-8"))
+def _package_parts(path: Path) -> list[str]:
+    relative = path.relative_to(ROOT)
+    if relative.name == "__init__.py":
+        return list(relative.parent.parts)
+    return list(relative.parent.parts)
+
+
+def _resolve_import_from(path: Path, node: ast.ImportFrom) -> str | None:
+    if node.level == 0:
+        return node.module
+    package = _package_parts(path)
+    keep = len(package) - node.level + 1
+    if keep < 0:
+        return None
+    parts = package[:keep]
+    if node.module:
+        parts.extend(node.module.split("."))
+    return ".".join(parts) if parts else None
+
+
+def imports_from_source(path: Path, source: str) -> set[str]:
+    tree = ast.parse(source)
     names = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             names.update(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
-            names.add(node.module)
-            names.update(f"{node.module}.{alias.name}" for alias in node.names if alias.name != "*")
+        elif isinstance(node, ast.ImportFrom):
+            module = _resolve_import_from(path, node)
+            if module:
+                names.add(module)
+                names.update(f"{module}.{alias.name}" for alias in node.names if alias.name != "*")
     return names
+
+
+def imports(path: Path) -> set[str]:
+    return imports_from_source(path, path.read_text(encoding="utf-8"))
 
 
 def _source_layer(path: Path) -> str | None:
@@ -64,6 +90,8 @@ def dependency_direction_failures(path: Path, names: set[str]) -> list[str]:
     for name in names:
         target = _imported_app_layer(name)
         if target is not None and target not in allowed:
+            if any(other != name and other.startswith(f"{name}.") for other in names):
+                continue
             failures.append(f"{path.relative_to(ROOT)} -> {name}")
     return sorted(failures)
 
@@ -82,6 +110,22 @@ def test_dependency_direction_rejects_api_to_adapter_import():
     )
 
     assert failures == ["app/api/probe.py -> app.adapters.business_http"]
+
+
+def test_relative_import_to_forbidden_layer_is_canonicalized_and_rejected():
+    path = ROOT / "app/api/probe.py"
+    names = imports_from_source(path, "from ..adapters import business_http\n")
+
+    assert "app.adapters.business_http" in names
+    assert dependency_direction_failures(path, names) == ["app/api/probe.py -> app.adapters.business_http"]
+
+
+def test_same_package_relative_import_is_canonicalized_and_allowed():
+    path = ROOT / "app/api/probe.py"
+    names = imports_from_source(path, "from .schemas import chat\n")
+
+    assert "app.api.schemas.chat" in names
+    assert dependency_direction_failures(path, names) == []
 
 
 def test_app_dependency_directions_follow_layering_plan():
