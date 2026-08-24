@@ -7,7 +7,7 @@ from langgraph.prebuilt import InjectedState
 from pydantic import ValidationError
 
 from app.chat.user import UserInfo
-from app.core.middleware import tool_call_status
+from app.agent.middleware import tool_call_status
 from app.rag.schemas import RetrievalQuery
 from app.rag.use_case import RetrieveSubjectsUseCase
 

@@ -1,7 +1,7 @@
 from langchain_core.tools import tool
 
+from app.agent.middleware import tool_call_status
 from app.core import import_runner
-from app.core.middleware import tool_call_status
 
 
 @tool

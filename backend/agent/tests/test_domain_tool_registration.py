@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from app.agent.dependencies import AgentDependencies
+from app.agent.admin import agent_node
 from app.agent.client import discover, recommend, search
 
 
@@ -58,12 +59,27 @@ def _registered_names(monkeypatch, module, factory):
     return [item.name for item in factory(_dependencies())({})["tools"]]
 
 
+def _registered_names_from_built_agent(monkeypatch, module, factory):
+    captured = {}
+
+    def fake_run_domain_agent(state, **kwargs):
+        captured.update(kwargs)
+        return captured
+
+    monkeypatch.setattr(module, "run_domain_agent", fake_run_domain_agent)
+    return [item.name for item in factory(_dependencies())({})["tools"]]
+
+
 def test_domains_register_real_rag_candidate_tools(monkeypatch):
     assert "rag_search_subjects" in _registered_names(monkeypatch, search, search.build_search_agent)
     discover_names = _registered_names(monkeypatch, discover, discover.build_discover_agent)
     assert "rag_discover_subjects" in discover_names
     assert "get_schedule" in discover_names
     assert "rag_recommend_subjects" in _registered_names(monkeypatch, recommend, recommend.build_recommend_agent)
+    admin_names = _registered_names_from_built_agent(monkeypatch, agent_node, agent_node.build_admin_agent)
+    assert "trigger_recent_import" in admin_names
+    assert "search_subjects" in admin_names
+    assert "get_schedule" in admin_names
 
 
 def test_managed_prompts_only_describe_registered_rag_candidates():

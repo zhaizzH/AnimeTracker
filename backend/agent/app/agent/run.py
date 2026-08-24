@@ -4,11 +4,11 @@ from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, SystemMessage
 
 from app.admin.ports import PromptRepository
+from app.agent.middleware import build_tool_status_middleware
 from app.agent.ports import AgentChatModelSlot, AgentLlmFactoryPort
 from app.agent.state import AgentState
 from app.agent.runtime import agent_stream
 from app.chat.event_sink import emit_answer_delta, emit_thinking_delta
-from app.core.middleware import build_tool_status_middleware
 from app.shared.observability import llm_model_name
 from app.chat.pending_action import PendingAction
 

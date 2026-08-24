@@ -4,7 +4,7 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 
 from app.agent.http import call_api
-from app.core.middleware import tool_call_status
+from app.agent.middleware import tool_call_status
 from app.chat.pending_events import (
     emit_pending_action_clear,
     emit_pending_action_replace,
