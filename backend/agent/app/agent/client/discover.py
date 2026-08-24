@@ -1,7 +1,8 @@
 from langchain_core.tools import tool
 
+from app.agent.dependencies import AgentDependencies
 from app.agent.client.collections import collection_read_tools
-from app.agent.client.rag_tools import rag_discover_subjects
+from app.agent.client.rag_tools import build_rag_tools
 from app.agent.http import call_api
 from app.agent.run import run_domain_agent
 from app.agent.time_tool import get_current_time
@@ -55,14 +56,19 @@ def get_stats() -> dict:
     return data
 
 
-discover_tools = [rag_discover_subjects, get_schedule]
+discover_tools = [get_schedule]
 
 
-def discover_agent(state):
-    return run_domain_agent(
-        state,
-        slot=AgentChatModelSlot.CLIENT_DISCOVER,
-        tools=[*discover_tools, *collection_read_tools, get_current_time],
-        prompt_key="client_discover_agent_prompt",
-        prompt_path="client/discover_agent_prompt.md",
-    )
+def build_discover_agent(dependencies: AgentDependencies):
+    _rag_search_subjects, rag_discover_subjects, _rag_recommend_subjects = build_rag_tools(dependencies.retrieval)
+
+    def discover_agent(state):
+        return run_domain_agent(
+            state,
+            slot=AgentChatModelSlot.CLIENT_DISCOVER,
+            tools=[rag_discover_subjects, *discover_tools, *collection_read_tools, get_current_time],
+            prompt_key="client_discover_agent_prompt",
+            prompt_path="client/discover_agent_prompt.md",
+        )
+
+    return discover_agent

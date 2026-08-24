@@ -3,10 +3,11 @@ from typing import Any
 from langgraph.graph import END, START, StateGraph
 
 from app.agent.admin.agent_node import admin_agent
-from app.agent.client.discover import discover_agent
-from app.agent.client.recommend import recommend_agent
+from app.agent.client.discover import build_discover_agent
+from app.agent.client.recommend import build_recommend_agent
 from app.agent.client.gateway import gateway_router
-from app.agent.client.search import search_agent
+from app.agent.client.search import build_search_agent
+from app.agent.dependencies import AgentDependencies
 from app.agent.state import AgentState
 
 _ALLOWED_TARGETS = ("search_agent", "discover_agent", "recommend_agent")
@@ -31,13 +32,13 @@ def _route_from_gateway(state: AgentState) -> str:
     return target
 
 
-def build_graph() -> Any:
+def build_graph(dependencies: AgentDependencies) -> Any:
     graph = StateGraph(AgentState)
     graph.add_node("entry_router", _entry_router)
     graph.add_node("gateway_router", gateway_router)
-    graph.add_node("search_agent", search_agent)
-    graph.add_node("discover_agent", discover_agent)
-    graph.add_node("recommend_agent", recommend_agent)
+    graph.add_node("search_agent", build_search_agent(dependencies))
+    graph.add_node("discover_agent", build_discover_agent(dependencies))
+    graph.add_node("recommend_agent", build_recommend_agent(dependencies))
     graph.add_node("admin_agent", admin_agent)
 
     graph.add_edge(START, "entry_router")

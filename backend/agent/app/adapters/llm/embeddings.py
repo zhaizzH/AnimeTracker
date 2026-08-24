@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, Protocol
+from typing import Any
 
 
 EMBEDDING_MODEL = "text-embedding-v4"
@@ -24,10 +24,6 @@ class EmbeddingUnavailable(EmbeddingError):
 
 class EmbeddingResponseError(EmbeddingError):
     pass
-
-
-class EmbeddingClient(Protocol):
-    def embed_documents(self, texts: Sequence[str]) -> list[list[float]]: ...
 
 
 Transport = Callable[..., Any]

@@ -1,18 +1,14 @@
 from __future__ import annotations
 
 from array import array
-from base64 import b64decode, b64encode
 from dataclasses import dataclass
 import hashlib
-import json
 import math
 from typing import Any, Callable, Sequence
 
 
-_CACHE_TTL_SECONDS = 24 * 60 * 60
 _WEIGHTS = {1: 0.35, 2: 1.0, 3: 1.0, 4: 0.0, 5: -0.75}
 _VECTOR_DIMENSIONS = 1024
-_VECTOR_BYTES = _VECTOR_DIMENSIONS * 4
 
 
 @dataclass(frozen=True)
@@ -80,74 +76,6 @@ def build_preference(items: Sequence[CollectionItem], *, vector_lookup: VectorLo
         sample_count=len(weighted),
         collection_version=version,
     )
-
-
-class UserProfileService:
-    """只缓存可重建的短期用户向量，不保存个人资料或原始收藏。"""
-
-    def __init__(self, redis: Any, *, vector_lookup: VectorLookup, key_prefix: str = "rag:user-profile:") -> None:
-        self._redis = redis
-        self._vector_lookup = vector_lookup
-        self._key_prefix = key_prefix
-
-    def get_or_build(self, user: Any, collection_items: Sequence[CollectionItem]) -> UserPreference | None:
-        version = collection_version(collection_items)
-        key = f"{self._key_prefix}{self._user_id(user)}:{version}"
-        try:
-            cached = self._decode(self._redis.get(key), version)
-        except Exception:
-            cached = None
-        if cached is not None:
-            return cached
-        profile = build_preference(collection_items, vector_lookup=self._vector_lookup)
-        if profile is None:
-            return None
-        try:
-            self._redis.setex(key, _CACHE_TTL_SECONDS, self._encode(profile))
-        except Exception:
-            pass
-        return profile
-
-    @staticmethod
-    def _user_id(user: Any) -> int:
-        return int(user if isinstance(user, int) else user.user_id)
-
-    @staticmethod
-    def _encode(profile: UserPreference) -> str:
-        encoded = b64encode(array("f", profile.vector).tobytes()).decode()
-        return json.dumps(
-            {
-                "vector": encoded,
-                "sampleCount": profile.sample_count,
-                "excludeSubjectIds": list(profile.exclude_subject_ids),
-            },
-            separators=(",", ":"),
-        )
-
-    @staticmethod
-    def _decode(raw: Any, version: str) -> UserPreference | None:
-        if raw is None:
-            return None
-        value = json.loads(raw.decode() if isinstance(raw, bytes) else raw)
-        encoded = value.get("vector")
-        sample_count = value.get("sampleCount")
-        excludes = value.get("excludeSubjectIds")
-        if not isinstance(encoded, str) or not isinstance(sample_count, int) or not isinstance(excludes, list):
-            return None
-        encoded_bytes = b64decode(encoded, validate=True)
-        if len(encoded_bytes) != _VECTOR_BYTES:
-            return None
-        decoded = array("f")
-        decoded.frombytes(encoded_bytes)
-        vector = _float32_vector(decoded)
-        if vector is None or sample_count < 3:
-            return None
-        return UserPreference(
-            vector=vector,
-            exclude_subject_ids=tuple(sorted(int(subject_id) for subject_id in excludes)),
-            sample_count=sample_count,
-            collection_version=version,
-        )
 
 
 def _float32_vector(values: Sequence[float] | None) -> tuple[float, ...] | None:

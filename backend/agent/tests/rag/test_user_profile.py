@@ -5,13 +5,12 @@ from base64 import b64encode
 import json
 from math import isclose
 
+from app.adapters.redis.user_preference import RedisUserPreferenceProvider
 from app.rag.user_profile import (
     CollectionItem,
-    UserProfileService,
     build_preference,
     collection_version,
 )
-from app.chat.user import UserInfo
 
 
 class FakeRedis:
@@ -31,6 +30,24 @@ class FakeRedis:
             raise RuntimeError("cache unavailable")
         self.values[key] = value
         self.ttl[key] = seconds
+
+
+class FakeBusiness:
+    def __init__(self, collection):
+        self.collection = collection
+        self.calls = []
+
+    def request(self, method, path, *, params=None, token=None, json_body=None):
+        self.calls.append((method, path, params, token, json_body))
+        return {"content": [
+            {
+                "subjectId": row.subject_id,
+                "type": row.type,
+                "rate": row.rate,
+                "epStatus": row.ep_status,
+            }
+            for row in self.collection
+        ]}
 
 
 def vector(*head: float) -> list[float]:
@@ -82,23 +99,30 @@ def test_profile_rejects_non_1024_nonfinite_and_non_float32_subject_vectors():
 def test_service_caches_float32_payload_with_ttl_and_natural_version_expiry():
     """A cache payload must contain only the compact preference data, never user secrets or raw collections."""
     redis = FakeRedis()
-    service = UserProfileService(redis, vector_lookup=VECTORS.get)
-    user = UserInfo(user_id=7, username="private-name", role="USER", token="jwt-secret")
     collection = [item(1, 2), item(2, 3), item(3, 1)]
+    business = FakeBusiness(collection)
+    service = RedisUserPreferenceProvider(redis, business=business, vector_lookup=VECTORS.get)
 
-    profile = service.get_or_build(user, collection)
+    profile, missing = service.load(7, "jwt-secret")
 
     assert profile is not None
+    assert missing is False
+    assert business.calls == [("GET", "/api/client/collections", {"page": 1, "size": 100}, "jwt-secret", None)]
     key = f"rag:user-profile:7:{profile.collection_version}"
     assert redis.ttl[key] == 86400
-    assert "private-name" not in redis.values[key]
     assert "jwt-secret" not in redis.values[key]
     assert "ep_status" not in redis.values[key]
-    cached = UserProfileService(redis, vector_lookup=lambda _subject_id: None).get_or_build(user, collection)
+    cached, cached_missing = RedisUserPreferenceProvider(
+        redis, business=business, vector_lookup=lambda _subject_id: None
+    ).load(7, "jwt-secret")
     assert cached is not None
+    assert cached_missing is False
     assert cached.sample_count == 3
-    changed = service.get_or_build(user, [*collection, item(4, 5)])
+    changed, changed_missing = RedisUserPreferenceProvider(
+        redis, business=FakeBusiness([*collection, item(4, 5)]), vector_lookup=VECTORS.get
+    ).load(7, "jwt-secret")
     assert changed is not None
+    assert changed_missing is False
     assert changed.collection_version != profile.collection_version
 
 
@@ -107,11 +131,16 @@ def test_cache_failure_falls_back_to_local_calculation():
     redis = FakeRedis()
     redis.fail_get = True
     redis.fail_set = True
-    service = UserProfileService(redis, vector_lookup=VECTORS.get)
+    service = RedisUserPreferenceProvider(
+        redis,
+        business=FakeBusiness([item(1, 2), item(2, 3), item(3, 1)]),
+        vector_lookup=VECTORS.get,
+    )
 
-    profile = service.get_or_build(7, [item(1, 2), item(2, 3), item(3, 1)])
+    profile, missing = service.load(7, "jwt-secret")
 
     assert profile is not None
+    assert missing is False
     assert profile.sample_count == 3
 
 
@@ -130,7 +159,10 @@ def test_invalid_cache_vector_is_a_miss_and_rebuilds_safely():
         redis = FakeRedis()
         redis.values[key] = json.dumps({"vector": encoded, "sampleCount": 3, "excludeSubjectIds": [1, 2, 3]})
 
-        profile = UserProfileService(redis, vector_lookup=VECTORS.get).get_or_build(7, collection)
+        profile, missing = RedisUserPreferenceProvider(
+            redis, business=FakeBusiness(collection), vector_lookup=VECTORS.get
+        ).load(7, "jwt-secret")
 
         assert profile is not None
+        assert missing is False
         assert len(profile.vector) == 1024

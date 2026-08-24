@@ -1,7 +1,8 @@
 from langchain_core.tools import tool
 
+from app.agent.dependencies import AgentDependencies
 from app.agent.client.collections import collection_read_tools
-from app.agent.client.rag_tools import rag_search_subjects
+from app.agent.client.rag_tools import build_rag_tools
 from app.agent.http import call_api
 from app.agent.run import run_domain_agent
 from app.agent.time_tool import get_current_time
@@ -39,14 +40,19 @@ def get_subjects_by_tag(tag: str, page: int = 1, size: int = 20) -> list:
     return data.get("content") if isinstance(data, dict) else data
 
 
-search_tools = [rag_search_subjects, get_subject_detail, get_episodes]
+search_tools = [get_subject_detail, get_episodes]
 
 
-def search_agent(state):
-    return run_domain_agent(
-        state,
-        slot=AgentChatModelSlot.CLIENT_SEARCH,
-        tools=[*search_tools, *collection_read_tools, get_current_time],
-        prompt_key="client_search_agent_prompt",
-        prompt_path="client/search_agent_prompt.md",
-    )
+def build_search_agent(dependencies: AgentDependencies):
+    rag_search_subjects, _rag_discover_subjects, _rag_recommend_subjects = build_rag_tools(dependencies.retrieval)
+
+    def search_agent(state):
+        return run_domain_agent(
+            state,
+            slot=AgentChatModelSlot.CLIENT_SEARCH,
+            tools=[rag_search_subjects, *search_tools, *collection_read_tools, get_current_time],
+            prompt_key="client_search_agent_prompt",
+            prompt_path="client/search_agent_prompt.md",
+        )
+
+    return search_agent

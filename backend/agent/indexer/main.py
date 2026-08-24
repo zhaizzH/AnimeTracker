@@ -15,9 +15,9 @@ from sqlalchemy.orm import Session
 
 from app.shared.observability import log_event
 
-from app.rag.embeddings import DashScopeEmbeddingClient, EmbeddingRateLimited, EmbeddingUnavailable
+from app.adapters.llm.embeddings import DashScopeEmbeddingClient, EmbeddingRateLimited, EmbeddingUnavailable
+from app.adapters.redis.subject_index import RedisSubjectIndex, SubjectIndexDocument
 from app.rag.profile import build_subject_profile
-from app.rag.redis_index import RedisSubjectIndex, SubjectIndexDocument
 from app.rag.schemas import SubjectProfile, SubjectProfileSource
 from importer.db import get_engine
 from indexer.report import build_capacity_report, physical_available_memory, write_report

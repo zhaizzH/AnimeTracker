@@ -7,9 +7,8 @@ import math
 import re
 from typing import Any, Callable, Mapping, Sequence
 
-from app.agent.http import call_api
 from app.shared.observability import log_event
-from app.rag.embeddings import EmbeddingClient
+from app.rag.ports import EmbeddingPort
 from app.rag.schemas import RetrievalQuery
 from app.rag.user_profile import UserPreference
 
@@ -73,25 +72,25 @@ class RagRetrievalService:
     def __init__(
         self,
         index: Any,
-        embeddings: EmbeddingClient,
+        embeddings: EmbeddingPort,
         *,
-        authority_lookup: AuthorityLookup | None = None,
-        business_search: AuthorityLookup | None = None,
+        authority_lookup: AuthorityLookup,
+        business_search: AuthorityLookup,
     ) -> None:
         self._index = index
         self._embeddings = embeddings
-        self._authority_lookup = authority_lookup or self._batch_lookup
-        self._business_search = business_search or self._fallback_search
+        self._authority_lookup = authority_lookup
+        self._business_search = business_search
 
     def retrieve(
         self,
         query: RetrievalQuery,
-        mode: str,
+        *,
         token: str | None = None,
         preference: Mapping[int | str, float] | UserPreference | None = None,
         personalization_missing: bool = False,
+        business_search: AuthorityLookup | None = None,
     ) -> RetrievalResult:
-        del mode  # 召回策略固定，mode 仅供上层路由保留接口。
         lexical: list[RetrievalCandidate] = []
         semantic: list[RetrievalCandidate] = []
         redis_failed = False
@@ -117,7 +116,11 @@ class RagRetrievalService:
             lexical, semantic = [], []
 
         if redis_failed:
-            return self._complete(self._business_fallback(query, token, preference), personalization_missing, "business")
+            return self._complete(
+                self._business_fallback(query, token, preference, business_search or self._business_search),
+                personalization_missing,
+                "business",
+            )
         return self._complete(RetrievalResult(available=True, items=[], reason="no_results"), personalization_missing)
 
     @staticmethod
@@ -200,9 +203,10 @@ class RagRetrievalService:
         query: RetrievalQuery,
         token: str | None,
         preference: Mapping[int | str, float] | UserPreference | None,
+        business_search: AuthorityLookup,
     ) -> RetrievalResult:
         try:
-            response = self._business_search(query, token=token)
+            response = business_search(query, token=token)
         except Exception:
             return RetrievalResult(available=False, items=[], reason="business_unavailable")
         if _is_error(response):
@@ -273,21 +277,6 @@ class RagRetrievalService:
         if not missing:
             return result
         return replace(result, personalization_notice="基于你当前的收藏还不多，先给你看热门")
-
-    @staticmethod
-    def _batch_lookup(subject_ids: list[int], *, token: str | None, exclude_collected: bool) -> dict | list:
-        return call_api(
-            "POST",
-            "/api/client/subjects/batch",
-            token=token,
-            json_body={"subjectIds": subject_ids, "excludeCollected": exclude_collected},
-        )
-
-    @staticmethod
-    def _fallback_search(query: RetrievalQuery, *, token: str | None) -> dict | list:
-        text = query.semantic_query or " ".join(query.keywords)
-        return call_api("GET", "/api/client/subjects/search", params={"q": text, "page": 1, "size": _MAX_RESULTS}, token=token)
-
 
 def _items(response: Any) -> list[Any]:
     if isinstance(response, Mapping):

@@ -4,7 +4,7 @@ import math
 
 import pytest
 
-from app.rag.embeddings import (
+from app.adapters.llm.embeddings import (
     DashScopeEmbeddingClient,
     EmbeddingRateLimited,
     EmbeddingResponseError,

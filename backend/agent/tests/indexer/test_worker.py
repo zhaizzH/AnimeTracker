@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import threading
 
-from app.rag.embeddings import EmbeddingRateLimited
+from app.adapters.llm.embeddings import EmbeddingRateLimited
 from app.rag.profile import build_subject_profile
 from app.rag.schemas import SubjectProfileSource
 from indexer.main import _LeaseHeartbeat, _profile, run_batch

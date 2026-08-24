@@ -4,7 +4,7 @@ import math
 
 import pytest
 
-from app.rag.redis_index import RedisSubjectIndex, SubjectIndexDocument, vector_bytes
+from app.adapters.redis.subject_index import RedisSubjectIndex, SubjectIndexDocument, vector_bytes
 from app.rag.schemas import SubjectProfile
 
 

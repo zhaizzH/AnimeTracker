@@ -297,7 +297,7 @@ def main(argv: list[str] | None = None) -> int:
     redis_index = None
     if args.index_version:
         import redis
-        from app.rag.redis_index import RedisSubjectIndex
+        from app.adapters.redis.subject_index import RedisSubjectIndex
         redis_url = os.getenv("RAG_REDIS_URL") or os.getenv("REDIS_URL", "redis://localhost:6379/0")
         redis_index = RedisSubjectIndex(redis.Redis.from_url(redis_url))
     with Session(engine) as db:

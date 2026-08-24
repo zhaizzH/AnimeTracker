@@ -11,7 +11,7 @@ import redis
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.rag.redis_index import RedisSubjectIndex
+from app.adapters.redis.subject_index import RedisSubjectIndex
 from importer.db import get_engine
 from importer.normalize import NormalizedSubject
 from importer.repository import ImportBundle, ImportRepository
