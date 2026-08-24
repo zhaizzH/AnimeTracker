@@ -12,7 +12,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.adapters.redis.subject_index import RedisSubjectIndex
-from jobs.importer.db import get_engine
+from app.adapters.mysql.import_records import get_engine
 from jobs.importer.normalize import NormalizedSubject
 from jobs.importer.repository import ImportBundle, ImportRepository
 from jobs.importer.storage import ObjectStorage

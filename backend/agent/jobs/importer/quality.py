@@ -284,11 +284,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     from dotenv import load_dotenv
     from sqlalchemy.orm import Session
+    from app.adapters.mysql.import_records import get_engine
     try:
-        from .db import get_engine
         from .storage import ObjectStorage
     except ImportError:
-        from db import get_engine
         from storage import ObjectStorage
     import os
 

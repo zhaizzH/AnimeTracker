@@ -27,19 +27,20 @@ from dotenv import load_dotenv
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.adapters.mysql.import_records import get_engine, sanitize_import_error
 from app.shared.observability import log_event
 
 try:
     from .client import BangumiClient
-    from .db import get_engine, upsert_subject, upsert_episodes, upsert_tags, \
-        upsert_relations, create_import_record, complete_import_record, acquire_import_lock, release_import_lock, update_import_progress, load_resume_record, resume_import_record, sanitize_import_error
+    from .db import upsert_subject, upsert_episodes, upsert_tags, \
+        upsert_relations, create_import_record, complete_import_record, acquire_import_lock, release_import_lock, update_import_progress, load_resume_record, resume_import_record
     from .normalize import normalize_subject
     from .repository import ImportBundle, ImportCheckpoint, ImportRepository
     from .storage import ObjectStorage
 except ImportError:
     from client import BangumiClient
-    from db import get_engine, upsert_subject, upsert_episodes, upsert_tags, \
-        upsert_relations, create_import_record, complete_import_record, acquire_import_lock, release_import_lock, update_import_progress, load_resume_record, resume_import_record, sanitize_import_error
+    from db import upsert_subject, upsert_episodes, upsert_tags, \
+        upsert_relations, create_import_record, complete_import_record, acquire_import_lock, release_import_lock, update_import_progress, load_resume_record, resume_import_record
     from normalize import normalize_subject
     from repository import ImportBundle, ImportCheckpoint, ImportRepository
     from storage import ObjectStorage

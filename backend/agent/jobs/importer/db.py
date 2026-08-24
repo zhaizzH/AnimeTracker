@@ -1,13 +1,14 @@
 """数据库模型与 upsert 操作"""
 
 import logging
-import re
 import json
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 from sqlalchemy.orm import Session, sessionmaker
+
+from app.adapters.mysql.import_records import sanitize_import_error
 
 logger = logging.getLogger(__name__)
 
@@ -15,23 +16,6 @@ if TYPE_CHECKING:
     from storage import CoverResult
 
 # ponytail: 直接写 SQL 和 SQLAlchemy ORM 配合，不用 declarative base 减少一层概念
-
-
-def sanitize_import_error(error: Exception | str) -> str:
-    """保留可诊断的异常类型，同时移除连接串、凭据与令牌。"""
-    message = str(error).replace("\r", " ").replace("\n", " ")
-    message = re.sub(r"(?i)\bauthorization\s*:\s*bearer\s+[^\s,;]+", "Authorization: Bearer ***", message)
-    message = re.sub(r"(?i)\b(?:authorization|password|passwd|pwd|token|api[_-]?key)\s*[:=]\s*[^\s,;]+", "***", message)
-    message = re.sub(r"(?i)\bbearer\s+[^\s,;]+", "Bearer ***", message)
-    message = re.sub(r"//[^:/@\s]+:[^@/\s]+@", "//***:***@", message)
-    message = re.sub(r"\beyJ[A-Za-z0-9._-]+", "***", message)
-    message = re.sub(r"(?i)\b(?:password|passwd|pwd|token|api[_-]?key|authorization)\b", "***", message)
-    return f"{type(error).__name__}: {message[:240]}"
-
-
-def get_engine(host: str, port: int, user: str, password: str, db: str):
-    url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{db}?charset=utf8mb4"
-    return create_engine(url, pool_pre_ping=True, pool_recycle=3600)
 
 
 def _infer_weekday(air_date: str | None) -> int | None:
@@ -355,19 +339,6 @@ def complete_import_record(session: Session, record_id: int, subject_count: int,
             "subject_count": subject_count,
             "error_message": sanitize_import_error(error_message) if error_message else None,
         },
-    )
-
-
-def fail_stale_running_records(session: Session, message: str = "导入进程提前退出"):
-    """把未正常结束的 RUNNING 导入记录翻为 FAILED（进程硬退兜底）。"""
-    session.execute(
-        text("""
-            UPDATE import_record
-            SET status = 'FAILED', completed_at = :now, error_message = :message
-            WHERE status = 'RUNNING'
-              AND (heartbeat_at IS NULL OR heartbeat_at < DATE_SUB(:now, INTERVAL 10 MINUTE))
-        """),
-        {"now": datetime.now(), "message": sanitize_import_error(message)},
     )
 
 

@@ -72,11 +72,11 @@ def _source_layer(path: Path) -> str | None:
     return None
 
 
-def _imported_app_layer(name: str) -> str | None:
+def _imported_layer(name: str) -> str | None:
     parts = name.split(".")
-    if len(parts) < 2 or parts[0] != "app":
-        return None
-    if parts[1] in APP_LAYERS:
+    if parts[0] == "jobs":
+        return "jobs"
+    if len(parts) >= 2 and parts[0] == "app" and parts[1] in APP_LAYERS:
         return parts[1]
     return None
 
@@ -88,7 +88,9 @@ def dependency_direction_failures(path: Path, names: set[str]) -> list[str]:
     allowed = ALLOWED_APP_IMPORTS[source]
     failures = []
     for name in names:
-        target = _imported_app_layer(name)
+        target = _imported_layer(name)
+        if source == "jobs" and target == "jobs":
+            continue
         if target is not None and target not in allowed:
             if any(other != name and other.startswith(f"{name}.") for other in names):
                 continue
@@ -118,6 +120,26 @@ def test_relative_import_to_forbidden_layer_is_canonicalized_and_rejected():
 
     assert "app.adapters.business_http" in names
     assert dependency_direction_failures(path, names) == ["app/api/probe.py -> app.adapters.business_http"]
+
+
+def test_app_layers_reject_absolute_and_relative_imports_of_jobs():
+    path = ROOT / "app/adapters/probe.py"
+
+    absolute = imports_from_source(path, "from jobs.importer import db\n")
+    relative = imports_from_source(path, "from ...jobs.importer import db\n")
+
+    expected = ["app/adapters/probe.py -> jobs.importer.db"]
+    assert dependency_direction_failures(path, absolute) == expected
+    assert dependency_direction_failures(path, relative) == expected
+
+
+def test_jobs_can_import_other_jobs_modules():
+    failures = dependency_direction_failures(
+        ROOT / "jobs/importer/probe.py",
+        {"jobs.importer.db"},
+    )
+
+    assert failures == []
 
 
 def test_same_package_relative_import_is_canonicalized_and_allowed():

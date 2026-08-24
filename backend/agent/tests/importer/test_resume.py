@@ -13,7 +13,7 @@ def test_checkpoint_round_trip_has_only_resume_fields():
 
 
 def test_stale_heartbeat_query_marks_only_running_records():
-    from jobs.importer.db import fail_stale_running_records
+    from app.adapters.mysql.import_records import fail_stale_running_records
 
     class Session:
         def __init__(self):

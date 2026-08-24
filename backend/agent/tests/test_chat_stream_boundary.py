@@ -49,3 +49,47 @@ async def test_function_call_sse_preserves_node_from_internal_stream():
     assert payload["content"]["node"] == "tool:search"
     assert payload["content"]["state"] == "start"
     assert payload["content"]["name"] == "Search"
+
+
+async def test_sse_response_preserves_all_agent_event_fields_and_order():
+    from app.api.sse import create_sse_response
+
+    async def events():
+        yield AgentEvent(type=AgentEventType.ANSWER, text="第一段")
+        yield AgentEvent(type=AgentEventType.THINKING, text="正在推理")
+        yield AgentEvent(
+            type=AgentEventType.FUNCTION_CALL,
+            text="调用工具",
+            node="tool:search",
+            parent_node="gateway",
+            state="start",
+            message="正在调用 Search",
+            result="未完成",
+            name="Search",
+            arguments='{"q":"eva"}',
+            meta={"traceId": "trace-7"},
+        )
+        yield AgentEvent(type=AgentEventType.STATUS, node="tool:search", state="end", result="完成")
+        yield AgentEvent(type=AgentEventType.END)
+
+    response = create_sse_response(events())
+    frames = [chunk async for chunk in response.body_iterator]
+    payloads = [json.loads(frame.removeprefix("data: ").strip()) for frame in frames]
+
+    assert [payload.get("type") for payload in payloads] == ["answer", "thinking", "function_call", "status", "answer"]
+    assert payloads[0]["content"] == {"text": "第一段"}
+    assert payloads[1]["content"] == {"text": "正在推理"}
+    assert payloads[2]["content"] == {
+        "text": "调用工具",
+        "node": "tool:search",
+        "parent_node": "gateway",
+        "state": "start",
+        "message": "正在调用 Search",
+        "result": "未完成",
+        "name": "Search",
+        "arguments": '{"q":"eva"}',
+    }
+    assert payloads[2]["meta"] == {"traceId": "trace-7"}
+    assert payloads[3]["content"] == {"node": "tool:search", "state": "end", "result": "完成"}
+    assert payloads[4]["content"] == {}
+    assert payloads[4]["is_end"] is True

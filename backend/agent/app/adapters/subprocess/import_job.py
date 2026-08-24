@@ -5,10 +5,9 @@ import sys
 import threading
 from pathlib import Path
 
-from sqlalchemy.orm import Session
-
 from app.admin.import_service import ImportAlreadyRunning
-from jobs.importer.db import fail_stale_running_records as _flip_running, get_engine
+from app.adapters.mysql.import_records import fail_stale_running_records, get_engine
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,7 @@ IMPORTER_PID_FILE = IMPORTER_SCRIPT.parent / "importer.pid"
 
 class SubprocessImportJobLauncher:
     def __init__(self) -> None:
-        # ponytail: 单进程门禁 = 存活子进程；agent 多实例部署时此约束不成立（与旧 Java 实现同级假设）
+        # PID 文件只协调本机子进程；多实例部署需要共享的任务协调器。
         self._lock = threading.Lock()
         self._proc: subprocess.Popen | None = None
 
@@ -71,7 +70,7 @@ class SubprocessImportJobLauncher:
         """无存活导入进程时，把遗留 RUNNING 记录翻 FAILED（进程硬退兜底）。"""
         try:
             with self._db_session() as db:
-                _flip_running(db)
+                fail_stale_running_records(db)
                 db.commit()
         except Exception as exc:  # DB 不可用时仅告警，不阻塞导入
             logger.warning("清理孤立导入记录失败: %s", exc)
@@ -86,7 +85,7 @@ class SubprocessImportJobLauncher:
     def _spawn(self, args: list[str]) -> None:
         log_file = open(IMPORTER_SCRIPT.parent / "import.log", "ab")
         self._proc = subprocess.Popen(
-            [sys.executable, str(IMPORTER_SCRIPT), *args],
+            [sys.executable, "-m", "jobs.importer.main", *args],
             cwd=AGENT_ROOT,
             stdout=log_file,
             stderr=subprocess.STDOUT,
