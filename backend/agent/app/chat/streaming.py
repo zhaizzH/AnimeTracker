@@ -31,19 +31,6 @@ class StreamConfig:
 
 def _build_agent_event(payload: AgentEvent | dict) -> AgentEvent | None:
     if isinstance(payload, AgentEvent):
-        if payload.type is AgentEventType.FUNCTION_CALL and payload.node is not None:
-            return AgentEvent(
-                type=payload.type,
-                text=payload.text,
-                state=payload.state,
-                message=payload.message,
-                result=payload.result,
-                name=payload.name,
-                node=None,
-                parent_node=payload.parent_node,
-                arguments=payload.arguments,
-                meta=payload.meta,
-            )
         return payload
     if not isinstance(payload, dict):
         return None
@@ -55,8 +42,6 @@ def _build_agent_event(payload: AgentEvent | dict) -> AgentEvent | None:
     except ValueError:
         event_type = AgentEventType.STATUS
     node = content.get("node")
-    if event_type is AgentEventType.FUNCTION_CALL:
-        node = None  # 不暴露内部工具节点标识
     return AgentEvent(
         type=event_type,
         text=content.get("text"),
