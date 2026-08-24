@@ -5,16 +5,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
-import top.zhaizz.agent.service.AgentService;
+import top.zhaizz.agent.service.AgentGateway;
+import top.zhaizz.common.config.AgentProperties;
 import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.constant.TraceConstants;
-import top.zhaizz.common.config.AgentProperties;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.result.Result;
 
@@ -27,21 +31,34 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 /**
- * AgentService 实现：转发请求到 Python agent，统一归类上游错误
+ * HTTP Agent 网关：转发请求到 Python agent，统一归类上游错误。
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AgentServiceImpl implements AgentService {
+public class HttpAgentGateway implements AgentGateway {
 
     private final RestTemplate restTemplate;
     private final AgentProperties agentProperties;
     private final ObjectMapper objectMapper;
-    // SSE 流式转发专用模板（懒加载，双检锁保证单例）
     private volatile RestTemplate streamRestTemplate;
 
     @Override
-    public String toJson(Object value) {
+    public Result<?> exchange(String path, HttpMethod method, String authorization, Object body) {
+        ResponseEntity<String> response = forward(path, method, authorization, toJsonOrNull(body));
+        return wrapResult(response.getBody());
+    }
+
+    @Override
+    public void stream(String path, HttpMethod method, String authorization, Object body,
+                       Consumer<String> lineConsumer) {
+        forwardStream(path, method, authorization, toJsonOrNull(body), lineConsumer);
+    }
+
+    private String toJsonOrNull(Object value) {
+        if (value == null) {
+            return null;
+        }
         try {
             return objectMapper.writeValueAsString(value);
         } catch (JsonProcessingException e) {
@@ -69,9 +86,8 @@ public class AgentServiceImpl implements AgentService {
         return streamRestTemplate;
     }
 
-    @Override
-    public ResponseEntity<String> forward(String path, HttpMethod method,
-                                          String authorization, String body) {
+    private ResponseEntity<String> forward(String path, HttpMethod method,
+                                           String authorization, String body) {
         String url = agentUrl(path);
         HttpHeaders headers = new HttpHeaders();
         if (authorization != null && !authorization.isEmpty()) {
@@ -84,7 +100,6 @@ public class AgentServiceImpl implements AgentService {
         try {
             return restTemplate.exchange(url, method, entity, String.class);
         } catch (HttpStatusCodeException e) {
-            // 日志不记录上游响应体（隐私红线）；错误体不得直接返回访客
             log.warn("Agent 请求失败: {} {} -> status={}", method, url, e.getStatusCode().value());
             if (e.getStatusCode().is5xxServerError()) {
                 throw new BizException(ErrorType.SERVICE_UNAVAILABLE);
@@ -96,20 +111,8 @@ public class AgentServiceImpl implements AgentService {
         }
     }
 
-    /** 上游 4xx 尽可能保留 401/403/404 等语义，其余归为 400 */
-    private ErrorType mapUpstream4xx(int status) {
-        return switch (status) {
-            case 401 -> ErrorType.UNAUTHORIZED;
-            case 403 -> ErrorType.FORBIDDEN;
-            case 404 -> ErrorType.NOT_FOUND;
-            case 429 -> ErrorType.TOO_MANY_REQUESTS;
-            default -> ErrorType.BAD_REQUEST;
-        };
-    }
-
-    @Override
-    public void forwardStream(String path, HttpMethod method, String authorization, String body,
-                              Consumer<String> lineConsumer) {
+    private void forwardStream(String path, HttpMethod method, String authorization, String body,
+                               Consumer<String> lineConsumer) {
         String url = agentUrl(path);
         HttpHeaders headers = new HttpHeaders();
         if (authorization != null && !authorization.isEmpty()) {
@@ -139,7 +142,6 @@ public class AgentServiceImpl implements AgentService {
                 return null;
             });
         } catch (HttpStatusCodeException e) {
-            // 上游非 2xx（如请求体校验失败 422）：流未开始则归类到统一 Result，不泄露错误体
             log.warn("Agent 流式请求失败: {} {} -> status={}", method, url, e.getStatusCode().value());
             if (e.getStatusCode().is5xxServerError()) {
                 throw new BizException(ErrorType.SERVICE_UNAVAILABLE);
@@ -151,10 +153,18 @@ public class AgentServiceImpl implements AgentService {
         }
     }
 
-    @Override
-    public Result<?> wrapResult(String agentBody) {
+    private ErrorType mapUpstream4xx(int status) {
+        return switch (status) {
+            case 401 -> ErrorType.UNAUTHORIZED;
+            case 403 -> ErrorType.FORBIDDEN;
+            case 404 -> ErrorType.NOT_FOUND;
+            case 429 -> ErrorType.TOO_MANY_REQUESTS;
+            default -> ErrorType.BAD_REQUEST;
+        };
+    }
+
+    private Result<?> wrapResult(String agentBody) {
         try {
-            // Agent 响应可能是列表或对象，解析失败时回退原文透传
             if (agentBody.trim().startsWith("[")) {
                 List<?> list = objectMapper.readValue(agentBody, List.class);
                 return Result.success(list);

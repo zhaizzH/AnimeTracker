@@ -1,0 +1,103 @@
+package top.zhaizz.agent.controller;
+
+import jakarta.servlet.http.HttpServletResponse;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpMethod;
+import top.zhaizz.agent.service.AgentGateway;
+import top.zhaizz.common.result.Result;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Map;
+import java.util.function.Consumer;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+
+class AgentControllerGatewayTest {
+
+    @Test
+    void clientControllerDelegatesExchangeToGateway() {
+        AgentGateway gateway = mock(AgentGateway.class);
+        ClientAgentController controller = new ClientAgentController(gateway);
+
+        controller.health("Bearer token");
+
+        verify(gateway).exchange("/api/client/agent/health", HttpMethod.GET, "Bearer token", null);
+        verifyNoMoreInteractions(gateway);
+    }
+
+    @Test
+    void clientControllerDelegatesStreamBodyToGatewayAndFlushesEachLine() throws Exception {
+        AgentGateway gateway = mock(AgentGateway.class);
+        ClientAgentController controller = new ClientAgentController(gateway);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        StringWriter buffer = new StringWriter();
+        PrintWriter writer = new PrintWriter(buffer);
+        doAnswer(invocation -> {
+            Consumer<String> consumer = invocation.getArgument(4);
+            consumer.accept("data: one");
+            consumer.accept("");
+            return null;
+        }).when(gateway).stream(eq("/api/client/agent/stream"), eq(HttpMethod.POST), eq("Bearer token"),
+                eq(Map.of("content", "hi")), any());
+        org.mockito.Mockito.when(response.getWriter()).thenReturn(writer);
+
+        controller.stream("Bearer token", Map.of("content", "hi"), response);
+
+        assertThat(buffer.toString()).isEqualTo("data: one\n\n");
+        verify(response).setContentType("text/event-stream");
+        verify(response).setCharacterEncoding("UTF-8");
+        verify(gateway).stream(eq("/api/client/agent/stream"), eq(HttpMethod.POST), eq("Bearer token"),
+                eq(Map.of("content", "hi")), any());
+        verifyNoMoreInteractions(gateway);
+    }
+
+    @Test
+    void adminControllerDelegatesExchangeToGateway() {
+        AgentGateway gateway = mock(AgentGateway.class);
+        AdminAgentController controller = new AdminAgentController(gateway);
+        Result<?> expected = Result.success(Map.of("key", "value"));
+        doReturn(expected).when(gateway).exchange("/api/admin/agent/prompts/k/update",
+                HttpMethod.POST, "Bearer token", Map.of("value", "v"));
+
+        Result<?> result = controller.updatePrompt("k", Map.of("value", "v"), "Bearer token");
+
+        assertThat(result).isSameAs(expected);
+        verify(gateway).exchange("/api/admin/agent/prompts/k/update",
+                HttpMethod.POST, "Bearer token", Map.of("value", "v"));
+        verifyNoMoreInteractions(gateway);
+    }
+
+    @Test
+    void adminControllerDelegatesStreamBodyToGatewayAndFlushesEachLine() throws Exception {
+        AgentGateway gateway = mock(AgentGateway.class);
+        AdminAgentController controller = new AdminAgentController(gateway);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        StringWriter buffer = new StringWriter();
+        PrintWriter writer = new PrintWriter(buffer);
+        doAnswer(invocation -> {
+            Consumer<String> consumer = invocation.getArgument(4);
+            consumer.accept("data: admin");
+            consumer.accept("");
+            return null;
+        }).when(gateway).stream(eq("/api/admin/agent/chat/stream"), eq(HttpMethod.POST), eq("Bearer token"),
+                eq(Map.of("content", "hi")), any());
+        org.mockito.Mockito.when(response.getWriter()).thenReturn(writer);
+
+        controller.stream("Bearer token", Map.of("content", "hi"), response);
+
+        assertThat(buffer.toString()).isEqualTo("data: admin\n\n");
+        verify(response).setContentType("text/event-stream");
+        verify(response).setCharacterEncoding("UTF-8");
+        verify(gateway).stream(eq("/api/admin/agent/chat/stream"), eq(HttpMethod.POST), eq("Bearer token"),
+                eq(Map.of("content", "hi")), any());
+        verifyNoMoreInteractions(gateway);
+    }
+}

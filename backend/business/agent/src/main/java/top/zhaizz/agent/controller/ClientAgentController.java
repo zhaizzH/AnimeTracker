@@ -4,9 +4,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import top.zhaizz.agent.service.AgentService;
+import top.zhaizz.agent.service.AgentGateway;
 import top.zhaizz.common.result.Result;
 
 import static top.zhaizz.common.constant.AgentApiPaths.*;
@@ -23,15 +22,14 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ClientAgentController {
 
-    private final AgentService agentService;
+    private final AgentGateway agentGateway;
 
     /**
      * 健康检查
      */
     @GetMapping("/health")
     public Result<?> health(@RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward(CLIENT_HEALTH, HttpMethod.GET, auth, null);
-        return agentService.wrapResult(resp.getBody());
+        return agentGateway.exchange(CLIENT_HEALTH, HttpMethod.GET, auth, null);
     }
 
     /**
@@ -39,13 +37,11 @@ public class ClientAgentController {
      */
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public void stream(@RequestHeader("Authorization") String auth, @RequestBody Map<String, Object> body, HttpServletResponse response) throws IOException {
-        String jsonBody = agentService.toJson(body);
-
         response.setContentType(MediaType.TEXT_EVENT_STREAM_VALUE);
         response.setCharacterEncoding("UTF-8");
         PrintWriter writer = response.getWriter();
 
-        agentService.forwardStream(CLIENT_STREAM, HttpMethod.POST, auth, jsonBody, line -> {
+        agentGateway.stream(CLIENT_STREAM, HttpMethod.POST, auth, body, line -> {
             writer.write(line + "\n");
             writer.flush();
         });
@@ -58,8 +54,7 @@ public class ClientAgentController {
      */
     @GetMapping("/sessions")
     public Result<?> listSessions(@RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward(CLIENT_SESSIONS, HttpMethod.GET, auth, null);
-        return agentService.wrapResult(resp.getBody());
+        return agentGateway.exchange(CLIENT_SESSIONS, HttpMethod.GET, auth, null);
     }
 
     /**
@@ -67,9 +62,7 @@ public class ClientAgentController {
      */
     @PostMapping("/sessions")
     public Result<?> createSession(@RequestHeader("Authorization") String auth, @RequestBody(required = false) Map<String, Object> body) {
-        String jsonBody = agentService.toJson(body != null ? body : Map.of());
-        ResponseEntity<String> resp = agentService.forward(CLIENT_SESSIONS, HttpMethod.POST, auth, jsonBody);
-        return agentService.wrapResult(resp.getBody());
+        return agentGateway.exchange(CLIENT_SESSIONS, HttpMethod.POST, auth, body != null ? body : Map.of());
     }
 
     /**
@@ -77,8 +70,7 @@ public class ClientAgentController {
      */
     @GetMapping("/sessions/{sessionId}/history")
     public Result<?> getHistory(@PathVariable String sessionId, @RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward(CLIENT_SESSIONS + "/" + sessionId + "/history", HttpMethod.GET, auth, null);
-        return agentService.wrapResult(resp.getBody());
+        return agentGateway.exchange(CLIENT_SESSIONS + "/" + sessionId + "/history", HttpMethod.GET, auth, null);
     }
 
     /**
@@ -86,7 +78,6 @@ public class ClientAgentController {
      */
     @PostMapping("/sessions/{sessionId}/remove")
     public Result<?> deleteSession(@PathVariable String sessionId, @RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward(CLIENT_SESSIONS + "/" + sessionId, HttpMethod.POST, auth, null);
-        return agentService.wrapResult(resp.getBody());
+        return agentGateway.exchange(CLIENT_SESSIONS + "/" + sessionId, HttpMethod.POST, auth, null);
     }
 }

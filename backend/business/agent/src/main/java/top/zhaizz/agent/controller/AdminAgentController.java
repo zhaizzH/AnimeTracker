@@ -4,9 +4,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import top.zhaizz.agent.service.AgentService;
+import top.zhaizz.agent.service.AgentGateway;
 import top.zhaizz.common.constant.OperationLogConstants;
 import top.zhaizz.common.log.OperationLog;
 import top.zhaizz.common.result.Result;
@@ -25,14 +24,14 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminAgentController {
 
-    private final AgentService agentService;
+    private final AgentGateway agentGateway;
 
     /**
      * 提示词列表
      */
     @GetMapping("/prompts")
     public Result<?> listPrompts(@RequestHeader("Authorization") String auth) {
-        return agentService.wrapResult(agentService.forward(ADMIN_PROMPTS, HttpMethod.GET, auth, null).getBody());
+        return agentGateway.exchange(ADMIN_PROMPTS, HttpMethod.GET, auth, null);
     }
 
     /**
@@ -40,7 +39,7 @@ public class AdminAgentController {
      */
     @GetMapping("/prompts/{key}")
     public Result<?> getPrompt(@PathVariable String key, @RequestHeader("Authorization") String auth) {
-        return agentService.wrapResult(agentService.forward(ADMIN_PROMPTS + "/" + key, HttpMethod.GET, auth, null).getBody());
+        return agentGateway.exchange(ADMIN_PROMPTS + "/" + key, HttpMethod.GET, auth, null);
     }
 
     /**
@@ -50,8 +49,7 @@ public class AdminAgentController {
     @PostMapping("/prompts/{key}/update")
     public Result<?> updatePrompt(@PathVariable String key, @RequestBody Map<String, Object> body,
                                   @RequestHeader("Authorization") String auth) {
-        return agentService.wrapResult(agentService.forward(
-                ADMIN_PROMPTS + "/" + key + "/update", HttpMethod.POST, auth, agentService.toJson(body)).getBody());
+        return agentGateway.exchange(ADMIN_PROMPTS + "/" + key + "/update", HttpMethod.POST, auth, body);
     }
 
     /**
@@ -60,8 +58,7 @@ public class AdminAgentController {
     @OperationLog(action = OperationLogConstants.ACTION_PROMPT_RESET, module = OperationLogConstants.MODULE_AGENT)
     @PostMapping("/prompts/{key}/reset")
     public Result<?> resetPrompt(@PathVariable String key, @RequestHeader("Authorization") String auth) {
-        return agentService.wrapResult(agentService.forward(
-                ADMIN_PROMPTS + "/" + key + "/reset", HttpMethod.POST, auth, null).getBody());
+        return agentGateway.exchange(ADMIN_PROMPTS + "/" + key + "/reset", HttpMethod.POST, auth, null);
     }
 
     /**
@@ -69,7 +66,7 @@ public class AdminAgentController {
      */
     @GetMapping("/config")
     public Result<?> getConfig(@RequestHeader("Authorization") String auth) {
-        return agentService.wrapResult(agentService.forward(ADMIN_CONFIG, HttpMethod.GET, auth, null).getBody());
+        return agentGateway.exchange(ADMIN_CONFIG, HttpMethod.GET, auth, null);
     }
 
     /**
@@ -78,8 +75,7 @@ public class AdminAgentController {
     @OperationLog(action = OperationLogConstants.ACTION_CONFIG_UPDATE, module = OperationLogConstants.MODULE_AGENT)
     @PostMapping("/config/update")
     public Result<?> updateConfig(@RequestBody Map<String, Object> body, @RequestHeader("Authorization") String auth) {
-        return agentService.wrapResult(agentService.forward(
-                ADMIN_CONFIG + "/update", HttpMethod.POST, auth, agentService.toJson(body)).getBody());
+        return agentGateway.exchange(ADMIN_CONFIG + "/update", HttpMethod.POST, auth, body);
     }
 
     /**
@@ -87,11 +83,10 @@ public class AdminAgentController {
      */
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public void stream(@RequestHeader("Authorization") String auth, @RequestBody Map<String, Object> body, HttpServletResponse response) throws IOException {
-        String jsonBody = agentService.toJson(body);
         response.setContentType(MediaType.TEXT_EVENT_STREAM_VALUE);
         response.setCharacterEncoding("UTF-8");
         PrintWriter writer = response.getWriter();
-        agentService.forwardStream(ADMIN_CHAT_STREAM, HttpMethod.POST, auth, jsonBody, line -> {
+        agentGateway.stream(ADMIN_CHAT_STREAM, HttpMethod.POST, auth, body, line -> {
             writer.write(line + "\n");
             writer.flush();
         });
@@ -103,8 +98,7 @@ public class AdminAgentController {
      */
     @GetMapping("/chat/sessions")
     public Result<?> listSessions(@RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward(ADMIN_CHAT_SESSIONS, HttpMethod.GET, auth, null);
-        return agentService.wrapResult(resp.getBody());
+        return agentGateway.exchange(ADMIN_CHAT_SESSIONS, HttpMethod.GET, auth, null);
     }
 
     /**
@@ -112,9 +106,7 @@ public class AdminAgentController {
      */
     @PostMapping("/chat/sessions")
     public Result<?> createSession(@RequestHeader("Authorization") String auth, @RequestBody(required = false) Map<String, Object> body) {
-        String jsonBody = agentService.toJson(body != null ? body : Map.of());
-        ResponseEntity<String> resp = agentService.forward(ADMIN_CHAT_SESSIONS, HttpMethod.POST, auth, jsonBody);
-        return agentService.wrapResult(resp.getBody());
+        return agentGateway.exchange(ADMIN_CHAT_SESSIONS, HttpMethod.POST, auth, body != null ? body : Map.of());
     }
 
     /**
@@ -122,8 +114,7 @@ public class AdminAgentController {
      */
     @GetMapping("/chat/sessions/{sessionId}/history")
     public Result<?> getHistory(@PathVariable String sessionId, @RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward(ADMIN_CHAT_SESSIONS + "/" + sessionId + "/history", HttpMethod.GET, auth, null);
-        return agentService.wrapResult(resp.getBody());
+        return agentGateway.exchange(ADMIN_CHAT_SESSIONS + "/" + sessionId + "/history", HttpMethod.GET, auth, null);
     }
 
     /**
@@ -131,7 +122,6 @@ public class AdminAgentController {
      */
     @PostMapping("/chat/sessions/{sessionId}/remove")
     public Result<?> deleteSession(@PathVariable String sessionId, @RequestHeader("Authorization") String auth) {
-        ResponseEntity<String> resp = agentService.forward(ADMIN_CHAT_SESSIONS + "/" + sessionId, HttpMethod.POST, auth, null);
-        return agentService.wrapResult(resp.getBody());
+        return agentGateway.exchange(ADMIN_CHAT_SESSIONS + "/" + sessionId, HttpMethod.POST, auth, null);
     }
 }
