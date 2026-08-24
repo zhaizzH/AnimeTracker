@@ -4,6 +4,7 @@ import logging
 from fastapi.responses import StreamingResponse
 from langchain_core.messages import AIMessage, HumanMessage
 
+from app.chat.ports import ChatStore
 from app.core.observability import get_trace_id, set_trace_context
 from app.core.pending_action import PendingActionEvent
 from app.core.streaming import StreamConfig, create_streaming_response
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 class ChatService:
     """编排 store + graph + 流式引擎,负责历史加载、落库回调、SSE 组装。"""
 
-    def __init__(self, store, graph, settings):
+    def __init__(self, store: ChatStore, graph, settings):
         self.store = store
         self.graph = graph
         self.settings = settings

@@ -10,13 +10,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import chat as chat_api
 from app.api import admin_config as admin_config_api
 from app.api import import_api as import_api_api
+from app.adapters.redis import RedisChatStore
 from app.api.admin_config import require_admin
 from app.api.deps import verify_token
 from app.agent.graph import build_graph
 from app.config import resolve_llm_provider, settings
 from app.core.observability import configure_logging, trace_context_middleware
 from app.core.prompt_sync import initialize_agent_prompt_snapshot
-from app.db.redis_store import RedisStore
 from app.service.chat import ChatService
 
 configure_logging()
@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     logger.info("LLM 供应商: %s, 模型: %s, 路由模型: %s", resolved.provider, resolved.model, resolved.route_model)
 
     logger.info("初始化 Redis 存储...")
-    store = RedisStore(settings.redis_url)
+    store = RedisChatStore(settings.redis_url)
     try:
         await store.init_db()
     except Exception as exc:

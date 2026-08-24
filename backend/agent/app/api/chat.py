@@ -3,8 +3,8 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.chat.ports import ChatStore
 from app.config import settings, resolve_llm_provider
-from app.db.redis_store import RedisStore
 from app.schemas.auth import UserInfo
 from app.schemas.chat import ChatRequest
 from app.schemas.session import (
@@ -17,7 +17,7 @@ from app.schemas.session import (
 from app.service.chat import ChatService
 
 
-def get_store(request: Request) -> RedisStore:
+def get_store(request: Request) -> ChatStore:
     return request.app.state.store
 
 
@@ -33,7 +33,7 @@ def create_chat_router(*, prefix: str, auth_dep, include_health: bool = False) -
             req: ChatRequest,
             user: UserInfo = Depends(auth_dep),
             svc: ChatService = Depends(get_service),
-            store: RedisStore = Depends(get_store),
+            store: ChatStore = Depends(get_store),
     ):
         sessions = await store.get_user_sessions(user.user_id)
         if not any(s.session_id == req.session_id for s in sessions):
@@ -49,7 +49,7 @@ def create_chat_router(*, prefix: str, auth_dep, include_health: bool = False) -
     @router.get("/sessions")
     async def list_sessions(
             user: UserInfo = Depends(auth_dep),
-            store: RedisStore = Depends(get_store),
+            store: ChatStore = Depends(get_store),
     ):
         sessions = await store.get_user_sessions(user.user_id)
         return [SessionInfo(
@@ -63,7 +63,7 @@ def create_chat_router(*, prefix: str, auth_dep, include_health: bool = False) -
     async def create_session(
             body: SessionCreateRequest,
             user: UserInfo = Depends(auth_dep),
-            store: RedisStore = Depends(get_store),
+            store: ChatStore = Depends(get_store),
     ):
         session_id = body.session_id or str(uuid.uuid4())
         await store.create_session(user.user_id, session_id)
@@ -73,7 +73,7 @@ def create_chat_router(*, prefix: str, auth_dep, include_health: bool = False) -
     async def get_history(
             session_id: str,
             user: UserInfo = Depends(auth_dep),
-            store: RedisStore = Depends(get_store),
+            store: ChatStore = Depends(get_store),
     ):
         sessions = await store.get_user_sessions(user.user_id)
         if not any(s.session_id == session_id for s in sessions):
@@ -90,7 +90,7 @@ def create_chat_router(*, prefix: str, auth_dep, include_health: bool = False) -
     async def delete_session(
             session_id: str,
             user: UserInfo = Depends(auth_dep),
-            store: RedisStore = Depends(get_store),
+            store: ChatStore = Depends(get_store),
     ):
         await store.delete_session(session_id, user.user_id)
         return DeleteResponse()

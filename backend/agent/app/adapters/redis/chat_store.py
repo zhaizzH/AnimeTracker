@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 import redis
 from pydantic import ValidationError
 
-from app.db.base import ChatStore
-from app.db.models import Message, Session
+from app.chat.models import Message, Session
+from app.chat.ports import ChatStore
 from app.schemas.pending_action import PendingAction, parse_pending_action_json
 from app.core.observability import hash_value
 
@@ -30,7 +30,7 @@ def _now_iso() -> str:
         return now
 
 
-class RedisStore(ChatStore):
+class RedisChatStore(ChatStore):
     def __init__(self, redis_url: str):
         self._r: redis.asyncio.Redis = redis.asyncio.from_url(redis_url, decode_responses=True, socket_connect_timeout=2)
 
