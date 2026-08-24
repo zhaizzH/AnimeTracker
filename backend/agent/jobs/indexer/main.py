@@ -19,9 +19,9 @@ from app.adapters.llm.embeddings import DashScopeEmbeddingClient, EmbeddingRateL
 from app.adapters.redis.subject_index import RedisSubjectIndex, SubjectIndexDocument
 from app.rag.profile import build_subject_profile
 from app.rag.schemas import SubjectProfile, SubjectProfileSource
-from importer.db import get_engine
-from indexer.report import build_capacity_report, physical_available_memory, write_report
-from indexer.repository import IndexJob, IndexJobRepository, IndexSubject, RUNNING_LEASE_SECONDS
+from jobs.importer.db import get_engine
+from jobs.indexer.report import build_capacity_report, physical_available_memory, write_report
+from jobs.indexer.repository import IndexJob, IndexJobRepository, IndexSubject, RUNNING_LEASE_SECONDS
 
 
 LEASE_HEARTBEAT_SECONDS = min(60, RUNNING_LEASE_SECONDS // 3)

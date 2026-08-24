@@ -3,8 +3,8 @@ from datetime import datetime, timezone
 
 import pytest
 
-from importer.normalize import Alias, Credit, NormalizedSubject, Tag
-from importer.storage import CoverResult
+from jobs.importer.normalize import Alias, Credit, NormalizedSubject, Tag
+from jobs.importer.storage import CoverResult
 
 
 class Result:
@@ -95,13 +95,13 @@ def session():
 
 @pytest.fixture
 def repo(session):
-    from importer.repository import ImportRepository
+    from jobs.importer.repository import ImportRepository
 
     return ImportRepository(session, embedding_model="text-embedding-v4", embedding_dimensions=1024, trusted_tag_min_count=1)
 
 
 def bundle():
-    from importer.repository import ImportBundle
+    from jobs.importer.repository import ImportBundle
 
     return ImportBundle(subject=SUBJECT, cover=COVER, episodes=(), relations=())
 
@@ -126,7 +126,7 @@ def test_unchanged_profile_does_not_requeue_index(repo):
 
 
 def test_checkpoint_is_saved_with_fixed_shape(repo, session):
-    from importer.repository import ImportCheckpoint
+    from jobs.importer.repository import ImportCheckpoint
 
     repo.save_checkpoint(9, ImportCheckpoint("sample", 2, 42, "abc"))
 
@@ -135,7 +135,7 @@ def test_checkpoint_is_saved_with_fixed_shape(repo, session):
 
 
 def test_relation_target_missing_preserves_existing_edges():
-    from importer.db import upsert_relations
+    from jobs.importer.db import upsert_relations
 
     class Session:
         def __init__(self):
@@ -153,7 +153,7 @@ def test_relation_target_missing_preserves_existing_edges():
 
 
 def test_resolved_relation_replaces_edges_and_writes_both_directions():
-    from importer.db import upsert_relations
+    from jobs.importer.db import upsert_relations
 
     class Session:
         def __init__(self):

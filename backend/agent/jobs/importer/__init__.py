@@ -1,0 +1,1 @@
+"""Bangumi importer job package."""

@@ -25,8 +25,10 @@ from app.adapters.redis.subject_index import RedisSubjectIndex
 from app.adapters.redis.user_preference import RedisUserPreferenceProvider
 from app.api.admin_config import require_admin
 from app.api.deps import verify_token
+from app.admin.import_service import ImportService
 from app.agent.dependencies import AgentDependencies
 from app.agent.graph import build_graph
+from app.adapters.subprocess.import_job import SubprocessImportJobLauncher
 from app.config import resolve_llm_provider, settings
 from app.rag.retrieval import RagRetrievalService
 from app.rag.schemas import RetrievalQuery
@@ -93,7 +95,7 @@ def _business_fallbacks(business):
     return {"search": search, "discover": discover, "recommend": recommend}
 
 
-def _build_agent_dependencies(model_configs, prompts) -> AgentDependencies:
+def _build_agent_dependencies(model_configs, prompts, import_service) -> AgentDependencies:
     business = HttpBusinessGateway(settings.backend_base_url)
     fallbacks = _business_fallbacks(business)
     if settings.rag_enabled:
@@ -124,6 +126,7 @@ def _build_agent_dependencies(model_configs, prompts) -> AgentDependencies:
         ),
         llm_factory=AgentLlmFactory(settings, model_configs),
         prompt_repository=prompts,
+        import_service=import_service,
     )
 
 
@@ -161,9 +164,10 @@ async def lifespan(app: FastAPI):
     prompts = RedisPromptRepository(settings.redis_url)
     prompts.initialize_snapshot()
     app.state.admin_config_service = AdminConfigService(model_configs, prompts)
+    app.state.import_service = ImportService(SubprocessImportJobLauncher())
 
     logger.info("构建 client agent 图...")
-    graph = build_graph(_build_agent_dependencies(model_configs, prompts))
+    graph = build_graph(_build_agent_dependencies(model_configs, prompts, app.state.import_service))
 
     logger.info("创建聊天服务...")
     app.state.chat_service = ChatService(store=store, graph=graph, settings=settings)

@@ -5,7 +5,7 @@ from unittest.mock import Mock
 import pytest
 import requests
 
-from importer.client import BangumiClient
+from jobs.importer.client import BangumiClient
 
 
 class FakeBangumiClient(BangumiClient):
@@ -79,7 +79,7 @@ def test_request_keeps_existing_retry_policy(monkeypatch, status_code, expected_
     error = requests.exceptions.HTTPError(response=response)
     response.raise_for_status.side_effect = error
     client._session.request = Mock(return_value=response)
-    monkeypatch.setattr("importer.client.time.sleep", lambda _: None)
+    monkeypatch.setattr("jobs.importer.client.time.sleep", lambda _: None)
 
     with pytest.raises(error_type):
         client.get_subject(42)

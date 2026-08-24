@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 
-from indexer.repository import IndexJobRepository
+from jobs.indexer.repository import IndexJobRepository
 
 
 class Result:
@@ -70,7 +70,7 @@ def test_loading_subject_closes_its_read_transaction_before_status_update():
             return SubjectResult([])
 
     repo = IndexJobRepository(TransactionSession())
-    from indexer.repository import IndexJob
+    from jobs.indexer.repository import IndexJob
 
     token = datetime(2026, 8, 23, 12, 0, 0)
     repo.load_subject(IndexJob(7, 42, "v1", "a" * 64, 1, "RUNNING", token))
@@ -162,7 +162,7 @@ def test_error_redaction_hides_redis_url_secrets_for_empty_user_and_quoted_json_
 
 def test_renewed_running_lease_is_not_recovered_by_a_later_claim():
     """活跃 worker 续租后，即使批处理超过原始 15 分钟，也不能被另一 worker 回收。"""
-    from indexer.repository import IndexJob
+    from jobs.indexer.repository import IndexJob
 
     class LeaseResult(Result):
         def __init__(self, *, rowcount=0, rows=()):

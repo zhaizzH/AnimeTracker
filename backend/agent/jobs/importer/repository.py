@@ -12,9 +12,9 @@ from sqlalchemy import text
 
 from app.rag.profile import build_subject_profile
 from app.rag.schemas import SubjectProfileSource
-from importer.db import upsert_episodes, upsert_relations, upsert_tags
-from importer.normalize import NormalizedSubject
-from importer.storage import CoverResult
+from jobs.importer.db import upsert_episodes, upsert_relations, upsert_tags
+from jobs.importer.normalize import NormalizedSubject
+from jobs.importer.storage import CoverResult
 
 
 @dataclass(frozen=True)

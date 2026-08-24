@@ -37,12 +37,18 @@ class FakePromptRepository:
         return ""
 
 
+class FakeImportService:
+    def run(self, *_args, **_kwargs):
+        pass
+
+
 def _dependencies():
     return AgentDependencies(
         business=FakeBusiness(),
         retrieval=FakeRetrieval(),
         llm_factory=FakeLlmFactory(),
         prompt_repository=FakePromptRepository(),
+        import_service=FakeImportService(),
     )
 
 

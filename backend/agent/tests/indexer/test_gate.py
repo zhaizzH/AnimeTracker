@@ -4,7 +4,7 @@ from dataclasses import replace
 import json
 
 import pytest
-from indexer.gate import GateInputs, _content_hash_match, _contract_match, activate_alias, evaluate_gate, load_gate_inputs
+from jobs.indexer.gate import GateInputs, _content_hash_match, _contract_match, activate_alias, evaluate_gate, load_gate_inputs
 
 
 def _passing_inputs() -> GateInputs:

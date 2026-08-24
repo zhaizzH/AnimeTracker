@@ -1,4 +1,4 @@
-from importer.main import _sample_ids, parse_args
+from jobs.importer.main import _sample_ids, parse_args
 
 
 def test_sample_ids_use_requested_strata_and_limit():
@@ -30,8 +30,8 @@ def test_sample_mode_and_limit_are_internal_cli_options():
 
 
 def test_import_errors_are_redacted_from_record_and_logs(caplog, monkeypatch):
-    from importer import main
-    from importer.db import complete_import_record
+    from jobs.importer import main
+    from jobs.importer.db import complete_import_record
 
     secret = "mysql://root:password@db/?token=eyJ.secret.jwt Authorization: Bearer abcdef"
     assert "password" not in main.sanitize_import_error(RuntimeError(secret))
@@ -68,7 +68,7 @@ def test_import_errors_are_redacted_from_record_and_logs(caplog, monkeypatch):
 def test_resume_query_uses_sqlalchemy_text_with_real_session():
     from sqlalchemy import create_engine, text
     from sqlalchemy.orm import Session
-    from importer.main import OUTCOME_SKIPPED, import_single_subject
+    from jobs.importer.main import OUTCOME_SKIPPED, import_single_subject
 
     engine = create_engine("sqlite://")
     with Session(engine) as session:

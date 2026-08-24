@@ -1,4 +1,4 @@
-from importer.repository import ImportCheckpoint
+from jobs.importer.repository import ImportCheckpoint
 
 
 def test_checkpoint_round_trip_has_only_resume_fields():
@@ -13,7 +13,7 @@ def test_checkpoint_round_trip_has_only_resume_fields():
 
 
 def test_stale_heartbeat_query_marks_only_running_records():
-    from importer.db import fail_stale_running_records
+    from jobs.importer.db import fail_stale_running_records
 
     class Session:
         def __init__(self):
@@ -29,7 +29,7 @@ def test_stale_heartbeat_query_marks_only_running_records():
 
 
 def test_resume_skips_existing_subject_without_fetching_or_writing():
-    from importer.main import OUTCOME_SKIPPED, import_single_subject
+    from jobs.importer.main import OUTCOME_SKIPPED, import_single_subject
 
     class Result:
         def scalar(self):
@@ -50,7 +50,7 @@ def test_resume_skips_existing_subject_without_fetching_or_writing():
 
 
 def test_resume_checkpoint_continues_at_saved_batch_offset():
-    from importer.main import _resume_batch_ids
+    from jobs.importer.main import _resume_batch_ids
 
     checkpoint = ImportCheckpoint("full", 2, 20, "")
     ids = [10, 20, 30, 40]
@@ -60,7 +60,7 @@ def test_resume_checkpoint_continues_at_saved_batch_offset():
 
 
 def test_resume_checkpoint_rejects_changed_scan_snapshot():
-    from importer.main import _resume_batch_ids
+    from jobs.importer.main import _resume_batch_ids
 
     checkpoint = ImportCheckpoint("full", 1, 10, "old-digest")
 
@@ -71,8 +71,8 @@ def test_resume_checkpoint_rejects_changed_scan_snapshot():
 
 
 def test_interrupted_record_reuses_checkpoint_and_continues_without_new_record():
-    from importer.db import load_resume_record, resume_import_record
-    from importer.main import _resume_batch_ids
+    from jobs.importer.db import load_resume_record, resume_import_record
+    from jobs.importer.main import _resume_batch_ids
 
     ids = [10, 20, 30]
     checkpoint = {

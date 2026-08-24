@@ -12,12 +12,12 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.adapters.redis.subject_index import RedisSubjectIndex
-from importer.db import get_engine
-from importer.normalize import NormalizedSubject
-from importer.repository import ImportBundle, ImportRepository
-from importer.storage import ObjectStorage
-from indexer.main import run_batch
-from indexer.repository import IndexJobRepository
+from jobs.importer.db import get_engine
+from jobs.importer.normalize import NormalizedSubject
+from jobs.importer.repository import ImportBundle, ImportRepository
+from jobs.importer.storage import ObjectStorage
+from jobs.indexer.main import run_batch
+from jobs.indexer.repository import IndexJobRepository
 
 
 pytestmark = pytest.mark.skipif(

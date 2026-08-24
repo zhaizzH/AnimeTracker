@@ -6,8 +6,8 @@ import logging
 from datetime import datetime, timezone
 from unittest.mock import ANY, Mock
 
-from importer import main
-from importer.storage import CoverResult, ObjectStorage, ObjectStorageError
+from jobs.importer import main
+from jobs.importer.storage import CoverResult, ObjectStorage, ObjectStorageError
 
 
 class FakeMinio:

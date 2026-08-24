@@ -7,8 +7,8 @@ import threading
 from app.adapters.llm.embeddings import EmbeddingRateLimited
 from app.rag.profile import build_subject_profile
 from app.rag.schemas import SubjectProfileSource
-from indexer.main import _LeaseHeartbeat, _profile, run_batch
-from indexer.repository import IndexJob, IndexSubject
+from jobs.indexer.main import _LeaseHeartbeat, _profile, run_batch
+from jobs.indexer.repository import IndexJob, IndexSubject
 from redis.exceptions import ConnectionError as RedisConnectionError, TimeoutError as RedisTimeoutError
 
 

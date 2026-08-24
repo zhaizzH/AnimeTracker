@@ -90,7 +90,7 @@ class FakeIndex:
 
 
 def test_quality_report_contains_every_category_and_fixed_root_fields():
-    from importer.quality import build_quality_report
+    from jobs.importer.quality import build_quality_report
 
     report = build_quality_report(FakeDatabase(), FakeMinio(), datetime(2026, 8, 23, tzinfo=timezone.utc))
 
@@ -102,7 +102,7 @@ def test_quality_report_contains_every_category_and_fixed_root_fields():
 
 
 def test_quality_uses_canonical_object_path_instead_of_image_url():
-    from importer.quality import build_quality_report
+    from jobs.importer.quality import build_quality_report
 
     report = build_quality_report(FakeDatabase(), FakeMinio(), datetime(2026, 8, 23, tzinfo=timezone.utc))
 
@@ -112,7 +112,7 @@ def test_quality_uses_canonical_object_path_instead_of_image_url():
 
 
 def test_quality_report_with_index_version_emits_gate_coverage_and_hash_samples():
-    from importer.quality import build_quality_report
+    from jobs.importer.quality import build_quality_report
 
     report = build_quality_report(
         FakeDatabase(),
@@ -129,7 +129,7 @@ def test_quality_report_with_index_version_emits_gate_coverage_and_hash_samples(
 
 
 def test_quality_coverage_uses_all_qualified_subjects_and_compares_independent_redis_hashes():
-    from importer.quality import build_quality_report
+    from jobs.importer.quality import build_quality_report
 
     db = FakeDatabase()
     db.index_jobs = []
@@ -158,7 +158,7 @@ def test_quality_coverage_uses_all_qualified_subjects_and_compares_independent_r
 
 
 def test_volumes_null_is_not_an_anime_quality_defect():
-    from importer.quality import build_quality_report
+    from jobs.importer.quality import build_quality_report
 
     report = build_quality_report(FakeDatabase(), FakeMinio(), datetime(2026, 8, 23, tzinfo=timezone.utc))
 
@@ -166,7 +166,7 @@ def test_volumes_null_is_not_an_anime_quality_defect():
 
 
 def test_past_na_episode_is_reported_as_status_drift():
-    from importer.quality import build_quality_report
+    from jobs.importer.quality import build_quality_report
 
     db = FakeDatabase()
     db.rows["episode_drift"] = [{"id": 7, "subject_id": 3, "status": "NA", "airdate": "2026-08-22"}]
@@ -178,13 +178,13 @@ def test_past_na_episode_is_reported_as_status_drift():
 
 
 def test_external_cover_url_is_not_treated_as_a_minio_object_reference():
-    from importer.quality import canonical_cover_object_path
+    from jobs.importer.quality import canonical_cover_object_path
 
     assert canonical_cover_object_path("https://source.example/covers/33.jpg", FakeMinio()) is None
 
 
 def test_database_fingerprint_covers_every_cleanup_target_table():
-    from importer.quality import database_fingerprint
+    from jobs.importer.quality import database_fingerprint
 
     class Database:
         def __init__(self):
@@ -204,7 +204,7 @@ def test_database_fingerprint_covers_every_cleanup_target_table():
 
 
 def test_quality_report_writer_returns_the_confirmation_digest(tmp_path):
-    from importer.quality import build_quality_report, write_quality_report
+    from jobs.importer.quality import build_quality_report, write_quality_report
 
     report = build_quality_report(FakeDatabase(), FakeMinio(), datetime(2026, 8, 23, tzinfo=timezone.utc))
 

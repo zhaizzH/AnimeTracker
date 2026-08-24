@@ -62,7 +62,7 @@ def report_payload():
 
 
 def test_cleanup_requires_exact_digest_and_performs_zero_writes_on_mismatch(tmp_path):
-    from importer.cleanup import ConfirmationMismatch, apply_cleanup_plan, write_cleanup_plan
+    from jobs.importer.cleanup import ConfirmationMismatch, apply_cleanup_plan, write_cleanup_plan
 
     path = tmp_path / "quality.json"
     digest = write_cleanup_plan(report_payload(), path)
@@ -77,7 +77,7 @@ def test_cleanup_requires_exact_digest_and_performs_zero_writes_on_mismatch(tmp_
 
 
 def test_cleanup_refuses_changed_fingerprint_before_any_write(tmp_path):
-    from importer.cleanup import ConfirmationMismatch, apply_cleanup_plan, write_cleanup_plan
+    from jobs.importer.cleanup import ConfirmationMismatch, apply_cleanup_plan, write_cleanup_plan
 
     path = tmp_path / "quality.json"
     digest = write_cleanup_plan(report_payload(), path)
@@ -92,7 +92,7 @@ def test_cleanup_refuses_changed_fingerprint_before_any_write(tmp_path):
 
 
 def test_cleanup_refuses_changed_database_target_fingerprint_before_any_write(tmp_path):
-    from importer.cleanup import ConfirmationMismatch, apply_cleanup_plan, write_cleanup_plan
+    from jobs.importer.cleanup import ConfirmationMismatch, apply_cleanup_plan, write_cleanup_plan
 
     path = tmp_path / "quality.json"
     digest = write_cleanup_plan(report_payload(), path)
@@ -108,7 +108,7 @@ def test_cleanup_refuses_changed_database_target_fingerprint_before_any_write(tm
 
 @pytest.mark.parametrize("changed_field", ["image_source_url", "eps"])
 def test_cleanup_refuses_fingerprint_after_subject_decision_field_changes(tmp_path, changed_field):
-    from importer.cleanup import ConfirmationMismatch, apply_cleanup_plan, write_cleanup_plan
+    from jobs.importer.cleanup import ConfirmationMismatch, apply_cleanup_plan, write_cleanup_plan
 
     path = tmp_path / "quality.json"
     digest = write_cleanup_plan(report_payload(), path)
@@ -123,7 +123,7 @@ def test_cleanup_refuses_fingerprint_after_subject_decision_field_changes(tmp_pa
 
 
 def test_cleanup_only_deletes_reported_targets_in_independent_transactions(tmp_path):
-    from importer.cleanup import apply_cleanup_plan, write_cleanup_plan
+    from jobs.importer.cleanup import apply_cleanup_plan, write_cleanup_plan
 
     path = tmp_path / "quality.json"
     digest = write_cleanup_plan(report_payload(), path)
@@ -138,7 +138,7 @@ def test_cleanup_only_deletes_reported_targets_in_independent_transactions(tmp_p
 
 
 def test_cleanup_closes_the_read_transaction_before_starting_target_transactions(tmp_path):
-    from importer.cleanup import apply_cleanup_plan, write_cleanup_plan
+    from jobs.importer.cleanup import apply_cleanup_plan, write_cleanup_plan
 
     class StrictDatabase(FakeDatabase):
         def __init__(self):
@@ -167,7 +167,7 @@ def test_cleanup_closes_the_read_transaction_before_starting_target_transactions
 
 
 def test_cleanup_rejects_an_unrecognized_report_action_before_any_write(tmp_path):
-    from importer.cleanup import ConfirmationMismatch, apply_cleanup_plan, write_cleanup_plan
+    from jobs.importer.cleanup import ConfirmationMismatch, apply_cleanup_plan, write_cleanup_plan
 
     payload = report_payload()
     payload["items"][0]["action"] = "ERASE_EVERYTHING"
@@ -185,7 +185,7 @@ def test_cleanup_rejects_an_unrecognized_report_action_before_any_write(tmp_path
 
 
 def test_cleanup_rejects_an_invalid_second_item_before_the_first_write(tmp_path):
-    from importer.cleanup import ConfirmationMismatch, apply_cleanup_plan
+    from jobs.importer.cleanup import ConfirmationMismatch, apply_cleanup_plan
 
     payload = report_payload()
     payload["items"].append({"category": "SOURCE_MISSING", "action": "DELETE", "target": 8, "details": {}})
@@ -204,7 +204,7 @@ def test_cleanup_rejects_an_invalid_second_item_before_the_first_write(tmp_path)
 
 
 def test_cleanup_repairs_cover_and_episode_status_or_marks_reimport_pending(tmp_path):
-    from importer.cleanup import apply_cleanup_plan, write_cleanup_plan
+    from jobs.importer.cleanup import apply_cleanup_plan, write_cleanup_plan
 
     payload = report_payload()
     payload["counts"].update({"MISSING_COVER_OBJECT": 1, "EPISODE_STATUS_DRIFT": 1, "NO_EPISODES": 1})
@@ -230,7 +230,7 @@ def test_cleanup_repairs_cover_and_episode_status_or_marks_reimport_pending(tmp_
 
 @pytest.mark.parametrize("action", ["KEEP_SOURCE_FALLBACK", "REIMPORT"])
 def test_cleanup_rejects_boolean_missing_cover_subject_id_before_any_write(tmp_path, action):
-    from importer.cleanup import ConfirmationMismatch, apply_cleanup_plan
+    from jobs.importer.cleanup import ConfirmationMismatch, apply_cleanup_plan
 
     payload = report_payload()
     payload["counts"]["MISSING_COVER_OBJECT"] = 1
@@ -250,7 +250,7 @@ def test_cleanup_rejects_boolean_missing_cover_subject_id_before_any_write(tmp_p
 
 
 def test_cleanup_reports_manual_review_items_without_counting_them_as_applied(tmp_path):
-    from importer.cleanup import apply_cleanup_plan, write_cleanup_plan
+    from jobs.importer.cleanup import apply_cleanup_plan, write_cleanup_plan
 
     payload = report_payload()
     payload["counts"]["NOISY_TAG"] = 1
@@ -266,7 +266,7 @@ def test_cleanup_reports_manual_review_items_without_counting_them_as_applied(tm
 
 @pytest.mark.parametrize("payload", [[], {"generatedAt": "missing fields"}])
 def test_cleanup_rejects_malformed_signed_reports_before_any_write(tmp_path, payload):
-    from importer.cleanup import ConfirmationMismatch, apply_cleanup_plan
+    from jobs.importer.cleanup import ConfirmationMismatch, apply_cleanup_plan
 
     path = tmp_path / "quality.json"
     content = json.dumps(payload).encode("utf-8")
@@ -283,7 +283,7 @@ def test_cleanup_rejects_malformed_signed_reports_before_any_write(tmp_path, pay
 
 
 def test_cleanup_rejects_signed_report_with_non_mapping_counts_before_any_write(tmp_path):
-    from importer.cleanup import ConfirmationMismatch, apply_cleanup_plan
+    from jobs.importer.cleanup import ConfirmationMismatch, apply_cleanup_plan
 
     payload = report_payload()
     payload["counts"] = 1
@@ -302,7 +302,7 @@ def test_cleanup_rejects_signed_report_with_non_mapping_counts_before_any_write(
 
 
 def test_cleanup_cli_returns_2_for_a_signed_json_array(tmp_path):
-    from importer.cleanup import main
+    from jobs.importer.cleanup import main
 
     path = tmp_path / "quality.json"
     content = b"[]"

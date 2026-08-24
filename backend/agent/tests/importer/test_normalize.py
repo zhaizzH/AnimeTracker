@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pytest
 
-from importer.normalize import Alias, Credit, Tag, normalize_subject
+from jobs.importer.normalize import Alias, Credit, Tag, normalize_subject
 
 
 @pytest.mark.parametrize(

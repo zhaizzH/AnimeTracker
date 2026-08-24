@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from indexer.report import build_capacity_report
+from jobs.indexer.report import build_capacity_report
 
 
 def test_report_blocks_when_projection_exceeds_sixty_percent():

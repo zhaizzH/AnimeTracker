@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from importer.repository import ImportCheckpoint
+from jobs.importer.repository import ImportCheckpoint
 
 
 class CatalogClient:
@@ -14,7 +14,7 @@ class CatalogClient:
 
 
 def test_full_scan_uses_catalog_iterator_without_year_and_deduplicates(monkeypatch):
-    from importer import main
+    from jobs.importer import main
 
     client = CatalogClient([3, 1, 3, 2])
     batches = []
@@ -27,7 +27,7 @@ def test_full_scan_uses_catalog_iterator_without_year_and_deduplicates(monkeypat
 
 
 def test_full_scan_preserves_checkpoint_for_catalog_snapshot(monkeypatch):
-    from importer import main
+    from jobs.importer import main
 
     client = CatalogClient([10, 20, 30])
     checkpoint = ImportCheckpoint("full", 1, 10, main._ids_sha256([10, 20, 30]))
@@ -41,7 +41,7 @@ def test_full_scan_preserves_checkpoint_for_catalog_snapshot(monkeypatch):
 
 
 def test_full_scan_runs_recent_catchup_without_reusing_full_checkpoint(monkeypatch):
-    from importer import main
+    from jobs.importer import main
 
     calls = []
     monkeypatch.setattr(main, "_run_batch", lambda ids, *_args, **_kwargs: len(list(ids)))
@@ -54,7 +54,7 @@ def test_full_scan_runs_recent_catchup_without_reusing_full_checkpoint(monkeypat
 
 
 def test_import_single_subject_uses_all_episode_pages_and_safe_relations(monkeypatch):
-    from importer import main
+    from jobs.importer import main
 
     recorded = {}
 
@@ -105,7 +105,7 @@ def test_import_single_subject_uses_all_episode_pages_and_safe_relations(monkeyp
 
 
 def test_dry_run_full_does_not_open_database_or_write_records(monkeypatch, caplog):
-    from importer import main
+    from jobs.importer import main
 
     monkeypatch.setattr(main, "BangumiClient", lambda **_kwargs: CatalogClient([1, 2, 3]))
     monkeypatch.setattr(main, "get_engine", lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("dry-run must not open database")))
