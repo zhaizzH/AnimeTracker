@@ -16,3 +16,4 @@ class ModelConfig(BaseModel):
     temperature: float | None = None
     maxTokens: int | None = None
     thinkingBudget: int | None = None
+    reasoningEffort: str | None = None

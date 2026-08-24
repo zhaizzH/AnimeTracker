@@ -1,4 +1,4 @@
-from app.llm.models import create_llm
+from app.adapters.llm.agent_factory import create_llm
 
 def test_deepseek_llm_sets_reasoning_effort_and_thinking():
     llm = create_llm(

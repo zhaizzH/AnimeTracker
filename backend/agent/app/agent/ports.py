@@ -1,4 +1,13 @@
+from enum import Enum
 from typing import Protocol, runtime_checkable
+
+
+class AgentChatModelSlot(str, Enum):
+    CLIENT_ROUTE = "client_route"
+    CLIENT_SEARCH = "client_search"
+    CLIENT_DISCOVER = "client_discover"
+    CLIENT_RECOMMEND = "client_recommend"
+    ADMIN_NODE = "admin_node"
 
 
 @runtime_checkable
@@ -26,3 +35,10 @@ class BusinessGateway(Protocol):
         token: str | None,
         size: int = 15,
     ) -> dict | list: ...
+
+
+@runtime_checkable
+class AgentLlmFactoryPort(Protocol):
+    @property
+    def provider(self) -> str: ...
+    def create(self, slot: AgentChatModelSlot, *, temperature: float | None = None): ...

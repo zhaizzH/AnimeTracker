@@ -3,8 +3,7 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# backend/agent/app/utils/prompt_utils.py -> parents[2] = backend/agent
-_RESOURCES_DIR = Path(__file__).resolve().parents[2] / "resources"
+_RESOURCES_DIR = Path(__file__).resolve().parents[3] / "resources"
 _PROMPT_DIR = _RESOURCES_DIR / "prompt"
 _PROMPT_CACHE: dict[str, str] = {}
 

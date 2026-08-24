@@ -3,13 +3,13 @@ import json
 from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, SystemMessage
 
+from app.admin.ports import PromptRepository
+from app.agent.ports import AgentChatModelSlot, AgentLlmFactoryPort
 from app.agent.state import AgentState
-from app.config import AgentChatModelSlot, create_agent_chat_llm, resolve_llm_provider, settings
 from app.agent.runtime import agent_stream
 from app.chat.event_sink import emit_answer_delta, emit_thinking_delta
 from app.core.middleware import build_tool_status_middleware
 from app.shared.observability import llm_model_name
-from app.core.prompt_sync import load_managed_prompt
 from app.chat.pending_action import PendingAction
 
 
@@ -35,13 +35,22 @@ def _build_pending_context(pending: PendingAction) -> str:
     )
 
 
-def run_domain_agent(state, *, slot: AgentChatModelSlot, tools: list, prompt_key: str, prompt_path: str,
-                     include_pending_action: bool = False) -> dict:
-    prompt = load_managed_prompt(prompt_key, prompt_path)
+def run_domain_agent(
+        state,
+        *,
+        slot: AgentChatModelSlot,
+        tools: list,
+        prompt_key: str,
+        prompt_path: str,
+        llm_factory: AgentLlmFactoryPort,
+        prompt_repository: PromptRepository,
+        include_pending_action: bool = False,
+) -> dict:
+    prompt = prompt_repository.get(prompt_key, prompt_path)
     pending = state.get("pending_action") if include_pending_action else None
     if pending is not None:
         prompt += _build_pending_context(pending)
-    llm = create_agent_chat_llm(slot=slot)
+    llm = llm_factory.create(slot=slot)
     model_name = llm_model_name(llm)
     agent = create_agent(
         model=llm,
@@ -57,7 +66,7 @@ def run_domain_agent(state, *, slot: AgentChatModelSlot, tools: list, prompt_key
         on_model_delta=emit_answer_delta,
         on_thinking_delta=emit_thinking_delta,
         slot=slot.value,
-        provider=resolve_llm_provider(settings).provider,
+        provider=llm_factory.provider,
         model=model_name,
     )
     text = stream["streamed_text"]

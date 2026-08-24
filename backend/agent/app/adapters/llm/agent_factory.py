@@ -6,6 +6,10 @@ from langchain_community.chat_models.tongyi import ChatTongyi
 from langchain_core.messages import AIMessageChunk
 from langchain_deepseek import ChatDeepSeek
 
+from app.agent.ports import AgentChatModelSlot
+from app.admin.ports import ModelConfigRepository
+from app.config import ResolvedLlmProviderConfig, Settings, resolve_llm_provider
+
 logger = logging.getLogger(__name__)
 
 
@@ -61,12 +65,20 @@ def _patch_chat_openai_reasoning():
 _patch_chat_openai_reasoning()
 
 
+_SLOT_DEFAULTS: dict[AgentChatModelSlot, dict[str, float]] = {
+    AgentChatModelSlot.CLIENT_ROUTE: {"temperature": 0.0},
+    AgentChatModelSlot.CLIENT_SEARCH: {},
+    AgentChatModelSlot.CLIENT_DISCOVER: {},
+    AgentChatModelSlot.CLIENT_RECOMMEND: {},
+    AgentChatModelSlot.ADMIN_NODE: {},
+}
+
+
 def create_llm(*, provider: Literal["deepseek", "dashscope"], model: str, temperature: float,
                api_key: str, max_tokens: int, base_url: str | None = None,
                thinking_budget: int = 2048, reasoning_effort: str = "high"):
     """按已解析的 provider 创建对应供应商客户端。DeepSeek 显式开启思考；百炼 qwen3 显式开启 enable_thinking。"""
     if provider == "deepseek":
-        # base_url=None 时不传,让 BaseChatOpenAI 用默认地址(显式传 None 会触发校验失败)
         deepseek_kwargs: dict = {
             "model": model,
             "max_tokens": max_tokens,
@@ -80,9 +92,7 @@ def create_llm(*, provider: Literal["deepseek", "dashscope"], model: str, temper
         return ChatDeepSeek(**deepseek_kwargs)
     model_kwargs: dict = {"temperature": temperature, "max_tokens": max_tokens}
     if model.startswith("qwen3"):
-        # qwen3 系列默认不输出思考,需显式开启;qwen-plus 等不支持该参数
         model_kwargs["enable_thinking"] = True
-        # 限制思考长度,否则会一直想到 max_tokens,响应明显变慢
         if thinking_budget:
             model_kwargs["thinking_budget"] = thinking_budget
     return ChatTongyi(
@@ -91,3 +101,44 @@ def create_llm(*, provider: Literal["deepseek", "dashscope"], model: str, temper
         streaming=True,
         model_kwargs=model_kwargs,
     )
+
+
+class AgentLlmFactory:
+    def __init__(self, settings: Settings, model_configs: ModelConfigRepository):
+        self._settings = settings
+        self._model_configs = model_configs
+
+    @property
+    def provider(self) -> str:
+        return resolve_llm_provider(self._settings).provider
+
+    def create(
+        self,
+        slot: AgentChatModelSlot,
+        *,
+        temperature: float | None = None,
+        provider_config: ResolvedLlmProviderConfig | None = None,
+    ):
+        cfg = _SLOT_DEFAULTS[slot]
+        runtime = self._model_configs.get() or {}
+        resolved = provider_config or resolve_llm_provider(self._settings)
+        if slot is AgentChatModelSlot.CLIENT_ROUTE:
+            model = runtime.get("modelRoute") or resolved.route_model
+        else:
+            model = runtime.get("model") or resolved.model
+        resolved_temp = temperature if temperature is not None else runtime.get(
+            "temperature", cfg.get("temperature", self._settings.llm_temperature)
+        )
+        max_tokens = runtime.get("maxTokens") or self._settings.llm_max_tokens
+        budget = runtime.get("thinkingBudget", self._settings.llm_thinking_budget)
+        reason_effort = runtime.get("reasoningEffort", resolved.reasoning_effort)
+        return create_llm(
+            provider=resolved.provider,
+            model=model,
+            temperature=resolved_temp,
+            api_key=resolved.api_key.get_secret_value(),
+            base_url=resolved.base_url,
+            max_tokens=max_tokens,
+            thinking_budget=budget,
+            reasoning_effort=reason_effort,
+        )

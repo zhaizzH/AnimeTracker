@@ -4,12 +4,12 @@ from typing import Any
 from langchain.agents import create_agent
 from langchain_core.messages import SystemMessage
 
+from app.agent.dependencies import AgentDependencies
+from app.agent.ports import AgentChatModelSlot
 from app.agent.state import AgentState
 from app.agent.time_tool import _build_current_time_info
-from app.config import AgentChatModelSlot, create_agent_chat_llm, resolve_llm_provider, settings
 from app.agent.runtime import agent_invoke, extract_text
 from app.shared.observability import llm_model_name
-from app.core.prompt_sync import load_managed_prompt
 
 _ALLOWED_TARGETS = ("search_agent", "discover_agent", "recommend_agent")
 
@@ -43,8 +43,8 @@ def _resolve_forced_pending_route(state: AgentState) -> dict[str, str] | None:
     return {"routing": {"route_target": "recommend_agent"}}
 
 # 提示词含 JSON 示例花括号,不能走 str.format();仅替换占位符
-def _build_gateway_prompt(state: AgentState) -> str:
-    template = load_managed_prompt("client_gateway_prompt", "client/gateway_prompt.md")
+def _build_gateway_prompt(state: AgentState, dependencies: AgentDependencies) -> str:
+    template = dependencies.prompt_repository.get("client_gateway_prompt", "client/gateway_prompt.md")
     history = list(state.get("history_messages") or [])
     history_text = "\n".join(
         f"{'用户' if str(getattr(m, 'type', '')).lower() == 'human' else '助手'}: {getattr(m, 'content', '')}"
@@ -78,21 +78,24 @@ def _resolve_routing_result(raw_payload: Any) -> dict[str, str]:
     return {"route_target": target}
 
 
-def gateway_router(state: AgentState) -> dict[str, Any]:
-    forced = _resolve_forced_pending_route(state)
-    if forced is not None:
-        return forced
-    llm = create_agent_chat_llm(slot=AgentChatModelSlot.CLIENT_ROUTE)
-    model_name = llm_model_name(llm)
-    agent = create_agent(
-        model=llm,
-        system_prompt=SystemMessage(content=_build_gateway_prompt(state)),
-    )
-    result = agent_invoke(
-        agent,
-        list(state.get("history_messages") or []),
-        slot=AgentChatModelSlot.CLIENT_ROUTE.value,
-        provider=resolve_llm_provider(settings).provider,
-        model=model_name,
-    )
-    return {"routing": _resolve_routing_result(result.payload)}
+def build_gateway_router(dependencies: AgentDependencies):
+    def gateway_router(state: AgentState) -> dict[str, Any]:
+        forced = _resolve_forced_pending_route(state)
+        if forced is not None:
+            return forced
+        llm = dependencies.llm_factory.create(slot=AgentChatModelSlot.CLIENT_ROUTE)
+        model_name = llm_model_name(llm)
+        agent = create_agent(
+            model=llm,
+            system_prompt=SystemMessage(content=_build_gateway_prompt(state, dependencies)),
+        )
+        result = agent_invoke(
+            agent,
+            list(state.get("history_messages") or []),
+            slot=AgentChatModelSlot.CLIENT_ROUTE.value,
+            provider=dependencies.llm_factory.provider,
+            model=model_name,
+        )
+        return {"routing": _resolve_routing_result(result.payload)}
+
+    return gateway_router

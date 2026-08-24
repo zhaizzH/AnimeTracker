@@ -15,8 +15,36 @@ class FakeRetrieval:
     pass
 
 
+class FakeLlmFactory:
+    @property
+    def provider(self):
+        return "deepseek"
+
+    def create(self, *_args, **_kwargs):
+        raise AssertionError("domain tool registration tests must not create LLMs")
+
+
+class FakePromptRepository:
+    def list_keys(self):
+        return ()
+
+    def get(self, *_args, **_kwargs):
+        return ""
+
+    def set(self, *_args, **_kwargs):
+        pass
+
+    def reset(self, *_args, **_kwargs):
+        return ""
+
+
 def _dependencies():
-    return AgentDependencies(business=FakeBusiness(), retrieval=FakeRetrieval())
+    return AgentDependencies(
+        business=FakeBusiness(),
+        retrieval=FakeRetrieval(),
+        llm_factory=FakeLlmFactory(),
+        prompt_repository=FakePromptRepository(),
+    )
 
 
 def _registered_names(monkeypatch, module, factory):

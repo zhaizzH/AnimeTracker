@@ -14,9 +14,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import chat as chat_api
 from app.api import admin_config as admin_config_api
 from app.api import import_api as import_api_api
+from app.admin.config_service import AdminConfigService
 from app.adapters.business_http import HttpBusinessGateway
+from app.adapters.llm.agent_factory import AgentLlmFactory
 from app.adapters.llm.embeddings import DashScopeEmbeddingClient
 from app.adapters.redis import RedisChatStore
+from app.adapters.redis.model_config_repository import RedisModelConfigRepository
+from app.adapters.redis.prompt_repository import RedisPromptRepository
 from app.adapters.redis.subject_index import RedisSubjectIndex
 from app.adapters.redis.user_preference import RedisUserPreferenceProvider
 from app.api.admin_config import require_admin
@@ -28,7 +32,6 @@ from app.rag.retrieval import RagRetrievalService
 from app.rag.schemas import RetrievalQuery
 from app.rag.use_case import RetrieveSubjectsUseCase
 from app.shared.observability import configure_logging, trace_context_middleware
-from app.core.prompt_sync import initialize_agent_prompt_snapshot
 from app.chat.service import ChatService
 
 configure_logging()
@@ -90,7 +93,7 @@ def _business_fallbacks(business):
     return {"search": search, "discover": discover, "recommend": recommend}
 
 
-def _build_agent_dependencies() -> AgentDependencies:
+def _build_agent_dependencies(model_configs, prompts) -> AgentDependencies:
     business = HttpBusinessGateway(settings.backend_base_url)
     fallbacks = _business_fallbacks(business)
     if settings.rag_enabled:
@@ -119,6 +122,8 @@ def _build_agent_dependencies() -> AgentDependencies:
             preference_provider=preference_provider,
             business_searches=fallbacks,
         ),
+        llm_factory=AgentLlmFactory(settings, model_configs),
+        prompt_repository=prompts,
     )
 
 
@@ -152,10 +157,13 @@ async def lifespan(app: FastAPI):
     app.state.store = store
 
     logger.info("初始化托管提示词快照...")
-    initialize_agent_prompt_snapshot()
+    model_configs = RedisModelConfigRepository(settings.redis_url)
+    prompts = RedisPromptRepository(settings.redis_url)
+    prompts.initialize_snapshot()
+    app.state.admin_config_service = AdminConfigService(model_configs, prompts)
 
     logger.info("构建 client agent 图...")
-    graph = build_graph(_build_agent_dependencies())
+    graph = build_graph(_build_agent_dependencies(model_configs, prompts))
 
     logger.info("创建聊天服务...")
     app.state.chat_service = ChatService(store=store, graph=graph, settings=settings)

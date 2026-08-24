@@ -1,12 +1,8 @@
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-from app.core.runtime_config import get_runtime_model_config
-from app.llm.models import create_llm
 
 
 class Settings(BaseSettings):
@@ -141,51 +137,3 @@ def resolve_llm_provider(s: Settings) -> ResolvedLlmProviderConfig:
     logging.getLogger("app.config").warning(
         "LLM_PROVIDER 未配置，回退按 API Key 选择供应商；建议在 .env 显式设置 LLM_PROVIDER=deepseek|dashscope")
     return _resolve_by_key(s)
-
-
-class AgentChatModelSlot(str, Enum):
-    CLIENT_ROUTE = "client_route"
-    CLIENT_SEARCH = "client_search"
-    CLIENT_DISCOVER = "client_discover"
-    CLIENT_RECOMMEND = "client_recommend"
-    ADMIN_NODE = "admin_node"
-
-
-# None 表示继承 settings.llm_temperature
-# model 覆盖:gateway 只做路由分类,无需思考模型,用快速模型显著降低首段等待
-_SLOT_DEFAULTS: dict[AgentChatModelSlot, dict[str, Any]] = {
-    AgentChatModelSlot.CLIENT_ROUTE: {"temperature": 0.0},
-    AgentChatModelSlot.CLIENT_SEARCH: {},
-    AgentChatModelSlot.CLIENT_DISCOVER: {},
-    AgentChatModelSlot.CLIENT_RECOMMEND: {},
-    AgentChatModelSlot.ADMIN_NODE: {},
-}
-
-
-def create_agent_chat_llm(
-        slot: AgentChatModelSlot,
-        *,
-        temperature: float | None = None,
-        provider_config: ResolvedLlmProviderConfig | None = None,
-):
-    cfg = _SLOT_DEFAULTS[slot]
-    rc = get_runtime_model_config() or {}
-    resolved = provider_config or resolve_llm_provider(settings)
-    if slot is AgentChatModelSlot.CLIENT_ROUTE:
-        model = rc.get("modelRoute") or cfg.get("model") or resolved.route_model
-    else:
-        model = rc.get("model") or cfg.get("model") or resolved.model
-    resolved_temp = temperature if temperature is not None else rc.get("temperature", cfg.get("temperature", settings.llm_temperature))
-    max_tokens = rc.get("maxTokens") or settings.llm_max_tokens
-    budget = rc.get("thinkingBudget", settings.llm_thinking_budget)
-    reason_effort = rc.get("reasoningEffort", resolved.reasoning_effort)
-    return create_llm(
-        provider=resolved.provider,
-        model=model,
-        temperature=resolved_temp,
-        api_key=resolved.api_key.get_secret_value(),
-        base_url=resolved.base_url,
-        max_tokens=max_tokens,
-        thinking_budget=budget,
-        reasoning_effort=reason_effort,
-    )
