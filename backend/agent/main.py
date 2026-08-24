@@ -1,10 +1,8 @@
 import logging
 from contextlib import asynccontextmanager
 
-from dotenv import load_dotenv
 from fastapi import FastAPI
 
-load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import chat as chat_api
@@ -15,9 +13,9 @@ from app.api.admin_config import require_admin
 from app.api.deps import verify_token
 from app.agent.graph import build_graph
 from app.config import resolve_llm_provider, settings
-from app.core.observability import configure_logging, trace_context_middleware
+from app.shared.observability import configure_logging, trace_context_middleware
 from app.core.prompt_sync import initialize_agent_prompt_snapshot
-from app.service.chat import ChatService
+from app.chat.service import ChatService
 
 configure_logging()
 logger = logging.getLogger(__name__)

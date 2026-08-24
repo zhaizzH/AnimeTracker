@@ -17,7 +17,7 @@ from app.rag.redis_index import RedisSubjectIndex
 from app.rag.retrieval import RagRetrievalService, RetrievalCandidate
 from app.rag.schemas import RetrievalQuery
 from app.rag.user_profile import CollectionItem, UserPreference, UserProfileService
-from app.schemas.auth import UserInfo
+from app.chat.user import UserInfo
 
 
 _MAX_CANDIDATES = 15

@@ -5,7 +5,7 @@ from langgraph.prebuilt import InjectedState
 
 from app.agent.http import call_api
 from app.core.middleware import tool_call_status
-from app.schemas.auth import UserInfo
+from app.chat.user import UserInfo
 
 
 def _require_user(user: UserInfo | None) -> dict | None:

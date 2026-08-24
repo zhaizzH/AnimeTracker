@@ -1,7 +1,7 @@
 import pytest
 
 from app.agent.graph import _route_from_entry, _route_from_gateway
-from app.schemas.auth import UserInfo
+from app.chat.user import UserInfo
 
 
 def test_entry_routes_admin_and_user_without_model_call():

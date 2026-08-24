@@ -1,7 +1,7 @@
 from typing import Protocol, runtime_checkable
 
 from app.chat.models import Message, Session
-from app.schemas.pending_action import PendingAction
+from app.chat.pending_action import PendingAction
 
 
 @runtime_checkable

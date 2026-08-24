@@ -8,8 +8,8 @@ from pydantic import ValidationError
 
 from app.chat.models import Message, Session
 from app.chat.ports import ChatStore
-from app.schemas.pending_action import PendingAction, parse_pending_action_json
-from app.core.observability import hash_value
+from app.chat.pending_action import PendingAction, parse_pending_action_json
+from app.shared.observability import hash_value
 
 logger = logging.getLogger(__name__)
 

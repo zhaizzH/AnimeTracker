@@ -5,16 +5,17 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.chat.ports import ChatStore
 from app.config import settings, resolve_llm_provider
-from app.schemas.auth import UserInfo
-from app.schemas.chat import ChatRequest
-from app.schemas.session import (
+from app.api.sse import create_sse_response
+from app.chat.user import UserInfo
+from app.api.schemas.chat import ChatRequest
+from app.api.schemas.session import (
     DeleteResponse,
     MessageOut,
     SessionCreateRequest,
     SessionCreateResponse,
     SessionInfo,
 )
-from app.service.chat import ChatService
+from app.chat.service import ChatService
 
 
 def get_store(request: Request) -> ChatStore:
@@ -38,13 +39,13 @@ def create_chat_router(*, prefix: str, auth_dep, include_health: bool = False) -
         sessions = await store.get_user_sessions(user.user_id)
         if not any(s.session_id == req.session_id for s in sessions):
             raise HTTPException(status_code=404, detail="会话不存在或无权限")
-        return await svc.stream_chat(
+        return create_sse_response(svc.stream_chat(
             session_id=req.session_id,
             content=req.content,
             user_id=user.user_id,
             role=user.role,
             token=user.token,
-        )
+        ))
 
     @router.get("/sessions")
     async def list_sessions(

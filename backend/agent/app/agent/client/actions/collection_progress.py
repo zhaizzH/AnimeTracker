@@ -5,13 +5,13 @@ from langgraph.prebuilt import InjectedState
 
 from app.agent.http import call_api
 from app.core.middleware import tool_call_status
-from app.core.pending_action import (
+from app.chat.pending_events import (
     emit_pending_action_clear,
     emit_pending_action_replace,
     emit_pending_action_set,
 )
-from app.schemas.auth import UserInfo
-from app.schemas.pending_action import CollectionProgressPendingAction
+from app.chat.user import UserInfo
+from app.chat.pending_action import CollectionProgressPendingAction
 
 
 def _require_user(user: UserInfo | None) -> dict | None:

@@ -27,7 +27,7 @@ from dotenv import load_dotenv
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.core.observability import log_event
+from app.shared.observability import log_event
 
 try:
     from .client import BangumiClient

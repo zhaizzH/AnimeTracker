@@ -17,6 +17,9 @@ class AgentEvent:
     text: str | None = None
     state: str | None = None
     message: str | None = None
+    result: str | None = None
     name: str | None = None
     node: str | None = None
+    parent_node: str | None = None
+    arguments: str | None = None
     meta: dict[str, Any] = field(default_factory=dict)

@@ -1,6 +1,6 @@
 import json
 
-from app.schemas.sse_response import AssistantResponse, Content, MessageType, serialize_sse
+from app.api.schemas.sse import AssistantResponse, Content, MessageType, serialize_sse
 
 
 def test_answer_sse_wire_contract_is_stable():

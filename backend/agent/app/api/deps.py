@@ -4,7 +4,7 @@ import jwt
 from fastapi import Header, HTTPException
 
 from app.config import settings
-from app.schemas.auth import UserInfo
+from app.chat.user import UserInfo
 
 logger = logging.getLogger(__name__)
 

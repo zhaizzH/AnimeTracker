@@ -3,6 +3,12 @@ from pydantic import ValidationError
 from app.config import resolve_llm_provider, Settings
 
 
+@pytest.fixture(autouse=True)
+def clean_llm_env(monkeypatch):
+    for name in ("LLM_PROVIDER", "DEEPSEEK_API_KEY", "DASHSCOPE_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+
+
 def test_default_provider_empty():
     s = Settings(_env_file=None)
     assert s.llm_provider == ""

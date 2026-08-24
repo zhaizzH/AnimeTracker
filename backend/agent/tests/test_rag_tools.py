@@ -1,7 +1,7 @@
 from app.agent.client import rag_tools
 from app.rag import retrieval
 from app.rag.retrieval import RetrievalCandidate, RetrievalResult
-from app.schemas.auth import UserInfo
+from app.chat.user import UserInfo
 
 
 class FakeRetrieval:

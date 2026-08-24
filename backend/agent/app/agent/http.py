@@ -1,7 +1,7 @@
 import httpx
 
 from app.config import settings
-from app.core.observability import get_trace_id
+from app.shared.observability import get_trace_id
 
 BASE = settings.backend_base_url
 

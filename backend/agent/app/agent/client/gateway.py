@@ -7,8 +7,8 @@ from langchain_core.messages import SystemMessage
 from app.agent.state import AgentState
 from app.agent.time_tool import _build_current_time_info
 from app.config import AgentChatModelSlot, create_agent_chat_llm, resolve_llm_provider, settings
-from app.core.agent_runtime import agent_invoke, extract_text
-from app.core.observability import llm_model_name
+from app.agent.runtime import agent_invoke, extract_text
+from app.shared.observability import llm_model_name
 from app.core.prompt_sync import load_managed_prompt
 
 _ALLOWED_TARGETS = ("search_agent", "discover_agent", "recommend_agent")

@@ -3,11 +3,11 @@ from __future__ import annotations
 import json
 import logging
 
-from app.core.observability import log_event
+from app.shared.observability import log_event
 
 
 def test_rag_event_drops_sensitive_payloads(caplog):
-    with caplog.at_level(logging.INFO, logger="app.core.observability"):
+    with caplog.at_level(logging.INFO, logger="app.shared.observability"):
         log_event(
             "rag.retrieval.completed",
             candidateCount=12,
@@ -31,7 +31,7 @@ def test_rag_event_drops_sensitive_payloads(caplog):
 
 
 def test_unknown_rag_event_is_not_emitted(caplog):
-    with caplog.at_level(logging.INFO, logger="app.core.observability"):
+    with caplog.at_level(logging.INFO, logger="app.shared.observability"):
         log_event("rag.query.debug", candidateCount=12)
 
     assert not caplog.records

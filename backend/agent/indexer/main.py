@@ -13,7 +13,7 @@ import redis
 from redis.exceptions import ConnectionError as RedisConnectionError, TimeoutError as RedisTimeoutError
 from sqlalchemy.orm import Session
 
-from app.core.observability import log_event
+from app.shared.observability import log_event
 
 from app.rag.embeddings import DashScopeEmbeddingClient, EmbeddingRateLimited, EmbeddingUnavailable
 from app.rag.profile import build_subject_profile

@@ -11,7 +11,7 @@ from app.rag.user_profile import (
     build_preference,
     collection_version,
 )
-from app.schemas.auth import UserInfo
+from app.chat.user import UserInfo
 
 
 class FakeRedis:

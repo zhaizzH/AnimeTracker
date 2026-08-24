@@ -1,27 +1,35 @@
 import json
 import logging
+from collections.abc import AsyncIterator
 
-from fastapi.responses import StreamingResponse
 from langchain_core.messages import AIMessage, HumanMessage
 
+from app.chat.events import AgentEvent
 from app.chat.ports import ChatStore
-from app.core.observability import get_trace_id, set_trace_context
-from app.core.pending_action import PendingActionEvent
-from app.core.streaming import StreamConfig, create_streaming_response
-from app.schemas.auth import UserInfo
+from app.shared.observability import get_trace_id, set_trace_context
+from app.chat.pending_events import PendingActionEvent
+from app.chat.streaming import StreamConfig, stream_agent_events
+from app.chat.user import UserInfo
 
 logger = logging.getLogger(__name__)
 
 
 class ChatService:
-    """编排 store + graph + 流式引擎,负责历史加载、落库回调、SSE 组装。"""
+    """编排 store + graph + 内部事件流,负责历史加载、落库回调和初始 state。"""
 
     def __init__(self, store: ChatStore, graph, settings):
         self.store = store
         self.graph = graph
         self.settings = settings
 
-    async def stream_chat(self, session_id: str, content: str, user_id: int, role: str, token: str = "") -> StreamingResponse:
+    async def stream_chat(
+        self,
+        session_id: str,
+        content: str,
+        user_id: int,
+        role: str,
+        token: str = "",
+    ) -> AsyncIterator[AgentEvent]:
         # 建立请求级上下文(不覆盖已有 traceId): session/user 只记录匿名哈希
         set_trace_context(get_trace_id(), session_id=session_id, user_id=str(user_id))
         await self.store.save_message(session_id, "user", content)
@@ -79,4 +87,5 @@ class ChatService:
             on_answer_completed=on_answer_completed,
             on_pending_action=on_pending_action,
         )
-        return create_streaming_response(config)
+        async for event in stream_agent_events(config):
+            yield event

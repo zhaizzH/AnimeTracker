@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 
 from sqlalchemy import text
 
-from app.core.observability import log_event
+from app.shared.observability import log_event
 
 
 Category = Literal[

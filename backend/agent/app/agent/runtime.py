@@ -7,7 +7,7 @@ from typing import Any, Callable
 
 from langchain_core.messages import HumanMessage
 
-from app.core.observability import classify_error, elapsed_ms, log_event
+from app.shared.observability import classify_error, elapsed_ms, log_event
 
 
 def _run_async(coro: Any) -> Any:

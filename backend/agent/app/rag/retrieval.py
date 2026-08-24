@@ -8,7 +8,7 @@ import re
 from typing import Any, Callable, Mapping, Sequence
 
 from app.agent.http import call_api
-from app.core.observability import log_event
+from app.shared.observability import log_event
 from app.rag.embeddings import EmbeddingClient
 from app.rag.schemas import RetrievalQuery
 from app.rag.user_profile import UserPreference
