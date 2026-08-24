@@ -3,8 +3,8 @@ from typing import Annotated
 from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 
-from app.agent.http import call_api
 from app.agent.middleware import tool_call_status
+from app.agent.ports import BusinessGateway
 from app.chat.user import UserInfo
 
 
@@ -16,56 +16,6 @@ def _require_user(user: UserInfo | None) -> dict | None:
 
 # 收藏类型映射（与后端 /api/client/collections 返回的 type 数字一致）
 _TYPE_LABELS = {0: "全部", 1: "想看", 2: "看过", 3: "在看", 4: "搁置", 5: "抛弃"}
-
-
-@tool
-@tool_call_status(display_name="查看我的追番列表")
-def get_my_collections(type: int = 0, page: int = 1, size: int = 20,
-                       user: Annotated[UserInfo | None, InjectedState("user")] = None) -> dict:
-    """查看当前用户的追番收藏列表。type: 0=全部 1=想看 2=看过 3=在看 4=搁置 5=抛弃；page: 页码；size: 每页数量"""
-    err = _require_user(user)
-    if err:
-        return err
-    params = {"page": page, "size": size}
-    if type:
-        params["type"] = type
-    return call_api("GET", "/api/client/collections", params=params, token=user.token)
-
-
-@tool
-@tool_call_status(display_name="查看我的单部追番")
-def get_my_collection(subject_id: int,
-                      user: Annotated[UserInfo | None, InjectedState("user")] = None) -> dict:
-    """查看当前用户对某部番的收藏状态与进度。subject_id: 番剧 ID"""
-    err = _require_user(user)
-    if err:
-        return err
-    return call_api("GET", f"/api/client/collections/{subject_id}", token=user.token)
-
-
-@tool
-@tool_call_status(display_name="查看我的收藏统计")
-def get_my_stats(user: Annotated[UserInfo | None, InjectedState("user")] = None) -> dict:
-    """查看当前用户各类收藏数量统计（1=想看 2=看过 3=在看 4=搁置 5=抛弃）"""
-    err = _require_user(user)
-    if err:
-        return err
-    return call_api("GET", "/api/client/collections/counts", token=user.token)
-
-
-@tool
-@tool_call_status(display_name="获取我的观看画像")
-def get_my_watch_profile(cap: int = 50,
-                         user: Annotated[UserInfo | None, InjectedState("user")] = None) -> list:
-    """获取当前用户观看历史压缩画像，供个性化推荐。cap: 最多取前 N 部"""
-    err = _require_user(user)
-    if err:
-        return err
-    data = call_api("GET", "/api/client/collections", params={"page": 1, "size": cap}, token=user.token)
-    if isinstance(data, dict) and data.get("error"):
-        return data
-    items = data.get("content") if isinstance(data, dict) else []
-    return [_compact(item) for item in items][:cap]
 
 
 def _compact(item: dict) -> dict:
@@ -81,4 +31,51 @@ def _compact(item: dict) -> dict:
     }
 
 
-collection_read_tools = [get_my_collections, get_my_collection, get_my_stats, get_my_watch_profile]
+def build_collection_read_tools(business: BusinessGateway):
+    @tool
+    @tool_call_status(display_name="查看我的追番列表")
+    def get_my_collections(type: int = 0, page: int = 1, size: int = 20,
+                           user: Annotated[UserInfo | None, InjectedState("user")] = None) -> dict:
+        """查看当前用户的追番收藏列表。type: 0=全部 1=想看 2=看过 3=在看 4=搁置 5=抛弃；page: 页码；size: 每页数量"""
+        err = _require_user(user)
+        if err:
+            return err
+        params = {"page": page, "size": size}
+        if type:
+            params["type"] = type
+        return business.request("GET", "/api/client/collections", params=params, token=user.token)
+
+    @tool
+    @tool_call_status(display_name="查看我的单部追番")
+    def get_my_collection(subject_id: int,
+                          user: Annotated[UserInfo | None, InjectedState("user")] = None) -> dict:
+        """查看当前用户对某部番的收藏状态与进度。subject_id: 番剧 ID"""
+        err = _require_user(user)
+        if err:
+            return err
+        return business.request("GET", f"/api/client/collections/{subject_id}", token=user.token)
+
+    @tool
+    @tool_call_status(display_name="查看我的收藏统计")
+    def get_my_stats(user: Annotated[UserInfo | None, InjectedState("user")] = None) -> dict:
+        """查看当前用户各类收藏数量统计（1=想看 2=看过 3=在看 4=搁置 5=抛弃）"""
+        err = _require_user(user)
+        if err:
+            return err
+        return business.request("GET", "/api/client/collections/counts", token=user.token)
+
+    @tool
+    @tool_call_status(display_name="获取我的观看画像")
+    def get_my_watch_profile(cap: int = 50,
+                             user: Annotated[UserInfo | None, InjectedState("user")] = None) -> list:
+        """获取当前用户观看历史压缩画像，供个性化推荐。cap: 最多取前 N 部"""
+        err = _require_user(user)
+        if err:
+            return err
+        data = business.request("GET", "/api/client/collections", params={"page": 1, "size": cap}, token=user.token)
+        if isinstance(data, dict) and data.get("error"):
+            return data
+        items = data.get("content") if isinstance(data, dict) else []
+        return [_compact(item) for item in items][:cap]
+
+    return [get_my_collections, get_my_collection, get_my_stats, get_my_watch_profile]
