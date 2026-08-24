@@ -194,13 +194,13 @@ class RedisSubjectIndex:
         """原子切换检索别名；绝不删除旧索引、文档或会话键。"""
         self._redis.execute_command("FT.ALIASUPDATE", self.active_alias, self.index_name(index_version))
 
-    def lexical_search(self, query: str, *, limit: int = 50) -> Any:
+    def lexical_search(self, query: str, limit: int = 50) -> Any:
         """在当前别名上运行受控的全文和结构化过滤查询。"""
         if limit < 1:
             raise ValueError("limit 必须大于 0")
         return self._search(query, limit=limit)
 
-    def semantic_search(self, query: str, vector: Sequence[float], *, limit: int = 50) -> Any:
+    def semantic_search(self, query: str, vector: Sequence[float], limit: int = 50) -> Any:
         """在当前别名上运行受控过滤与 KNN 查询。"""
         if limit < 1:
             raise ValueError("limit 必须大于 0")

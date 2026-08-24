@@ -161,6 +161,21 @@ def test_search_uses_active_alias_knn_and_returns_redis_result():
     assert "vector" in command[return_start + 2 : command.index("PARAMS")]
 
 
+def test_subject_index_adapter_accepts_protocol_positional_limit():
+    """Protocol callers pass limit positionally, so the adapter must accept that boundary contract."""
+    fake_redis = FakeRedis()
+    index = RedisSubjectIndex(fake_redis, key_prefix="test:rag:", index_prefix="idx:test:rag:")
+
+    assert index.lexical_search("@year:[2024 2024]", 3) == "OK"
+    assert index.semantic_search("@year:[2024 2024]", [0.0] * 1024, 2) == "OK"
+
+    lexical = fake_redis.commands[0]
+    semantic = fake_redis.commands[1]
+    assert ("LIMIT", "0") in adjacent_pairs(lexical)
+    assert lexical[lexical.index("LIMIT") + 2] == "3"
+    assert "KNN 2" in semantic[2]
+
+
 def test_custom_active_alias_is_used_and_alias_key_is_controlled():
     fake_redis = FakeRedis()
     index = RedisSubjectIndex(
