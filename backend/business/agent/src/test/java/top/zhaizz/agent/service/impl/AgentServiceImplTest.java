@@ -35,11 +35,11 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-class HttpAgentGatewayTest {
+class AgentServiceImplTest {
 
     private RestTemplate restTemplate;
     private MockRestServiceServer server;
-    private HttpAgentGateway gateway;
+    private AgentServiceImpl service;
 
     @BeforeEach
     void setUp() {
@@ -48,7 +48,7 @@ class HttpAgentGatewayTest {
 
         AgentProperties props = new AgentProperties();
         props.setBaseUrl("http://agent");
-        gateway = new HttpAgentGateway(restTemplate, props, new ObjectMapper());
+        service = new AgentServiceImpl(restTemplate, props, new ObjectMapper());
     }
 
     @AfterEach
@@ -63,7 +63,7 @@ class HttpAgentGatewayTest {
                 .andExpect(header("Authorization", "Bearer token"))
                 .andRespond(withSuccess("{\"ok\":true}", MediaType.APPLICATION_JSON));
 
-        Result<?> result = gateway.exchange("/api/client/agent/health", HttpMethod.GET, "Bearer token", null);
+        Result<?> result = service.exchange("/api/client/agent/health", HttpMethod.GET, "Bearer token", null);
 
         assertThat(result.getCode()).isEqualTo(200);
         assertThat(result.getData()).isEqualTo(Map.of("ok", true));
@@ -77,7 +77,7 @@ class HttpAgentGatewayTest {
                 .andExpect(content().json("{\"name\":\"s1\"}"))
                 .andRespond(withSuccess("[{\"id\":\"s1\"}]", MediaType.APPLICATION_JSON));
 
-        Result<?> result = gateway.exchange(
+        Result<?> result = service.exchange(
                 "/api/client/agent/sessions", HttpMethod.POST, "Bearer token", Map.of("name", "s1"));
 
         assertThat(result.getData()).isEqualTo(List.of(Map.of("id", "s1")));
@@ -90,7 +90,7 @@ class HttpAgentGatewayTest {
                 .andRespond(withStatus(HttpStatus.NOT_FOUND).body("private upstream body"));
 
         BizException error = assertThrows(BizException.class, () ->
-                gateway.exchange("/api/client/agent/sessions/missing", HttpMethod.GET, "Bearer token", null));
+                service.exchange("/api/client/agent/sessions/missing", HttpMethod.GET, "Bearer token", null));
 
         assertThat(error.getCode()).isEqualTo(ErrorType.NOT_FOUND.getCode());
         assertThat(error.getMessage()).doesNotContain("private upstream body");
@@ -105,7 +105,7 @@ class HttpAgentGatewayTest {
                 });
 
         BizException error = assertThrows(BizException.class, () ->
-                gateway.exchange("/api/client/agent/health", HttpMethod.GET, null, null));
+                service.exchange("/api/client/agent/health", HttpMethod.GET, null, null));
 
         assertThat(error.getCode()).isEqualTo(ErrorType.SERVICE_UNAVAILABLE.getCode());
     }
@@ -122,7 +122,7 @@ class HttpAgentGatewayTest {
     void streamForwardsTraceIdAndEachSseLine() {
         RestTemplate streamTemplate = new RestTemplate();
         MockRestServiceServer streamServer = MockRestServiceServer.bindTo(streamTemplate).build();
-        ReflectionTestUtils.setField(gateway, "streamRestTemplate", streamTemplate);
+        ReflectionTestUtils.setField(service, "streamRestTemplate", streamTemplate);
 
         MDC.put(TraceConstants.MDC_TRACE_ID, "trace-7");
         streamServer.expect(once(), requestTo("http://agent/api/client/agent/stream"))
@@ -133,7 +133,7 @@ class HttpAgentGatewayTest {
                 .andRespond(withSuccess("data: {\"type\":\"answer\"}\n\n", MediaType.TEXT_EVENT_STREAM));
 
         List<String> lines = new ArrayList<>();
-        gateway.stream("/api/client/agent/stream", HttpMethod.POST,
+        service.stream("/api/client/agent/stream", HttpMethod.POST,
                 "Bearer token", Map.of("sessionId", "s1", "content", "hi"), lines::add);
 
         assertThat(lines).containsExactly("data: {\"type\":\"answer\"}", "");
@@ -145,14 +145,14 @@ class HttpAgentGatewayTest {
         MockRestServiceServer failingServer = MockRestServiceServer.bindTo(failingRestTemplate).build();
         AgentProperties props = new AgentProperties();
         props.setBaseUrl("http://agent");
-        HttpAgentGateway failingGateway = new HttpAgentGateway(failingRestTemplate, props, new ObjectMapper());
+        AgentServiceImpl failingService = new AgentServiceImpl(failingRestTemplate, props, new ObjectMapper());
         failingServer.expect(once(), requestTo("http://agent/api/x"))
                 .andRespond(request -> {
                     throw exception;
                 });
 
         BizException error = assertThrows(BizException.class,
-                () -> failingGateway.exchange("/api/x", HttpMethod.GET, null, null));
+                () -> failingService.exchange("/api/x", HttpMethod.GET, null, null));
         return error.getCode();
     }
 }

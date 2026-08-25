@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
-import top.zhaizz.agent.service.AgentGateway;
+import top.zhaizz.agent.service.AgentService;
 import top.zhaizz.common.config.AgentProperties;
 import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.constant.TraceConstants;
@@ -31,12 +31,12 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 /**
- * HTTP Agent 网关：转发请求到 Python agent，统一归类上游错误。
+ * HTTP Agent 服务：转发请求到 Python agent，统一归类上游错误。
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class HttpAgentGateway implements AgentGateway {
+public class AgentServiceImpl implements AgentService {
 
     private final RestTemplate restTemplate;
     private final AgentProperties agentProperties;

@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-import top.zhaizz.agent.service.AgentGateway;
+import top.zhaizz.agent.service.AgentService;
 import top.zhaizz.common.result.Result;
 
 import static top.zhaizz.common.constant.AgentApiPaths.*;
@@ -22,14 +22,14 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ClientAgentController {
 
-    private final AgentGateway agentGateway;
+    private final AgentService agentService;
 
     /**
      * 健康检查
      */
     @GetMapping("/health")
     public Result<?> health(@RequestHeader("Authorization") String auth) {
-        return agentGateway.exchange(CLIENT_HEALTH, HttpMethod.GET, auth, null);
+        return agentService.exchange(CLIENT_HEALTH, HttpMethod.GET, auth, null);
     }
 
     /**
@@ -41,7 +41,7 @@ public class ClientAgentController {
         response.setCharacterEncoding("UTF-8");
         PrintWriter writer = response.getWriter();
 
-        agentGateway.stream(CLIENT_STREAM, HttpMethod.POST, auth, body, line -> {
+        agentService.stream(CLIENT_STREAM, HttpMethod.POST, auth, body, line -> {
             writer.write(line + "\n");
             writer.flush();
         });
@@ -54,7 +54,7 @@ public class ClientAgentController {
      */
     @GetMapping("/sessions")
     public Result<?> listSessions(@RequestHeader("Authorization") String auth) {
-        return agentGateway.exchange(CLIENT_SESSIONS, HttpMethod.GET, auth, null);
+        return agentService.exchange(CLIENT_SESSIONS, HttpMethod.GET, auth, null);
     }
 
     /**
@@ -62,7 +62,7 @@ public class ClientAgentController {
      */
     @PostMapping("/sessions")
     public Result<?> createSession(@RequestHeader("Authorization") String auth, @RequestBody(required = false) Map<String, Object> body) {
-        return agentGateway.exchange(CLIENT_SESSIONS, HttpMethod.POST, auth, body != null ? body : Map.of());
+        return agentService.exchange(CLIENT_SESSIONS, HttpMethod.POST, auth, body != null ? body : Map.of());
     }
 
     /**
@@ -70,7 +70,7 @@ public class ClientAgentController {
      */
     @GetMapping("/sessions/{sessionId}/history")
     public Result<?> getHistory(@PathVariable String sessionId, @RequestHeader("Authorization") String auth) {
-        return agentGateway.exchange(CLIENT_SESSIONS + "/" + sessionId + "/history", HttpMethod.GET, auth, null);
+        return agentService.exchange(CLIENT_SESSIONS + "/" + sessionId + "/history", HttpMethod.GET, auth, null);
     }
 
     /**
@@ -78,6 +78,6 @@ public class ClientAgentController {
      */
     @PostMapping("/sessions/{sessionId}/remove")
     public Result<?> deleteSession(@PathVariable String sessionId, @RequestHeader("Authorization") String auth) {
-        return agentGateway.exchange(CLIENT_SESSIONS + "/" + sessionId, HttpMethod.POST, auth, null);
+        return agentService.exchange(CLIENT_SESSIONS + "/" + sessionId, HttpMethod.POST, auth, null);
     }
 }
