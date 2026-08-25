@@ -23,7 +23,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 class AgentControllerServiceTest {
 
     @Test
-    void clientControllerDelegatesExchangeToGateway() {
+    void clientControllerDelegatesExchangeToService() {
         AgentService service = mock(AgentService.class);
         ClientAgentController controller = new ClientAgentController(service);
 
@@ -34,7 +34,7 @@ class AgentControllerServiceTest {
     }
 
     @Test
-    void clientControllerDelegatesStreamBodyToGatewayAndFlushesEachLine() throws Exception {
+    void clientControllerDelegatesStreamBodyToServiceAndFlushesEachLine() throws Exception {
         AgentService service = mock(AgentService.class);
         ClientAgentController controller = new ClientAgentController(service);
         HttpServletResponse response = mock(HttpServletResponse.class);
@@ -60,7 +60,7 @@ class AgentControllerServiceTest {
     }
 
     @Test
-    void adminControllerDelegatesExchangeToGateway() {
+    void adminControllerDelegatesExchangeToService() {
         AgentService service = mock(AgentService.class);
         AdminAgentController controller = new AdminAgentController(service);
         Result<?> expected = Result.success(Map.of("key", "value"));
@@ -76,7 +76,7 @@ class AgentControllerServiceTest {
     }
 
     @Test
-    void adminControllerDelegatesStreamBodyToGatewayAndFlushesEachLine() throws Exception {
+    void adminControllerDelegatesStreamBodyToServiceAndFlushesEachLine() throws Exception {
         AgentService service = mock(AgentService.class);
         AdminAgentController controller = new AdminAgentController(service);
         HttpServletResponse response = mock(HttpServletResponse.class);
