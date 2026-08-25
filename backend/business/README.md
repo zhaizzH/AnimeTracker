@@ -12,24 +12,24 @@ Maven 父子多模块，依赖方向 `app → {admin, client, agent} → {common
 ```
 business/
 ├── pom.xml          # 父 POM（依赖 / 插件版本统一管理）
-├── common/          # 公共基础：Result/PageResult、异常、JWT、Redis、安全/CORS/MinIO 配置
+├── common/          # 公共基础：Result/PageResult、异常、JWT、Redis、CORS、共享基础设施
 ├── pojo/            # entity / dto / vo（dto、vo 按领域子包分包）
 ├── admin/           # 管理端：条目 CRUD、用户管理、数据导入、仪表盘统计、操作日志
 ├── client/          # 用户端：认证、浏览/搜索、收藏、标签、剧集进度
 ├── agent/           # Agent 代理层：转发 /api/{client,admin}/agent/* 至 Python Agent
-└── app/             # 启动模块：聚合 admin + client + agent，Spring Boot 入口
+└── app/             # 启动与运行时装配：AppApplication、SecurityConfig
 ```
 
 ### 各模块职责
 
 | 模块 | artifactId | 职责 |
 |------|-----------|------|
-| common | `animetracker-common` | 统一响应 `Result`/`PageResult`、全局异常处理、`JwtTokenProvider`/`JwtAuthenticationFilter`、RedisUtil、Security/Cors/MinIO 配置、`@OperationLog` 操作审计、`@RateLimit` 限流、`FileController`（MinIO 上传） |
+| common | `animetracker-common` | 统一响应、全局异常、JWT/Redis、操作审计、限流、MinIO 存储适配器 |
 | pojo | `animetracker-pojo` | `entity`（Subject、Episode、SubjectTag、SubjectRelation、User、UserCollection、ImportRecord、OperationLog）、`dto`（入参）、`vo`（出参） |
-| admin | `animetracker-admin` | `AdminSubjectController`/`AdminUserController`/`AdminDashboardController`/`ImportController`/`AdminLogController` + Service/Converter/Mapper |
-| client | `animetracker-client` | `AuthController`/`SubjectController`/`CollectionController`/`CollectionProgressController`/`TagController`/`UserController` + Service/Converter/Mapper |
-| agent | `animetracker-agent` | `ClientAgentController`（`/api/client/agent/*`）+ `AdminAgentController`（`/api/admin/agent/*`）+ `AgentService`：转发至 Python Agent（默认 `localhost:8090`），SSE 流式透传 |
-| app | `animetracker-app` | 聚合 admin + client + agent，主类 `top.zhaizz.app.AppApplication`（`@MapperScan("top.zhaizz.**.mapper")`、`@EnableScheduling`） |
+| admin | `animetracker-admin` | `AdminFileController`、`AdminSubjectController`、`AdminUserController`、`AdminDashboardController`、`ImportController`、`AdminLogController` + Service/Converter/Mapper |
+| client | `animetracker-client` | `ClientFileController`、`AuthController`、`SubjectController`、`CollectionController`、`CollectionProgressController`、`TagController`、`UserController` + Service/Converter/Mapper |
+| agent | `animetracker-agent` | `ClientAgentController`、`AdminAgentController` 和 `AgentGateway`：转发 `/api/{client,admin}/agent/*` 至 Python Agent |
+| app | `animetracker-app` | 聚合业务模块；`top.zhaizz.app.AppApplication` 启动应用，`top.zhaizz.app.config.SecurityConfig` 装配全局授权策略 |
 
 > **操作审计日志**：common 提供 `@OperationLog` 注解 + `OperationLogAspect` AOP 切面，自动记录后台操作（登录、注册、条目增删改、角色变更、导入等）到 `operation_log` 表；admin 经 `AdminLogController`/`AdminLogService` 提供查询接口。定时清理由 `OperationLogCleanupTask` 负责。
 
@@ -59,7 +59,7 @@ converter/    # 实体 ⇄ DTO/VO 转换
 ### 错误拦截
 
 - 错误码 = HTTP 状态码，统一 `ErrorType` 枚举 + `BizException`；Service 层 `throw new BizException(ErrorType.X, "中文消息")`。
-- 安全层 401/403 走 `SecurityConfig.writeJson`；业务异常 / 参数校验走 `GlobalExceptionHandler`。
+- 安全层 401/403 走 app 模块的 `SecurityConfig.writeJson`；业务异常 / 参数校验走 `GlobalExceptionHandler`。
 - 响应体统一 `{code, message, data}`；禁止向客户端透传内部细节（resourcePath、SQL、堆栈）。
 
 ## 关键依赖

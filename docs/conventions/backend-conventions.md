@@ -71,3 +71,11 @@ String tokenHash = DigestUtils.sha256Hex(token);
 3. 一个领域一个常量类,`private` 构造 + `public static final` 字段。
 4. 单次使用、就地可读的魔法值(`LIMIT 10`、分页默认值等)**不提取**。
 5. 封闭值集合优先用常量类收敛;契约类常量(操作日志 module/action、agent 路由)改动需与前端 / Python 侧同步。
+
+## 五、模块职责与接口边界
+
+1. `app` 只负责 Spring Boot 启动和运行时装配；全局 `SecurityConfig` 位于 `top.zhaizz.app.config`，未匹配 URL 使用 `denyAll()`。
+2. `admin` 与 `client` 拥有各自的 Controller、业务 Service、Converter 和 Mapper；需要按角色区分的 HTTP 入口不得放入 `common`。
+3. `common` 只放跨模块响应、异常、认证组件、日志、限流和基础设施适配器；不得新增业务 Controller 或仅由单个业务模块使用的业务 Service/DTO。
+4. 业务 Service 使用接口 + `Impl`；Calculator、Executor、Converter、Util 不为单实现增加接口。
+5. Mapper 和外部系统 Gateway 保留接口；对象存储统一经 `ImageStorageGateway`，Controller 不直接依赖 `MinioClient`。
