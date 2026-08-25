@@ -1,6 +1,10 @@
 import { postForm } from './http';
-export const upload = (file: File, type: 'avatar' | 'cover') => {
-  const fd = new FormData();
-  fd.append('file', file);
-  return postForm<string>(`/common/files/upload?type=${type}`, fd);
+
+const uploadImage = (url: string, file: File) => {
+  const form = new FormData();
+  form.append('file', file);
+  return postForm<string>(url, form);
 };
+
+export const uploadAvatar = (file: File) => uploadImage('/client/files/avatar', file);
+export const uploadCover = (file: File) => uploadImage('/admin/files/cover', file);

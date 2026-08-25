@@ -565,27 +565,40 @@ def test_collection_progress(ctx):
 
 
 def test_upload(ctx):
-    token = ctx["user_token"]
+    user_token = ctx["user_token"]
+    admin_token = ctx["admin_token"]
     png_bytes = base64.b64decode(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
     )
-    files = {"file": ("api_contract_1px.png", png_bytes, "image/png")}
+    avatar_files = {"file": ("api_contract_avatar.png", png_bytes, "image/png")}
     expect_success(
-        "API-FILE-UPLOAD-001", "POST", "/api/common/files/upload", token=token,
-        params={"type": "avatar"}, files=files,
+        "API-FILE-AVATAR-001", "POST", "/api/client/files/avatar", token=user_token,
+        files=avatar_files,
         checker=lambda d: isinstance(d, str) and d.startswith("http"),
-        note="upload PNG avatar",
+        note="authenticated user uploads PNG avatar",
     )
     expect_error(
-        "API-FILE-UPLOAD-002", "POST", "/api/common/files/upload", 400,
-        token=token, params={"type": "banner"}, files=files,
-        note="invalid upload category rejected",
+        "API-FILE-AVATAR-UNAUTH-001", "POST", "/api/client/files/avatar", 401,
+        files=avatar_files,
+        note="anonymous avatar upload rejected",
     )
-    files_txt = {"file": ("api_contract.txt", b"not an image", "text/plain")}
     expect_error(
-        "API-FILE-UPLOAD-003", "POST", "/api/common/files/upload", 400,
-        token=token, params={"type": "avatar"}, files=files_txt,
-        note="non-image content rejected",
+        "API-FILE-COVER-USER-001", "POST", "/api/admin/files/cover", 403,
+        token=user_token, files=avatar_files,
+        note="ordinary user cannot upload cover",
+    )
+    cover_files = {"file": ("api_contract_cover.png", png_bytes, "image/png")}
+    expect_success(
+        "API-FILE-COVER-ADMIN-001", "POST", "/api/admin/files/cover", token=admin_token,
+        files=cover_files,
+        checker=lambda d: isinstance(d, str) and d.startswith("http"),
+        note="admin uploads PNG cover",
+    )
+    text_files = {"file": ("api_contract.txt", b"not an image", "text/plain")}
+    expect_error(
+        "API-FILE-AVATAR-MIME-001", "POST", "/api/client/files/avatar", 400,
+        token=user_token, files=text_files,
+        note="non-image content type rejected",
     )
 
 

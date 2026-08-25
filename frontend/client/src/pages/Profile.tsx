@@ -81,7 +81,7 @@ export default function Profile() {
             <Input aria-label="头像" autoComplete="off" />
           </Form.Item>
           <Upload accept="image/jpeg,image/png,image/webp" showUploadList={false} customRequest={async ({ file, onSuccess, onError }) => {
-            try { const url = await filesApi.upload(file as File, 'avatar'); editForm.setFieldValue('avatar', url); onSuccess?.(url); message.success('已上传'); }
+            try { const url = await filesApi.uploadAvatar(file as File); editForm.setFieldValue('avatar', url); onSuccess?.(url); message.success('已上传'); }
             catch (e) { onError?.(e as Error); }
           }}><Button icon={<UploadOutlined />}>上传头像</Button></Upload>
         </Form>
