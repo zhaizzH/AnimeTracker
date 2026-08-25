@@ -109,14 +109,13 @@ mvn -pl app spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active
 
 ## 测试
 
-测试分散在 `admin`、`agent`、`app`、`common` 与 `client` 模块，共 14 个 `src/test/java` 测试类：
+测试分散在 `admin`、`agent`、`app` 与 `client` 模块，共 14 个 `src/test/java` 测试类：
 
 | 模块 | 测试类 |
 |------|--------|
 | admin | `admin/AdminLogServiceImplTest` |
-| agent | `agent/AgentControllerGatewayTest`、`agent/HttpAgentGatewayTest` |
-| app | `app/SecurityConfigAuthorizationTest` |
-| common | `common/MinioImageStorageGatewayTest` |
+| agent | `agent/AgentControllerServiceTest`、`agent/AgentServiceImplTest` |
+| app | `app/SecurityConfigAuthorizationTest`、`app/infrastructure/storage/minio/MinioImageStorageGatewayTest` |
 | client | `client/contract/CollectionProgressContractTest`、`client/contract/CollectionWishlistContractTest`、`client/contract/SubjectBatchContractTest`、`client/service/CollectionProgressCalculatorTest`、`client/service/CollectionProgressExecutionTest`、`client/service/CollectionProgressServiceImplTest`、`client/service/CollectionWishlistTest`、`client/service/SubjectBatchServiceTest`、`client/store/ProgressPreviewStoreTest` |
 
 运行全部业务测试：
