@@ -7,6 +7,8 @@ paths:
     post:
       summary: "上传当前用户头像"
       description: "已认证用户上传 JPG、PNG 或 WebP 头像，返回 MinIO 可访问 URL"
+      security:
+      - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -41,6 +43,8 @@ paths:
     post:
       summary: "上传番剧封面"
       description: "管理员上传 JPG、PNG 或 WebP 番剧封面，返回 MinIO 可访问 URL"
+      security:
+      - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -67,6 +71,8 @@ paths:
                     type: "string"
                   data:
                     type: "string"
+        "400":
+          description: "文件 MIME 不受支持"
         "401":
           description: "未认证"
         "403":
@@ -4041,6 +4047,11 @@ paths:
                           format: "int64"
                       description: "热门榜条目"
 components:
+  securitySchemes:
+    bearerAuth:
+      type: "http"
+      scheme: "bearer"
+      bearerFormat: "JWT"
   schemas:
     标签信息 VO:
       type: "object"
