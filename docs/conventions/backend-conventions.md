@@ -74,8 +74,10 @@ String tokenHash = DigestUtils.sha256Hex(token);
 
 ## 五、模块职责与接口边界
 
-1. `app` 只负责 Spring Boot 启动和运行时装配；全局 `SecurityConfig` 位于 `top.zhaizz.app.config`，未匹配 URL 使用 `denyAll()`。
-2. `admin` 与 `client` 拥有各自的 Controller、业务 Service、Converter 和 Mapper；需要按角色区分的 HTTP 入口不得放入 `common`。
-3. `common` 只放跨模块响应、异常、认证组件、日志、限流和基础设施适配器；不得新增业务 Controller 或仅由单个业务模块使用的业务 Service/DTO。
-4. 业务 Service 使用接口 + `Impl`；Calculator、Executor、Converter、Util 不为单实现增加接口。
-5. Mapper 和外部系统 Gateway 保留接口；对象存储统一经 `ImageStorageGateway`，Controller 不直接依赖 `MinioClient`。
+1. `app` 拥有 Spring Boot 组合根和 `app.infrastructure` 运行时适配器。
+2. `admin` 与 `client` 各自拥有 Controller、Service、Mapper/Store 和面向消费者的 Gateway 端口；分层为 Controller → Service → Mapper/Store。
+3. `agent` 使用 Controller → `AgentService` → `AgentServiceImpl` 分层。
+4. `common` 承载共享平台能力，并且只保留多个业务模块共享的端口。
+5. `app` 的 `ArchitectureBoundaryTest` 是禁止依赖的可执行权威规则。
+
+共享 `ImageStorageGateway` 位于 `common.storage`，其 MinIO 实现位于 `app.infrastructure.storage.minio`；`client.gateway.EmailGateway` 的 Resend 实现位于 `app.infrastructure.email`；`admin.gateway.ImportAgentGateway` 的 HTTP 实现位于 `app.infrastructure.agent`。设计理由见 [Spring Boot 分层边界加固设计](../superpowers/specs/2026-08-25-spring-boot-layering-hardening-design.md)。

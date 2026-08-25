@@ -7,31 +7,38 @@ Spring Boot 3.2 多模块后端（Java 21），提供番剧条目管理、剧集
 
 ## 模块结构
 
-Maven 父子多模块，依赖方向 `app → {admin, client, agent} → {common, pojo}`：
+Maven 父子多模块保持六个模块。依赖方向如下：
+
+```text
+app → {admin, client, agent, common}
+admin → {common, pojo}
+client → {common, pojo}
+agent → common → pojo
+```
 
 ```
 business/
 ├── pom.xml          # 父 POM（依赖 / 插件版本统一管理）
-├── common/          # 公共基础：Result/PageResult、异常、JWT、Redis、CORS、共享基础设施
-├── pojo/            # entity / dto / vo（dto、vo 按领域子包分包）
-├── admin/           # 管理端：条目 CRUD、用户管理、数据导入、仪表盘统计、操作日志
-├── client/          # 用户端：认证、浏览/搜索、收藏、标签、剧集进度
-├── agent/           # Agent 代理层：转发 /api/{client,admin}/agent/* 至 Python Agent
-└── app/             # 启动与运行时装配：AppApplication、SecurityConfig
+├── common/          # 共享平台能力与多业务模块共用的外部端口
+├── pojo/            # 共享 entity / dto / vo 数据模型
+├── admin/           # 管理端 Controller → Service → Mapper/Store 与管理端 Gateway 端口
+├── client/          # 用户端 Controller → Service → Mapper/Store 与用户端 Gateway 端口
+├── agent/           # Python Agent 代理：Controller → AgentService → AgentServiceImpl
+└── app/             # Spring Boot 组合根、安全策略与 runtime infrastructure 适配器
 ```
 
 ### 各模块职责
 
 | 模块 | artifactId | 职责 |
 |------|-----------|------|
-| common | `animetracker-common` | 统一响应、全局异常、JWT/Redis、操作审计、限流、MinIO 存储适配器 |
-| pojo | `animetracker-pojo` | `entity`（Subject、Episode、SubjectTag、SubjectRelation、User、UserCollection、ImportRecord、OperationLog）、`dto`（入参）、`vo`（出参） |
-| admin | `animetracker-admin` | `AdminFileController`、`AdminSubjectController`、`AdminUserController`、`AdminDashboardController`、`ImportController`、`AdminLogController` + Service/Converter/Mapper |
-| client | `animetracker-client` | `ClientFileController`、`AuthController`、`SubjectController`、`CollectionController`、`CollectionProgressController`、`TagController`、`UserController` + Service/Converter/Mapper |
-| agent | `animetracker-agent` | `ClientAgentController`、`AdminAgentController` 和 `AgentGateway`：转发 `/api/{client,admin}/agent/*` 至 Python Agent |
-| app | `animetracker-app` | 聚合业务模块；`top.zhaizz.app.AppApplication` 启动应用，`top.zhaizz.app.config.SecurityConfig` 装配全局授权策略 |
+| common | `animetracker-common` | 统一响应、异常、JWT/Redis、操作审计、限流和共享外部端口 |
+| pojo | `animetracker-pojo` | 共享 entity、dto、vo 数据模型 |
+| admin | `animetracker-admin` | 管理端 Controller → Service → Mapper/Store；持有 `ImportAgentGateway` 端口 |
+| client | `animetracker-client` | 用户端 Controller → Service → Mapper/Store；持有 `EmailGateway` 端口 |
+| agent | `animetracker-agent` | Controller → `AgentService` → `AgentServiceImpl`，代理 Python Agent |
+| app | `animetracker-app` | 启动、安全策略和 `infrastructure` 下的 MinIO、Resend、导入 HTTP 实现 |
 
-> **操作审计日志**：common 提供 `@OperationLog` 注解 + `OperationLogAspect` AOP 切面，自动记录后台操作（登录、注册、条目增删改、角色变更、导入等）到 `operation_log` 表；admin 经 `AdminLogController`/`AdminLogService` 提供查询接口。定时清理由 `OperationLogCleanupTask` 负责。
+外部端口由消费者模块定义，运行时实现由 `app.infrastructure` 装配：共享 `common.storage.ImageStorageGateway` 的 MinIO 实现在 `app.infrastructure.storage.minio`；`client.gateway.EmailGateway` 的 Resend 实现在 `app.infrastructure.email`；`admin.gateway.ImportAgentGateway` 的 HTTP 实现在 `app.infrastructure.agent`。
 
 ### pojo 分包
 
@@ -41,7 +48,7 @@ business/
 
 ## 分层约定
 
-每个业务模块统一分层，entity↔vo/dto 转换中复杂或可复用的部分集中到 converter 包，简单映射可在 service 内完成；controller 不承载转换逻辑：
+`admin` 与 `client` 统一采用 Controller → Service → Mapper/Store 分层。entity↔vo/dto 转换中复杂或可复用的部分集中到 converter 包，简单映射可在 service 内完成；controller 不承载转换逻辑：
 
 ```
 controller/   # 参数绑定 + SecurityUtil 取身份 + 调 service（无业务逻辑、无 SQL）
@@ -109,19 +116,10 @@ mvn -pl app spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active
 
 ## 测试
 
-测试分散在 `admin`、`agent`、`app` 与 `client` 模块，共 14 个 `src/test/java` 测试类：
-
-| 模块 | 测试类 |
-|------|--------|
-| admin | `admin/AdminLogServiceImplTest` |
-| agent | `agent/AgentControllerServiceTest`、`agent/AgentServiceImplTest` |
-| app | `app/SecurityConfigAuthorizationTest`、`app/infrastructure/storage/minio/MinioImageStorageGatewayTest` |
-| client | `client/contract/CollectionProgressContractTest`、`client/contract/CollectionWishlistContractTest`、`client/contract/SubjectBatchContractTest`、`client/service/CollectionProgressCalculatorTest`、`client/service/CollectionProgressExecutionTest`、`client/service/CollectionProgressServiceImplTest`、`client/service/CollectionWishlistTest`、`client/service/SubjectBatchServiceTest`、`client/store/ProgressPreviewStoreTest` |
-
-运行全部业务测试：
+测试清单以各模块的 `src/test/java` 为准。运行全部业务测试：
 
 ```bash
-mvn clean test
+mvn test
 ```
 
 ## 相关文档
