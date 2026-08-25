@@ -58,7 +58,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/client/tags/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/client/**").authenticated()
-                        .requestMatchers("/api/common/files/**").authenticated()
                         .anyRequest().denyAll()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
