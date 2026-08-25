@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -19,6 +20,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.HandlerExecutionChain;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import top.zhaizz.admin.controller.AdminFileController;
 import top.zhaizz.client.controller.ClientFileController;
 import top.zhaizz.common.result.Result;
@@ -28,9 +31,11 @@ import top.zhaizz.common.storage.ImageCategory;
 import top.zhaizz.common.storage.ImageStorageGateway;
 import top.zhaizz.common.util.RedisUtil;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -48,6 +53,9 @@ class SecurityConfigAuthorizationTest {
 
     @Autowired
     private ImageStorageGateway imageStorageGateway;
+
+    @Autowired
+    private RequestMappingHandlerMapping requestMappingHandlerMapping;
 
     private MockMvc mockMvc;
 
@@ -96,6 +104,13 @@ class SecurityConfigAuthorizationTest {
     }
 
     @Test
+    void anonymousCannotUploadCover() throws Exception {
+        mockMvc.perform(multipart("/api/admin/files/cover").file(pngFile()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
+    }
+
+    @Test
     void anonymousCannotUploadAvatar() throws Exception {
         mockMvc.perform(multipart("/api/client/files/avatar").file(pngFile()))
                 .andExpect(status().isUnauthorized())
@@ -115,6 +130,20 @@ class SecurityConfigAuthorizationTest {
     }
 
     @Test
+    void adminCanUploadAvatar() throws Exception {
+        when(imageStorageGateway.upload(any(), eq(ImageCategory.AVATAR)))
+                .thenReturn("http://minio/anime/avatars/admin.png");
+
+        mockMvc.perform(multipart("/api/client/files/avatar")
+                        .file(pngFile())
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").value("http://minio/anime/avatars/admin.png"));
+
+        verify(imageStorageGateway).upload(any(), eq(ImageCategory.AVATAR));
+    }
+
+    @Test
     void userCannotUploadCover() throws Exception {
         mockMvc.perform(multipart("/api/admin/files/cover")
                         .file(pngFile())
@@ -126,12 +155,12 @@ class SecurityConfigAuthorizationTest {
     }
 
     @Test
-    void authenticatedUserCannotUseRemovedCommonUploadRoute() throws Exception {
-        mockMvc.perform(multipart("/api/common/files/upload")
-                        .file(pngFile())
-                        .with(user("user").roles("USER")))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value(403));
+    void removedCommonUploadRouteHasNoHandlerMapping() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", removedCommonUploadPath());
+
+        HandlerExecutionChain handler = requestMappingHandlerMapping.getHandler(request);
+
+        assertThat(handler).isNull();
     }
 
     @Test
@@ -148,6 +177,10 @@ class SecurityConfigAuthorizationTest {
 
     private MockMultipartFile pngFile() {
         return new MockMultipartFile("file", "image.png", "image/png", new byte[]{1});
+    }
+
+    private String removedCommonUploadPath() {
+        return "/" + String.join("/", "api", "common", "files", "upload");
     }
 
     @Configuration

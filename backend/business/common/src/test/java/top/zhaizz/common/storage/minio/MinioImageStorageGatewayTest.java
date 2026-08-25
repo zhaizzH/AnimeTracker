@@ -4,12 +4,16 @@ import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockMultipartFile;
 import top.zhaizz.common.config.MinioProperties;
 import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.storage.ImageCategory;
+
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -40,11 +44,29 @@ class MinioImageStorageGatewayTest {
 
         String url = gateway.upload(file, ImageCategory.AVATAR);
 
-        ArgumentCaptor<PutObjectArgs> captor = ArgumentCaptor.forClass(PutObjectArgs.class);
-        verify(minioClient).putObject(captor.capture());
-        assertThat(captor.getValue().bucket()).isEqualTo("anime");
-        assertThat(captor.getValue().object()).startsWith("avatars/").endsWith(".png");
+        PutObjectArgs putObjectArgs = capturePutObjectArgs();
+        assertThat(putObjectArgs.bucket()).isEqualTo("anime");
+        assertUuidObjectName(putObjectArgs, "avatars", "png");
+        assertThat(putObjectArgs.contentType()).isEqualTo("image/png");
         assertThat(url).startsWith("http://minio:9000/anime/avatars/").endsWith(".png");
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "image/jpeg, cover.jpg, jpg",
+            "image/webp, cover.webp, webp"
+    })
+    void mapsSuccessfulImageContentTypesToExpectedExtensions(
+            String contentType, String filename, String extension) throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", filename, contentType, new byte[]{1, 2, 3});
+
+        String url = gateway.upload(file, ImageCategory.COVER);
+
+        PutObjectArgs putObjectArgs = capturePutObjectArgs();
+        assertUuidObjectName(putObjectArgs, "covers", extension);
+        assertThat(putObjectArgs.contentType()).isEqualTo(contentType);
+        assertThat(url).startsWith("http://minio:9000/anime/covers/").endsWith("." + extension);
     }
 
     @Test
@@ -86,5 +108,22 @@ class MinioImageStorageGatewayTest {
         assertThat(error.getCode()).isEqualTo(ErrorType.INTERNAL_ERROR.getCode());
         assertThat(error.getMessage()).isEqualTo("文件上传失败");
         assertThat(error.getMessage()).doesNotContain("private minio address");
+    }
+
+    private PutObjectArgs capturePutObjectArgs() throws Exception {
+        ArgumentCaptor<PutObjectArgs> captor = ArgumentCaptor.forClass(PutObjectArgs.class);
+        verify(minioClient).putObject(captor.capture());
+        return captor.getValue();
+    }
+
+    private void assertUuidObjectName(PutObjectArgs putObjectArgs, String directory, String extension)
+            throws Exception {
+        String prefix = directory + "/";
+        String suffix = "." + extension;
+        String objectName = putObjectArgs.object();
+
+        assertThat(objectName).startsWith(prefix).endsWith(suffix);
+        String objectId = objectName.substring(prefix.length(), objectName.length() - suffix.length());
+        assertThat(UUID.fromString(objectId)).isNotNull();
     }
 }
