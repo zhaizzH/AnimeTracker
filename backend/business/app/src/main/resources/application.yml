@@ -77,7 +77,7 @@ at:
 
   # CORS 跨域白名单（逗号分隔）
   cors:
-    allowed-origins: ${at.cors.allowed-origins}
+    allowed-origins: ${at.cors.origins}
 
 # JWT 配置
 jwt:

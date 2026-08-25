@@ -56,6 +56,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/client/subjects/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/client/subjects/batch").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/client/tags/**").permitAll()
+                        .requestMatchers(
+                                "/actuator/health",
+                                "/actuator/health/liveness",
+                                "/actuator/health/readiness"
+                        ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/client/**").authenticated()
                         .anyRequest().denyAll()

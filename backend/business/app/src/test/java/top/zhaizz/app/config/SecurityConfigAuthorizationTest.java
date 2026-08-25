@@ -3,6 +3,8 @@ package top.zhaizz.app.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -80,6 +82,39 @@ class SecurityConfigAuthorizationTest {
         mockMvc.perform(get("/api/client/subjects/probe"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "/actuator/health",
+            "/actuator/health/liveness",
+            "/actuator/health/readiness"
+    })
+    void anonymousCanReachHealthProbe(String path) throws Exception {
+        mockMvc.perform(get(path))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+    }
+
+    @Test
+    void anonymousCannotReachOtherActuatorEndpoint() throws Exception {
+        mockMvc.perform(get("/actuator/info"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
+    }
+
+    @Test
+    void anonymousCannotReachHealthDetails() throws Exception {
+        mockMvc.perform(get("/actuator/health/db"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
+    }
+
+    @Test
+    void authenticatedUserCannotReachOtherActuatorEndpoint() throws Exception {
+        mockMvc.perform(get("/actuator/info").with(user("user").roles("USER")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403));
     }
 
     @Test
@@ -239,6 +274,20 @@ class SecurityConfigAuthorizationTest {
 
         @GetMapping("/api/client/subjects/probe")
         Result<Void> publicSubject() {
+            return Result.success();
+        }
+
+        @GetMapping({
+                "/actuator/health",
+                "/actuator/health/liveness",
+                "/actuator/health/readiness"
+        })
+        Result<Void> health() {
+            return Result.success();
+        }
+
+        @GetMapping({"/actuator/info", "/actuator/health/db"})
+        Result<Void> otherActuatorEndpoint() {
             return Result.success();
         }
     }
