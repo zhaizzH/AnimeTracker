@@ -41,7 +41,7 @@ business/
 
 ## 分层约定
 
-每个业务模块统一分层，entity↔vo/dto 转换一律走 converter 包，禁止在 service/controller 手写转换：
+每个业务模块统一分层，entity↔vo/dto 转换中复杂或可复用的部分集中到 converter 包，简单映射可在 service 内完成；controller 不承载转换逻辑：
 
 ```
 controller/   # 参数绑定 + SecurityUtil 取身份 + 调 service（无业务逻辑、无 SQL）
@@ -84,8 +84,6 @@ mvn -pl app spring-boot:run -Dspring-boot.run.profiles.active=local
 
 - `application.yml` —— 主配置（默认激活 `local`，含 HikariCP / Lettuce 连接池、Jackson 日期格式、MyBatis-Plus、multipart 限制等）
 - `application-local.yml` —— 本地开发覆盖（数据源、Redis、JWT、MinIO、Agent 地址等）
-- `application-prod.yml` —— 容器部署配置，通过环境变量读取生产凭据与服务地址
-- `application-template.yml` —— 模板文件（敏感值用 `<placeholder>` 占位，供新开发者复制）
 
 数据库结构不使用 Flyway，统一由项目级 `docs/database/db-schema.sql` 维护；新环境手动执行该脚本建表。
 
@@ -104,21 +102,22 @@ mvn -pl app spring-boot:run -Dspring-boot.run.profiles.active=local
 
 | 模块 | XML 文件 |
 |------|---------|
-| admin | `DashboardMapper.xml` |
-| client | `SubjectMapper.xml`、`EpisodeMapper.xml`、`SubjectTagMapper.xml`、`CollectionMapper.xml`、`SubjectRelationMapper.xml` |
+| admin | `AdminLogMapper.xml`、`DashboardMapper.xml` |
+| client | `CollectionMapper.xml`、`SubjectMapper.xml`、`SubjectTagMapper.xml` |
 
 > common 的 `OperationLogMapper` 使用 MyBatis-Plus 注解方式，无 XML 文件。
 
 ## 测试
 
-测试分散在 `admin`、`agent`、`app` 与 `client` 模块，共 11 个测试类：
+测试分散在 `admin`、`agent`、`app`、`common` 与 `client` 模块，共 14 个 `src/test/java` 测试类：
 
-| 分组 | 测试类 |
+| 模块 | 测试类 |
 |------|--------|
-| 管理与代理 | `AdminLogServiceImplTest`、`AgentServiceImplTest` |
-| 应用入口与追踪 | `CollectionProgressControllerTest`、`RequestIdFilterTest` |
-| 进度更新 | `CollectionProgressContractTest`、`CollectionProgressCalculatorTest`、`CollectionProgressExecutionTest`、`CollectionProgressServiceImplTest`、`ProgressPreviewStoreTest` |
-| 想看写入 | `CollectionWishlistContractTest`、`CollectionWishlistTest` |
+| admin | `admin/AdminLogServiceImplTest` |
+| agent | `agent/AgentControllerGatewayTest`、`agent/HttpAgentGatewayTest` |
+| app | `app/SecurityConfigAuthorizationTest` |
+| common | `common/MinioImageStorageGatewayTest` |
+| client | `client/contract/CollectionProgressContractTest`、`client/contract/CollectionWishlistContractTest`、`client/contract/SubjectBatchContractTest`、`client/service/CollectionProgressCalculatorTest`、`client/service/CollectionProgressExecutionTest`、`client/service/CollectionProgressServiceImplTest`、`client/service/CollectionWishlistTest`、`client/service/SubjectBatchServiceTest`、`client/store/ProgressPreviewStoreTest` |
 
 运行全部业务测试：
 
@@ -131,5 +130,4 @@ mvn clean test
 - 后端总览：[`../README.md`](../README.md)
 - AI Agent：[`../agent/README.md`](../agent/README.md)
 - 项目总览：[`../../README.md`](../../README.md)
-- 前端总览：[`../../frontend/README.md`](../../frontend/README.md)
 - 后端 API 文档：[`../../docs/spec/openapi.yaml`](../../docs/spec/openapi.yaml)
