@@ -51,13 +51,6 @@
             <version>7.4</version>
         </dependency>
 
-
-        <!-- Spring Cache（Redis 缓存注解支持） -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-cache</artifactId>
-        </dependency>
-
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
