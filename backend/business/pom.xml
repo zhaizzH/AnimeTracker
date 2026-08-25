@@ -37,6 +37,7 @@
         <jjwt.version>0.12.3</jjwt.version>
         <minio.version>8.5.7</minio.version>
         <resend-java.version>3.1.0</resend-java.version>
+        <archunit.version>1.5.0</archunit.version>
 
         <lombok.version>1.18.30</lombok.version>
     </properties>
@@ -73,6 +74,12 @@
                 <groupId>top.zhaizz</groupId>
                 <artifactId>animetracker-app</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.tngtech.archunit</groupId>
+                <artifactId>archunit-junit5</artifactId>
+                <version>${archunit.version}</version>
             </dependency>
 
             <!-- MyBatis-Plus -->
