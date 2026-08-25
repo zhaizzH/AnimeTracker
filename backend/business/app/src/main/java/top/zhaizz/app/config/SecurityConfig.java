@@ -1,4 +1,4 @@
-package top.zhaizz.common.config;
+package top.zhaizz.app.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
@@ -23,7 +23,7 @@ import top.zhaizz.common.security.JwtAuthenticationFilter;
 import java.io.IOException;
 
 /**
- * Spring Security 配置：无状态 JWT 认证、接口放行与角色鉴权
+ * Spring Security 运行时策略：无状态 JWT 认证、接口放行与角色鉴权
  */
 @Configuration
 @EnableWebSecurity
@@ -35,7 +35,7 @@ public class SecurityConfig {
     private final ObjectMapper objectMapper;
 
     /**
-     * 配置无状态 JWT 安全过滤链：CORS、CSRF 关闭、接口放行与角色鉴权
+     * 配置无状态 JWT 安全过滤链；未显式匹配的 URL 默认拒绝
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -49,7 +49,6 @@ public class SecurityConfig {
                         .accessDeniedHandler((request, response, accessDeniedException) ->
                                 writeJson(response, ErrorType.FORBIDDEN)))
                 .authorizeHttpRequests(auth -> auth
-                        // 认证流程接口须先公开，否则无法登录注册
                         .requestMatchers("/api/client/auth/register", "/api/client/auth/login",
                                 "/api/client/auth/verify-email", "/api/client/auth/resend-code",
                                 "/api/client/auth/refresh",
@@ -57,11 +56,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/client/subjects/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/client/subjects/batch").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/client/tags/**").permitAll()
-
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/client/**").authenticated()
                         .requestMatchers("/api/common/files/**").authenticated()
-                        .anyRequest().permitAll()
+                        .anyRequest().denyAll()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -69,14 +67,16 @@ public class SecurityConfig {
     }
 
     /**
-     * 密码加密器（BCrypt）
+     * 提供 BCrypt 密码编码器
      */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    /** 安全层统一 JSON 响应（绕过 @RestControllerAdvice，直接写 Result） */
+    /**
+     * 直接写入安全层统一 JSON 响应，避免经过 Controller advice
+     */
     private void writeJson(HttpServletResponse response, ErrorType errorType) throws IOException {
         int code = errorType.getCode();
         response.setStatus(code);
