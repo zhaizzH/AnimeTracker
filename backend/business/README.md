@@ -75,22 +75,22 @@ converter/    # 实体 ⇄ DTO/VO 转换
 mvn clean install -DskipTests
 
 # 启动（app 模块聚合了 admin、client 与 agent）
-mvn -pl app spring-boot:run -Dspring-boot.run.profiles.active=local
+mvn -pl app spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=local
 # 或指定 profile 直接运行 jar：
-# java -jar app/target/animetracker-app-*.jar
+# java -jar app/target/animetracker-app-*.jar --spring.profiles.active=local
 ```
 
 配置文件位于 `app/src/main/resources`：
 
-- `application.yml` —— 主配置（默认激活 `local`，含 HikariCP / Lettuce 连接池、Jackson 日期格式、MyBatis-Plus、multipart 限制等）
+- `application.yml` —— 主配置（不默认激活 `local`；本地运行需显式使用 `--spring.profiles.active=local`，含 HikariCP / Lettuce 连接池、Jackson 日期格式、MyBatis-Plus、multipart 限制等）
 - `application-local.yml` —— 本地开发覆盖（数据源、Redis、JWT、MinIO、Agent 地址等）
 
 数据库结构不使用 Flyway，统一由项目级 `docs/database/db-schema.sql` 维护；新环境手动执行该脚本建表。
 
 需配置：
 
-- `zzz.datasource` —— MySQL 连接（库名 `anime_tracker`）
-- `zzz.data.redis` —— Redis 连接
+- `at.datasource` —— MySQL 连接（库名 `anime_tracker`）
+- `at.data.redis` —— Redis 连接
 - `jwt.secret` / `jwt.expiration` / `jwt.refresh-expiration` —— JWT 签名密钥与有效期
 - `minio.*` —— 对象存储（endpoint / key / bucket）
 - `resend.api-key` —— 邮件验证服务密钥
