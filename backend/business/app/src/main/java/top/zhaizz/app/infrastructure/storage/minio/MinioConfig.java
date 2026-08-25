@@ -1,4 +1,4 @@
-package top.zhaizz.common.config;
+package top.zhaizz.app.infrastructure.storage.minio;
 
 import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;

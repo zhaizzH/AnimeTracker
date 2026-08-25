@@ -17,6 +17,15 @@
     <description>AnimeTracker Spring Boot应用程序入口点</description>
 
     <dependencies>
+        <dependency>
+            <groupId>top.zhaizz</groupId>
+            <artifactId>animetracker-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+        </dependency>
+
         <!-- 聚合业务模块 -->
         <dependency>
             <groupId>top.zhaizz</groupId>

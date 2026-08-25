@@ -1,4 +1,4 @@
-package top.zhaizz.common.storage.minio;
+package top.zhaizz.app.infrastructure.storage.minio;
 
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
@@ -8,7 +8,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockMultipartFile;
-import top.zhaizz.common.config.MinioProperties;
 import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.storage.ImageCategory;

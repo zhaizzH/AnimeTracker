@@ -1,4 +1,4 @@
-package top.zhaizz.common.config;
+package top.zhaizz.app.infrastructure.storage.minio;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

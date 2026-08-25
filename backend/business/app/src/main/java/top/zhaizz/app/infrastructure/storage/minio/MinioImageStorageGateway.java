@@ -1,4 +1,4 @@
-package top.zhaizz.common.storage.minio;
+package top.zhaizz.app.infrastructure.storage.minio;
 
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
-import top.zhaizz.common.config.MinioProperties;
 import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.storage.ImageCategory;
