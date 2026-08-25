@@ -25,6 +25,10 @@
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.resend</groupId>
+            <artifactId>resend-java</artifactId>
+        </dependency>
 
         <!-- 聚合业务模块 -->
         <dependency>

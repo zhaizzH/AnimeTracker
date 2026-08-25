@@ -1,12 +1,10 @@
 package top.zhaizz.client.service.impl;
 
-import com.resend.Resend;
-import com.resend.services.emails.model.CreateEmailOptions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.zhaizz.client.gateway.EmailGateway;
 import top.zhaizz.client.mapper.UserMapper;
 import top.zhaizz.client.service.VerificationService;
 import top.zhaizz.common.exception.BizException;
@@ -30,7 +28,7 @@ public class VerificationServiceImpl implements VerificationService {
 
     private final RedisUtil redisUtil;
     private final UserMapper userMapper;
-    private final Resend resend;
+    private final EmailGateway emailGateway;
     private final RateLimiter rateLimiter;
 
     private static final long CODE_TTL_MINUTES = 5;
@@ -38,9 +36,6 @@ public class VerificationServiceImpl implements VerificationService {
     // 字符集刻意剔除易混淆的 0/O/1/l/I，降低人工输入错误率
     private static final String ALPHANUMERIC = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
     private static final SecureRandom RANDOM = new SecureRandom();
-    @Value("${resend.send-email}")
-    private String resendSendEmail;
-
     private String generateCode() {
         StringBuilder code = new StringBuilder(CODE_LENGTH);
         for (int i = 0; i < CODE_LENGTH; i++) {
@@ -57,16 +52,9 @@ public class VerificationServiceImpl implements VerificationService {
         // 2. 存入 Redis（5分钟 TTL）
         redisUtil.set(RedisKeys.EMAIL + email, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
 
-        // 3. 通过 Resend 发送邮件
-        CreateEmailOptions params = CreateEmailOptions.builder()
-                .from(resendSendEmail)
-                .to(email)
-                .subject("[AnimeTracker] 邮箱验证码")
-                .text("你的验证码是：" + code + "\n\n此验证码5分钟内有效，请勿泄露给他人。")
-                .build();
-
         try {
-            resend.emails().send(params);
+            emailGateway.send(email, "[AnimeTracker] 邮箱验证码",
+                    "你的验证码是：" + code + "\n\n此验证码5分钟内有效，请勿泄露给他人。");
         } catch (Exception e) {
             redisUtil.del(RedisKeys.EMAIL + email);
             log.error("验证码邮件发送失败", e);
@@ -123,16 +111,9 @@ public class VerificationServiceImpl implements VerificationService {
         // 3. 存入 Redis（不同 key 前缀）
         redisUtil.set(RedisKeys.EMAIL_CHANGE + userId + ":" + newEmail, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
 
-        // 4. 通过 Resend 发送邮件
-        CreateEmailOptions params = CreateEmailOptions.builder()
-                .from(resendSendEmail)
-                .to(newEmail)
-                .subject("[AnimeTracker] 邮箱修改验证码")
-                .text("你正在修改邮箱绑定，验证码是：" + code + "\n\n此验证码5分钟内有效，请勿泄露给他人。")
-                .build();
-
         try {
-            resend.emails().send(params);
+            emailGateway.send(newEmail, "[AnimeTracker] 邮箱修改验证码",
+                    "你正在修改邮箱绑定，验证码是：" + code + "\n\n此验证码5分钟内有效，请勿泄露给他人。");
         } catch (Exception e) {
             redisUtil.del(RedisKeys.EMAIL_CHANGE + userId + ":" + newEmail);
             log.error("验证码邮件发送失败", e);
@@ -184,13 +165,8 @@ public class VerificationServiceImpl implements VerificationService {
         // 6. 通知旧邮箱（失败不抛异常，不回滚）
         if (oldEmail != null && !oldEmail.isEmpty()) {
             try {
-                CreateEmailOptions params = CreateEmailOptions.builder()
-                        .from(resendSendEmail)
-                        .to(oldEmail)
-                        .subject("[AnimeTracker] 邮箱变更通知")
-                        .text("你的 AnimeTracker 账号邮箱已变更为：" + newEmail + "\n\n如非本人操作，请立即联系管理员。")
-                        .build();
-                resend.emails().send(params);
+                emailGateway.send(oldEmail, "[AnimeTracker] 邮箱变更通知",
+                        "你的 AnimeTracker 账号邮箱已变更为：" + newEmail + "\n\n如非本人操作，请立即联系管理员。");
             } catch (Exception e) {
                 // ponytail: 通知失败不干扰主流程，静默记日志
                 log.warn("旧邮箱通知发送失败: {}", oldEmail, e);
@@ -203,15 +179,9 @@ public class VerificationServiceImpl implements VerificationService {
         String code = generateCode();
         redisUtil.set(RedisKeys.PASSWORD_RESET + email, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
 
-        CreateEmailOptions params = CreateEmailOptions.builder()
-                .from(resendSendEmail)
-                .to(email)
-                .subject("[AnimeTracker] 密码重置验证码")
-                .text("你的密码重置验证码是：" + code + "\n\n此验证码5分钟内有效，请勿泄露给他人。")
-                .build();
-
         try {
-            resend.emails().send(params);
+            emailGateway.send(email, "[AnimeTracker] 密码重置验证码",
+                    "你的密码重置验证码是：" + code + "\n\n此验证码5分钟内有效，请勿泄露给他人。");
         } catch (Exception e) {
             redisUtil.del(RedisKeys.PASSWORD_RESET + email);
             log.error("验证码邮件发送失败", e);
