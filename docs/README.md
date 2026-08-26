@@ -8,6 +8,7 @@
 
 | 目录 | 说明 |
 |------|------|
+| [`architecture/`](architecture/) | 后端模块边界、架构决策记录（ADR）与术语表 |
 | [`conventions/`](conventions/) | 项目规范（[`backend-conventions.md`](conventions/backend-conventions.md) 等） |
 | [`database/`](database/) | 数据库脚本（[`db-schema.sql`](database/db-schema.sql)，含 `operation_log` 等操作审计表） |
 | [`spec/`](spec/) | API 规范（[`openapi.yaml`](spec/openapi.yaml)，OpenAPI 3.0 完整接口定义） |
@@ -45,6 +46,9 @@ mysql -u root -p anime_tracker < docs/database/db-schema.sql
 
 ## 相关文档
 
+- 后端模块边界：[`architecture/backend-business-module-boundaries.md`](architecture/backend-business-module-boundaries.md)
+- ADR-0001：[`architecture/decisions/0001-common-contract-boundary.md`](architecture/decisions/0001-common-contract-boundary.md)
+- 架构术语表：[`architecture/glossary.md`](architecture/glossary.md)
 - 项目总览：[`../README.md`](../README.md)
 - 后端详解：[`../backend/README.md`](../backend/README.md)
 - 前端总览：[`../frontend/README.md`](../frontend/README.md)
