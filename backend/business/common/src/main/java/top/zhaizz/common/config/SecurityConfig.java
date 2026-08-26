@@ -1,4 +1,4 @@
-package top.zhaizz.app.config;
+package top.zhaizz.common.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
