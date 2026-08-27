@@ -1,4 +1,10 @@
-import ReactECharts from 'echarts-for-react';
+import ReactEChartsCore from 'echarts-for-react/lib/core';
+import * as echarts from 'echarts/core';
+import { BarChart as EChartsBarChart, LineChart as EChartsLineChart } from 'echarts/charts';
+import { GridComponent, LegendComponent } from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
+
+echarts.use([EChartsBarChart, EChartsLineChart, GridComponent, LegendComponent, CanvasRenderer]);
 
 interface BarProps {
   title: string;
@@ -8,7 +14,8 @@ export function BarChart({ title, data }: BarProps) {
   return (
     <>
       <h3>{title}</h3>
-      <ReactECharts
+      <ReactEChartsCore
+        echarts={echarts}
         style={{ height: 260 }}
         option={{
           xAxis: { type: 'category', data: data.map((d) => d.label) },
@@ -29,7 +36,8 @@ export function LineChart({ title, x, series }: LineProps) {
   return (
     <>
       <h3>{title}</h3>
-      <ReactECharts
+      <ReactEChartsCore
+        echarts={echarts}
         style={{ height: 260 }}
         option={{
           xAxis: { type: 'category', data: x },
