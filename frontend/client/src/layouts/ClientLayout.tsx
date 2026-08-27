@@ -1,7 +1,7 @@
-import { Layout, Menu, Input, Dropdown, Avatar, Grid, theme, Button, Tooltip } from 'antd';
+import { Layout, Menu, Input, Dropdown, Avatar, Grid, theme, Button, Tooltip, message } from 'antd';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { MoonOutlined, SunOutlined } from '@ant-design/icons';
-import { useAuthStore, authApi, useThemeStore, resolveMode } from '@shared';
+import { useAuthStore, authApi, completeLogout, useThemeStore, resolveMode } from '@shared';
 
 const { Header } = Layout;
 export function ClientLayout() {
@@ -9,12 +9,14 @@ export function ClientLayout() {
   const screens = Grid.useBreakpoint();
   const { token } = theme.useToken();
   const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
   const mode = useThemeStore((s) => s.mode);
   const followSystem = useThemeStore((s) => s.followSystem);
   const setMode = useThemeStore((s) => s.setMode);
   const resolved = resolveMode(mode, followSystem);
-  const onLogout = async () => { try { await authApi.logout(); } finally { logout(); navigate('/login'); } };
+  const onLogout = async () => {
+    if (await completeLogout(authApi.logout)) navigate('/login');
+    else message.error('退出失败，请重试');
+  };
   const menu = {
     items: [
       { key: 'profile', label: <Link to="/profile">个人中心</Link> },

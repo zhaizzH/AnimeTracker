@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Select, Table, message } from 'antd';
+import { Select, Switch, Table, message } from 'antd';
 import { adminUsersApi, type UserRole } from '@shared';
 
 export default function Users() {
@@ -12,10 +12,18 @@ export default function Users() {
     onSuccess: () => { message.success('角色已更新'); qc.invalidateQueries({ queryKey: ['admin-users'] }); },
     onError: (e) => message.error((e as Error).message),
   });
+  const toggle = useMutation({
+    mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) => adminUsersApi.updateEnabled(id, enabled),
+    onSuccess: (_, vars) => { message.success(vars.enabled ? '用户已启用' : '用户已禁用'); qc.invalidateQueries({ queryKey: ['admin-users'] }); },
+    onError: (e) => message.error((e as Error).message),
+  });
   return (
     <Table rowKey="id" loading={isLoading} dataSource={data?.content ?? []} pagination={{ current: page, total: data?.total, pageSize: 20, onChange: setPage }} columns={[
       { title: 'ID', dataIndex: 'id', width: 60 }, { title: '用户名', dataIndex: 'username' }, { title: '邮箱', dataIndex: 'email' },
       { title: '昵称', dataIndex: 'nickname' }, { title: '注册时间', dataIndex: 'createdAt' },
+      { title: '状态', dataIndex: 'enabled', render: (enabled: boolean, rec: { id: number }) => (
+        <Switch checked={enabled} onChange={(checked) => toggle.mutate({ id: rec.id, enabled: checked })} loading={toggle.isPending} />
+      ) },
       // ponytail: Select onChange 直接变更角色（变更即调用 + message 提示），避免 Popconfirm 包裹 Select 取值的脆弱交互
       { title: '角色', dataIndex: 'role', render: (r: UserRole, rec: { id: number }) => (
         <Select value={r} onChange={(role: UserRole) => change.mutate({ id: rec.id, role })} options={[{ value: 'USER', label: 'USER' }, { value: 'ADMIN', label: 'ADMIN' }]} style={{ width: 110 }} />

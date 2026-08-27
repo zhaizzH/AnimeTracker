@@ -1,7 +1,7 @@
 import { Layout, Menu, Button } from 'antd';
 import type { MenuProps } from 'antd';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { authApi, useAuthStore } from '@shared';
+import { authApi, completeLogout, useAuthStore } from '@shared';
 
 const { Sider, Header, Content } = Layout;
 const MENU: MenuProps['items'] = [
@@ -11,8 +11,9 @@ const MENU: MenuProps['items'] = [
 export function AdminLayout() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
-  const onLogout = async () => { try { await authApi.logout(); } finally { logout(); navigate('/admin/login'); } };
+  const onLogout = async () => {
+    if (await completeLogout(authApi.logout)) navigate('/admin/login');
+  };
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider theme="light" width={200} style={{ borderRight: '1px solid #eee' }}>

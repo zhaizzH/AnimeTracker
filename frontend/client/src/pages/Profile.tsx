@@ -2,12 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import { Avatar, Button, Card, Descriptions, Form, Input, Modal, Space, Upload, message, theme } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { useState } from 'react';
-import { authApi, filesApi, useAuthStore, formatDate } from '@shared';
+import { useNavigate } from 'react-router-dom';
+import { authApi, filesApi, useAuthStore, formatDate, publishSignedOut } from '@shared';
 
 export default function Profile() {
   const { token } = theme.useToken();
   const user = useAuthStore((s) => s.user);
-  const setUser = useAuthStore((s) => s.setUser);
+  const navigate = useNavigate();
   const { data } = useQuery({ queryKey: ['me'], queryFn: () => authApi.me() });
   const u = data ?? user;
   const [pwdOpen, setPwdOpen] = useState(false);
@@ -21,7 +22,10 @@ export default function Profile() {
   const onPwd = async () => {
     const v = await pwdForm.validateFields();
     await authApi.updatePassword({ oldPassword: v.oldPassword, newPassword: v.newPassword });
+    useAuthStore.getState().setUnauthenticated();
+    publishSignedOut();
     message.success('密码已修改'); setPwdOpen(false); pwdForm.resetFields();
+    navigate('/login');
   };
   const onSendCode = async () => {
     const v = await emailForm.validateFields(['newEmail']);
@@ -36,7 +40,7 @@ export default function Profile() {
   const onEdit = async () => {
     const v = await editForm.validateFields();
     const next = await authApi.updateProfile({ nickname: v.nickname, avatar: v.avatar });
-    setUser(next); setEditOpen(false); message.success('资料已更新');
+    useAuthStore.setState({ user: next }); setEditOpen(false); message.success('资料已更新');
   };
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: 24 }}>
