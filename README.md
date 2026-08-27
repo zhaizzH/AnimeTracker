@@ -89,7 +89,7 @@ flowchart LR
 开发环境中，两个 Vite 前端统一将 `/api` 代理到业务后端。Python Agent 作为独立推理服务，由 Spring Boot 代理层转发请求；Agent 再通过受控工具回查业务 API，前端不会直接访问 Agent 服务。
 ## 认证会话
 
-登录、邮箱验证和刷新接口只返回短期 Access Token 与用户信息；刷新凭据由业务服务写入 `at_refresh` HttpOnly、SameSite=Lax Cookie，前端仅在当前标签页内存保存 Access Token，不写入 localStorage。刷新会话空闲 7 天或绝对 30 天过期，退出登录、改密、重置密码、禁用账户和角色变更会撤销相关会话。生产环境请设置 `AT_AUTH_COOKIE_SECURE=true`，并将前后端部署在同源地址；刷新/退出请求要求匹配 CORS Origin。已有数据库请执行 [`docs/database/migrations/2026-08-27-user-enabled.sql`](docs/database/migrations/2026-08-27-user-enabled.sql)。
+登录、邮箱验证和刷新接口只返回短期 Access Token 与用户信息；刷新凭据由业务服务写入 `at_refresh` HttpOnly、SameSite=Lax Cookie，前端仅在当前标签页内存保存 Access Token，不写入 localStorage。刷新会话空闲 7 天或绝对 30 天过期，退出登录、改密、重置密码、禁用账户和角色变更会撤销相关会话。Cookie 默认启用 Secure；生产环境保持 `AT_AUTH_COOKIE_SECURE=true`，本地 HTTP 开发才显式设置为 false，并将前后端部署在同源地址；刷新/退出请求要求匹配 CORS Origin。已有数据库请执行 [`docs/database/migrations/2026-08-27-user-enabled.sql`](docs/database/migrations/2026-08-27-user-enabled.sql)。
 
 ## 技术栈
 

@@ -10,6 +10,6 @@ import org.springframework.stereotype.Component;
 public class AuthCookieProperties {
     private String name = "at_refresh";
     private String path = "/api/client/auth";
-    private boolean secure = false;
+    private boolean secure = true;
     private String sameSite = "Lax";
 }

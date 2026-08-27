@@ -70,7 +70,7 @@ at:
     refresh-cookie:
       name: at_refresh
       path: /api/client/auth
-      secure: ${AT_AUTH_COOKIE_SECURE:false}
+      secure: ${AT_AUTH_COOKIE_SECURE:true}
       same-site: Lax
   agent:
     base-url: http://${at.agent.host:localhost}:${at.agent.port:8090}

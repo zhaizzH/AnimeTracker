@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import top.zhaizz.common.constant.RedisKeys;
 import top.zhaizz.common.util.RedisUtil;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -14,12 +15,16 @@ import java.util.concurrent.TimeUnit;
 @Component
 @RequiredArgsConstructor
 public class AuthSessionStore {
+    private static final long REFRESH_INDEX_TTL_DAYS = Duration.ofDays(30).toDays();
     private final RedisUtil redis;
 
     public void saveRefresh(String rawToken, Long userId, long startedAtEpochMs, long ttlMs) {
         String hash = hash(rawToken);
         redis.set(RedisKeys.REFRESH + hash, userId + ":" + startedAtEpochMs, ttlMs, TimeUnit.MILLISECONDS);
-        redis.sadd(RedisKeys.ACTIVE_REFRESH_TOKENS + userId, hash);
+        String indexKey = RedisKeys.ACTIVE_REFRESH_TOKENS + userId;
+        redis.sadd(indexKey, hash);
+        // Bound stale hashes when a refresh token expires without an explicit consume/revoke.
+        redis.expire(indexKey, REFRESH_INDEX_TTL_DAYS, TimeUnit.DAYS);
     }
 
     /** GETDEL 保证轮换 token 在并发请求中只会被一个请求消费。 */

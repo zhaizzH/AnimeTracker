@@ -44,6 +44,13 @@ public class RedisUtil {
     }
 
     /**
+     * 设置键的过期时间
+     */
+    public void expire(String key, long timeout, TimeUnit unit) {
+        stringRedisTemplate.expire(key, timeout, unit);
+    }
+
+    /**
      * 获取并删除字符串值（Redis GETDEL，保证 refresh token 只能被消费一次）
      */
     public String getAndDelete(String key) {
