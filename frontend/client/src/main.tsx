@@ -23,7 +23,7 @@ function Shell() {
   if (metaTheme) metaTheme.setAttribute('content', resolved === 'dark' ? '#1A1D17' : '#F7F5F0');
   return (
     <ConfigProvider theme={{ ...(resolved === 'dark' ? antdThemeDark : antdTheme), algorithm: resolved === 'dark' ? antdThemeApi.darkAlgorithm : antdThemeApi.defaultAlgorithm }}>
-      <AuthGate><RouterProvider router={router} /></AuthGate>
+      <AuthGate className="od-auth-gate"><RouterProvider router={router} /></AuthGate>
     </ConfigProvider>
   );
 }

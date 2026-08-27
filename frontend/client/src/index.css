@@ -485,3 +485,51 @@ body {
   background: var(--od-cyan-soft);
 }
 
+
+/* 会话恢复与重连：沿用客户端暖纸玻璃视觉 */
+.od-auth-gate {
+  background: var(--od-bg) !important;
+  color: var(--od-ink) !important;
+}
+.od-auth-gate .auth-gate__panel {
+  padding: clamp(32px, 6vw, 48px) clamp(24px, 5vw, 40px) !important;
+  background: var(--od-glass) !important;
+  border: 1px solid var(--od-glass-border) !important;
+  border-radius: var(--od-radius) !important;
+  box-shadow: var(--od-shadow) !important;
+  backdrop-filter: blur(18px);
+  animation: od-auth-gate-in 180ms ease-out both;
+}
+.od-auth-gate .auth-gate__brand {
+  margin-bottom: 24px;
+  color: var(--od-ink);
+  font-family: var(--od-serif);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.od-auth-gate.auth-gate--checking .ant-spin {
+  margin: 8px 0 20px;
+}
+.od-auth-gate .ant-typography,
+.od-auth-gate .ant-result-title {
+  color: var(--od-ink);
+  text-wrap: pretty;
+}
+.od-auth-gate .ant-typography-secondary,
+.od-auth-gate .ant-result-subtitle {
+  color: var(--od-ink-2);
+}
+.od-auth-gate .ant-typography:last-child {
+  margin-bottom: 0;
+}
+.od-auth-gate .auth-gate__result {
+  padding: 0;
+}
+@keyframes od-auth-gate-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .od-auth-gate .auth-gate__panel { animation: none; }
+}
