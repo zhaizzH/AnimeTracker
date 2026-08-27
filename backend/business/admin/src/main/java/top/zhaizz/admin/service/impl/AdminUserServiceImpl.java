@@ -11,6 +11,7 @@ import top.zhaizz.admin.service.AdminUserService;
 import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.result.PageResult;
+import top.zhaizz.common.security.AuthSessionStore;
 import top.zhaizz.pojo.entity.User;
 import top.zhaizz.pojo.vo.user.UserVO;
 
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 public class AdminUserServiceImpl implements AdminUserService {
 
     private final AdminUserMapper userMapper;
+    private final AuthSessionStore sessionStore;
 
     // 超级管理员账号 ID
     @Value("${at.admin.superadmin-id}")
@@ -52,12 +54,24 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (user == null) {
             throw new BizException(ErrorType.NOT_FOUND, "用户不存在");
         }
-        if (user.getId() == superadminId) {
+        if (user.getId() != null && user.getId() == superadminId) {
             throw new BizException(ErrorType.FORBIDDEN, "管理员角色不能被修改");
         }
         user.setRole(role);
         user.setUpdatedAt(LocalDateTime.now());
         userMapper.updateById(user);
+        sessionStore.revokeAll(userId);
+        return UserConverter.toUserVO(user);
+    }
+    @Override
+    public UserVO updateUserEnabled(Long userId, boolean enabled) {
+        User user = userMapper.selectById(userId);
+        if (user == null) throw new BizException(ErrorType.NOT_FOUND, "用户不存在");
+        if (user.getId() == superadminId && !enabled) throw new BizException(ErrorType.FORBIDDEN, "超级管理员不能被禁用");
+        user.setEnabled(enabled);
+        user.setUpdatedAt(LocalDateTime.now());
+        userMapper.updateById(user);
+        if (!enabled) sessionStore.revokeAll(userId);
         return UserConverter.toUserVO(user);
     }
 }

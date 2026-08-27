@@ -20,6 +20,7 @@ public class User {
     private String avatar;              // 头像URL
     private String role;                // 角色: USER=普通用户, ADMIN=管理员
     private Boolean emailVerified;      // 邮箱是否已验证
+    private Boolean enabled = true; // 账号是否启用
     private LocalDateTime createdAt;    // 创建时间
     private LocalDateTime updatedAt;    // 更新时间
 }

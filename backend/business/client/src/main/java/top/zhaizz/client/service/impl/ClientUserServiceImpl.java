@@ -7,6 +7,7 @@ import top.zhaizz.client.converter.UserConverter;
 import top.zhaizz.client.mapper.UserMapper;
 import top.zhaizz.client.service.ClientUserService;
 import top.zhaizz.common.exception.BizException;
+import top.zhaizz.common.security.AuthSessionStore;
 import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.pojo.dto.auth.ChangePasswordDTO;
 import top.zhaizz.pojo.dto.user.UpdateUserDTO;
@@ -24,6 +25,7 @@ public class ClientUserServiceImpl implements ClientUserService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final AuthSessionStore sessionStore;
 
     @Override
     public UserVO getUserById(Long userId) {
@@ -60,5 +62,6 @@ public class ClientUserServiceImpl implements ClientUserService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setUpdatedAt(LocalDateTime.now());
         userMapper.updateById(user);
+        sessionStore.revokeAll(userId);
     }
 }

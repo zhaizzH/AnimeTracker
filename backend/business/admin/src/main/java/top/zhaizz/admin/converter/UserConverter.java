@@ -21,6 +21,7 @@ public class UserConverter {
         vo.setNickname(entity.getNickname());
         vo.setAvatar(entity.getAvatar());
         vo.setRole(entity.getRole());
+        vo.setEnabled(entity.getEnabled());
         vo.setCreatedAt(entity.getCreatedAt());
         return vo;
     }

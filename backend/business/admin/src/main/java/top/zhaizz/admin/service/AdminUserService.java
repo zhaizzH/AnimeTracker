@@ -15,4 +15,5 @@ public interface AdminUserService {
      * 修改指定用户的角色
      */
     UserVO updateUserRole(Long userId, String role);
+    UserVO updateUserEnabled(Long userId, boolean enabled);
 }

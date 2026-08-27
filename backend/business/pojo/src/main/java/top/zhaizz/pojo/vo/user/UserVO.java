@@ -16,5 +16,6 @@ public class UserVO {
     private String nickname;    // 昵称
     private String avatar;      // 头像URL
     private String role;        // 角色: USER=普通用户, ADMIN=管理员
+    private Boolean enabled;    // 账号是否启用
     private LocalDateTime createdAt;    // 创建时间
 }

@@ -1,9 +1,11 @@
 package top.zhaizz.client.controller;
 
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.client.service.ClientUserService;
+import top.zhaizz.client.service.RefreshCookieService;
 import top.zhaizz.client.service.VerificationService;
 import top.zhaizz.common.constant.OperationLogConstants;
 import top.zhaizz.common.log.OperationLog;
@@ -25,6 +27,7 @@ public class UserController {
 
     private final ClientUserService clientUserService;
     private final VerificationService verificationService;
+    private final RefreshCookieService refreshCookieService;
 
     /**
      * 获取当前登录用户信息
@@ -49,9 +52,10 @@ public class UserController {
      */
     @OperationLog(action = OperationLogConstants.ACTION_PASSWORD_CHANGE, module = OperationLogConstants.MODULE_USER)
     @PostMapping("/update-password")
-    public Result<Void> changePassword(@Valid @RequestBody ChangePasswordDTO request) {
+    public Result<Void> changePassword(@Valid @RequestBody ChangePasswordDTO request, HttpServletResponse response) {
         Long userId = SecurityUtil.getCurrentUserId();
         clientUserService.changePassword(userId, request);
+        refreshCookieService.clear(response);
         return Result.success(null);
     }
 
