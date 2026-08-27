@@ -81,6 +81,14 @@ public class SubjectController {
     }
 
     /**
+     * 获取库中实际存在的番剧年份列表
+     */
+    @GetMapping("/years")
+    public Result<List<Integer>> listYears() {
+        return Result.success(clientSubjectService.listYears());
+    }
+
+    /**
      * 获取番剧剧集列表
      */
     @GetMapping("/{id}/episodes")

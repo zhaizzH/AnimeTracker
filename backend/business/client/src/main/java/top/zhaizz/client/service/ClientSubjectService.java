@@ -31,4 +31,7 @@ public interface ClientSubjectService {
 
     /** 批量回查条目，并按可见性、收藏状态分类。 */
     SubjectBatchResultVO batch(List<Long> subjectIds, boolean excludeCollected, Long userId);
+
+    /** 库中实际存在的番剧年份（降序） */
+    List<Integer> listYears();
 }

@@ -41,4 +41,7 @@
     <select id="findSubjectIdsByTag" resultType="java.lang.Long">
         SELECT subject_id FROM subject_tag WHERE name = #{tagName} ORDER BY id
     </select>
+    <select id="selectYears" resultType="java.lang.Integer">
+        SELECT DISTINCT YEAR(air_date) FROM subject WHERE air_date IS NOT NULL ORDER BY 1 DESC
+    </select>
 </mapper>

@@ -29,4 +29,7 @@ public interface SubjectMapper extends BaseMapper<Subject> {
      * 根据标签名查询番剧 ID 列表
      */
     List<Long> findSubjectIdsByTag(@Param("tagName") String tagName);
+
+    /** 查询库中实际存在番剧年份（去重，降序） */
+    List<Integer> selectYears();
 }

@@ -62,6 +62,11 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
     private final CollectionMapper collectionMapper;
 
     @Override
+    public List<Integer> listYears() {
+        return subjectMapper.selectYears();
+    }
+
+    @Override
     public PageResult<SubjectListVO> listSubjects(SubjectListQueryDTO request) {
         LambdaQueryWrapper<Subject> wrapper = new LambdaQueryWrapper<Subject>()
                 .orderBy(true, "asc".equals(buildOrderRaw(request.getOrder())), buildSortField(request.getSort()));
