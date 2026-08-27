@@ -44,6 +44,13 @@ public class RedisUtil {
     }
 
     /**
+     * 获取并删除字符串值（Redis GETDEL，保证 refresh token 只能被消费一次）
+     */
+    public String getAndDelete(String key) {
+        return stringRedisTemplate.opsForValue().getAndDelete(key);
+    }
+
+    /**
      * 自增并返回新值
      */
     public Long incr(String key) {
