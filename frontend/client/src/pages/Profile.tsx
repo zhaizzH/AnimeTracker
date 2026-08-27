@@ -24,7 +24,7 @@ export default function Profile() {
     await authApi.updatePassword({ oldPassword: v.oldPassword, newPassword: v.newPassword });
     useAuthStore.getState().setUnauthenticated();
     publishSignedOut();
-    message.success('密码已修改'); setPwdOpen(false); pwdForm.resetFields();
+    message.success('密码已修改，请重新登录'); setPwdOpen(false); pwdForm.resetFields();
     navigate('/login');
   };
   const onSendCode = async () => {

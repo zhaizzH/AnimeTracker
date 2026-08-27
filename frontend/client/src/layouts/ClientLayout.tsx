@@ -1,6 +1,7 @@
 import { Layout, Menu, Input, Dropdown, Avatar, Grid, theme, Button, Tooltip, message } from 'antd';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { MoonOutlined, SunOutlined } from '@ant-design/icons';
+import { useState } from 'react';
 import { useAuthStore, authApi, completeLogout, useThemeStore, resolveMode } from '@shared';
 
 const { Header } = Layout;
@@ -13,9 +14,16 @@ export function ClientLayout() {
   const followSystem = useThemeStore((s) => s.followSystem);
   const setMode = useThemeStore((s) => s.setMode);
   const resolved = resolveMode(mode, followSystem);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const onLogout = async () => {
-    if (await completeLogout(authApi.logout)) navigate('/login');
-    else message.error('退出失败，请重试');
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      if (await completeLogout(authApi.logout)) navigate('/login');
+      else message.error('退出失败，请重试');
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
   const menu = {
     items: [
@@ -23,8 +31,8 @@ export function ClientLayout() {
       { key: 'collections', label: <Link to="/my-collections">我的追番</Link> },
       { key: 'agent', label: <Link to="/agent">AI 助手</Link> },
       user?.role === 'ADMIN' ? { key: 'admin', label: <a href="/admin">管理后台</a> } : null,
-      { key: 'logout', label: '退出登录' },
-    ].filter(Boolean) as any[], onClick: ({ key }: { key: string }) => { if (key === 'logout') onLogout(); }
+      { key: 'logout', label: isLoggingOut ? '退出中…' : '退出登录', disabled: isLoggingOut },
+    ].filter(Boolean) as any[], onClick: ({ key }: { key: string }) => { if (key === 'logout') void onLogout(); }
   };
   return (
     <Layout>
