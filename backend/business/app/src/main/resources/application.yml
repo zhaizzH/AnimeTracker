@@ -66,6 +66,12 @@ mybatis-plus:
 
 # AI Agent 服务
 at:
+  auth:
+    refresh-cookie:
+      name: at_refresh
+      path: /api/client/auth
+      secure: ${AT_AUTH_COOKIE_SECURE:false}
+      same-site: Lax
   agent:
     base-url: http://${at.agent.host:localhost}:${at.agent.port:8090}
     connect-timeout: 10000
@@ -86,6 +92,8 @@ jwt:
   refresh-expiration: ${at.jwt.refresh-expiration:604800000}  # 7 天
   max-login-fails: ${at.jwt.max-login-fails:5}  # 登录失败次数限制
   login-fail-window-minutes: ${at.jwt.login-fail-window-minutes:300}
+  max-session-expiration: ${at.jwt.max-session-expiration:2592000000}  # 30 天绝对上限
+
 
 # MinIO 对象存储
 minio:

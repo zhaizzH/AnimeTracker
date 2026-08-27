@@ -4,17 +4,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import top.zhaizz.pojo.vo.user.UserVO;
 
-/**
- * 登录/注册结果 VO（token + 用户信息）
- * <p>
- * 注册和登录统一返回此结构，前端一次拿到 Token 和用户信息，
- * 无需额外调用 {@code GET /api/client/me}。
- */
+/** 登录/验证结果（access token + 用户信息；refresh token 仅通过 HttpOnly Cookie 返回） */
 @Data
 @AllArgsConstructor
 public class LoginVO {
-
-    private String token;           // Access Token
-    private String refreshToken;    // Refresh Token（轮换）
-    private UserVO user;            // 用户信息
+    private String token;
+    private UserVO user;
 }
