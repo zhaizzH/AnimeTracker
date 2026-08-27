@@ -1,16 +1,20 @@
 import { Button, Card, Form, Input, message } from 'antd';
-import { useNavigate } from 'react-router-dom';
-import { authApi, useAuthStore } from '@shared';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { authApi, publishSessionAvailable, useAuthStore } from '@shared';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
-  const setLogin = useAuthStore((s) => s.setLogin);
-  const logout = useAuthStore((s) => s.logout);
+  const location = useLocation();
+  const setAuthenticated = useAuthStore((s) => s.setAuthenticated);
+  const setUnauthenticated = useAuthStore((s) => s.setUnauthenticated);
   const onFinish = async (v: { username: string; password: string }) => {
     try {
       const data = await authApi.login(v);
-      if (data.user.role !== 'ADMIN') { message.error('该账号无管理权限'); logout(); return; }
-      setLogin(data); navigate('/admin/dashboard', { replace: true });
+      if (data.user.role !== 'ADMIN') { message.error('该账号无管理权限'); setUnauthenticated(); return; }
+      setAuthenticated(data);
+      publishSessionAvailable();
+      const from = (location.state as { from?: string } | null)?.from ?? '/admin/dashboard';
+      navigate(from, { replace: true });
     } catch (e) { message.error((e as Error).message); }
   };
   return (

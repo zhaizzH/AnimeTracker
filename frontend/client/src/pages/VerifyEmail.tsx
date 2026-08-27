@@ -1,16 +1,17 @@
 import { Button, Card, Form, Input, message } from 'antd';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { authApi, useAuthStore } from '@shared';
+import { authApi, publishSessionAvailable, useAuthStore } from '@shared';
 
 export default function VerifyEmail() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const email = params.get('email') ?? '';
-  const setLogin = useAuthStore((s) => s.setLogin);
+  const setAuthenticated = useAuthStore((s) => s.setAuthenticated);
   const onFinish = async (v: { code: string }) => {
     try {
       const data = await authApi.verifyEmail({ email, code: v.code });
-      setLogin(data);
+      setAuthenticated(data);
+      publishSessionAvailable();
       message.success('邮箱验证成功');
       navigate('/', { replace: true });
     } catch (e) { message.error((e as Error).message); }

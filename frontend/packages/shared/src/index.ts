@@ -2,6 +2,7 @@ export const SHARED_SENTINEL = 'shared-ok';
 export * from './types';
 export * from './format';
 export { useAuthStore } from './store/auth';
+export type { AuthStatus, AuthState } from './store/auth';
 export { useThemeStore, resolveMode } from './store/theme';
 export type { ThemeMode } from './store/theme';
 export { SubjectCard } from './components/SubjectCard';
@@ -9,6 +10,8 @@ export * from './api/http';
 export * from './sse';
 export { antdTheme, antdThemeDark } from './theme';
 export { useBootstrapAuth } from './hooks/useBootstrapAuth';
+export { AuthGate } from './components/AuthGate';
+export { bootstrapAuth, retryBootstrapAuth, refreshWithLock, publishSessionAvailable, publishSignedOut, completeLogout } from './auth/coordinator';
 export { useAgentChat } from './hooks/useAgentChat';
 export type { ChatMsg, ToolStep } from './hooks/useAgentChat';
 // API 模块以命名空间暴露，避免跨模块同名导出（list/schedule/remove）在扁平 re-export 时冲突。

@@ -1,15 +1,16 @@
 import { Button, Card, Form, Input, message } from 'antd';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { authApi, useAuthStore } from '@shared';
+import { authApi, publishSessionAvailable, useAuthStore } from '@shared';
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const setLogin = useAuthStore((s) => s.setLogin);
+  const setAuthenticated = useAuthStore((s) => s.setAuthenticated);
   const onFinish = async (v: { username: string; password: string }) => {
     try {
       const data = await authApi.login(v);
-      setLogin(data);
+      setAuthenticated(data);
+      publishSessionAvailable();
       const from = (location.state as { from?: string } | null)?.from ?? '/';
       navigate(from, { replace: true });
     } catch (e) { message.error((e as Error).message); }

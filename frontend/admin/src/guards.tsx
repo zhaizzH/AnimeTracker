@@ -1,12 +1,18 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { message } from 'antd';
 import { useAuthStore } from '@shared';
 
+const returnTo = (location: ReturnType<typeof useLocation>) => location.pathname + location.search + location.hash;
+
 export function RequireAdmin({ children }: { children: ReactNode }) {
-  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
-  const role = useAuthStore((s) => s.user?.role);
-  if (!isLoggedIn) return <Navigate to="/admin/login" replace />;
-  if (role !== 'ADMIN') { message.error('无管理权限'); useAuthStore.getState().logout(); return <Navigate to="/admin/login" replace />; }
+  const status = useAuthStore((state) => state.status);
+  const role = useAuthStore((state) => state.user?.role);
+  const location = useLocation();
+  if (status === 'unauthenticated') return <Navigate to="/admin/login" replace state={{ from: returnTo(location) }} />;
+  if (status === 'authenticated' && role !== 'ADMIN') {
+    message.error('无管理权限');
+    return <Navigate to="/admin/login" replace state={{ from: returnTo(location) }} />;
+  }
   return <>{children}</>;
 }

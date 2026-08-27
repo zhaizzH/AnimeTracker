@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import { ConfigProvider, theme as antdThemeApi } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { antdTheme, antdThemeDark, useBootstrapAuth, useThemeStore, resolveMode } from '@shared';
+import { antdTheme, antdThemeDark, AuthGate, useBootstrapAuth, useThemeStore, resolveMode } from '@shared';
 import 'antd/dist/reset.css';
 import './index.css';
 import { router } from './router';
@@ -23,7 +23,7 @@ function Shell() {
   if (metaTheme) metaTheme.setAttribute('content', resolved === 'dark' ? '#1A1D17' : '#F7F5F0');
   return (
     <ConfigProvider theme={{ ...(resolved === 'dark' ? antdThemeDark : antdTheme), algorithm: resolved === 'dark' ? antdThemeApi.darkAlgorithm : antdThemeApi.defaultAlgorithm }}>
-      <RouterProvider router={router} />
+      <AuthGate><RouterProvider router={router} /></AuthGate>
     </ConfigProvider>
   );
 }
