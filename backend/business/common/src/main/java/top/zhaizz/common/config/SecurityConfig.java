@@ -18,6 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfigurationSource;
 import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.result.Result;
+import top.zhaizz.common.security.CookieOriginFilter;
 import top.zhaizz.common.security.JwtAuthenticationFilter;
 
 import java.io.IOException;
@@ -31,6 +32,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CookieOriginFilter cookieOriginFilter;
     private final CorsConfigurationSource corsConfigurationSource;
     private final ObjectMapper objectMapper;
 
@@ -52,7 +54,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/client/auth/register", "/api/client/auth/login",
                                 "/api/client/auth/verify-email", "/api/client/auth/resend-code",
                                 "/api/client/auth/refresh",
-                                "/api/client/auth/forgot-password", "/api/client/auth/reset-password").permitAll()
+                                "/api/client/auth/forgot-password", "/api/client/auth/reset-password", "/api/client/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/client/subjects/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/client/subjects/batch").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/client/tags/**").permitAll()
@@ -60,7 +62,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/client/**").authenticated()
                         .anyRequest().denyAll()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(cookieOriginFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

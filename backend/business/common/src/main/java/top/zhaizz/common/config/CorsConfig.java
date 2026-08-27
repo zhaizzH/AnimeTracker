@@ -11,7 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * CORS 跨域配置：仅放行白名单中的明确 Origin，认证走 Bearer Token 而非 Cookie，故关闭 allowCredentials
+ * CORS 跨域配置：仅放行白名单中的明确 Origin，刷新认证使用 HttpOnly Cookie，必须允许 credentialed 请求
  */
 @Configuration
 @EnableConfigurationProperties(CorsProperties.class)
@@ -21,9 +21,9 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource(CorsProperties corsProperties) {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(corsProperties.getAllowedOrigins());
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Request-ID"));
-        configuration.setAllowCredentials(false);
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
