@@ -1,8 +1,11 @@
 import axios, { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
-import type { ApiResult, LoginVO } from '../types';
+import type { ApiResult } from '../types';
 import { useAuthStore } from '../store/auth';
+import { refreshWithLock } from '../auth/coordinator';
 
-export const http: AxiosInstance = axios.create({ baseURL: '/api', timeout: 20000, paramsSerializer: { indexes: null } });
+export const http: AxiosInstance = axios.create({
+  baseURL: '/api', timeout: 20000, withCredentials: true, paramsSerializer: { indexes: null },
+});
 
 http.interceptors.request.use((cfg: InternalAxiosRequestConfig) => {
   const token = useAuthStore.getState().token;
@@ -10,38 +13,21 @@ http.interceptors.request.use((cfg: InternalAxiosRequestConfig) => {
   return cfg;
 });
 
-let refreshing: Promise<boolean> | null = null;
-
 http.interceptors.response.use(
   (res) => {
     const body = res.data as ApiResult<unknown>;
-    // 后端 Result.success() 成功 code 为 200（错误码即 HTTP 状态码），见 business Result.java
     if (body.code === 200) return body.data as never;
     return Promise.reject(new Error(body.message || '请求失败'));
   },
   async (error: AxiosError) => {
-    const original = error.config as InternalAxiosRequestConfig & { _retried?: boolean };
-    if (error.response?.status === 401 && !original._retried && original.url !== '/client/auth/refresh') {
+    const original = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined;
+    if (error.response?.status === 401 && original && !original._retried && original.url !== '/client/auth/refresh') {
       original._retried = true;
-      refreshing ??= refreshOnce().finally(() => { refreshing = null; });
-      if (await refreshing) return http(original);
-      useAuthStore.getState().logout();
-      window.location.href = '/login';
+      if (await refreshWithLock()) return http(original);
     }
     return Promise.reject(error);
   },
 );
-
-async function refreshOnce(): Promise<boolean> {
-  const { refreshToken } = useAuthStore.getState();
-  if (!refreshToken) return false;
-  try {
-    const res = await axios.post<ApiResult<LoginVO>>('/api/client/auth/refresh', { refreshToken });
-    if (res.data.code !== 200) return false;
-    useAuthStore.getState().setLogin(res.data.data);
-    return true;
-  } catch { return false; }
-}
 
 export const get = <T>(url: string, params?: object) => http.get(url, { params }) as Promise<T>;
 export const post = <T>(url: string, data?: unknown) => http.post(url, data) as Promise<T>;

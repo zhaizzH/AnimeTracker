@@ -3,8 +3,8 @@ export interface Paged<T> { content: T[]; total: number; page: number; size: num
 export type CollectionType = 1 | 2 | 3 | 4 | 5;
 export type UserRole = 'USER' | 'ADMIN';
 
-export interface UserVO { id: number; username: string; email: string; nickname?: string | null; avatar?: string | null; role: UserRole; createdAt: string }
-export interface LoginVO { token: string; refreshToken: string; user: UserVO }
+export interface UserVO { id: number; username: string; email: string; nickname?: string | null; avatar?: string | null; role: UserRole; enabled: boolean; createdAt: string }
+export interface LoginVO { token: string; user: UserVO }
 
 export interface SubjectListItem { id: string; name: string; nameCn?: string | null; image?: string | null; score: number; rank: number; eps: number; airDate?: string | null; type: number; airWeekday: number; collectionTotal: number }
 export interface TagVO { id: number; name: string; count: number }

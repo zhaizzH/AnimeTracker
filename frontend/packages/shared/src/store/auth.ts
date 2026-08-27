@@ -1,22 +1,27 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { LoginVO, UserVO } from '../types';
 
+export type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated' | 'retryable-error';
+
 export interface AuthState {
+  status: AuthStatus;
   token: string | null;
-  refreshToken: string | null;
   user: UserVO | null;
-  isLoggedIn: boolean;
-  setLogin: (login: LoginVO) => void;
-  setUser: (user: UserVO) => void;
-  logout: () => void;
+  setChecking: () => void;
+  setAuthenticated: (login: LoginVO) => void;
+  setUnauthenticated: () => void;
+  setRetryableError: () => void;
 }
-export const useAuthStore = create<AuthState>()(persist(
-  (set) => ({
-    token: null, refreshToken: null, user: null, isLoggedIn: false,
-    setLogin: (l) => set({ token: l.token, refreshToken: l.refreshToken, user: l.user, isLoggedIn: true }),
-    setUser: (u) => set({ user: u }),
-    logout: () => set({ token: null, refreshToken: null, user: null, isLoggedIn: false }),
-  }),
-  { name: 'animetracker-auth' },
-));
+
+const LEGACY_STORAGE_KEY = 'animetracker-auth';
+if (typeof window !== 'undefined') window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+
+export const useAuthStore = create<AuthState>((set) => ({
+  status: 'checking',
+  token: null,
+  user: null,
+  setChecking: () => set({ status: 'checking' }),
+  setAuthenticated: (login) => set({ status: 'authenticated', token: login.token, user: login.user }),
+  setUnauthenticated: () => set({ status: 'unauthenticated', token: null, user: null }),
+  setRetryableError: () => set({ status: 'retryable-error' }),
+}));

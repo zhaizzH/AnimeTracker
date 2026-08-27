@@ -6,7 +6,7 @@ export const verifyEmail = (d: { email: string; code: string }) => post<LoginVO>
 export const login = (d: { username: string; password: string }) => post<LoginVO>('/client/auth/login', d);
 export const forgotPassword = (d: { email: string }) => post<void>('/client/auth/forgot-password', d);
 export const resetPassword = (d: { email: string; code: string; newPassword: string }) => post<void>('/client/auth/reset-password', d);
-export const refresh = (d: { refreshToken: string }) => post<LoginVO>('/client/auth/refresh', d);
+export const refresh = () => post<LoginVO>('/client/auth/refresh');
 export const logout = () => post<void>('/client/auth/logout');
 export const me = () => get<UserVO>('/client/me');
 export const updateProfile = (d: { nickname?: string; avatar?: string }) => post<UserVO>('/client/me/update', d);
