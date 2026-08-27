@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Statistic, Row, Col, Empty } from 'antd';
@@ -14,29 +14,32 @@ export default function Home() {
   const todayShows = useQuery({ queryKey: ['schedule', 'today'], queryFn: () => subjectsApi.schedule({ weekday: today, size: 50 }) });
   const heroItems = todayShows.data?.content?.slice(0, HERO_COUNT) ?? [];
   const [active, setActive] = useState(0);
-  const reduceMotion = useRef(
-    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  ).current;
 
   // 数据刷新时回到第一张
   useEffect(() => { setActive(0); }, [todayShows.dataUpdatedAt]);
-  // reduced-motion 或单张时不自动轮播
+  // 单张时不自动轮播；prefers-reduced-motion 由 CSS 处理（禁过渡，切换瞬时完成）
   useEffect(() => {
-    if (reduceMotion || heroItems.length <= 1) return;
+    if (heroItems.length <= 1) return;
     const timer = setInterval(() => setActive((i) => (i + 1) % heroItems.length), 5000);
     return () => clearInterval(timer);
-  }, [heroItems.length, reduceMotion]);
+  }, [heroItems.length]);
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: 24 }}>
+    <div style={{ maxWidth: 1400, margin: '0 auto', padding: 24 }}>
       {heroItems.length > 0 && (
         <div className="od-hero" style={{ marginBottom: 32 }}>
+          {heroItems.length > 1 && <div key={active} className="od-hero__progress" />}
           {heroItems.map((s, i) => (
             <div key={s.id} className={`od-hero__slide${i === active ? ' is-active' : ''}`}>
-              {s.image ? (
-                <img className="od-hero__img" src={s.image} alt={s.nameCn ?? s.name} />
-              ) : (
-                <div className="od-hero__fallback" aria-hidden="true" />
+              <div className="od-hero__fallback" aria-hidden="true" />
+              {s.image && (
+                <img
+                  className="od-hero__img"
+                  src={s.image}
+                  alt={s.nameCn ?? s.name}
+                  fetchPriority={i === 0 ? 'high' : 'low'}
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
               )}
               <div className="od-hero__scrim" aria-hidden="true" />
               <div className="od-hero__body">

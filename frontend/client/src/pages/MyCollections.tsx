@@ -20,9 +20,9 @@ export default function MyCollections() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const type = TABS.find((t) => t.key === tab)?.type;
   const cts = useQuery({ queryKey: ['collections', 'counts'], queryFn: collectionsApi.counts });
-  const { data, isLoading } = useQuery({ queryKey: ['collections', type, page], queryFn: () => collectionsApi.list({ type, page, size: 20 }) });
+  const { data, isLoading } = useQuery({ queryKey: ['collections', type, page], queryFn: () => collectionsApi.list({ type, page, size: 24 }) });
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: 24 }}>
+    <div style={{ maxWidth: 1400, margin: '0 auto', padding: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Tabs activeKey={tab} onChange={setTab} items={TABS.map((t) => ({ key: t.key, label: `${t.label}${t.key !== 'all' ? `(${cts.data?.[t.key] ?? 0})` : ''}` }))} />
         <Button onClick={() => setPreviewOpen(true)}>更新本周进度</Button>

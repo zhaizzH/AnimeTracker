@@ -7,4 +7,5 @@ export const search = (params: SubjectSearchParams = {}) => get<Paged<SubjectLis
 export const season = (params: { year: number; quarter: string; page?: number; size?: number }) => get<Paged<SubjectListItem>>('/client/subjects/season', params);
 export const schedule = (params: { weekday?: number; year?: number; quarter?: string; page?: number; size?: number } = {}) => get<Paged<SubjectListItem>>('/client/subjects/schedule', params);
 export const detail = (id: number | string) => get<SubjectDetail>(`/client/subjects/${id}`);
+export const years = () => get<number[]>('/client/subjects/years');
 export const episodes = (id: number | string) => get<EpisodeVO[]>(`/client/subjects/${id}/episodes`);

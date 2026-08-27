@@ -25,7 +25,7 @@ export default function Schedule() {
   const { data, isLoading } = useQuery({ queryKey: ['schedule', year, quarter, active], queryFn: () => subjectsApi.schedule({ year, quarter, weekday: tabToWeekday(Number(active)), size: 100 }) });
   const items = WEEK.map((label, i) => ({ key: String(i), label, children: <SubjectGrid items={(data?.content ?? []).filter((s) => s.airWeekday === tabToWeekday(i))} loading={isLoading} /> }));
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: 24 }}>
+    <div style={{ maxWidth: 1400, margin: '0 auto', padding: 24 }}>
       <Space style={{ marginBottom: 16 }}>
         <Select value={year} onChange={(v) => patch({ year: String(v) })} options={[year - 1, year, year + 1].map((y) => ({ value: y, label: `${y}` }))} style={{ width: 110 }} />
         <Select value={quarter} onChange={(v) => patch({ quarter: v })} options={Object.entries(QUARTERS).map(([v, label]) => ({ value: v, label }))} style={{ width: 90 }} />

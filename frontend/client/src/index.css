@@ -153,6 +153,30 @@ body {
 .od-hero:hover .od-hero__img {
   transform: scale(1.04);
 }
+/* Ken Burns：激活幻灯片图片缓慢放大，与 5s 轮播同周期 */
+@keyframes od-kenburns {
+  from { transform: scale(1); }
+  to { transform: scale(1.06); }
+}
+.od-hero__slide.is-active .od-hero__img {
+  animation: od-kenburns 5s ease-out forwards;
+}
+/* 轮播倒计时进度条：与 5s 切换同步收缩 */
+@keyframes od-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+.od-hero__progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 2;
+  transform-origin: left;
+  background: linear-gradient(90deg, var(--od-cyan), transparent);
+  animation: od-progress 5s linear forwards;
+}
 .od-hero__scrim {
   position: absolute;
   inset: 0;
@@ -175,7 +199,7 @@ body {
 .od-hero__title {
   font-family: var(--od-serif);
   font-weight: 700;
-  font-size: 36px;
+  font-size: clamp(24px, 4.5vw, 36px);
   line-height: 1.18;
   margin: 0 0 12px;
   text-wrap: balance;
@@ -300,6 +324,10 @@ body {
   margin-right: -24px;
   padding-left: 24px;
   padding-right: 24px;
+}
+/* Select 下拉滚动到底后不连锁滚动页面（阻断链式滚动） */
+.ant-select-dropdown .rc-virtual-list-holder {
+  overscroll-behavior: contain;
 }
 /* 玻璃表面（详情/个人中心卡片） */
 .od-glass-card.ant-card {
