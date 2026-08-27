@@ -113,6 +113,8 @@ class ImportRepository:
             "name": subject.name,
             "name_cn": subject.name_cn,
             "summary": subject.summary,
+            "air_date": subject.air_date,
+            "air_weekday": subject.air_weekday,
             "rating_total": subject.rating_total,
             "rating_count_json": json.dumps(subject.rating_counts),
             "collection_wish": subject.collection_counts.get("wish", 0),
@@ -131,6 +133,7 @@ class ImportRepository:
             self._session.execute(
                 text(
                     "UPDATE subject SET name=:name, name_cn=:name_cn, summary=:summary, "
+                    "air_date=:air_date, air_weekday=:air_weekday, "
                     "rating_total=:rating_total, rating_count_json=CAST(:rating_count_json AS JSON), "
                     "collection_wish=:collection_wish, collection_collect=:collection_collect, "
                     "collection_doing=:collection_doing, collection_on_hold=:collection_on_hold, "
@@ -144,11 +147,11 @@ class ImportRepository:
             return int(existing)
         result = self._session.execute(
             text(
-                "INSERT INTO subject (bangumi_id, name, name_cn, summary, type, image, import_status, "
+                "INSERT INTO subject (bangumi_id, name, name_cn, summary, type, air_date, air_weekday, image, import_status, "
                 "last_imported_at, created_at, updated_at, rating_total, rating_count_json, collection_wish, "
                 "collection_collect, collection_doing, collection_on_hold, collection_dropped, image_source_url, "
                 "image_storage_status, image_checked_at, source_fetched_at) VALUES "
-                "(:bangumi_id, :name, :name_cn, :summary, 2, :image, 1, :now, :now, :now, :rating_total, "
+                "(:bangumi_id, :name, :name_cn, :summary, 2, :air_date, :air_weekday, :image, 1, :now, :now, :now, :rating_total, "
                 "CAST(:rating_count_json AS JSON), :collection_wish, :collection_collect, :collection_doing, "
                 ":collection_on_hold, :collection_dropped, :image_source_url, :image_storage_status, "
                 ":image_checked_at, :source_fetched_at)"

@@ -8,6 +8,17 @@ MAIN_CREDIT_ROLES = frozenset({"导演", "系列构成", "脚本", "原作", "�
 ALIAS_INFOBOX_KEYS = frozenset({"别名", "中文名", "英文名"})
 
 
+def infer_weekday(air_date: str | None) -> int | None:
+    """从 YYYY-MM-DD 推出星期（0=周日, 1=周一 … 6=周六）。"""
+    if not air_date:
+        return None
+    try:
+        dt = datetime.strptime(air_date, "%Y-%m-%d")
+        return (dt.weekday() + 1) % 7
+    except (ValueError, TypeError):
+        return None
+
+
 @dataclass(frozen=True)
 class Alias:
     name: str
@@ -33,6 +44,8 @@ class NormalizedSubject:
     name: str
     name_cn: str | None
     summary: str
+    air_date: str | None
+    air_weekday: int | None
     aliases: tuple[Alias, ...]
     meta_tags: tuple[str, ...]
     free_tags: tuple[Tag, ...]
@@ -52,11 +65,14 @@ def normalize_subject(raw: dict, persons: list[dict]) -> NormalizedSubject | Non
     rating = raw.get("rating") or {}
     collection = raw.get("collection") or {}
     images = raw.get("images") or {}
+    air_date = _optional_text(raw.get("date"))
     return NormalizedSubject(
         bangumi_id=int(raw["id"]),
         name=_text(raw.get("name")),
         name_cn=_optional_text(raw.get("name_cn")),
         summary=_text(raw.get("summary")),
+        air_date=air_date,
+        air_weekday=infer_weekday(air_date),
         aliases=_aliases(raw.get("infobox") or []),
         meta_tags=_meta_tags(raw.get("meta_tags") or []),
         free_tags=_free_tags(raw.get("tags") or []),
