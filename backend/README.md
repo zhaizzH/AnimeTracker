@@ -50,3 +50,6 @@ backend/
 | [`agent/evals/README.md`](agent/evals/README.md) | 离线 / Live Agent 评测、数据集与 CI 门禁 |
 
 > 前端联调需先启动 business（:8080）；数据库建表脚本见 [`../docs/database/db-schema.sql`](../docs/database/db-schema.sql)。
+## 认证会话部署
+
+business 通过 Redis 保存轮换刷新会话，响应只返回短期 Access Token；刷新凭据写入 `at_refresh` HttpOnly Cookie（路径 `/api/client/auth`，SameSite=Lax）。刷新会话空闲 7 天、绝对最多 30 天；退出、改密、重置密码、禁用账户和角色变更会撤销会话。生产环境设置 `AT_AUTH_COOKIE_SECURE=true`，并确保 `at.cors.allowed-origins` 使用实际前端 Origin；刷新与退出接口会校验 Origin。新增用户启用字段请执行 [`../docs/database/migrations/2026-08-27-user-enabled.sql`](../docs/database/migrations/2026-08-27-user-enabled.sql)。

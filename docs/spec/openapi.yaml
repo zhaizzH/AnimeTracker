@@ -298,9 +298,6 @@ paths:
                       token:
                         type: "string"
                         description: "Access Token"
-                      refreshToken:
-                        type: "string"
-                        description: "Refresh Token（轮换）"
                       user:
                         type: "object"
                         properties:
@@ -402,9 +399,6 @@ paths:
                       token:
                         type: "string"
                         description: "Access Token"
-                      refreshToken:
-                        type: "string"
-                        description: "Refresh Token（轮换）"
                       user:
                         type: "object"
                         properties:
@@ -514,20 +508,10 @@ paths:
                     description: ""
   /api/client/auth/refresh:
     post:
-      summary: "刷新 Token"
-      description: "刷新 Token"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              required:
-              - "refreshToken"
-              type: "object"
-              properties:
-                refreshToken:
-                  type: "string"
-                  description: "Refresh Token（轮换）"
-              description: ""
+      summary: "使用 HttpOnly Cookie 刷新 Access Token"
+      description: "浏览器自动携带 at_refresh HttpOnly Cookie；无需请求体，成功后轮换 Cookie 并返回新的 Access Token。"
+      security:
+      - refreshCookie: []
       responses:
         "200":
           description: ""
@@ -548,9 +532,6 @@ paths:
                       token:
                         type: "string"
                         description: "Access Token"
-                      refreshToken:
-                        type: "string"
-                        description: "Refresh Token（轮换）"
                       user:
                         type: "object"
                         properties:
@@ -580,8 +561,8 @@ paths:
                     description: ""
   /api/client/auth/logout:
     post:
-      summary: "用户退出登录（当前 token 立即失效）"
-      description: "用户退出登录（当前 token 立即失效）"
+      summary: "退出登录并撤销当前访问/刷新会话"
+      description: "撤销当前 Bearer Access Token 与 at_refresh Cookie 对应的刷新会话，并清除 Cookie。"
       responses:
         "200":
           description: ""
@@ -4052,6 +4033,10 @@ components:
       type: "http"
       scheme: "bearer"
       bearerFormat: "JWT"
+    refreshCookie:
+      type: "apiKey"
+      in: "cookie"
+      name: "at_refresh"
   schemas:
     标签信息 VO:
       type: "object"
@@ -4138,9 +4123,6 @@ components:
         token:
           type: "string"
           description: "Access Token"
-        refreshToken:
-          type: "string"
-          description: "Refresh Token（轮换）"
         user:
           type: "object"
           properties:
