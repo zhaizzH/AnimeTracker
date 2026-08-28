@@ -3,80 +3,6 @@ info:
   title: "API Documentation"
   version: "1.0"
 paths:
-  /api/client/files/avatar:
-    post:
-      summary: "上传当前用户头像"
-      description: "已认证用户上传 JPG、PNG 或 WebP 头像，返回 MinIO 可访问 URL"
-      security:
-      - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: "object"
-              required:
-              - "file"
-              properties:
-                file:
-                  type: "string"
-                  format: "binary"
-      responses:
-        "200":
-          description: "头像上传成功"
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                  message:
-                    type: "string"
-                  data:
-                    type: "string"
-        "400":
-          description: "文件 MIME 不受支持"
-        "401":
-          description: "未认证"
-  /api/admin/files/cover:
-    post:
-      summary: "上传番剧封面"
-      description: "管理员上传 JPG、PNG 或 WebP 番剧封面，返回 MinIO 可访问 URL"
-      security:
-      - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: "object"
-              required:
-              - "file"
-              properties:
-                file:
-                  type: "string"
-                  format: "binary"
-      responses:
-        "200":
-          description: "封面上传成功"
-          content:
-            application/json:
-              schema:
-                type: "object"
-                properties:
-                  code:
-                    type: "integer"
-                  message:
-                    type: "string"
-                  data:
-                    type: "string"
-        "400":
-          description: "文件 MIME 不受支持"
-        "401":
-          description: "未认证"
-        "403":
-          description: "需要管理员权限"
   /api/client/tags:
     get:
       summary: "获取标签列表"
@@ -210,8 +136,8 @@ paths:
                     description: ""
   /api/client/auth/register:
     post:
-      summary: "用户注册"
-      description: "用户注册"
+      summary: "register"
+      description: "register"
       requestBody:
         content:
           application/json:
@@ -257,8 +183,8 @@ paths:
                     description: ""
   /api/client/auth/verify-email:
     post:
-      summary: "验证邮箱"
-      description: "验证邮箱"
+      summary: "verifyEmail"
+      description: "verifyEmail"
       requestBody:
         content:
           application/json:
@@ -297,7 +223,7 @@ paths:
                     properties:
                       token:
                         type: "string"
-                        description: "Access Token"
+                        description: ""
                       user:
                         type: "object"
                         properties:
@@ -320,15 +246,18 @@ paths:
                           role:
                             type: "string"
                             description: "角色: USER=普通用户, ADMIN=管理员"
+                          enabled:
+                            type: "boolean"
+                            description: "账号是否启用"
                           createdAt:
                             type: "string"
                             description: "创建时间"
-                        description: "用户信息"
+                        description: ""
                     description: ""
   /api/client/auth/resend-code:
     post:
-      summary: "重新发送验证码（验证码邮件未收到或已过期时重发）"
-      description: "重新发送验证码（验证码邮件未收到或已过期时重发）"
+      summary: "resendCode"
+      description: "resendCode"
       requestBody:
         content:
           application/json:
@@ -361,8 +290,8 @@ paths:
                     description: ""
   /api/client/auth/login:
     post:
-      summary: "用户登录（邮箱已验证，支持用户名或邮箱 + 密码）"
-      description: "用户登录（邮箱已验证，支持用户名或邮箱 + 密码）"
+      summary: "login"
+      description: "login"
       requestBody:
         content:
           application/json:
@@ -398,7 +327,7 @@ paths:
                     properties:
                       token:
                         type: "string"
-                        description: "Access Token"
+                        description: ""
                       user:
                         type: "object"
                         properties:
@@ -421,15 +350,18 @@ paths:
                           role:
                             type: "string"
                             description: "角色: USER=普通用户, ADMIN=管理员"
+                          enabled:
+                            type: "boolean"
+                            description: "账号是否启用"
                           createdAt:
                             type: "string"
                             description: "创建时间"
-                        description: "用户信息"
+                        description: ""
                     description: ""
   /api/client/auth/forgot-password:
     post:
-      summary: "忘记密码 — 发送重置验证码（邮箱不存在时静默成功，防枚举）"
-      description: "忘记密码 — 发送重置验证码（邮箱不存在时静默成功，防枚举）"
+      summary: "forgotPassword"
+      description: "forgotPassword"
       requestBody:
         content:
           application/json:
@@ -462,8 +394,8 @@ paths:
                     description: ""
   /api/client/auth/reset-password:
     post:
-      summary: "忘记密码 — 重置密码（验证码校验通过后重置并踢出所有设备）"
-      description: "忘记密码 — 重置密码（验证码校验通过后重置并踢出所有设备）"
+      summary: "resetPassword"
+      description: "resetPassword"
       requestBody:
         content:
           application/json:
@@ -508,10 +440,8 @@ paths:
                     description: ""
   /api/client/auth/refresh:
     post:
-      summary: "使用 HttpOnly Cookie 刷新 Access Token"
-      description: "浏览器自动携带 at_refresh HttpOnly Cookie；无需请求体，成功后轮换 Cookie 并返回新的 Access Token。"
-      security:
-      - refreshCookie: []
+      summary: "refresh"
+      description: "refresh"
       responses:
         "200":
           description: ""
@@ -531,7 +461,7 @@ paths:
                     properties:
                       token:
                         type: "string"
-                        description: "Access Token"
+                        description: ""
                       user:
                         type: "object"
                         properties:
@@ -554,15 +484,18 @@ paths:
                           role:
                             type: "string"
                             description: "角色: USER=普通用户, ADMIN=管理员"
+                          enabled:
+                            type: "boolean"
+                            description: "账号是否启用"
                           createdAt:
                             type: "string"
                             description: "创建时间"
-                        description: "用户信息"
+                        description: ""
                     description: ""
   /api/client/auth/logout:
     post:
-      summary: "退出登录并撤销当前访问/刷新会话"
-      description: "撤销当前 Bearer Access Token 与 at_refresh Cookie 对应的刷新会话，并清除 Cookie。"
+      summary: "logout"
+      description: "logout"
       responses:
         "200":
           description: ""
@@ -620,6 +553,9 @@ paths:
                       role:
                         type: "string"
                         description: "角色: USER=普通用户, ADMIN=管理员"
+                      enabled:
+                        type: "boolean"
+                        description: "账号是否启用"
                       createdAt:
                         type: "string"
                         description: "创建时间"
@@ -679,6 +615,9 @@ paths:
                       role:
                         type: "string"
                         description: "角色: USER=普通用户, ADMIN=管理员"
+                      enabled:
+                        type: "boolean"
+                        description: "账号是否启用"
                       createdAt:
                         type: "string"
                         description: "创建时间"
@@ -1299,6 +1238,102 @@ paths:
                         type: "integer"
                         description: ""
                     description: ""
+  /api/client/subjects/batch:
+    post:
+      summary: "批量回查候选条目的权威可见状态。"
+      description: "批量回查候选条目的权威可见状态。"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "subjectIds"
+              type: "object"
+              properties:
+                subjectIds:
+                  type: "array"
+                  description: ""
+                  items:
+                    type: "integer"
+                excludeCollected:
+                  type: "boolean"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      items:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "object"
+                          properties:
+                            id:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            name:
+                              type: "string"
+                              description: ""
+                            nameCn:
+                              type: "string"
+                              description: ""
+                            image:
+                              type: "string"
+                              description: ""
+                            score:
+                              type: "number"
+                              description: ""
+                            ratingTotal:
+                              type: "integer"
+                              description: ""
+                            collectionTotal:
+                              type: "integer"
+                              description: ""
+                            airDate:
+                              type: "string"
+                              description: ""
+                            type:
+                              type: "integer"
+                              description: ""
+                            nsfw:
+                              type: "boolean"
+                              description: ""
+                          description: "批量权威回查中可返回的条目字段。"
+                        default: "new ArrayList<>()"
+                      missingIds:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "integer"
+                        default: "new ArrayList<>()"
+                      filteredIds:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "integer"
+                        default: "new ArrayList<>()"
+                      collectedIds:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "integer"
+                        default: "new ArrayList<>()"
+                    description: ""
   /api/client/subjects/{id}:
     get:
       summary: "获取番剧详情"
@@ -1446,6 +1481,29 @@ paths:
                         type: "string"
                         description: "更新时间"
                     description: ""
+  /api/client/subjects/years:
+    get:
+      summary: "获取库中实际存在的番剧年份列表"
+      description: "获取库中实际存在的番剧年份列表"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "array"
+                    description: ""
+                    items:
+                      type: "integer"
   /api/client/subjects/{id}/episodes:
     get:
       summary: "获取番剧剧集列表"
@@ -1510,6 +1568,40 @@ paths:
                           type: "string"
                           description: "播出状态: Air=已播出, Today=今日播出, NA=未播出"
                       description: "剧集信息 VO"
+  /api/client/files/avatar:
+    post:
+      summary: "上传当前用户的头像"
+      description: "上传当前用户的头像"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              required:
+              - "file"
+              type: "object"
+              properties:
+                file:
+                  type: "string"
+                  description: ""
+                  format: "binary"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
+                    description: ""
   /api/client/collections:
     get:
       summary: "获取当前登录用户收藏列表"
@@ -3126,103 +3218,120 @@ paths:
                     properties:
                       content:
                         type: "array"
-                        description: ""
+                        description: "当前页日志明细"
                         items:
                           type: "object"
                           properties:
-                            content:
-                              type: "array"
-                              description: "当前页日志明细"
-                              items:
-                                type: "object"
-                                properties:
-                                  id:
-                                    type: "integer"
-                                    description: "日志ID"
-                                    format: "int64"
-                                  userId:
-                                    type: "integer"
-                                    description: "用户ID（匿名失败登录为NULL）"
-                                    format: "int64"
-                                  username:
-                                    type: "string"
-                                    description: "用户名/邮箱快照"
-                                  action:
-                                    type: "string"
-                                    description: "动作"
-                                  module:
-                                    type: "string"
-                                    description: "模块"
-                                  method:
-                                    type: "string"
-                                    description: "HTTP 方法"
-                                  path:
-                                    type: "string"
-                                    description: "请求路径"
-                                  params:
-                                    type: "string"
-                                    description: "请求参数 JSON（脱敏）"
-                                  ip:
-                                    type: "string"
-                                    description: "客户端 IP"
-                                  userAgent:
-                                    type: "string"
-                                    description: "User-Agent"
-                                  status:
-                                    type: "integer"
-                                    description: "0=成功, 1=失败"
-                                  errorMsg:
-                                    type: "string"
-                                    description: "失败原因"
-                                  durationMs:
-                                    type: "integer"
-                                    description: "耗时(毫秒)"
-                                    format: "int64"
-                                  createdAt:
-                                    type: "string"
-                                    description: "创建时间"
-                                description: "操作日志 VO"
-                            total:
+                            id:
                               type: "integer"
-                              description: "匹配筛选条件的日志总数(分页)"
+                              description: "日志ID"
                               format: "int64"
-                            page:
+                            userId:
                               type: "integer"
-                              description: "当前页码"
-                            size:
+                              description: "用户ID（匿名失败登录为NULL）"
+                              format: "int64"
+                            username:
+                              type: "string"
+                              description: "用户名/邮箱快照"
+                            action:
+                              type: "string"
+                              description: "动作"
+                            module:
+                              type: "string"
+                              description: "模块"
+                            method:
+                              type: "string"
+                              description: "HTTP 方法"
+                            path:
+                              type: "string"
+                              description: "请求路径"
+                            params:
+                              type: "string"
+                              description: "请求参数 JSON（脱敏）"
+                            ip:
+                              type: "string"
+                              description: "客户端 IP"
+                            userAgent:
+                              type: "string"
+                              description: "User-Agent"
+                            status:
                               type: "integer"
-                              description: "每页条数"
-                            stats:
-                              type: "object"
-                              properties:
-                                total:
-                                  type: "integer"
-                                  description: "日志总数"
-                                  format: "int64"
-                                failedCount:
-                                  type: "integer"
-                                  description: "失败日志数"
-                                  format: "int64"
-                                successCount:
-                                  type: "integer"
-                                  description: "成功日志数"
-                                  format: "int64"
-                                avgDurationMs:
-                                  type: "integer"
-                                  description: "平均耗时(毫秒)"
-                                  format: "int64"
-                              description: "当前筛选条件下全量聚合统计"
-                          description: "日志分页结果"
+                              description: "0=成功, 1=失败"
+                            errorMsg:
+                              type: "string"
+                              description: "失败原因"
+                            durationMs:
+                              type: "integer"
+                              description: "耗时(毫秒)"
+                              format: "int64"
+                            createdAt:
+                              type: "string"
+                              description: "创建时间"
+                          description: "操作日志 VO"
                       total:
                         type: "integer"
-                        description: ""
+                        description: "匹配筛选条件的日志总数(分页)"
                         format: "int64"
                       page:
                         type: "integer"
-                        description: ""
+                        description: "当前页码"
                       size:
                         type: "integer"
-                        description: ""
+                        description: "每页条数"
+                      stats:
+                        type: "object"
+                        properties:
+                          total:
+                            type: "integer"
+                            description: "日志总数"
+                            format: "int64"
+                          failedCount:
+                            type: "integer"
+                            description: "失败日志数"
+                            format: "int64"
+                          successCount:
+                            type: "integer"
+                            description: "成功日志数"
+                            format: "int64"
+                          avgDurationMs:
+                            type: "integer"
+                            description: "平均耗时(毫秒)"
+                            format: "int64"
+                        description: "当前筛选条件下全量聚合统计"
+                    description: ""
+  /api/admin/files/cover:
+    post:
+      summary: "上传番剧封面"
+      description: "上传番剧封面"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              required:
+              - "file"
+              type: "object"
+              properties:
+                file:
+                  type: "string"
+                  description: ""
+                  format: "binary"
+        required: true
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "string"
                     description: ""
   /api/admin/users:
     get:
@@ -3287,6 +3396,9 @@ paths:
                             role:
                               type: "string"
                               description: "角色: USER=普通用户, ADMIN=管理员"
+                            enabled:
+                              type: "boolean"
+                              description: "账号是否启用"
                             createdAt:
                               type: "string"
                               description: "创建时间"
@@ -3362,6 +3474,75 @@ paths:
                       role:
                         type: "string"
                         description: "角色: USER=普通用户, ADMIN=管理员"
+                      enabled:
+                        type: "boolean"
+                        description: "账号是否启用"
+                      createdAt:
+                        type: "string"
+                        description: "创建时间"
+                    description: ""
+  /api/admin/users/{id}/update-enabled:
+    post:
+      summary: "updateUserEnabled"
+      description: "updateUserEnabled"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "enabled"
+              type: "object"
+              properties:
+                enabled:
+                  type: "boolean"
+                  description: ""
+              description: ""
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: "用户ID"
+                        format: "int64"
+                      username:
+                        type: "string"
+                        description: "用户名（唯一）"
+                      email:
+                        type: "string"
+                        description: "邮箱"
+                      nickname:
+                        type: "string"
+                        description: "昵称"
+                      avatar:
+                        type: "string"
+                        description: "头像URL"
+                      role:
+                        type: "string"
+                        description: "角色: USER=普通用户, ADMIN=管理员"
+                      enabled:
+                        type: "boolean"
+                        description: "账号是否启用"
                       createdAt:
                         type: "string"
                         description: "创建时间"
@@ -4028,15 +4209,6 @@ paths:
                           format: "int64"
                       description: "热门榜条目"
 components:
-  securitySchemes:
-    bearerAuth:
-      type: "http"
-      scheme: "bearer"
-      bearerFormat: "JWT"
-    refreshCookie:
-      type: "apiKey"
-      in: "cookie"
-      name: "at_refresh"
   schemas:
     标签信息 VO:
       type: "object"
@@ -4112,17 +4284,19 @@ components:
         role:
           type: "string"
           description: "角色: USER=普通用户, ADMIN=管理员"
+        enabled:
+          type: "boolean"
+          description: "账号是否启用"
         createdAt:
           type: "string"
           description: "创建时间"
       description: ""
-    ? "登录/注册结果 VO（token + 用户信息）\n<p>\n注册和登录统一返回此结构，前端一次拿到 Token 和用户信息，\n无需额外调用{@code\
-      \ GET /api/client/me}。"
-    : type: "object"
+    登录/验证结果（access token + 用户信息；refresh token 仅通过 HttpOnly Cookie 返回）:
+      type: "object"
       properties:
         token:
           type: "string"
-          description: "Access Token"
+          description: ""
         user:
           type: "object"
           properties:
@@ -4145,10 +4319,109 @@ components:
             role:
               type: "string"
               description: "角色: USER=普通用户, ADMIN=管理员"
+            enabled:
+              type: "boolean"
+              description: "账号是否启用"
             createdAt:
               type: "string"
               description: "创建时间"
-          description: "用户信息"
+          description: ""
+      description: ""
+    批量权威回查中可返回的条目字段。:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          description: ""
+          format: "int64"
+        name:
+          type: "string"
+          description: ""
+        nameCn:
+          type: "string"
+          description: ""
+        image:
+          type: "string"
+          description: ""
+        score:
+          type: "number"
+          description: ""
+        ratingTotal:
+          type: "integer"
+          description: ""
+        collectionTotal:
+          type: "integer"
+          description: ""
+        airDate:
+          type: "string"
+          description: ""
+        type:
+          type: "integer"
+          description: ""
+        nsfw:
+          type: "boolean"
+          description: ""
+      description: "批量权威回查中可返回的条目字段。"
+    批量权威回查分类结果。:
+      type: "object"
+      properties:
+        items:
+          type: "array"
+          description: ""
+          items:
+            type: "object"
+            properties:
+              id:
+                type: "integer"
+                description: ""
+                format: "int64"
+              name:
+                type: "string"
+                description: ""
+              nameCn:
+                type: "string"
+                description: ""
+              image:
+                type: "string"
+                description: ""
+              score:
+                type: "number"
+                description: ""
+              ratingTotal:
+                type: "integer"
+                description: ""
+              collectionTotal:
+                type: "integer"
+                description: ""
+              airDate:
+                type: "string"
+                description: ""
+              type:
+                type: "integer"
+                description: ""
+              nsfw:
+                type: "boolean"
+                description: ""
+            description: "批量权威回查中可返回的条目字段。"
+          default: "new ArrayList<>()"
+        missingIds:
+          type: "array"
+          description: ""
+          items:
+            type: "integer"
+          default: "new ArrayList<>()"
+        filteredIds:
+          type: "array"
+          description: ""
+          items:
+            type: "integer"
+          default: "new ArrayList<>()"
+        collectedIds:
+          type: "array"
+          description: ""
+          items:
+            type: "integer"
+          default: "new ArrayList<>()"
       description: ""
     条目关联视图:
       type: "object"
@@ -4928,7 +5201,7 @@ components:
               description: "平均耗时(毫秒)"
               format: "int64"
           description: "当前筛选条件下全量聚合统计"
-      description: "日志分页结果"
+      description: ""
     看板总览 VO:
       type: "object"
       properties:
