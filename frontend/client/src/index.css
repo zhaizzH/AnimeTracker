@@ -132,6 +132,7 @@ body {
 /* ===== 首页 hero：杂志封面 ===== */
 .od-hero {
   position: relative;
+  height: 100%;
   border-radius: 16px;
   overflow: hidden;
   min-height: 320px;
@@ -221,9 +222,11 @@ body {
   align-self: center;
 }
 .od-hero__cta {
+  display: inline-block;
   background: #fff;
   color: var(--od-ink);
   border: none;
+  text-decoration: none;
   border-radius: 999px;
   padding: 9px 22px;
   font-size: 14px;
@@ -239,6 +242,93 @@ body {
   outline: 2px solid var(--od-cyan);
   outline-offset: 2px;
 }
+.home-side { height: 100%; }
+.home-side .ant-card-body {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.home-side__title {
+  font-family: var(--od-serif);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0;
+  text-wrap: balance;
+}
+.home-side__accent { color: var(--od-cyan); }
+.home-side__tags {
+  margin: 16px 0 20px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 12px;
+  align-items: center;
+  font-size: 13px;
+}
+.home-side__tags dt {
+  background: var(--od-cyan-soft);
+  color: var(--od-ink);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.home-side__tags dd {
+  margin: 0;
+  color: var(--od-ink-2);
+  min-width: 0;
+}
+.home-side__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.home-side__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--od-radius);
+  border: 1px solid var(--od-line-2);
+  color: var(--od-ink);
+  background: transparent;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition: border-color 150ms, background-color 150ms, transform 150ms, box-shadow 150ms;
+}
+.home-side__btn svg { width: 16px; height: 16px; }
+.home-side__btn--primary {
+  background: var(--od-ink);
+  border-color: var(--od-ink);
+  color: var(--od-surface);
+}
+.home-side__btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--od-shadow);
+}
+.home-side__btn:focus-visible {
+  outline: 2px solid var(--od-cyan);
+  outline-offset: 2px;
+}
+.home-side__stats {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--od-line);
+  display: flex;
+  gap: 20px;
+}
+.home-side__stats .ant-statistic { flex: 1; }
+.home-side__stats .ant-statistic-title { font-size: 12px; color: var(--od-ink-2); }
+.home-side__stats .ant-statistic-content {
+  font-size: 22px;
+  color: var(--od-ink);
+  font-variant-numeric: tabular-nums;
+}
+
 .od-hero__fallback {
   position: absolute;
   inset: 0;

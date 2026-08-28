@@ -1,5 +1,5 @@
 import { Layout, Menu, Input, Dropdown, Avatar, Grid, theme, Button, Tooltip, message } from 'antd';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { MoonOutlined, SunOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import { useAuthStore, authApi, completeLogout, useThemeStore, resolveMode } from '@shared';
@@ -7,6 +7,7 @@ import { useAuthStore, authApi, completeLogout, useThemeStore, resolveMode } fro
 const { Header } = Layout;
 export function ClientLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const screens = Grid.useBreakpoint();
   const { token } = theme.useToken();
   const user = useAuthStore((s) => s.user);
@@ -38,7 +39,12 @@ export function ClientLayout() {
       <a href="#main" className="od-skip-link">跳到主内容</a>
       <Header className="od-header">
         <Link to="/" className="od-brand" style={{ fontWeight: 700, color: token.colorText, fontSize: 20 }}>AnimeTracker</Link>
-        <Menu mode="horizontal" items={[{ key: 'home', label: <Link to="/">首页</Link> }, { key: 'schedule', label: <Link to="/schedule">每周日程</Link> }, { key: 'anime', label: <Link to="/anime">番剧索引</Link> }]} style={{ flex: 1, borderBottom: 'none' }} />
+        <Menu
+          mode="horizontal"
+          selectedKeys={location.pathname.startsWith('/schedule') ? ['schedule'] : location.pathname.startsWith('/anime') ? ['anime'] : location.pathname === '/' ? ['home'] : []}
+          items={[{ key: 'home', label: <Link to="/">首页</Link> }, { key: 'schedule', label: <Link to="/schedule">每周日程</Link> }, { key: 'anime', label: <Link to="/anime">番剧索引</Link> }]}
+          style={{ flex: 1, borderBottom: 'none' }}
+        />
         {screens.md && <Input.Search placeholder="搜索番剧" onSearch={(q) => navigate(`/anime?q=${encodeURIComponent(q)}`)} style={{ width: 220 }} />}
         <Tooltip title={resolved === 'dark' ? '切换到浅色' : '切换到深色'}>
           <Button
