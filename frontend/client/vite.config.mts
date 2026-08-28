@@ -5,6 +5,22 @@ import path from 'node:path';
 export default defineConfig({
   plugins: [react()],
   resolve: { alias: { '@shared': path.resolve(__dirname, '../packages/shared/src') } },
+  // Pre-bundle current lazy-route dependencies to avoid late optimizer generations and mixed React runtimes.
+  optimizeDeps: {
+    include: [
+      '@ant-design/icons',
+      '@tanstack/react-query',
+      'antd',
+      'axios',
+      'react',
+      'react-dom',
+      'react-dom/client',
+      'react-markdown',
+      'react-router-dom',
+      'zustand',
+      'zustand/middleware',
+    ],
+  },
   server: { port: 5173, proxy: { '/api': { target: 'http://localhost:8080', changeOrigin: true } } },
   build: {
     // Framework chunks stay below 560 kB minified and 186 kB gzip; larger regressions still warn.
