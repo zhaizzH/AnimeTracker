@@ -50,8 +50,11 @@ class NormalizedSubject:
     meta_tags: tuple[str, ...]
     free_tags: tuple[Tag, ...]
     credits: tuple[Credit, ...]
+    score: float | None
+    rank: int | None
     rating_total: int | None
     rating_counts: dict[str, int]
+    collection_total: int
     collection_counts: dict[str, int]
     image_source_url: str | None
     source_fetched_at: datetime
@@ -77,8 +80,11 @@ def normalize_subject(raw: dict, persons: list[dict]) -> NormalizedSubject | Non
         meta_tags=_meta_tags(raw.get("meta_tags") or []),
         free_tags=_free_tags(raw.get("tags") or []),
         credits=_credits(persons),
+        score=_optional_float(rating.get("score")),
+        rank=_optional_int(rating.get("rank")),
         rating_total=_optional_int(rating.get("total")),
         rating_counts=_counts(rating.get("count") or {}),
+        collection_total=_int(collection.get("collect")),
         collection_counts=_counts(collection),
         image_source_url=_optional_text(images.get("large")),
         source_fetched_at=datetime.now(timezone.utc),
@@ -157,3 +163,10 @@ def _int(value: object) -> int:
 
 def _optional_int(value: object) -> int | None:
     return _int(value) if value is not None else None
+
+
+def _optional_float(value: object) -> float | None:
+    try:
+        return float(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
