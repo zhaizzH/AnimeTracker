@@ -18,8 +18,7 @@ export type CollectionCounts = Record<string, number>; // keys '0'..'5'
 export interface ImportRecordVO { id: number; season: string; startedAt: string; completedAt?: string | null; status: 'RUNNING' | 'COMPLETED' | 'FAILED'; subjectCount: number; errorMessage?: string | null }
 export interface LogVO { id: number; userId?: number | null; username?: string | null; action: string; module: string; method?: string | null; path?: string | null; params?: string | null; ip?: string | null; userAgent?: string | null; status: 0 | 1; errorMsg?: string | null; durationMs: number; createdAt: string }
 export interface LogStatsVO { total: number; failedCount: number; successCount: number; avgDurationMs: number }
-export interface LogInner { content: LogVO[]; total: number; page: number; size: number; stats: LogStatsVO }
-export interface LogsPage { content: LogInner; total: number; page: number; size: number }
+export interface LogsPage { content: LogVO[]; total: number; page: number; size: number; stats: LogStatsVO }
 
 export interface DashboardOverview { userCount: number; subjectCount: number; collectionCount: number; episodeCount: number; importCount: number; todayNewUsers: number; todayNewCollections: number; todayLogins: number }
 export interface TrendPointVO { date: string; newUsers: number; newCollections: number; logins: number }

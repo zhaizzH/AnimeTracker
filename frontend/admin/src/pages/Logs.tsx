@@ -7,7 +7,7 @@ export default function Logs() {
   const [filter, setFilter] = useState<Record<string, unknown>>({});
   const [page, setPage] = useState(1);
   const { data, isLoading } = useQuery({ queryKey: ['logs', filter, page], queryFn: () => adminLogsApi.list({ page, size: 20, ...filter }) });
-  const stats = data?.content.stats;
+  const stats = data?.stats;
   return (
     <div>
       <Row gutter={[8, 8]} style={{ marginBottom: 12 }}>
@@ -21,7 +21,7 @@ export default function Logs() {
           <Col span={6} key={label as string}><Card size="small"><Statistic title={label as string} value={v ?? 0} /></Card></Col>
         ))}
       </Row>
-      <Table rowKey="id" loading={isLoading} dataSource={data?.content.content ?? []} pagination={{ current: page, total: data?.content.total, pageSize: 20, onChange: setPage }} columns={[
+      <Table rowKey="id" loading={isLoading} dataSource={data?.content ?? []} pagination={{ current: page, total: data?.total, pageSize: 20, onChange: setPage }} columns={[
         { title: 'ID', dataIndex: 'id', width: 70 }, { title: '用户', dataIndex: 'username' }, { title: '模块', dataIndex: 'module' },
         { title: '动作', dataIndex: 'action', render: (v: string) => <a onClick={() => { setFilter((f) => ({ ...f, action: v })); setPage(1); }}>{v}</a> }, { title: '路径', dataIndex: 'path' }, { title: 'IP', dataIndex: 'ip' },
         { title: '状态', dataIndex: 'status', render: (v: number) => (v === 0 ? '成功' : '失败') }, { title: '耗时(ms)', dataIndex: 'durationMs' }, { title: '时间', dataIndex: 'createdAt' },

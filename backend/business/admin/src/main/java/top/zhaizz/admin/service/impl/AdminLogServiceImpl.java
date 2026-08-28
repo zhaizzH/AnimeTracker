@@ -10,12 +10,9 @@ import top.zhaizz.admin.converter.LogConverter;
 import top.zhaizz.admin.mapper.AdminLogMapper;
 import top.zhaizz.admin.service.AdminLogService;
 import top.zhaizz.common.mapper.OperationLogMapper;
-import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.dto.log.LogQueryDTO;
 import top.zhaizz.pojo.entity.OperationLog;
 import top.zhaizz.pojo.vo.log.LogVO;
-
-import java.util.Collections;
 
 /**
  * 日志查询服务实现
@@ -28,12 +25,11 @@ public class AdminLogServiceImpl implements AdminLogService {
     private final AdminLogMapper adminLogMapper;
 
     @Override
-    public PageResult<LogVO> listLogs(LogQueryDTO request) {
+    public LogVO listLogs(LogQueryDTO request) {
         Page<OperationLog> page = operationLogMapper.selectPage(
                 new Page<>(request.getPage(), request.getSize()), buildWrapper(request));
-        LogVO vo = LogConverter.toLogVO(page.getRecords(), page.getTotal(),
+        return LogConverter.toLogVO(page.getRecords(), page.getTotal(),
                 request.getPage(), request.getSize(), adminLogMapper.selectStats(request));
-        return PageResult.of(Collections.singletonList(vo), page.getTotal(), request.getPage(), request.getSize());
     }
 
     /**
