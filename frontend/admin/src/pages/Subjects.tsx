@@ -1,16 +1,22 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Form, Input, InputNumber, Modal, Popconfirm, Space, Table, message } from 'antd';
-import { adminSubjectsApi, subjectsApi } from '@shared';
+import { Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Table, message } from 'antd';
+import { adminSubjectsApi, subjectsApi, tagsApi } from '@shared';
+
+type SubjectFilters = { q?: string; tag?: string[]; scoreMin?: number; scoreMax?: number; year?: number; weekday?: number };
+const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
 export default function Subjects() {
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
-  const [keyword, setKeyword] = useState('');
+  const [filters, setFilters] = useState<SubjectFilters>({});
+  const setFilter = (patch: Partial<SubjectFilters>) => { setFilters((f) => ({ ...f, ...patch })); setPage(1); };
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<number | null>(null);
   const [form] = Form.useForm();
-  const { data, isLoading } = useQuery({ queryKey: ['admin-subjects', keyword, page], queryFn: () => subjectsApi.search({ q: keyword, page, size: 20, sort: 'score', order: 'desc' }) });
+  const { data: tags } = useQuery({ queryKey: ['tags'], queryFn: tagsApi.list, staleTime: 60_000 });
+  const { data: years } = useQuery({ queryKey: ['subject-years'], queryFn: subjectsApi.years, staleTime: 60_000 });
+  const { data, isLoading } = useQuery({ queryKey: ['admin-subjects', filters, page], queryFn: () => subjectsApi.search({ ...filters, page, size: 20, sort: 'score', order: 'desc' }) });
   const inval = () => { qc.invalidateQueries({ queryKey: ['admin-subjects'] }); };
   const openCreate = () => { setEditing(null); form.resetFields(); setOpen(true); };
   const openEdit = (id: number, rec: Partial<adminSubjectsApi.SubjectForm>) => { setEditing(id); form.setFieldsValue(rec); setOpen(true); };
@@ -21,8 +27,13 @@ export default function Subjects() {
   const del = useMutation({ mutationFn: (id: number) => adminSubjectsApi.remove(id), onSuccess: () => { message.success('已删除'); inval(); } });
   return (
     <div>
-      <Space style={{ marginBottom: 16 }}>
-        <Input.Search placeholder="搜索番剧" onSearch={setKeyword} style={{ width: 220 }} />
+      <Space wrap style={{ marginBottom: 16 }}>
+        <Input.Search placeholder="搜索番剧" allowClear onSearch={(v) => setFilter({ q: v.trim() || undefined })} style={{ width: 220 }} />
+        <Select mode="multiple" allowClear placeholder="标签" options={(tags ?? []).map((t) => ({ value: t.name, label: t.name }))} style={{ minWidth: 160 }} maxTagCount="responsive" onChange={(v) => setFilter({ tag: v.length ? v : undefined })} />
+        <InputNumber min={0} max={10} step={0.1} precision={1} placeholder="最低评分" onChange={(v) => setFilter({ scoreMin: v ?? undefined })} />
+        <InputNumber min={0} max={10} step={0.1} precision={1} placeholder="最高评分" onChange={(v) => setFilter({ scoreMax: v ?? undefined })} />
+        <Select allowClear placeholder="年份" options={(years ?? []).map((y) => ({ value: y, label: y }))} style={{ width: 110 }} onChange={(v) => setFilter({ year: v ?? undefined })} />
+        <Select allowClear placeholder="星期" options={WEEKDAYS.map((w, i) => ({ value: i, label: w }))} style={{ width: 110 }} onChange={(v) => setFilter({ weekday: v ?? undefined })} />
         <Button type="primary" onClick={openCreate}>新建番剧</Button>
       </Space>
       <Table rowKey="id" loading={isLoading} dataSource={(data?.content ?? []) as unknown as Record<string, unknown>[]} pagination={{ current: page, total: data?.total, pageSize: 20, onChange: setPage }} columns={[
