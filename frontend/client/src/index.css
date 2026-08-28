@@ -425,7 +425,7 @@ body {
 .od-detail-main {
   flex: 1;
   min-width: 0;
-  max-width: 680px;
+  max-width: 920px;
 }
 .od-rate {
   display: flex;

@@ -29,7 +29,7 @@ export function SubjectGrid({ items, loading, emptyText = '暂无数据', total,
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20 }}>
         {items.map((s) => <div key={s.id} className="od-card-cell"><SubjectCard subject={s} /></div>)}
       </div>
-      {onPageChange && <Pagination current={page} total={total} pageSize={size} showSizeChanger={false} onChange={onPageChange} style={{ marginTop: 24, display: 'flex', justifyContent: 'center' }} />}
+      {onPageChange && <Pagination current={page} total={total} pageSize={size} hideOnSinglePage showSizeChanger={false} onChange={onPageChange} style={{ marginTop: 24, display: 'flex', justifyContent: 'center' }} />}
     </div>
   );
 }

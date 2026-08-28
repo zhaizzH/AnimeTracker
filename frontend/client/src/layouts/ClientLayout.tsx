@@ -30,7 +30,6 @@ export function ClientLayout() {
       { key: 'profile', label: <Link to="/profile">个人中心</Link> },
       { key: 'collections', label: <Link to="/my-collections">我的追番</Link> },
       { key: 'agent', label: <Link to="/agent">AI 助手</Link> },
-      user?.role === 'ADMIN' ? { key: 'admin', label: <a href="/admin">管理后台</a> } : null,
       { key: 'logout', label: isLoggingOut ? '退出中…' : '退出登录', disabled: isLoggingOut },
     ].filter(Boolean) as any[], onClick: ({ key }: { key: string }) => { if (key === 'logout') void onLogout(); }
   };

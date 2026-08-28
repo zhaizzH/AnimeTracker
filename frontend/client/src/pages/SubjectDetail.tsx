@@ -15,7 +15,7 @@ export default function SubjectDetail() {
   if (isError || !sub) return <Empty description="条目加载失败，请稍后重试" style={{ margin: 60 }} />;
   const scorePct = sub.score > 0 ? Math.min(sub.score, 10) / 10 * 100 : 0;
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: 24 }}>
+    <div style={{ maxWidth: 1280, margin: '0 auto', padding: 24 }}>
       <div style={{ display: 'flex', gap: 32 }}>
         <aside className="od-detail-aside">
           <div className="od-detail-aside__inner">
@@ -45,7 +45,7 @@ export default function SubjectDetail() {
               <div className="od-card-cell" style={{ width: 100, padding: 8 }}><SubjectCard subject={r.relatedSubject} /></div>
             </div>
           ))}</Space></section>}
-          <section style={{ marginTop: 24 }}><h2 style={{ fontSize: 20 }}>剧集</h2><Table rowKey="id" size="small" dataSource={eps} pagination={false} columns={[
+          <section style={{ marginTop: 24 }}><h2 style={{ fontSize: 20 }}>剧集</h2><Table rowKey="id" size="small" dataSource={eps} pagination={{ pageSize: 12, hideOnSinglePage: true, showSizeChanger: false }} columns={[
             { title: '#', dataIndex: 'sort' }, { title: '标题', dataIndex: 'name' }, { title: '中文名', dataIndex: 'nameCn' },
             { title: '放送日', dataIndex: 'airdate' }, { title: '状态', dataIndex: 'status', render: (v: string) => ({ Air: '已播出', Today: '今日', NA: '未播出' }[v] ?? v) },
           ]} /></section>
