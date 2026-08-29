@@ -3,6 +3,8 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { MoonOutlined, SunOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import { useAuthStore, authApi, completeLogout, useThemeStore, resolveMode } from '@shared';
+import { AgentChatProvider } from '../components/AgentChat';
+import AIAssistantFloat from '../components/AIAssistantFloat';
 
 const { Header } = Layout;
 export function ClientLayout() {
@@ -35,9 +37,10 @@ export function ClientLayout() {
     ].filter(Boolean) as any[], onClick: ({ key }: { key: string }) => { if (key === 'logout') void onLogout(); }
   };
   return (
-    <Layout>
-      <a href="#main" className="od-skip-link">跳到主内容</a>
-      <Header className="od-header">
+    <AgentChatProvider key={user?.id ?? 'anonymous'}>
+      <Layout>
+        <a href="#main" className="od-skip-link">跳到主内容</a>
+        <Header className="od-header">
         <Link to="/" className="od-brand" style={{ fontWeight: 700, color: token.colorText, fontSize: 20 }}>AnimeTracker</Link>
         <Menu
           mode="horizontal"
@@ -55,10 +58,12 @@ export function ClientLayout() {
           />
         </Tooltip>
         {user ? <Dropdown menu={menu}><Avatar style={{ background: token.colorPrimary, cursor: 'pointer' }}>{user.nickname ?? user.username?.slice(0, 1)}</Avatar></Dropdown> : <Link to="/login">登录</Link>}
-      </Header>
-      <main id="main" tabIndex={-1} style={{ outline: 'none' }}>
-        <Outlet />
-      </main>
-    </Layout>
+        </Header>
+        <main id="main" tabIndex={-1} style={{ outline: 'none' }}>
+          <Outlet />
+        </main>
+        {user && <AIAssistantFloat />}
+      </Layout>
+    </AgentChatProvider>
   );
 }

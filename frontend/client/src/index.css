@@ -623,3 +623,181 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .od-auth-gate .auth-gate__panel { animation: none; }
 }
+
+/* Agent 回答：GFM Markdown，宽表格在窄屏内独立滚动 */
+.od-agent-markdown {
+  max-width: 100%;
+  color: var(--od-ink);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  text-align: left;
+  text-wrap: pretty;
+}
+.od-agent-markdown > :first-child { margin-top: 0; }
+.od-agent-markdown > :last-child { margin-bottom: 0; }
+.od-agent-markdown p,
+.od-agent-markdown ul,
+.od-agent-markdown ol { margin: 0 0 10px; }
+.od-agent-markdown .od-agent-table-scroll {
+  max-width: 100%;
+  margin: 12px 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  border: 1px solid var(--od-line-2);
+  border-radius: 10px;
+}
+.od-agent-markdown .od-agent-table-scroll:focus-visible {
+  outline: 2px solid var(--od-cyan);
+  outline-offset: 2px;
+}
+.od-agent-markdown table {
+  width: 100%;
+  min-width: 440px;
+  border-collapse: collapse;
+  background: var(--od-surface);
+  font-size: 14px;
+}
+.od-agent-markdown th,
+.od-agent-markdown td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--od-line);
+  text-align: left;
+  vertical-align: top;
+}
+.od-agent-markdown th {
+  background: var(--od-cyan-soft);
+  font-weight: 650;
+  white-space: nowrap;
+}
+.od-agent-markdown tr:last-child td { border-bottom: 0; }
+.od-agent-markdown code {
+  padding: 0.12em 0.38em;
+  border-radius: 5px;
+  background: var(--od-line);
+  font-size: 0.9em;
+}
+.od-agent-markdown pre {
+  max-width: 100%;
+  padding: 12px;
+  overflow-x: auto;
+  border-radius: 10px;
+  background: var(--od-line);
+}
+.od-agent-markdown pre code { padding: 0; background: transparent; }
+
+/* 全局 AI 助手：复用暖纸玻璃令牌，桌面悬浮、移动端全屏 */
+.od-agent-float-trigger.ant-btn {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1001;
+  width: 56px;
+  min-width: 56px;
+  height: 56px;
+  border-color: var(--od-cyan);
+  background: var(--od-cyan);
+  box-shadow: var(--od-shadow-cyan);
+  font-size: 23px;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.od-agent-float-trigger.ant-btn:hover,
+.od-agent-float-trigger.ant-btn:focus-visible {
+  border-color: var(--od-cyan);
+  background: var(--od-cyan);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 38px var(--od-cyan-soft);
+}
+.od-agent-float-trigger.ant-btn:focus-visible {
+  outline: 2px solid var(--od-ink);
+  outline-offset: 3px;
+}
+.od-agent-float-panel {
+  position: fixed;
+  right: 20px;
+  bottom: 88px;
+  z-index: 1000;
+  width: min(400px, calc(100vw - 40px));
+  height: min(600px, calc(100vh - 108px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--od-glass-border);
+  border-radius: var(--od-radius);
+  background: var(--od-glass);
+  box-shadow: var(--od-shadow);
+  backdrop-filter: blur(18px);
+}
+.od-agent-float-title {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--od-line);
+}
+.od-agent-float-title h2 {
+  margin: 0;
+  font-family: var(--od-serif);
+  font-size: 18px;
+  color: var(--od-ink);
+}
+.od-agent-float-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.od-agent-float-body {
+  min-height: 0;
+  display: flex;
+  flex: 1;
+  padding: 12px 16px 16px;
+}
+.od-agent-conversation {
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+.od-agent-messages {
+  min-height: 0;
+  flex: 1;
+  margin: 12px 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.od-agent-messages .ant-empty { margin-block: 72px; }
+.od-agent-message {
+  max-width: 88%;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: var(--od-radius);
+  background: var(--od-surface);
+  border: 1px solid var(--od-line);
+}
+.od-agent-message--user {
+  margin-left: auto;
+  background: var(--od-cyan-soft);
+  border-color: transparent;
+}
+.od-agent-thinking { white-space: pre-wrap; }
+.od-agent-composer { width: 100%; flex: none; }
+
+@media (max-width: 600px) {
+  .od-agent-float-trigger.ant-btn { right: 12px; bottom: 12px; }
+  .od-agent-float-trigger--open.ant-btn { display: none; }
+  .od-agent-float-panel {
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .od-agent-float-trigger.ant-btn { transition: none; }
+  .od-agent-float-trigger.ant-btn:hover,
+  .od-agent-float-trigger.ant-btn:focus-visible { transform: none; }
+}
