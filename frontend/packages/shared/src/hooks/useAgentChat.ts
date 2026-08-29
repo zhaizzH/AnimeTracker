@@ -88,10 +88,12 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
       historyRequest.current += 1;
       setActiveId(null);
       setMessages([]);
-      setReady(true);
+      // 删除当前会话后自动新建，避免"已连接但无会话"时 UI 悬挂在连接提示
+      await create();
+    } else {
+      refreshSessions();
     }
-    refreshSessions();
-  }, [activeId, refreshSessions]);
+  }, [activeId, refreshSessions, create]);
 
   const send = useCallback(async (text: string) => {
     if (!ready || !text.trim() || streaming) return;

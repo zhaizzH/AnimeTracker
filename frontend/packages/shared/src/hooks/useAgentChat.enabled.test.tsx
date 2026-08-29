@@ -71,4 +71,21 @@ describe('useAgentChat 延迟初始化', () => {
     unmount();
     expect(signal.aborted).toBe(true);
   });
+
+  it('删除当前(最后)会话后自动新建会话，不进入无会话悬挂态', async () => {
+    const api = createApi();
+    vi.mocked(api.listSessions).mockResolvedValue([{ session_id: 'session-1' }]);
+    vi.mocked(api.createSession).mockResolvedValue({ session_id: 'session-2' });
+    const { result } = renderHook(() => useAgentChat(api));
+
+    await waitFor(() => expect(result.current.activeId).toBe('session-1'));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    await act(async () => { await result.current.remove('session-1'); });
+
+    expect(api.deleteSession).toHaveBeenCalledWith('session-1');
+    expect(api.createSession).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(result.current.activeId).toBe('session-2'));
+    expect(result.current.ready).toBe(true);
+  });
 });
