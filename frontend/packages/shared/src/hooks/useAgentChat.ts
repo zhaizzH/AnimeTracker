@@ -26,7 +26,7 @@ export interface AgentChatApi {
   health?: () => Promise<string>;
 }
 
-export function useAgentChat(api: AgentChatApi) {
+export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: boolean } = {}) {
   const token = useAuthStore((s) => s.token);
   const [sessions, setSessions] = useState<Record<string, unknown>[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -34,7 +34,10 @@ export function useAgentChat(api: AgentChatApi) {
   const [tools, setTools] = useState<ToolStep[]>([]);
   const [health, setHealth] = useState<string>('n/a');
   const [streaming, setStreaming] = useState(false);
+  const [ready, setReady] = useState(false);
   const ab = useRef<AbortController | null>(null);
+  const historyRequest = useRef(0);
+  useEffect(() => () => ab.current?.abort(), []);
   // api 为调用方内联对象，引用不稳定；用 ref 保持挂载期只跑一次 effect，与旧 client 行为一致。
   // ponytail: 若日后需要响应 api 变化，可去掉 ref。
   const apiRef = useRef(api);
@@ -49,12 +52,20 @@ export function useAgentChat(api: AgentChatApi) {
     .catch(() => []), []);
 
   const loadHistory = useCallback(async (id: string) => {
+    const request = ++historyRequest.current;
+    setReady(false);
     const h = await apiRef.current.history(id).catch(() => []);
+    if (request !== historyRequest.current) return false;
     setMessages((h as Array<{ role?: string; content?: string }>).map((m) => ({ id: nextId(), role: m.role === 'user' ? 'user' : 'assistant', content: String(m.content ?? '') })));
+    return true;
   }, []);
 
-  const select = useCallback(async (id: string) => { setActiveId(id); await loadHistory(id); }, [loadHistory]);
+  const select = useCallback(async (id: string) => {
+    setActiveId(id);
+    if (await loadHistory(id)) setReady(true);
+  }, [loadHistory]);
   const create = useCallback(async () => {
+    setReady(false);
     const s = await apiRef.current.createSession();
     await refreshSessions();
     const id = String((s as { session_id?: unknown })?.session_id ?? (s as { id?: unknown })?.id ?? '');
@@ -62,6 +73,7 @@ export function useAgentChat(api: AgentChatApi) {
   }, [refreshSessions, select]);
 
   useEffect(() => {
+    if (!enabled) return;
     if (apiRef.current.health) apiRef.current.health().then((h) => setHealth(typeof h === 'string' ? h : String((h as { status?: unknown })?.status ?? 'n/a'))).catch(() => setHealth('unavailable'));
     // 后端已按 updated_at 倒序返回；默认选中最近会话，没有则自动新建
     void (async () => {
@@ -69,15 +81,20 @@ export function useAgentChat(api: AgentChatApi) {
       if (list.length > 0) await select(String(list[0].id));
       else await create();
     })().catch(() => {});
-  }, [refreshSessions, select, create]);
+  }, [enabled, refreshSessions, select, create]);
   const remove = useCallback(async (id: string) => {
     await apiRef.current.deleteSession(id).catch(() => {});
-    if (id === activeId) { setActiveId(null); setMessages([]); }
+    if (id === activeId) {
+      historyRequest.current += 1;
+      setActiveId(null);
+      setMessages([]);
+      setReady(true);
+    }
     refreshSessions();
   }, [activeId, refreshSessions]);
 
   const send = useCallback(async (text: string) => {
-    if (!text.trim() || streaming) return;
+    if (!ready || !text.trim() || streaming) return;
     let sessionId = activeId;
     // 未选中会话时自动新建, 否则 /stream 会因缺 session_id 返回 404
     if (!sessionId) {
@@ -109,9 +126,9 @@ export function useAgentChat(api: AgentChatApi) {
         else if (c.text) setMessages((m) => m.map((x) => (x.id === assistantId ? { ...x, content: x.content + c.text! } : x)));
       } });
     } catch { setMessages((m) => m.map((x) => (x.id === assistantId && !x.content ? { ...x, content: '(流式中断，请重试)' } : x))); }
-    finally { setStreaming(false); }
-  }, [token, activeId, streaming, refreshSessions]);
+    finally { setStreaming(false); void refreshSessions(); }
+  }, [token, activeId, streaming, ready, refreshSessions]);
 
   const stop = useCallback(() => ab.current?.abort(), []);
-  return { messages, sessions, activeId, health, streaming, tools, send, stop, select, create, remove };
+  return { messages, sessions, activeId, health, streaming, ready, tools, send, stop, select, create, remove };
 }
