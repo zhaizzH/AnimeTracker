@@ -37,6 +37,7 @@ class HttpBusinessGateway(BusinessGateway):
                 json=json_body,
                 headers=headers,
                 timeout=self._timeout,
+                trust_env=False,
             )
             resp.raise_for_status()
             body = resp.json()
