@@ -138,3 +138,6 @@ docs/api
 .worktrees/
 AGENTS.md
 CLAUDE.md
+.agents
+.codex
+.trellis
