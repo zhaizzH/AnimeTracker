@@ -49,3 +49,25 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 3: 统一 Trellis 提交信息规范
+<!-- trellis-session: v=2 fp=b7c017272d545cbc -->
+
+**Date**: 2026-08-31
+**Task**: 统一 Trellis 提交信息规范
+**Branch**: `codex/move-business-config-to-app`
+
+### Summary
+
+发现本次任务的 Trellis 自动归档与日志提交未遵守 .gitmessage 中文约定；已启用仓库 commit.template，修改自动提交默认文案，并将本任务的 3 个历史提交重写为中文主题。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `763f6d0` | chore(工程): 统一 Trellis 提交信息规范 |
+
+### Status
+
+[OK] **Completed**
