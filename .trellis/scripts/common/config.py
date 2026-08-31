@@ -19,7 +19,7 @@ from .trellis_config import parse_simple_yaml
 
 
 # Defaults
-DEFAULT_SESSION_COMMIT_MESSAGE = "chore: record journal"
+DEFAULT_SESSION_COMMIT_MESSAGE = "chore: 记录开发日志"
 DEFAULT_MAX_JOURNAL_LINES = 2000
 DEFAULT_SESSION_AUTO_COMMIT = True
 DEFAULT_CODEX_DISPATCH_MODE = "auto"

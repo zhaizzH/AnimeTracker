@@ -44,7 +44,7 @@
 
 | Hash | Message |
 |------|---------|
-| `b90deec` | refactor(app): 集中 Business 配置装配 |
+| `465a941` | refactor(应用): 集中 Business 配置装配 |
 
 ### Status
 

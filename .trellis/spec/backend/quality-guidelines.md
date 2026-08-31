@@ -36,3 +36,9 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 - importer/indexer 改动：测试 dry-run、锁释放、断点续传或 fail-closed gate。
 - 跨层改动：从浏览器 API 调用一路核对到存储，再核对返回类型。
 - 配置改动：同步示例文件，确认日志不会打印真实密钥；若是 Java 配置迁移，补齐上述五类测试并运行 `mvn -B clean test`。
+
+## Git 提交信息
+
+- 首行使用 `.gitmessage` 约定：`<type>(<scope>): <中文描述>`，描述不超过 50 个字符；`type` 使用 `feat`、`fix`、`docs`、`style`、`refactor`、`perf`、`test`、`chore` 或 `ci`。
+- 项目内 Trellis 自动提交也必须使用中文描述，例如 `chore(任务): 归档 xxx`、`chore: 记录开发日志`，不能保留英文 `archive` 或 `record journal`。
+- 新克隆仓库首次提交前执行 `git config --local commit.template .gitmessage`；提交前用 `git log -1 --format=%s` 自检主题。

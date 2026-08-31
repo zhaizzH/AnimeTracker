@@ -29,7 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
-| 2 | 2026-08-31 | 迁移 Business 配置到 App 装配层 | `b90deec` | `codex/move-business-config-to-app` |
+| 2 | 2026-08-31 | 迁移 Business 配置到 App 装配层 | `465a941` | `codex/move-business-config-to-app` |
 | 1 | 2026-08-31 | 完成 Trellis Bootstrap 与前端质量门禁 | `ddc9e96` | `codex/fix-frontend-quality-gate` |
 <!-- @@@/auto:session-history -->
 
