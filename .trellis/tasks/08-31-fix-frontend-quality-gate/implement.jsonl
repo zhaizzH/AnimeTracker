@@ -1,0 +1,3 @@
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"定义前端 typecheck、Vitest、build 门禁以及当前 admin 无测试的真实基线"}
+{"file":".trellis/spec/frontend/state-management.md","reason":"RequireAdmin 测试必须遵守 authenticated/unauthenticated 与 ADMIN 角色状态语义"}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"约束受保护内容、重定向和异步状态的组件测试行为"}

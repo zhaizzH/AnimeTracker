@@ -15,9 +15,16 @@ CI 当前只执行 `npm run typecheck`；提交前仍应运行相关 Vitest，�
 
 - shared 有 API 上传与 `useAgentChat enabled` 测试。
 - client 有首页、Agent Markdown 与浮层交互测试。
-- admin 当前没有测试文件。
+- admin 的首个测试位于 `src/guards.test.tsx`，覆盖 `RequireAdmin` 的未登录跳转、非管理员拒绝和管理员放行。
 - Vitest 使用 jsdom；浏览器能力 shim 位于 `client/src/test/matchMedia.ts`。
 - 新增关键 guard、mutation、SSE 或管理写操作时补最小测试，不以现有稀疏覆盖为标准。
+
+## 管理端守卫测试约定
+
+- 测试通过 `MemoryRouter` 和真实 `Routes` 断言跳转结果，不直接调用守卫内部实现。
+- mock `useAuthStore` 时显式设置 `status` 与 `user.role`，至少覆盖未登录、错误角色和正确角色。
+- 未登录跳转还要断言 `location.state.from` 保留 path、query 与 hash，保证登录后可以返回原页面。
+- 禁止使用 `vitest run --passWithNoTests` 掩盖管理端零测试；根目录 `npm test` 必须实际执行 admin 测试。
 
 ## 审查清单
 
