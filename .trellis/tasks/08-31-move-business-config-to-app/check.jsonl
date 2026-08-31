@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/directory-structure.md","reason":"审查移动后包归属和 Maven/Java 依赖方向"}
+{"file":".trellis/spec/backend/agent-guidelines.md","reason":"审查普通 Agent 请求、SSE 和配置值传递未回归"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"审查授权与 Agent 错误响应契约"}
+{"file":".trellis/spec/backend/logging-guidelines.md","reason":"审查 Trace Header 与 MDC 清理"}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"核对五类 Java 测试与 mvn clean test 结果"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"检查安全、CORS、HTTP/SSE 迁移的跨边界一致性"}

@@ -36,4 +36,4 @@ cd backend/business && mvn -B test
 cd ../../backend/agent && uv run pytest
 ```
 
-当前仓库 Java 尚无实际测试类；Python 当前仅有导入指标测试。测试命令通过不等于业务覆盖充分，新功能应补最小回归用例。
+Java `app` 模块已有配置迁移回归测试；Python 当前仅有导入指标测试。测试命令通过不等于业务覆盖充分，新功能应补最小回归用例。

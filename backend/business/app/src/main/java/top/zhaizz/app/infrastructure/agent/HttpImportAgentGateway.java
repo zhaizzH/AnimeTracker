@@ -11,7 +11,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import top.zhaizz.admin.gateway.ImportAgentGateway;
-import top.zhaizz.common.config.AgentProperties;
+import top.zhaizz.app.config.AgentProperties;
 import top.zhaizz.common.constant.AgentApiPaths;
 import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.exception.BizException;

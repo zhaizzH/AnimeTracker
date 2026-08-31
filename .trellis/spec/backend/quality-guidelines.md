@@ -4,7 +4,7 @@
 
 ```bash
 cd backend/business
-mvn -B test
+mvn -B clean test
 
 cd ../agent
 uv run pytest
@@ -14,11 +14,12 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 
 ## 当前测试基线
 
-- Java 父 POM 已引入 JUnit、Spring Test 与 ArchUnit，但仓库当前没有实际测试类。
+- Java `app` 模块包含配置迁移回归测试：`AppConfigurationBindingTest`、`SecurityConfigAuthorizationTest`、`CookieOriginFilterTest`、`AgentConfigTest` 与 `ArchitectureBoundaryTest`。
 - Python 当前只有 `tests/jobs/importer/test_subject_metrics.py`。
-- 因此“命令通过”只证明编译/现有用例通过，不代表控制器、鉴权、SSE 或写协议已覆盖。
+- Java 配置迁移必须使用 `clean`，避免旧 `target/classes` 中的配置类造成重复 Bean 或假成功。
+- 这些用例覆盖配置绑定、授权矩阵、Cookie Origin、Agent 超时/Trace/SSE 和模块边界；不启动完整 `AppApplication`，不连接真实 MySQL、Redis、MinIO 或 Python Agent。
 - 新增业务分支应补最小回归测试；修复契约漂移时优先增加跨层或适配器测试。
-- 不要在没有测试文件的情况下写“已有 ArchitectureBoundaryTest 保护”。
+- `ArchitectureBoundaryTest` 必须排除测试类，否则测试夹具中的 `app` 引用会污染下层边界判断。
 
 ## 代码审查清单
 
@@ -34,4 +35,4 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 - Agent 图/工具改动：运行 pytest，并验证 SSE start/delta/end 与断开路径。
 - importer/indexer 改动：测试 dry-run、锁释放、断点续传或 fail-closed gate。
 - 跨层改动：从浏览器 API 调用一路核对到存储，再核对返回类型。
-- 配置改动：同步示例文件，确认日志不会打印真实密钥。
+- 配置改动：同步示例文件，确认日志不会打印真实密钥；若是 Java 配置迁移，补齐上述五类测试并运行 `mvn -B clean test`。

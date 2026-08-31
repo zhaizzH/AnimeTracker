@@ -2,7 +2,6 @@ package top.zhaizz.agent.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.http.HttpEntity;
@@ -11,12 +10,10 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import top.zhaizz.agent.service.AgentService;
-import top.zhaizz.common.config.AgentProperties;
 import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.constant.TraceConstants;
 import top.zhaizz.common.exception.BizException;
@@ -34,14 +31,21 @@ import java.util.function.Consumer;
  * HTTP Agent 服务：转发请求到 Python agent，统一归类上游错误。
  */
 @Slf4j
-@Service
-@RequiredArgsConstructor
 public class AgentServiceImpl implements AgentService {
 
     private final RestTemplate restTemplate;
-    private final AgentProperties agentProperties;
     private final ObjectMapper objectMapper;
+    private final String baseUrl;
+    private final long connectTimeout;
     private volatile RestTemplate streamRestTemplate;
+
+    public AgentServiceImpl(RestTemplate restTemplate, ObjectMapper objectMapper,
+                            String baseUrl, long connectTimeout) {
+        this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
+        this.baseUrl = baseUrl;
+        this.connectTimeout = connectTimeout;
+    }
 
     @Override
     public Result<?> exchange(String path, HttpMethod method, String authorization, Object body) {
@@ -68,7 +72,7 @@ public class AgentServiceImpl implements AgentService {
     }
 
     private String agentUrl(String path) {
-        return agentProperties.getBaseUrl() + path;
+        return baseUrl + path;
     }
 
     /** SSE 流式转发专用：不设读超时，思考模型响应可能远超普通接口的 30s 读超时。 */
@@ -77,7 +81,7 @@ public class AgentServiceImpl implements AgentService {
             synchronized (this) {
                 if (streamRestTemplate == null) {
                     SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-                    factory.setConnectTimeout((int) agentProperties.getConnectTimeout());
+                    factory.setConnectTimeout((int) connectTimeout);
                     factory.setReadTimeout(0);
                     streamRestTemplate = new RestTemplate(factory);
                 }

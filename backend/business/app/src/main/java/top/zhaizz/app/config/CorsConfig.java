@@ -1,4 +1,4 @@
-package top.zhaizz.common.config;
+package top.zhaizz.app.config;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import top.zhaizz.common.security.CookieOriginFilter;
 
 import java.util.Arrays;
 import java.util.List;
@@ -28,5 +29,11 @@ public class CorsConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
         return source;
+    }
+
+    /** Cookie 认证端点的 Origin 白名单由应用装配层显式传入。 */
+    @Bean
+    public CookieOriginFilter cookieOriginFilter(CorsProperties corsProperties) {
+        return new CookieOriginFilter(corsProperties.getAllowedOrigins());
     }
 }

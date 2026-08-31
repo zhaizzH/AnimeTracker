@@ -1,4 +1,4 @@
-package top.zhaizz.common.config;
+package top.zhaizz.app.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import lombok.Data;

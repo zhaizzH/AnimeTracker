@@ -1,0 +1,7 @@
+{"file":".trellis/spec/backend/directory-structure.md","reason":"约束 app 组合根、common/agent 依赖方向和配置类目标归属"}
+{"file":".trellis/spec/backend/agent-guidelines.md","reason":"保持 Business 到 Agent 的普通请求、SSE、超时和 Trace 传递契约"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"保持 Security 401/403 与 Agent 上游错误语义不变"}
+{"file":".trellis/spec/backend/logging-guidelines.md","reason":"保持 X-Request-ID 跨 Business 与 Agent 透传且不污染 MDC"}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"执行 Maven clean test、配置装配和模块边界质量门禁"}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"避免新增重复配置、Bean 或无必要 Settings 抽象"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"核对认证、CORS、SSE 与配置迁移的端到端行为"}

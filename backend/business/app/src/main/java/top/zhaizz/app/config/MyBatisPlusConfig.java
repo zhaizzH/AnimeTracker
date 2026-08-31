@@ -1,4 +1,4 @@
-package top.zhaizz.common.config;
+package top.zhaizz.app.config;
 
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
