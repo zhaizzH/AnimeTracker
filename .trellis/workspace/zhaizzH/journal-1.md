@@ -27,3 +27,25 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 2: 迁移 Business 配置到 App 装配层
+<!-- trellis-session: v=2 fp=cf18a5d74c46282c -->
+
+**Date**: 2026-08-31
+**Task**: 迁移 Business 配置到 App 装配层
+**Branch**: `codex/move-business-config-to-app`
+
+### Summary
+
+完成 6 个配置类迁移到 app.config，并将 RestTemplateConfig 重命名为 AgentConfig；AgentServiceImpl 与 CookieOriginFilter 改为显式构造，补充 5 类回归/架构测试。backend/business mvn -B clean test 全部通过，已归档 Trellis 任务。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b90deec` | refactor(app): 集中 Business 配置装配 |
+
+### Status
+
+[OK] **Completed**
