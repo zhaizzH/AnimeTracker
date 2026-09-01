@@ -1,94 +1,98 @@
 # AnimeTracker · 番组手账
 
-> 一个以 AI Agent 为核心的动漫发现与追番平台：用自然语言描述偏好，让 Agent 检索实时番剧数据、解释推荐理由，并在用户确认后更新收藏与观看进度。
+<p align="center">
+  <strong>基于 LangGraph Agent + Spring Boot + React 的面向真实业务数据的智能动漫追番平台</strong>
+</p>
 
-> **一句话定位**：AnimeTracker 是一个把大模型接入真实业务数据的动漫追番全栈项目——前端负责浏览与对话，Spring Boot 负责业务与鉴权，Python Agent 负责推理与工具调用，写操作一律走「预览 → 确认 → 执行」。
+<p align="center">
+  <img src="https://img.shields.io/badge/Spring%20Boot-3.2.0-brightgreen.svg" alt="Spring Boot" />
+  <img src="https://img.shields.io/badge/Java-21-blue.svg" alt="Java 21" />
+  <img src="https://img.shields.io/badge/FastAPI-0.115+-009688.svg" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/LangGraph-Python-purple.svg" alt="LangGraph" />
+  <img src="https://img.shields.io/badge/React-18-61DAFB.svg" alt="React 18" />
+  <img src="https://img.shields.io/badge/Vite-5-646CFF.svg" alt="Vite 5" />
+  <img src="https://img.shields.io/badge/MySQL-8.0-4479A1.svg" alt="MySQL 8" />
+  <img src="https://img.shields.io/badge/Redis-5+-DC382D.svg" alt="Redis" />
+</p>
 
-## 适用场景
+---
 
-- **个人追番管理**：按关键词、季度、标签浏览番剧，维护「在看 / 想看 / 看过」与剧集进度。
-- **AI 辅助发现**：用自然语言向 Agent 提问，获得搜索结果、内容发现或个性化推荐，并查看推荐理由与调用过程。
-- **数据自建**：从 Bangumi 拉取番剧元数据、封面与剧集，导入本地数据库，并可按需构建 RAG 向量索引。
-- **全栈工程实践**：覆盖前后端分离、多模块后端、端口与适配器分层、SSE 流式、结构化日志、CI 门禁的完整链路。
+## 📖 项目简介
 
-不适合作为开箱即用的生产 SaaS：仓库不提供托管部署编排与在线演示，需要自行准备 MySQL、Redis、MinIO 与 LLM API Key 后逐模块启动。
+**AnimeTracker（番组手账）** 是一个以 **AI Agent** 为核心的下一代动漫发现与追番全栈系统。用户可以通过自然语言直接与智能体对话，表达看番偏好、探索季度新番或检索特定题材，由智能体实时调用业务系统工具进行精准数据召回，并给出推荐理由与执行过程。
 
-## 项目亮点
+> **核心定位**：AnimeTracker 不是简单的聊天包装，而是将大模型深度接入真实业务数据与状态的全栈工程范例——前端提供响应式交互与流式对话，Spring Boot 负责数据治理与企业级鉴权，Python Agent 负责多节点协同推理与工具调用，写操作一律遵循「预览 → 用户确认 → 执行」的安全闭环。
 
-- **面向真实数据的 Agent**：将问题路由到搜索、发现或推荐 Agent，再调用业务 API 获取实时番剧、标签、季度与收藏数据。
-- **可控的业务写入**：加入「想看」和批量更新追番进度均采用「预览 → 用户确认 → 执行」，待确认状态持久化到 Redis，避免模型直接修改数据。
-- **流式交互体验**：基于 SSE 增量返回思考、回答和工具调用状态，前端可实时展示 Agent 的执行过程。
-- **完整全栈链路**：React 双前端 + 共享包、Spring Boot 多模块业务后端、FastAPI/LangGraph Agent、MySQL/Redis/MinIO 基础设施协同工作。
-- **从数据到交付**：包含 Bangumi 数据导入、RAG 索引构建、定时导入调度、结构化日志、健康检查与 CI 流水线。
-- **管理端已可用**：登录、仪表盘、番剧、用户、导入、日志、Agent 配置与管理员 Agent 对话均已接入真实 API。
+---
 
-## Agent 核心体验
+## 🌟 核心特性与设计亮点
 
-一次推荐请求会穿过完整的前后端与 Agent 工具链：
+- 🤖 **真实数据驱动的多 Agent 协同**：
+  - 基于 **LangGraph** 状态图编排，按角色与意图自动路由至 **Search（精准搜索）**、**Discover（新番与多维发现）**、**Recommend（个性化推荐）** 或 **Admin（管理端运维）** 节点。
+  - 各节点采用最小权限原则暴露专属业务工具，支持回查实时番剧、标签、放送时间表及用户收藏。
+- 🛡️ **确定性安全写机制（Human-in-the-Loop）**：
+  - 涉及追番状态（想看/在看/看过）与剧集进度的写操作，模型**不可**直接构造参数写入数据库。
+  - 采用 **「查询比对 → 生成预览 → Redis 暂存待确认动作 → 前端用户明确确认 → 系统受控执行」** 机制，杜绝模型幻觉导致的误写或覆写。
+- ⚡ **全链路 SSE 实时流式交互**：
+  - 前后端全流程打通 `Server-Sent Events`，增量推送思考过程、工具调用状态、结构化卡片与回答内容，前端平滑渲染。
+- 📦 **完备的 Bangumi 数据同步与 RAG 引擎**：
+  - 内置高性能数据导入器（`jobs/importer`），支持按季度（season）、全量（full）、增量（recent/since）与小样本（sample）从 Bangumi API 同步数据，支持断点续传与 MySQL 进程锁。
+  - 包含可选的 RAG 向量索引引擎（`jobs/indexer`），支持混合语义检索与向量持久化。
+- 🔐 **严谨的双 Token 认证体系**：
+  - 内存短期 Access Token（30分钟）+ `HttpOnly / SameSite=Lax` Cookie 轮换 Refresh Token（空闲7天/上限30天）。
+  - 支持改密、注销、角色变更等多端会话秒级失效与 CORS 严格同源防御。
+- 📊 **现代企业级双端架构**：
+  - **用户端**：番剧索引、多条件筛选、放送日历、个性化收藏管理、流式 AI 助手。
+  - **管理端**：ECharts 数据可视化看板、番剧/用户/操作审计日志管理、Redis 动态 Prompt 提示词/模型配置热更新、管理员专属数据抓取 Agent。
+
+---
+
+## 📐 系统架构与交互设计
+
+### 端到端调用时序
 
 ```mermaid
 sequenceDiagram
     actor User as 用户
-    participant UI as React 用户端
-    participant API as Spring Boot
-    participant Agent as LangGraph Agent
-    participant Data as 业务数据
+    participant UI as React 用户端 (:5173)
+    participant API as Spring Boot Business (:8080)
+    participant Agent as FastAPI LangGraph (:8090)
+    participant DB as 业务数据库 (MySQL/Redis)
 
-    User->>UI: 描述偏好与观看需求
-    UI->>API: 发起 SSE 对话请求
-    API->>Agent: 转发身份与会话上下文
-    Agent->>Agent: 路由到 Search / Discover / Recommend
-    Agent->>API: 调用番剧、标签、收藏等工具
-    API->>Data: 查询 MySQL / Redis
-    Data-->>Agent: 返回实时结果
-    Agent-->>UI: 流式返回工具状态、推荐与理由
-    User->>UI: 确认加入「想看」
-    UI->>Agent: 提交确认
-    Agent->>API: 执行已预览的写操作
-    API-->>UI: 返回执行结果
+    User->>UI: 1. 输入自然语言偏好/查番需求
+    UI->>API: 2. 发起 SSE 流式对话请求 (/api/client/agent/stream)
+    API->>Agent: 3. 校验 JWT 并转发身份与会话上下文
+    Agent->>Agent: 4. 意图识别与节点路由 (Search/Discover/Recommend)
+    Agent->>API: 5. 触发受控 Tool 调用查询真实番剧/标签/收藏
+    API->>DB: 6. 执行 SQL / Redis 缓存检索
+    DB-->>API: 返回实时数据
+    API-->>Agent: 返回结构化工具结果
+    Agent-->>UI: 7. SSE 实时推流：思考中、工具调用事件、推荐理由
+    User->>UI: 8. 点击「确认加入想看」或「更新追番进度」
+    UI->>API: 9. 提交确认请求 (携带确认 token)
+    API->>DB: 10. 取出 Redis 暂存参数并安全落库
+    API-->>UI: 11. 返回执行完成状态，前端局部刷新
 ```
 
-Agent 侧使用一张 LangGraph 状态图完成角色分流、意图路由与领域处理。搜索、发现和推荐节点共享流式执行管道，但只暴露各自需要的工具；涉及收藏的操作由系统注入已确认的状态，模型不能自行构造待写入数据。管理员角色走独立的 `admin_agent` 节点，可调用导入工具触发数据抓取。
-
-## 功能概览
-
-### 用户端
-
-- 按关键词、季度和标签浏览或搜索番剧
-- 查看条目详情、剧集信息与放送时间表
-- 管理「在看 / 想看 / 看过」状态与剧集进度
-- 使用自定义标签、评分与收藏整理个人片单
-- 与 AI Agent 对话，获取搜索结果、内容发现和个性化推荐
-- 查看会话历史、流式回答与工具调用状态
-
-### 管理端
-
-- 管理员登录与数据仪表盘（ECharts 图表）
-- 番剧、用户、导入任务和操作日志管理
-- Agent 提示词与运行时模型配置（托管在 Redis）
-- 管理员专属 Agent 对话（可触发最近新番导入）
-
-> **当前状态：** 用户端、管理端、业务后端、Agent、数据导入与 RAG 索引链路均可用。细粒度权限与交互体验仍在持续完善。
-
-## 系统架构
+### 系统组件拓扑图
 
 ```mermaid
 flowchart LR
-    Client["用户端 React<br/>:5173"]
-    Admin["管理端 React<br/>:5174"]
-    Business["Spring Boot Business<br/>:8080"]
-    Agent["FastAPI + LangGraph<br/>:8090"]
-    MySQL[(MySQL)]
-    Redis[(Redis)]
-    MinIO[(MinIO)]
-    Bangumi[Bangumi API]
-    Importer["jobs/importer"]
-    Indexer["jobs/indexer"]
+    Client["用户端 React Web<br/>Vite :5173"]
+    Admin["管理端 React Web<br/>Vite :5174"]
+    Business["Spring Boot 业务核心<br/>Java 21 / :8080"]
+    Agent["FastAPI + LangGraph 推理微服务<br/>Python 3.10+ / :8090"]
+    MySQL[("MySQL 8<br/>业务主库")]
+    Redis[("Redis 5+<br/>会话 / 缓存 / 暂存态")]
+    MinIO[("MinIO<br/>封面 / 静态资源")]
+    Bangumi["Bangumi API<br/>外部数据源"]
+    Importer["数据导入任务<br/>jobs/importer"]
+    Indexer["RAG 向量索引<br/>jobs/indexer"]
 
     Client -->|/api/client/*| Business
     Admin -->|/api/admin/*| Business
-    Business -->|Agent 请求转发| Agent
-    Agent -->|工具回查| Business
+    Business -->|HTTP 代理转发| Agent
+    Agent -->|业务工具回查| Business
     Business --> MySQL
     Business --> Redis
     Business --> MinIO
@@ -100,222 +104,241 @@ flowchart LR
     Indexer --> Redis
 ```
 
-开发环境中，两个 Vite 前端统一将 `/api` 代理到业务后端（`localhost:8080`）。Python Agent 作为独立推理服务，由 Spring Boot 代理层转发请求；Agent 再通过受控工具回查业务 API，前端不会直接访问 Agent 服务。
+---
 
-## 认证会话
+## 🛠️ 技术栈一览
 
-登录、邮箱验证和刷新接口只返回短期 Access Token 与用户信息；刷新凭据由业务服务写入 `at_refresh` HttpOnly、SameSite=Lax Cookie（路径 `/api/client/auth`），前端仅在当前标签页内存保存 Access Token，不写入 localStorage。
+| 领域 | 选型与版本 | 用途与说明 |
+|:---|:---|:---|
+| **用户端 / 管理端** | React 18, TypeScript 5, Vite 5, Ant Design 5, TanStack Query 5, Zustand 4, React Router 7 | 响应式单页应用，支持 Workspaces 共享 `@animetracker/shared` 逻辑包 |
+| **数据可视化** | ECharts 6, `echarts-for-react` 3 | 管理端数据看板图表与统计分析 |
+| **业务后端** | Java 21, Spring Boot 3.2.0, MyBatis-Plus 3.5.5, JJWT 0.12.3 | 核心 REST API、端口适配器分层架构、JWT 鉴权、Agent 请求代理 |
+| **AI 智能体** | Python 3.10+, FastAPI, LangGraph, LangChain, SSE | 状态图路由、工具编排、上下文与多轮对话管理、流式事件派发 |
+| **LLM 接入** | DeepSeek 直连 或 阿里云百炼 DashScope | 通过 `LLM_PROVIDER` 显式切换模型底座与推理服务 |
+| **数据与存储** | MySQL 8.0, Redis 5+, MinIO | 关系型持久化存储、分布式会话/限流/暂存态、对象存储 |
+| **离线与数据工程** | Python, SQLAlchemy, DashScope Embeddings | Bangumi 数据采集、增量同步与断点续传、RAG 向量索引 |
+| **工程交付与构建** | uv (Python 包管理), Maven 3.9+, npm workspaces, GitHub Actions | 现代化依赖管理、多模块构建与 CI 门禁检查 |
 
-- Access Token 默认 30 分钟（`jwt.expiration`），刷新会话空闲 7 天（`jwt.refresh-expiration`）、绝对上限 30 天（`jwt.max-session-expiration`）。
-- 退出登录、改密、重置密码、禁用账户和角色变更会撤销相关会话。
-- Cookie 默认启用 Secure（`AT_AUTH_COOKIE_SECURE=true`）；本地 HTTP 开发可显式设为 `false`，并将前后端部署在同源地址。
-- 刷新 / 退出请求会校验 CORS Origin，需确保 `at.cors.origins` 使用实际前端 Origin。
-- Agent 与 business 共享 `JWT_SECRET`，Agent 本地验签，不回调业务后端。
+---
 
-## 技术栈
-
-| 领域 | 技术 |
-|---|---|
-| 用户端 / 管理端 | React 18、TypeScript 5、Vite 5、Ant Design 5、TanStack Query 5、Zustand 4、React Router 7 |
-| 管理端图表 | ECharts 6 + echarts-for-react 3 |
-| 业务后端 | Java 21、Spring Boot 3.2.0、MyBatis-Plus 3.5.5、JJWT 0.12.3 |
-| AI Agent | Python 3.10+、FastAPI、LangGraph、LangChain、SSE |
-| 模型接入 | DeepSeek 官方直连或阿里云百炼 DashScope；由 `LLM_PROVIDER` 显式指定 |
-| 数据与存储 | MySQL 8、Redis、MinIO |
-| 数据导入 | Python、SQLAlchemy、Bangumi v0 API |
-| 工程交付 | uv（Agent 依赖）、Maven（后端）、npm workspaces（前端）、GitHub Actions |
-
-## 工程设计
-
-### Agent 编排
-
-- 入口先按用户角色分流，再由结构化路由选择搜索、发现或推荐节点。
-- 领域节点按最小权限组合工具，并通过统一事件总线输出回答、思考与工具生命周期事件。
-- 会话、消息、托管提示词、运行时模型配置和待确认动作统一存储在 Redis。
-- 未配置任一有效 API Key 时 Agent 拒绝启动（`resolve_llm_provider` 抛错）。
-- Agent 采用端口与适配器分层：`app/agent`、`app/chat`、`app/rag` 定义端口，`app/adapters/*` 提供 Redis / MySQL / HTTP / LLM / 子进程实现。
-
-### 安全写操作
-
-Agent 对收藏和进度的修改不是一次性工具调用：
-
-1. 先查询当前状态并生成预览；
-2. 将强类型待确认动作写入 Redis，并设置有效期；
-3. 只有用户明确确认后，才使用系统保存的参数执行；
-4. 对成功、跳过和失败结果分类反馈，基础设施异常时保留可重试状态。
-
-这一设计将自然语言交互与确定性的业务约束分开，避免重复收藏、覆盖已有状态或由模型编造写入参数。
-
-### 可观测性与交付
-
-- Business 与 Agent 输出单行 JSON 结构化日志（`logback-spring.xml` / `app/shared/observability.py`），并透传 `X-Request-ID`。
-- Business 提供 Actuator 健康检查：liveness 仅要求进程响应，readiness 要求 MySQL 与 Redis；Agent 与 MinIO 不作为就绪强制条件，避免单点能力故障拖垮整体。
-- Agent 提供 `GET /api/client/agent/health`。
-- CI 在 push 到 `main` 与所有 PR 上运行三个作业：前端 `npm run typecheck`、后端 `mvn -B test`、Agent `uv run pytest`。
-
-## 目录结构
+## 📂 项目目录结构
 
 ```text
 AnimeTracker/
-├── frontend/                # npm workspaces：client + admin + packages/shared
-│   ├── client/              # 用户端 React 应用（Vite :5173）
-│   ├── admin/               # 管理端 React 应用（Vite :5174）
-│   └── packages/shared/     # 共享包 @animetracker/shared（api / auth / sse / types...）
+├── frontend/                     # 前端根目录 (npm workspaces: client, admin, packages/shared)
+│   ├── client/                   # 用户端 React 单页应用 (Vite :5173)
+│   ├── admin/                    # 管理端 React 单页应用 (Vite :5174)
+│   ├── packages/
+│   │   └── shared/               # 共享包 @animetracker/shared (API / 鉴权 / SSE / 类型 / 公共组件)
+│   └── package.json
 ├── backend/
-│   ├── business/            # Spring Boot 多模块业务后端（Java 21，:8080）
-│   │   ├── common/          # 通用配置、鉴权、异常、限流、对象存储端口
-│   │   ├── pojo/            # Entity / DTO / VO
-│   │   ├── client/          # 用户端业务 API
-│   │   ├── admin/           # 管理端业务 API
-│   │   ├── agent/           # Agent HTTP 代理层
-│   │   └── app/             # Spring Boot 启动模块与 infrastructure 适配器
-│   └── agent/               # FastAPI + LangGraph Agent（Python，:8090）
-│       ├── app/             # 端口与适配器：agent / chat / rag / api / adapters
-│       ├── jobs/            # 离线任务：importer（导入）、indexer（RAG 索引）、scheduler（定时）
-│       ├── resources/       # 本地托管提示词 Markdown
-│       └── tests/           # pytest 测试
-├── docs/                    # 数据库脚本、OpenAPI 规范、项目规范与规划文档
-└── .github/workflows/       # CI 流水线
+│   ├── business/                 # Spring Boot 多模块业务工程 (Java 21, 端口 :8080)
+│   │   ├── common/               # 公共基础：Result、统一异常处理、安全鉴权、限流、对象存储端口
+│   │   ├── pojo/                 # Entity 实体类、DTO 数据传输对象、VO 视图对象
+│   │   ├── client/               # 用户端核心业务 API (番剧检索、收藏、进度、个人中心)
+│   │   ├── admin/                # 管理端业务 API (仪表盘、条目管理、用户管理、审计日志)
+│   │   ├── agent/                # Agent 代理转发模块 (对前端封装 Agent 调用接口)
+│   │   └── app/                  # Spring Boot 启动模块、Infrastructure 适配器与配置文件
+│   └── agent/                    # AI Agent 智能体微服务 (FastAPI + LangGraph, 端口 :8090)
+│       ├── main.py               # FastAPI 服务入口
+│       ├── pyproject.toml / uv.lock # Python 依赖定义
+│       ├── app/                  # 核心应用层：agent 编排、chat 协议、rag 检索、adapters 适配器
+│       ├── jobs/                 # 离线任务 (importer 数据导入器、indexer 向量索引、scheduler 定时器)
+│       ├── resources/            # 预置本地提示词 Markdown (支持 Redis 托管热更新)
+│       └── tests/                # pytest 自动化测试用例
+├── docs/                         # 项目全量文档中心
+│   ├── database/                 # 数据库初始化脚本 (db-schema.sql)
+│   ├── spec/                     # OpenAPI 3.0 接口规范定义 (openapi.yaml)
+│   ├── conventions/              # 后端架构规范与编码守则 (backend-conventions.md)
+│   └── retrospective/            # 阶段性设计复盘与架构决策记录
+└── .github/workflows/            # GitHub Actions 持续集成工作流
 ```
 
-## 前置依赖
+---
 
-| 组件 | 版本要求 | 校验方式 / 用途 |
-|------|---------|----------------|
-| Node.js | 22（CI 使用 22）与 npm 10+ | 前端 workspaces 安装与类型检查 |
-| JDK | 21 及以上 | 由 `maven-enforcer-plugin` 强制 `[21,)` |
-| Maven | 3.9 及以上 | 由 `maven-enforcer-plugin` 强制 `[3.9,)` |
-| Python | 3.10 及以上 | `pyproject.toml` 声明 `requires-python = ">=3.10"` |
-| uv | 最新版 | Agent 依赖由 `uv.lock` 锁定 |
-| MySQL | 8 | 主库，库名 `anime_tracker` |
-| Redis | 5+ 协议兼容 | 会话、限流、托管提示词、待确认动作、RAG 索引（可选） |
-| MinIO | 任意近期版本 | 头像、封面、原始快照存储 |
-| LLM API Key | — | `DEEPSEEK_API_KEY` 或 `DASHSCOPE_API_KEY` 至少一个 |
+## ⚡ 前置依赖要求
 
-## 快速开始
+请在本地启动前确保安装并配置好以下基础环境：
 
-当前项目未提供长期在线演示，也没有随仓库提供的 Compose 编排，需要在本地逐模块运行。
+| 环境组件 | 最低版本要求 | 检查命令 / 说明 |
+|:---|:---|:---|
+| **Node.js & npm** | Node 22 (推荐 LTS) / npm 10+ | `node -v` / `npm -v` |
+| **JDK** | 21 及以上 | `java -version`（Maven Enforcer 插件强制约束） |
+| **Maven** | 3.9 及以上 | `mvn -v` |
+| **Python** | 3.10 及以上 | `python --version` |
+| **uv** | 最新版 | `uv --version`（极速 Python 包与虚拟环境管理工具） |
+| **MySQL** | 8.0+ | 默认库名 `anime_tracker`，字符集 `utf8mb4` |
+| **Redis** | 5.0+ | 缓存、会话管理、Prompt 托管与暂存态存储 |
+| **MinIO** | 任意版本 | 对象存储（公开封面桶与私有快照桶） |
+| **LLM Key** | — | `DEEPSEEK_API_KEY` 或 `DASHSCOPE_API_KEY`（二选一） |
 
-### 启动顺序
+---
 
-推荐按「基础设施 → 数据库 → Business → Agent → 前端」的顺序启动。
+## 🚀 本地快速启动指南
 
-#### 1. 初始化数据库
+建议按照 **「初始化数据库 → 启动业务后端 → 启动 AI Agent → 启动前端应用」** 的顺序执行。
+
+### 1. 初始化数据库
 
 ```bash
+# 登录 MySQL 并创建数据库
 mysql -u root -p -e "CREATE DATABASE anime_tracker DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+# 执行建表与初始数据脚本 (唯一事实来源)
 mysql -u root -p anime_tracker < docs/database/db-schema.sql
 ```
 
-建表脚本为唯一事实来源，项目不使用 Flyway / Liquibase（`spring.sql.init.mode: never`）。
-
-#### 2. 启动业务后端
+### 2. 启动 Spring Boot 业务后端 (:8080)
 
 ```bash
 cd backend/business
+
+# 编译并安装公共依赖
 mvn clean install -DskipTests
+
+# 本地 Profile 启动 (可在 app/src/main/resources/application-local.yml 配置数据库与 Redis 连接)
 mvn -pl app spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=local
 ```
 
-启动前按需修改 `app/src/main/resources/application-local.yml`（数据源、Redis、MinIO、Resend、Agent 地址）。该文件已被 `.gitignore` 忽略，本地可安全填写真实密钥。
-
-#### 3. 启动 AI Agent
+### 3. 启动 FastAPI + LangGraph Agent (:8090)
 
 ```bash
 cd backend/agent
-cp .env.example .env          # 填写 LLM_PROVIDER 与对应 API Key、REDIS_URL
+
+# 配置环境变量 (填写 LLM_PROVIDER、API_KEY 与 REDIS_URL)
+cp .env.example .env
+
+# 使用 uv 同步虚拟环境依赖
 uv sync --dev
+
+# 启动 Agent API 服务
 uv run uvicorn main:app --reload --port 8090
 ```
 
-#### 4. 启动前端
+### 4. 启动前端双应用 (:5173 / :5174)
 
 ```bash
 cd frontend
+
+# 安装 npm workspaces 依赖
 npm install
-npm run dev:client            # 用户端 http://localhost:5173
-npm run dev:admin             # 管理端 http://localhost:5174
+
+# 终端 1：启动用户端 (http://localhost:5173)
+npm run dev:client
+
+# 终端 2：启动管理端 (http://localhost:5174)
+npm run dev:admin
 ```
 
-两个 Vite 应用已配置 `/api` 代理到 `http://localhost:8080`，无需额外配置跨域。
+> **说明**：前端 Vite 开发服务器已内置代理配置，`/api/*` 请求会自动转发至业务后端 `http://localhost:8080`，无需额外配置 CORS。
 
-### 导入首批数据
+### 5. 导入首批番剧数据
+
+在 `backend/agent` 目录下执行导入命令：
 
 ```bash
 cd backend/agent
+
+# 示例：导入 2026 年夏季番剧数据 (5 线程并发)
 uv run python -m jobs.importer.main --mode season --key 2026-summer --workers 5
+
+# 示例：快速小样本试水导入 (导入 50 部)
+uv run python -m jobs.importer.main --mode sample --limit 50
 ```
 
-> 想先试水可加 `--dry-run`（仅 `full` 模式，只扫描不写库），或用 `--mode sample --limit 50` 导入小样本。
+---
 
-## 本地开发入口
+## 🔍 服务自检与核心 API 验证
 
-| 服务 | 默认端口 | 入口文档 |
-|---|---:|---|
-| 用户端 | `5173` | `frontend/client/`（暂无 README，见下方「待补充」） |
-| 管理端 | `5174` | `frontend/admin/`（暂无 README，见下方「待补充」） |
-| Business API | `8080` | [`backend/business/README.md`](backend/business/README.md) |
-| AI Agent | `8090`（Swagger `/docs`） | [`backend/agent/README.md`](backend/agent/README.md) |
-| 数据导入器 | CLI | [`backend/agent/jobs/importer/README.md`](backend/agent/jobs/importer/README.md) |
+启动完成后，可通过以下命令进行服务连通性与健康状态验证：
 
-其他入口：
+```bash
+# 1. 业务后端健康检查 (要求 MySQL 与 Redis 正常连接)
+curl http://localhost:8080/actuator/health
 
-- 数据库 Schema：[`docs/database/db-schema.sql`](docs/database/db-schema.sql)
-- OpenAPI 规范：[`docs/spec/openapi.yaml`](docs/spec/openapi.yaml)
-- 后端编码与错误规范：[`docs/conventions/backend-conventions.md`](docs/conventions/backend-conventions.md)
-- 文档索引：[`docs/README.md`](docs/README.md)
-- 后端总览：[`backend/README.md`](backend/README.md)
+# 2. Agent 服务健康检查
+curl http://localhost:8090/api/client/agent/health
 
-## 项目状态
+# 3. 体验 Agent 对话流式接口 (通过 business 代理层调用)
+curl -N -X POST http://localhost:8080/api/client/agent/stream \
+  -H "Authorization: Bearer <YOUR_ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"sessionId": null, "message": "推荐几部近期高评分的热血动作番"}'
+```
 
-| 模块 | 状态 |
-|---|---|
-| 用户端 | 可用，支持番剧浏览、搜索、收藏、进度与 Agent 对话 |
-| 管理端 | 可用，覆盖仪表盘、番剧、用户、导入、日志与 Agent 配置/对话 |
-| 业务后端 | 可用，覆盖用户端、管理端与 Agent 代理 API |
-| AI Agent | 可用，支持搜索、发现、推荐、流式响应、待确认动作与 RAG（默认关闭） |
-| 数据导入 | 可用，支持 full / season / recent / since / sample 五种模式与断点续传 |
-| RAG 索引 | 可用但默认关闭（`RAG_ENABLED=false`），需 DashScope 嵌入模型与独立 Redis |
-| 测试与 CI | Agent 有 pytest 用例；business 与前端当前无有效测试用例，CI 只跑类型检查与测试命令 |
+---
 
-## 常见问题
+## ❓ 常见问题与排障指南 (FAQ)
 
-**Q：Agent 启动即报错 `LLM API Key 未配置`？**
-A：`.env` 中未设置 `DEEPSEEK_API_KEY` 或 `DASHSCOPE_API_KEY`。若两者都未配置，`resolve_llm_provider` 会直接抛错终止启动。建议同时显式设置 `LLM_PROVIDER=deepseek|dashscope`，否则会回退按 Key 判断并打印告警。
+<details>
+<summary><strong>Q: Agent 启动报错 <code>LLM API Key 未配置</code> 或模型无法调用？</strong></summary>
 
-**Q：Agent 启动报 `Extra inputs are not permitted`？**
-A：`Settings` 使用 `extra="forbid"`，`.env` 中任何未在 `app/config.py` 声明的变量都会导致启动失败。以 `.env.example` 为模板增删字段即可。
+**A**: 请检查 `backend/agent/.env` 文件。
+1. 确保设置了 `LLM_PROVIDER=deepseek` 或 `LLM_PROVIDER=dashscope`。
+2. 确保配置了对应有效的 `DEEPSEEK_API_KEY` 或 `DASHSCOPE_API_KEY`。若未配置任何有效 Key，服务会在启动阶段主动拦截并报错退出。
+</details>
 
-**Q：Business 启动报 `MINIO_RAW_BUCKET must differ from MINIO_BUCKET`？**
-A：这是 Agent `Settings` 的校验器（不是 business 的），要求原始快照私有桶与公开封面桶不同名。为 `MINIO_RAW_BUCKET` 配置一个独立桶名。
+<details>
+<summary><strong>Q: Agent 启动报错 <code>Extra inputs are not permitted</code>？</strong></summary>
 
-**Q：前端请求 404 或跨域失败？**
-A：确认 business 已启动且 `at.cors.allowed-origins` 包含实际前端 Origin（`application-local.yml` 默认已含 `5173` 与 `5174`）。前端只应访问相对路径 `/api/**`，由 Vite 代理转发，不要直连 `8090`。
+**A**: `Settings` 配置模型开启了严格校验（`extra="forbid"`）。请勿在 `.env` 中加入未在 `backend/agent/app/config.py` 中声明的多余环境变量，请参考 `.env.example` 对齐字段。
+</details>
 
-**Q：刷新登录态后仍然掉线？**
-A：本地 HTTP 环境需设置 `AT_AUTH_COOKIE_SECURE=false`，否则浏览器不会回传 `at_refresh` Cookie。生产环境请保持 `true` 并使用 HTTPS。
+<details>
+<summary><strong>Q: 登录或刷新 Token 后前端立即掉线 / Cookie 无法写入？</strong></summary>
 
-**Q：导入任务卡住无法再次启动？**
-A：导入器通过 MySQL `GET_LOCK` 保证单实例，并在 `jobs/importer/importer.pid` 写入 PID。异常退出时可通过 Agent 的 `sweep_dead_processes` 清理僵尸记录，或确认 PID 文件与锁已释放后重试。
+**A**: 本地通过 HTTP 协议开发时，请在 `application-local.yml` 中确保将 `at.jwt.cookie-secure` 设置为 `false`（或环境变量 `AT_AUTH_COOKIE_SECURE=false`），否则浏览器会拒绝接收非 HTTPS 环境下的 `at_refresh` Cookie。
+</details>
 
-**Q：CI 为什么没有跑前端构建和后端打包？**
-A：当前 `.github/workflows/ci.yml` 只定义三个作业：前端 `npm run typecheck`、后端 `mvn -B test`、Agent `uv run pytest`。构建与镜像发布未纳入 CI。
+<details>
+<summary><strong>Q: 对话时报错 401 Unauthorized？</strong></summary>
 
-## 提交规范
+**A**: 业务后端与 Agent 采用共享密钥机制在本地对 JWT 进行独立验签。请确保 `backend/business` 中的 `jwt.secret` 配置与 `backend/agent/.env` 中的 `JWT_SECRET` **完全一致**。
+</details>
 
-仓库根 `.gitmessage` 定义了提交模板：**简短中文描述（50 字以内）**，正文可选，类型为 `feat | fix | docs | style | refactor | perf | test | chore | ci`。
+<details>
+<summary><strong>Q: 数据导入任务提示锁冲突或无法重复启动？</strong></summary>
+
+**A**: 导入器通过 MySQL `GET_LOCK` 保证全局单实例执行，并在 `jobs/importer/importer.pid` 写入进程标识。若由于异常终止导致锁未释放，可确认进程退出后清理 pid 文件，或调用 Agent 的清理接口。
+</details>
+
+---
+
+## 📝 提交规范与协作
+
+本项目遵循统一的 Git Commit 提交信息模板（中文简述，50字以内）：
 
 ```text
-feat(数据): 添加 Bangumi 数据导入器
-fix(认证): 修复登录页面未捕获空值异常
-docs: 更新 API 使用说明
+<type>(<scope>): <subject>
+
+<body>
 ```
 
-## 待补充
+**Type 类型定义**：
+- `feat`: 新增功能特性
+- `fix`: 缺陷修复
+- `docs`: 文档变更
+- `style`: 样式或格式调整（不影响业务逻辑）
+- `refactor`: 代码重构（无新增功能亦无修复缺陷）
+- `perf`: 性能优化
+- `test`: 补全或重构测试用例
+- `chore`: 构建配置、依赖更新或辅助工具变动
+- `ci`: CI 流水线相关变更
 
-以下事项在本次文档核对时无法从代码中确定，需项目维护者确认后补齐：
+---
 
-1. **前端各包缺少 README**：`frontend/README.md`、`frontend/client/README.md`、`frontend/admin/README.md` 均不存在。按「不随意增删文件」的要求未新建，前端的页面结构、状态管理约定与组件规范暂无文档入口。
-2. **部署方案缺失**：仓库中不存在 `deploy/` 目录、`compose.yml` / `compose.prod.yml` 及 `.env.example`（根级）。历史文档提到的 Docker Compose、Nginx、GHCR 镜像发布与备份恢复脚本在当前代码树中均无对应文件，生产部署步骤无法从代码推导。
-3. **RAG 索引的运维参数**：`jobs/indexer` 依赖 `rag_index_job` 表与 DashScope 嵌入额度，批次大小、限流退避与容量报告的判读阈值随模型与数据量变化，尚未固化为文档化的建议值。
-4. **定时任务宿主**：`jobs/scheduler` 提供 Asia/Shanghai 时区的调度逻辑（每日 03:00 增量、每周日 04:00 年度回溯、每季度首月 05:00 全量），但仓库中未见 systemd / cron / 容器等宿主配置，实际如何常驻运行待确认。
+## 📚 子模块与扩展文档导航
+
+- 📘 [后端开发与架构规范](docs/conventions/backend-conventions.md)
+- 🗄️ [数据库建表脚本 (db-schema.sql)](docs/database/db-schema.sql)
+- 📑 [OpenAPI 3.0 接口规范定义 (openapi.yaml)](docs/spec/openapi.yaml)
+- 🖥️ [Spring Boot 业务服务详细文档](backend/business/README.md)
+- 🤖 [FastAPI + LangGraph Agent 架构文档](backend/agent/README.md)
+- 📥 [Bangumi 数据导入器设计说明](backend/agent/jobs/importer/README.md)
+- 📑 [文档索引与归档总览](docs/README.md)
+
+---
+
+<p align="center">
+  Crafted with ❤️ for Anime & Agent Enthusiasts.
+</p>
