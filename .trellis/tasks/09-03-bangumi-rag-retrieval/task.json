@@ -3,7 +3,7 @@
   "name": "bangumi-rag-retrieval",
   "title": "完善全量 Bangumi 数据与 RAG 检索闭环",
   "description": "规划全量 Bangumi 数据模型、导入同步、混合检索、证据化推荐与技术栈边界",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -20,7 +20,20 @@
   "subtasks": [],
   "children": [],
   "parent": null,
-  "relatedFiles": [],
-  "notes": "",
-  "meta": {}
+  "relatedFiles": [
+    "backend/agent/tests/evals/schemas.py",
+    "backend/agent/tests/evals/metrics.py",
+    "backend/agent/tests/evals/runner.py",
+    "backend/agent/tests/evals/golden_cases.json",
+    "backend/agent/tests/evals/test_metrics.py",
+    "backend/agent/tests/evals/test_runner.py",
+    "backend/agent/tests/jobs/importer/test_contract_drift.py",
+    "backend/agent/tests/rag/test_evidence_contract.py"
+  ],
+  "notes": "Phase 1 完成：54 条 golden cases + eval 框架 + 8 条契约漂移失败测试 + EvidenceCandidate 契约测试。测试结果 59 passed / 8 failed（均为设计失败的漂移文档测试）。",
+  "meta": {
+    "phase1_completed": "2026-09-03",
+    "phase1_tests_passed": 59,
+    "phase1_tests_failed_designed": 8
+  }
 }

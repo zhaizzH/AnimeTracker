@@ -1,0 +1,373 @@
+[
+  {
+    "id": "title_cn_01",
+    "category": "title_alias",
+    "description": "中文名精确匹配：进击的巨人",
+    "query": {"keywords": ["进击的巨人"]},
+    "expectation": {"expected_subject_ids": [1], "must_contain_all": [1]}
+  },
+  {
+    "id": "title_cn_02",
+    "category": "title_alias",
+    "description": "中文名精确匹配：咒术回战",
+    "query": {"keywords": ["咒术回战"]},
+    "expectation": {"expected_subject_ids": [2], "must_contain_all": [2]}
+  },
+  {
+    "id": "title_jp_01",
+    "category": "title_alias",
+    "description": "日文名精确匹配：進撃の巨人",
+    "query": {"keywords": ["進撃の巨人"]},
+    "expectation": {"expected_subject_ids": [1], "must_contain_all": [1]}
+  },
+  {
+    "id": "title_en_01",
+    "category": "title_alias",
+    "description": "英文名精确匹配：Attack on Titan",
+    "query": {"keywords": ["Attack on Titan"]},
+    "expectation": {"expected_subject_ids": [1], "must_contain_all": [1]}
+  },
+  {
+    "id": "title_alias_01",
+    "category": "title_alias",
+    "description": "别名匹配：巨人 → 进击的巨人",
+    "query": {"keywords": ["巨人"]},
+    "expectation": {"expected_subject_ids": [1], "must_contain_all": [1]}
+  },
+  {
+    "id": "title_alias_02",
+    "category": "title_alias",
+    "description": "别名匹配：JJK → 咒术回战",
+    "query": {"keywords": ["JJK"]},
+    "expectation": {"expected_subject_ids": [2], "must_contain_all": [2]}
+  },
+  {
+    "id": "title_fuzzy_01",
+    "category": "title_alias",
+    "description": "近似标题：鬼灭之刃 → 鬼灭之刃 火之神篇",
+    "query": {"keywords": ["鬼灭之刃"]},
+    "expectation": {"expected_subject_ids": [3], "must_contain_all": [3]}
+  },
+  {
+    "id": "title_fuzzy_02",
+    "category": "title_alias",
+    "description": "近似标题：电锯人 → Chainsaw Man",
+    "query": {"keywords": ["电锯人"]},
+    "expectation": {"expected_subject_ids": [4], "must_contain_all": [4]}
+  },
+  {
+    "id": "title_multi_01",
+    "category": "title_alias",
+    "description": "多关键词标题：Fate stay night",
+    "query": {"keywords": ["Fate", "stay", "night"]},
+    "expectation": {"expected_subject_ids": [5], "must_contain_all": [5]}
+  },
+  {
+    "id": "filter_year_01",
+    "category": "structured_filter",
+    "description": "年份过滤：2023年动画",
+    "query": {"year_from": 2023, "year_to": 2023},
+    "expectation": {"expected_subject_ids": [6, 7, 8], "must_contain_all": [6, 7, 8]}
+  },
+  {
+    "id": "filter_year_range_01",
+    "category": "structured_filter",
+    "description": "年份范围：2020-2022年高分动画",
+    "query": {"year_from": 2020, "year_to": 2022, "score_min": 8.0},
+    "expectation": {"expected_subject_ids": [9, 10, 11], "must_contain_all": [9, 10, 11]}
+  },
+  {
+    "id": "filter_quarter_01",
+    "category": "structured_filter",
+    "description": "季度过滤：2024年春季",
+    "query": {"year_from": 2024, "year_to": 2024, "quarter": "spring"},
+    "expectation": {"expected_subject_ids": [12, 13], "must_contain_all": [12, 13]}
+  },
+  {
+    "id": "filter_score_01",
+    "category": "structured_filter",
+    "description": "评分过滤：8.5分以上",
+    "query": {"score_min": 8.5},
+    "expectation": {"expected_subject_ids": [1, 2, 14, 15], "must_contain_all": [1, 2, 14, 15]}
+  },
+  {
+    "id": "filter_rating_total_01",
+    "category": "structured_filter",
+    "description": "评分人数过滤：至少5000人评分",
+    "query": {"rating_total_min": 5000},
+    "expectation": {"expected_subject_ids": [1, 2, 3, 16], "must_contain_all": [1, 2, 3, 16]}
+  },
+  {
+    "id": "filter_air_status_01",
+    "category": "structured_filter",
+    "description": "播出状态：正在播出",
+    "query": {"air_status": "AIRING"},
+    "expectation": {"expected_subject_ids": [17, 18], "must_contain_all": [17, 18]}
+  },
+  {
+    "id": "filter_air_status_02",
+    "category": "structured_filter",
+    "description": "播出状态：即将播出",
+    "query": {"air_status": "UPCOMING"},
+    "expectation": {"expected_subject_ids": [19, 20], "must_contain_all": [19, 20]}
+  },
+  {
+    "id": "filter_tag_01",
+    "category": "structured_filter",
+    "description": "标签过滤：热血",
+    "query": {"meta_tags": ["热血"]},
+    "expectation": {"expected_subject_ids": [1, 2, 21], "must_contain_all": [1, 2, 21]}
+  },
+  {
+    "id": "filter_tag_02",
+    "category": "structured_filter",
+    "description": "标签组合：恋爱+校园",
+    "query": {"meta_tags": ["恋爱", "校园"]},
+    "expectation": {"expected_subject_ids": [22, 23], "must_contain_all": [22, 23]}
+  },
+  {
+    "id": "filter_combined_01",
+    "category": "structured_filter",
+    "description": "组合过滤：2023年+评分8.0+热血",
+    "query": {"year_from": 2023, "year_to": 2023, "score_min": 8.0, "meta_tags": ["热血"]},
+    "expectation": {"expected_subject_ids": [6, 24], "must_contain_all": [6, 24]}
+  },
+  {
+    "id": "filter_combined_02",
+    "category": "structured_filter",
+    "description": "组合过滤：2022-2024年+评分7.5+正在播出",
+    "query": {"year_from": 2022, "year_to": 2024, "score_min": 7.5, "air_status": "AIRING"},
+    "expectation": {"expected_subject_ids": [17], "must_contain_all": [17]}
+  },
+  {
+    "id": "semantic_01",
+    "category": "subjective_semantic",
+    "description": "主观语义：治愈系日常",
+    "query": {"semantic_query": "治愈系日常动画"},
+    "expectation": {"expected_subject_ids": [25, 26, 27], "must_contain_all": [25, 26]}
+  },
+  {
+    "id": "semantic_02",
+    "category": "subjective_semantic",
+    "description": "主观语义：黑暗奇幻",
+    "query": {"semantic_query": "黑暗奇幻风格"},
+    "expectation": {"expected_subject_ids": [1, 28, 29], "must_contain_all": [1, 28]}
+  },
+  {
+    "id": "semantic_03",
+    "category": "subjective_semantic",
+    "description": "主观语义：机甲战斗",
+    "query": {"semantic_query": "机甲战斗机器人"},
+    "expectation": {"expected_subject_ids": [30, 31, 32], "must_contain_all": [30, 31]}
+  },
+  {
+    "id": "semantic_04",
+    "category": "subjective_semantic",
+    "description": "主观语义：青春恋爱",
+    "query": {"semantic_query": "青春恋爱故事"},
+    "expectation": {"expected_subject_ids": [22, 33, 34], "must_contain_all": [22, 33]}
+  },
+  {
+    "id": "semantic_05",
+    "category": "subjective_semantic",
+    "description": "主观语义：悬疑推理",
+    "query": {"semantic_query": "悬疑推理烧脑"},
+    "expectation": {"expected_subject_ids": [35, 36], "must_contain_all": [35, 36]}
+  },
+  {
+    "id": "person_01",
+    "category": "person_character",
+    "description": "人物：庵野秀明作品",
+    "query": {"keywords": ["庵野秀明"]},
+    "expectation": {"expected_subject_ids": [30, 37], "must_contain_all": [30, 37]}
+  },
+  {
+    "id": "person_02",
+    "category": "person_character",
+    "description": "人物：新海诚作品",
+    "query": {"keywords": ["新海诚"]},
+    "expectation": {"expected_subject_ids": [38, 39, 40], "must_contain_all": [38, 39, 40]}
+  },
+  {
+    "id": "person_03",
+    "category": "person_character",
+    "description": "人物：虚渊玄编剧",
+    "query": {"keywords": ["虚渊玄"]},
+    "expectation": {"expected_subject_ids": [41, 42], "must_contain_all": [41, 42]}
+  },
+  {
+    "id": "character_01",
+    "category": "person_character",
+    "description": "角色：初音未来",
+    "query": {"keywords": ["初音未来"]},
+    "expectation": {"expected_subject_ids": [43], "must_contain_all": [43]}
+  },
+  {
+    "id": "character_02",
+    "category": "person_character",
+    "description": "角色：艾伦·耶格尔",
+    "query": {"keywords": ["艾伦"]},
+    "expectation": {"expected_subject_ids": [1], "must_contain_all": [1]}
+  },
+  {
+    "id": "voice_actor_01",
+    "category": "person_character",
+    "description": "声优：花江夏树",
+    "query": {"keywords": ["花江夏树"]},
+    "expectation": {"expected_subject_ids": [3, 44], "must_contain_all": [3, 44]}
+  },
+  {
+    "id": "voice_actor_02",
+    "category": "person_character",
+    "description": "声优：早见沙织",
+    "query": {"keywords": ["早见沙织"]},
+    "expectation": {"expected_subject_ids": [45, 46], "must_contain_all": [45, 46]}
+  },
+  {
+    "id": "studio_01",
+    "category": "person_character",
+    "description": "制作公司：MAPPA",
+    "query": {"keywords": ["MAPPA"]},
+    "expectation": {"expected_subject_ids": [1, 2, 47], "must_contain_all": [1, 2, 47]}
+  },
+  {
+    "id": "studio_02",
+    "category": "person_character",
+    "description": "制作公司：京阿尼",
+    "query": {"keywords": ["京都动画"]},
+    "expectation": {"expected_subject_ids": [48, 49], "must_contain_all": [48, 49]}
+  },
+  {
+    "id": "relation_01",
+    "category": "series_relation",
+    "description": "系列关系：进击的巨人续作",
+    "query": {"keywords": ["进击的巨人"], "semantic_query": "进击的巨人续集"},
+    "expectation": {"expected_subject_ids": [50, 51, 52], "must_contain_all": [50, 51]}
+  },
+  {
+    "id": "relation_02",
+    "category": "series_relation",
+    "description": "系列关系：Fate系列",
+    "query": {"keywords": ["Fate"]},
+    "expectation": {"expected_subject_ids": [5, 53, 54], "must_contain_all": [5, 53]}
+  },
+  {
+    "id": "relation_03",
+    "category": "series_relation",
+    "description": "系列关系：物语系列",
+    "query": {"keywords": ["物语"]},
+    "expectation": {"expected_subject_ids": [55, 56, 57], "must_contain_all": [55, 56]}
+  },
+  {
+    "id": "negation_01",
+    "category": "negation",
+    "description": "否定条件：排除已收藏",
+    "query": {"keywords": ["热血"], "exclude_subject_ids": [1, 2]},
+    "expectation": {"expected_subject_ids": [21, 58], "must_contain_all": [21]}
+  },
+  {
+    "id": "negation_02",
+    "category": "negation",
+    "description": "否定条件：排除NSFW",
+    "query": {"semantic_query": "战斗", "exclude_subject_ids": [59, 60]},
+    "expectation": {"expected_subject_ids": [1, 3, 61], "must_contain_all": [1, 3]}
+  },
+  {
+    "id": "negation_03",
+    "category": "negation",
+    "description": "否定语义：不要恋爱",
+    "query": {"semantic_query": "战斗动画 不要恋爱", "meta_tags": ["热血"]},
+    "expectation": {"expected_subject_ids": [1, 21, 62], "must_contain_all": [1, 21]}
+  },
+  {
+    "id": "degradation_01",
+    "category": "degradation",
+    "description": "冷门条目：低收藏数作品",
+    "query": {"keywords": ["冷门"], "score_min": 7.0},
+    "expectation": {"expected_subject_ids": [63, 64], "must_contain_all": [63]}
+  },
+  {
+    "id": "degradation_02",
+    "category": "degradation",
+    "description": "无结果：不存在的标题",
+    "query": {"keywords": ["不存在的动画2026"]},
+    "expectation": {"expected_subject_ids": [], "must_contain_all": []}
+  },
+  {
+    "id": "degradation_03",
+    "category": "degradation",
+    "description": "降级：Redis不可用时回退Business",
+    "query": {"keywords": ["进击的巨人"]},
+    "expectation": {"expected_subject_ids": [1], "must_contain_all": [1], "hard_filters": {"fallback": "business"}}
+  },
+  {
+    "id": "degradation_04",
+    "category": "degradation",
+    "description": "降级：Embedding失败时仅BM25",
+    "query": {"semantic_query": "治愈日常"},
+    "expectation": {"expected_subject_ids": [25, 26], "must_contain_all": [25], "hard_filters": {"fallback": "lexical_only"}}
+  },
+  {
+    "id": "title_special_01",
+    "category": "title_alias",
+    "description": "特殊字符标题：Re:Zero",
+    "query": {"keywords": ["Re:Zero"]},
+    "expectation": {"expected_subject_ids": [65], "must_contain_all": [65]}
+  },
+  {
+    "id": "title_special_02",
+    "category": "title_alias",
+    "description": "数字标题：死亡游行 Death Parade",
+    "query": {"keywords": ["Death Parade"]},
+    "expectation": {"expected_subject_ids": [66], "must_contain_all": [66]}
+  },
+  {
+    "id": "filter_quarter_02",
+    "category": "structured_filter",
+    "description": "季度过滤：2023年秋季",
+    "query": {"year_from": 2023, "year_to": 2023, "quarter": "autumn"},
+    "expectation": {"expected_subject_ids": [67, 68], "must_contain_all": [67, 68]}
+  },
+  {
+    "id": "filter_combined_03",
+    "category": "structured_filter",
+    "description": "组合过滤：2021年+评分8.0+奇幻",
+    "query": {"year_from": 2021, "year_to": 2021, "score_min": 8.0, "meta_tags": ["奇幻"]},
+    "expectation": {"expected_subject_ids": [69], "must_contain_all": [69]}
+  },
+  {
+    "id": "semantic_06",
+    "category": "subjective_semantic",
+    "description": "主观语义：异世界转生",
+    "query": {"semantic_query": "异世界转生冒险"},
+    "expectation": {"expected_subject_ids": [70, 71, 72], "must_contain_all": [70, 71]}
+  },
+  {
+    "id": "semantic_07",
+    "category": "subjective_semantic",
+    "description": "主观语义：美食烹饪",
+    "query": {"semantic_query": "美食烹饪动画"},
+    "expectation": {"expected_subject_ids": [73, 74], "must_contain_all": [73]}
+  },
+  {
+    "id": "person_04",
+    "category": "person_character",
+    "description": "人物：渡边信一郎",
+    "query": {"keywords": ["渡边信一郎"]},
+    "expectation": {"expected_subject_ids": [75, 76], "must_contain_all": [75, 76]}
+  },
+  {
+    "id": "relation_04",
+    "category": "series_relation",
+    "description": "系列关系：高达系列",
+    "query": {"keywords": ["高达"]},
+    "expectation": {"expected_subject_ids": [77, 78, 79], "must_contain_all": [77, 78]}
+  },
+  {
+    "id": "negation_04",
+    "category": "negation",
+    "description": "否定条件：排除特定年份",
+    "query": {"keywords": ["战斗"], "year_from": 2020, "year_to": 2024, "exclude_subject_ids": [80]},
+    "expectation": {"expected_subject_ids": [1, 2, 3], "must_contain_all": [1, 2]}
+  }
+]
