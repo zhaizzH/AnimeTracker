@@ -32,8 +32,13 @@
 ## 质量检查
 
 ```bash
-cd backend/business && mvn -B test
-cd ../../backend/agent && uv run pytest
+cd backend/business
+mvn -B test
+# 配置迁移或边界变更的交付前验证
+mvn -B clean test
+
+cd ../agent
+uv run pytest
 ```
 
-Java `app` 模块已有配置迁移回归测试；Python 当前仅有导入指标测试。测试命令通过不等于业务覆盖充分，新功能应补最小回归用例。
+CI 当前执行 Java `mvn -B test`、Python `uv run pytest` 和前端 typecheck；`clean test` 与前端 build 属于相应变更的提交前/交付前验证。Java `app` 模块已有配置迁移回归测试；Python 当前仅有导入指标测试。测试命令通过不等于业务覆盖充分，新功能应补最小回归用例。

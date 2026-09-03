@@ -3,7 +3,8 @@
 ## 组件职责
 
 - Page 负责路由级数据组合；可复用交互拆到 `components`。
-- client/admin 共同使用的展示组件进入 shared，参考 `SubjectCard.tsx` 与 `AuthGate.tsx`。
+- client/admin 共同使用且不依赖单一应用路由、全局 CSS 或专属运行时的展示组件才进入 shared；`SubjectCard.tsx` 当前依赖 client 的 `.od-card-img` 样式和 `react-router-dom`，属于待治理的共享边界债务。
+- shared 组件必须在 `packages/shared/package.json` 声明自身运行时依赖，不能依赖消费应用“碰巧”安装的包，也不能假设 client 的全局样式一定存在。
 - 复杂状态共享优先 Provider + 自定义 Hook，参考 `AgentChatProvider` 与 `useClientAgentChat`。
 - 路由页面使用 `lazy + Suspense`；fallback 保持接近最终内容宽度，避免布局跳动。
 - 不把 API URL、鉴权刷新或 SSE 解析复制进页面组件。
@@ -31,6 +32,11 @@
 - 不只用颜色表达 running/success/error。
 - 保留键盘提交与焦点可达性，不能用不可聚焦 div 替代 Button。
 - modal/empty/loading 状态必须给用户明确文本。
+
+## 副作用与当前债务
+
+- DOM 写入、主题订阅和通知等副作用必须放在 effect 或用户事件中；不要在 render 阶段调用 `message`、导航或直接修改 DOM。
+- 当前 `admin/src/guards.tsx` 在 render 阶段触发非管理员通知，`client/src/main.tsx` 在主题同步上直接操作 DOM；后续修复必须补对应测试。
 
 ## 常见错误
 

@@ -26,7 +26,7 @@ backend/
 - `client/admin` 遵循 Controller → Service → Mapper/Store；Controller 只做绑定、鉴权上下文和响应包装。
 - 外部系统先在消费模块定义 Gateway，实现在 `app.infrastructure`。参考 `ImportAgentGateway` → `HttpImportAgentGateway`。
 - 只有多个业务模块共享的能力才放 `common`；模块私有端口不要上提。
-- `app` 是组合根，聚合业务模块并承载 MinIO、Resend、Agent HTTP 等适配器，以及所有 Spring 配置绑定和运行时 Bean 装配。
+- `app` 是组合根，聚合业务模块并承载 MinIO、Resend、Agent HTTP 等适配器，以及本次从旧 `common.config` 迁移的六类 Spring 配置绑定和运行时 Bean 装配；它不是所有领域配置类的唯一所在地。
 
 ## 配置装配契约：Business → App
 
@@ -85,6 +85,36 @@ AgentService agentService(RestTemplate restTemplate, ObjectMapper mapper, AgentP
     return new AgentServiceImpl(restTemplate, mapper, properties.getBaseUrl(), properties.getConnectTimeout());
 }
 ```
+
+## 模块依赖与配置例外
+
+| 模块 | 允许依赖/职责 | 当前边界说明 |
+|---|---|---|
+| `pojo` | 数据结构与 DTO/VO/Entity | 不依赖业务实现或 `app` |
+| `common` | 跨模块常量、结果、日志、安全和共享端口 | 不反向依赖 `client/admin/agent/app` |
+| `client` | 用户端 Controller、Service、Mapper、Store、Gateway | 可依赖 `pojo/common`；不得依赖 `app` |
+| `admin` | 管理端 Controller、Service、Mapper、Gateway | 可依赖 `pojo/common`；不得依赖 `app` 或 `client` 实现 |
+| `agent` | Spring 到 Python Agent 的代理边界 | 只依赖契约和共享基础能力，不把 Python 实现引入 Java 业务模块 |
+| `app` | 组合根、基础设施适配器、配置装配 | 可组合下层模块，不向下层泄露 Spring 配置类型 |
+
+当前 `ArchitectureBoundaryTest` 主要保护“下层不得依赖 `top.zhaizz.app..`”，不会自动覆盖所有 sibling 依赖（例如 `admin → client`）。新增跨模块 import 时必须同时做人工依赖审查，并为新边界补 ArchUnit 断言。
+
+配置例外必须按真实源码处理：`client/config/AuthCookieProperties`、`CollectionProgressConfig`、`app/infrastructure/**` 等仍属于消费方或基础设施自身配置；迁移规则只适用于本次列出的 `app.config` 类，不得扩大解释为“所有 `@ConfigurationProperties` 都在 app”。
+
+## 启动、Profile 与健康检查契约
+
+- 当前仓库实际跟踪的 Business 配置文件只有 `app/src/main/resources/application.yml`；文件头部提到的 local/prod 配置不能视为已存在实现。
+- 数据库、Redis、Agent 和 CORS 读取的 key 以 `application.yml` 的占位符为准；文档示例不得改写成未在配置或启动脚本中出现的环境变量名。
+- `at.cors.origins` 当前没有安全默认值；缺失/空白值时应保持 fail closed，并通过配置绑定测试确认启动或请求阶段的失败语义。
+- CORS 绑定类的属性路径是 `at.cors.allowed-origins`，但当前 YAML 占位符写成 `${at.cors.origins}`；这是必须由配置绑定测试裁决的现状偏差，新增环境变量前先统一命名。
+- `/actuator/health/**` 的公开范围、liveness/readiness 分组和匿名访问权限必须作为一个整体验证；当前 Security 的 `anyRequest().denyAll()` 意味着只改 management 配置不足以证明探针可访问。
+
+| 变更 | 必须核对 |
+|---|---|
+| 新增 Profile 或环境变量 | 配置文件、绑定类、`.env.example`/部署入口和缺值行为 |
+| 调整 CORS/Cookie | key 名、Origin 精确匹配、credentials、refresh/logout 的 403 语义 |
+| 调整健康探针 | URL 是否被 Security 放行、依赖范围、匿名响应字段和 HTTP 状态 |
+| 修改 Agent 超时 | 普通请求与 SSE 的读超时必须分别验证 |
 
 ## Python Agent 放置规则
 
