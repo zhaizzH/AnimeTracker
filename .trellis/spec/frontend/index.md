@@ -37,3 +37,5 @@ npm run typecheck
 npm test
 npm run build
 ```
+
+质量门禁按变更范围执行：CI 当前强制 `npm run typecheck`；提交前运行受影响 workspace 的 `npm test`；路由、依赖、构建配置或交付型变更再运行 `npm run build`。详见 [质量门禁](./quality-guidelines.md)。

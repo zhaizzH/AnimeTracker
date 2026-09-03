@@ -5,7 +5,8 @@
 - 跨应用/跨页面 API 类型集中在 `packages/shared/src/types/index.ts`。
 - 仅组件内部使用的 props、表单和视图状态留在组件附近。
 - shared API 函数声明精确输入/输出泛型，调用方不重复写响应结构。
-- Java `Long` 业务 ID 在前端现有契约中使用 `string`，避免超过安全整数。
+- ID 类型必须按领域核对，不能使用“Java Long 全部转 string”的笼统规则。当前 shared 类型中：Subject/HotSubject/Relation 的业务 ID 多为 `string`；User、Episode、Collection、Tag、Log 等 ID 仍为 `number`；OpenAPI 的 `integer/int64` 不能自动推导前端最终类型。
+- 修改 ID 序列化时必须同时核对 Java VO/DTO、Python schema、OpenAPI 和 `packages/shared/src/types/index.ts`；未完成统一前，保留现有领域映射并为大整数增加边界测试。
 - 状态/角色/收藏类型使用联合类型，例如 `UserRole`、`CollectionType`。
 
 ## HTTP 边界

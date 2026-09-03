@@ -19,23 +19,55 @@
 ## 安全写操作
 
 1. 预览工具查询权威 Business 数据并生成强类型 `PendingAction`。
-2. `ChatService` 按用户与会话把动作写入 Redis。
+2. `ChatService` 按用户与会话把动作写入 Redis；成功写入后才允许把动作视为可确认。
 3. 用户明确确认后，执行工具只读取 `InjectedState` 中的 action 或 preview ID。
 4. 基础设施错误导致结果不确定时保留动作；`PREVIEW_CHANGED` 必须重新确认。
 5. 取消只清理待确认状态，不修改业务数据。
 
 参考：`app/agent/client/actions/wishlist.py`、`collection_progress.py`、`app/chat/pending_action.py`。
 
+### 待确认动作持久化失败矩阵
+
+`streaming.py` 当前会捕获 `on_pending_action` 异常并继续发送结束事件；这是已知安全债务，不得被新代码复制。任何新增或修改必须满足以下契约：
+
+| 条件 | 必须行为 |
+|---|---|
+| 新建/替换动作写 Redis 成功 | 返回可确认状态，并绑定 `user_id`、`session_id`、`preview_id`/nonce 与 TTL |
+| 新建/替换动作写 Redis 失败 | 不宣告动作可确认；不得继续执行不可见动作；向调用方返回可重试的失败语义 |
+| 已有旧动作且替换失败 | 不能让下一次确认误执行旧动作；清除旧动作或使其版本失效，并记录可关联 trace |
+| 用户取消 | 仅删除同一用户/会话的待确认动作，不能修改 Business 数据 |
+| 确认时 preview 已变化/过期 | 返回 `PREVIEW_CHANGED`/过期错误，必须重新预览确认 |
+
+最低回归场景：预存旧动作 → `REPLACE` 失败 → 再次确认；断言旧动作不会被执行。
+
 ## 认证与配置
 
 - Agent 使用共享 `JWT_SECRET` 本地 HS256 验签，避免回调 Spring 形成代理环路。
 - 管理路由必须使用 `require_admin`，不能只靠提示词限制。
 - `Settings` 使用 `extra="forbid"`；新增环境变量同步 `app/config.py` 与 `.env.example`。
-- `LLM_PROVIDER` 显式选择 deepseek 或 dashscope；缺 Key 时启动失败。
+- `LLM_PROVIDER` 支持 `deepseek|dashscope`；显式设置时缺少对应 Key 必须失败。未设置时当前实现会按 DeepSeek→DashScope Key 存在性回退并记录 warning，不得把“显式选择”写成必需事实。
+- LLM 模型/温度等运行时配置优先读取 Redis `agent:config:model`；本地缓存约 5 秒，Redis 不可用时回退环境配置。
+- 托管 Prompt 在启动时从 Redis 建立快照；单项读取失败回退仓库内本地 Prompt，不因 Prompt Redis 不可用阻止启动。
+- 共享 `.env` 中由 importer 使用的字段也必须声明在 `Settings` 中，否则 `extra="forbid"` 会导致启动失败；业务读取仍需说明真实来源。
 - 日志只记录供应商和模型名，绝不记录 Key、JWT、用户输入或完整回答。
+
+### 健康检查语义
+
+- Agent `/health` 当前始终返回 HTTP 200，并只反映 LLM 配置是否可解析；不代表 Redis、Business、RAG 或 MinIO 可用。
+- Business 的 liveness/readiness 配置见 `backend/business/app/src/main/resources/application.yml`；当前 readiness 计划检查 MySQL 与 Redis，但 Security 默认拒绝未显式放行的 URL，修改健康探针时必须补授权测试。
+- 变更健康检查时必须明确：检查项、HTTP 状态、依赖不可用时的响应、公开字段和是否允许匿名访问。
 
 ## 离线任务
 
 - importer、indexer、scheduler 使用 `python -m jobs.<name>...` 运行并返回明确退出码。
 - indexer 只有显式 `--activate` 且全部报告通过时才执行 `FT.ALIASUPDATE`。
 - scheduler 使用 Asia/Shanghai 规则；仓库没有常驻宿主配置，不得假设已有 cron/systemd/容器部署。
+
+### 离线任务最低契约
+
+- importer CLI 的 `--mode` 为 `full|season|recent|since|sample`；`--dry-run` 只扫描，不打开数据库或写对象存储，当前仅支持 full 扫描语义。
+- importer 并发 worker 上限为 10；断点由扫描 ID 的 SHA-256、offset 和最后条目共同校验，扫描结果变化时拒绝复用旧断点。
+- importer 使用 MySQL `GET_LOCK` 做跨进程互斥；每个 worker 独立 Session，失败必须 rollback、关闭连接并返回非零结果。
+- indexer 报告缺失、版本不一致、契约/指标不达标时必须 fail closed；只有显式 `--activate` 且所有报告通过时才更新 alias，旧索引不得先删除。
+- scheduler 使用 Asia/Shanghai 的固定时刻（每日 recent、每周 since、季度 full），同一分钟同模式去重；仓库不提供常驻宿主、重叠任务终止或重启托管。
+- 以上契约的参数、退出码、报告字段或阈值发生变化时，必须同时更新本文件和 `quality-guidelines.md` 的验证清单，并补失败路径测试。
