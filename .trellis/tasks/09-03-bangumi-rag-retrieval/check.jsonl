@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"定义 Java/Python/前端质量门禁与当前测试债务"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"检查 schema、迁移、事务、幂等、清理与回滚契约"}
+{"file":".trellis/spec/backend/agent-guidelines.md","reason":"检查 Agent 工具可达性、故障降级、索引发布和 SSE 兼容"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"检查 OpenAPI、DTO、Pydantic、shared types 和端到端数据流"}
+{"file":".trellis/tasks/09-03-bangumi-rag-retrieval/research/architecture-audit.md","reason":"复核设计是否覆盖已发现的 API 与实现缺口"}
