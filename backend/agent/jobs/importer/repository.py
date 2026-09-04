@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
 
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 
 from app.rag.profile import build_subject_profile
 from app.rag.schemas import SubjectProfileSource
@@ -115,6 +115,8 @@ class ImportRepository:
             "summary": subject.summary,
             "air_date": subject.air_date,
             "air_weekday": subject.air_weekday,
+            "eps": subject.eps,
+            "volumes": subject.volumes,
             "score": subject.score,
             "rank": subject.rank,
             "rating_total": subject.rating_total,
@@ -136,7 +138,7 @@ class ImportRepository:
             self._session.execute(
                 text(
                     "UPDATE subject SET name=:name, name_cn=:name_cn, summary=:summary, "
-                    "air_date=:air_date, air_weekday=:air_weekday, "
+                    "air_date=:air_date, air_weekday=:air_weekday, eps=:eps, volumes=:volumes, "
                     "score=:score, `rank`=:rank, collection_total=:collection_total, "
                     "rating_total=:rating_total, rating_count_json=CAST(:rating_count_json AS JSON), "
                     "collection_wish=:collection_wish, collection_collect=:collection_collect, "
@@ -151,11 +153,11 @@ class ImportRepository:
             return int(existing)
         result = self._session.execute(
             text(
-                "INSERT INTO subject (bangumi_id, name, name_cn, summary, type, air_date, air_weekday, image, import_status, "
+                "INSERT INTO subject (bangumi_id, name, name_cn, summary, type, air_date, air_weekday, eps, volumes, image, import_status, "
                 "last_imported_at, created_at, updated_at, score, `rank`, collection_total, rating_total, rating_count_json, collection_wish, "
                 "collection_collect, collection_doing, collection_on_hold, collection_dropped, image_source_url, "
                 "image_storage_status, image_checked_at, source_fetched_at) VALUES "
-                "(:bangumi_id, :name, :name_cn, :summary, 2, :air_date, :air_weekday, :image, 1, :now, :now, :now, :score, :rank, :collection_total, :rating_total, "
+                "(:bangumi_id, :name, :name_cn, :summary, 2, :air_date, :air_weekday, :eps, :volumes, :image, 1, :now, :now, :now, :score, :rank, :collection_total, :rating_total, "
                 "CAST(:rating_count_json AS JSON), :collection_wish, :collection_collect, :collection_doing, "
                 ":collection_on_hold, :collection_dropped, :image_source_url, :image_storage_status, "
                 ":image_checked_at, :source_fetched_at)"
@@ -166,54 +168,101 @@ class ImportRepository:
 
     def _upsert_aliases(self, subject_id: int, subject: NormalizedSubject) -> None:
         now = datetime.now()
+        active_names: list[str] = []
         for alias in subject.aliases:
+            active_names.append(alias.name)
             self._session.execute(
                 text(
-                    "INSERT INTO subject_alias (subject_id, name, language, source, created_at, updated_at) "
-                    "VALUES (:subject_id, :name, 'und', :source, :now, :now) "
-                    "ON DUPLICATE KEY UPDATE source=:source, updated_at=:now"
+                    "INSERT INTO subject_alias (subject_id, name, language, source, source_active, created_at, updated_at) "
+                    "VALUES (:subject_id, :name, 'und', :source, 1, :now, :now) "
+                    "ON DUPLICATE KEY UPDATE source=:source, source_active=1, updated_at=:now"
                 ),
                 {"subject_id": subject_id, "name": alias.name, "source": alias.kind, "now": now},
             )
+        # replace-set: 失效不在新集合中的旧别名
+        deactivate_sql = text(
+            "UPDATE subject_alias SET source_active=0, updated_at=:now "
+            "WHERE subject_id=:subject_id AND source_active=1 AND name NOT IN :active_names"
+        ).bindparams(bindparam("active_names", expanding=True))
+        self._session.execute(
+            deactivate_sql,
+            {"subject_id": subject_id, "now": now, "active_names": active_names or ["__never_match__"]},
+        )
 
     def _upsert_meta_tags(self, subject_id: int, subject: NormalizedSubject) -> None:
         now = datetime.now()
+        active_names: list[str] = []
         for name in subject.meta_tags:
+            active_names.append(name)
             self._session.execute(
                 text(
-                    "INSERT INTO subject_meta_tag (subject_id, name, created_at) VALUES (:subject_id, :name, :now) "
-                    "ON DUPLICATE KEY UPDATE name=:name"
+                    "INSERT INTO subject_meta_tag (subject_id, name, source_active, created_at) "
+                    "VALUES (:subject_id, :name, 1, :now) "
+                    "ON DUPLICATE KEY UPDATE source_active=1"
                 ),
                 {"subject_id": subject_id, "name": name, "now": now},
             )
+        # replace-set: 失效不在新集合中的旧标签
+        deactivate_sql = text(
+            "UPDATE subject_meta_tag SET source_active=0 "
+            "WHERE subject_id=:subject_id AND source_active=1 AND name NOT IN :active_names"
+        ).bindparams(bindparam("active_names", expanding=True))
+        self._session.execute(
+            deactivate_sql,
+            {"subject_id": subject_id, "active_names": active_names or ["__never_match__"]},
+        )
 
     def _upsert_credits(self, subject_id: int, subject: NormalizedSubject) -> None:
         now = datetime.now()
+        active_keys: list[str] = []
         for order, credit in enumerate(subject.credits):
+            # 用 name + role 组合作为 replace-set 的活跃标识
+            active_keys.append(f"{credit.name}\x00{credit.role}")
             self._session.execute(
                 text(
-                    "INSERT INTO subject_credit (subject_id, bangumi_person_id, name, role, credit_type, sort_order, created_at, updated_at) "
-                    "VALUES (:subject_id, :person_id, :name, :role, 'MAIN', :sort_order, :now, :now) "
-                    "ON DUPLICATE KEY UPDATE bangumi_person_id=:person_id, credit_type='MAIN', "
-                    "sort_order=:sort_order, updated_at=:now"
+                    "INSERT INTO subject_credit (subject_id, bangumi_person_id, name, role, credit_type, sort_order, source_active, created_at, updated_at) "
+                    "VALUES (:subject_id, :person_id, :name, :role, :credit_type, :sort_order, 1, :now, :now) "
+                    "ON DUPLICATE KEY UPDATE bangumi_person_id=:person_id, credit_type=:credit_type, "
+                    "sort_order=:sort_order, source_active=1, updated_at=:now"
                 ),
                 {
                     "subject_id": subject_id,
                     "person_id": credit.person_id,
                     "name": credit.name,
                     "role": credit.role,
+                    "credit_type": credit.person_type,
                     "sort_order": order,
                     "now": now,
                 },
+            )
+        # replace-set: 失效不在新集合中的旧主创
+        if active_keys:
+            names = [k.split("\x00")[0] for k in active_keys]
+            deactivate_sql = text(
+                "UPDATE subject_credit SET source_active=0, updated_at=:now "
+                "WHERE subject_id=:subject_id AND source_active=1 AND name NOT IN :active_names"
+            ).bindparams(bindparam("active_names", expanding=True))
+            self._session.execute(
+                deactivate_sql,
+                {"subject_id": subject_id, "now": now, "active_names": names},
+            )
+        else:
+            # 新集合为空时失效全部旧记录
+            self._session.execute(
+                text(
+                    "UPDATE subject_credit SET source_active=0, updated_at=:now "
+                    "WHERE subject_id=:subject_id AND source_active=1"
+                ),
+                {"subject_id": subject_id, "now": now},
             )
 
     def _profile_source(self, subject_id: int) -> SubjectProfileSource:
         row = self._session.execute(
             text(
                 "SELECT s.name AS title, s.summary, "
-                "(SELECT GROUP_CONCAT(name ORDER BY name SEPARATOR '\\n') FROM subject_alias WHERE subject_id=s.id) AS aliases, "
-                "(SELECT GROUP_CONCAT(name ORDER BY name SEPARATOR '\\n') FROM subject_meta_tag WHERE subject_id=s.id) AS meta_tags, "
-                "(SELECT GROUP_CONCAT(CONCAT(role, '：', name) ORDER BY sort_order, name SEPARATOR '\\n') FROM subject_credit WHERE subject_id=s.id) AS credits, "
+                "(SELECT GROUP_CONCAT(name ORDER BY name SEPARATOR '\\n') FROM subject_alias WHERE subject_id=s.id AND source_active=1) AS aliases, "
+                "(SELECT GROUP_CONCAT(name ORDER BY name SEPARATOR '\\n') FROM subject_meta_tag WHERE subject_id=s.id AND source_active=1) AS meta_tags, "
+                "(SELECT GROUP_CONCAT(CONCAT(role, '：', name) ORDER BY sort_order, name SEPARATOR '\\n') FROM subject_credit WHERE subject_id=s.id AND source_active=1) AS credits, "
                 "(SELECT GROUP_CONCAT(CONCAT(sr.relation, '：', related.name) ORDER BY related.name SEPARATOR '\\n') "
                 " FROM subject_relation sr JOIN subject related ON related.id=sr.related_subject_id WHERE sr.subject_id=s.id) AS relations "
                 "FROM subject s WHERE s.id=:subject_id"
