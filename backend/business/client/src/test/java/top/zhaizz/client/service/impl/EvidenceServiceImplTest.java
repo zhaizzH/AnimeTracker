@@ -251,6 +251,30 @@ class EvidenceServiceImplTest {
     }
 
     @Test
+    void resolveEvidenceByRelatedSubjectsUsesBidirectionalRelationQuery() {
+        EvidenceSubjectRow subject = new EvidenceSubjectRow();
+        subject.setSubjectId(20L);
+        subject.setName("Related work");
+        subject.setType(2);
+        subject.setNsfw(false);
+        subject.setActive(true);
+
+        when(evidenceMapper.selectRelatedSubjectIds(List.of(10L))).thenReturn(List.of(20L));
+        when(evidenceMapper.selectSubjectBasics(List.of(20L))).thenReturn(List.of(subject));
+        when(evidenceMapper.selectAliases(List.of(20L))).thenReturn(Collections.emptyList());
+        when(evidenceMapper.selectMetaTags(List.of(20L))).thenReturn(Collections.emptyList());
+        when(evidenceMapper.selectCredits(List.of(20L))).thenReturn(Collections.emptyList());
+        when(evidenceMapper.selectCharacters(List.of(20L))).thenReturn(Collections.emptyList());
+        when(evidenceMapper.selectRelations(List.of(20L))).thenReturn(Collections.emptyList());
+
+        List<EvidenceCandidateVO> result = evidenceService.resolveEvidence(
+                new EvidenceEntityBatchRequestDTO(EvidenceEntityType.RELATION_SUBJECT, List.of(10L)));
+
+        assertThat(result).extracting(EvidenceCandidateVO::getSubjectId).containsExactly(20L);
+        verify(evidenceMapper).selectRelatedSubjectIds(List.of(10L));
+    }
+
+    @Test
     void resolveEvidenceReturnsEmptyForNullRequestAndRejectsTooManyIds() {
         assertThat(evidenceService.resolveEvidence(null)).isEmpty();
 

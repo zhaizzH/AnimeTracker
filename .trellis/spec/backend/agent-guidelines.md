@@ -21,7 +21,7 @@
 ### 2. Signatures
 
 - `RetrievalQuery`: `person_ids`, `character_ids`, `actor_ids`, `relation_subject_ids`，均为最多 50 个正整数。
-- `POST /api/client/evidence/resolve`: `{ "entityType": "PERSON|CHARACTER|ACTOR|SUBJECT", "ids": [1, ...] }`。
+- `POST /api/client/evidence/resolve`: `{ "entityType": "PERSON|CHARACTER|ACTOR|SUBJECT|RELATION_SUBJECT", "ids": [1, ...] }`；`RELATION_SUBJECT` 沿 `subject_relation` 双向扩展。
 - `BusinessGateway.resolve_evidence(entity_type, entity_ids, *, token) -> dict | list`。
 
 ### 3. Contracts
