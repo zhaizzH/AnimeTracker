@@ -7,9 +7,64 @@
 - `app/agent/graph.py` 先按角色分流；普通用户只允许 `search_agent / discover_agent / recommend_agent`。
 - 每个节点只注册完成职责所需的工具；新增工具先确定最小可见节点。
 - RAG 关闭时使用显式不可用适配器与 Business fallback，不能把检索失败静默伪装为空结果。
-- 通过权威回查的候选必须经 Evidence API 补充证据字段（`_enrich_evidence`）；Evidence 失败不崩溃，候选保持原样返回并记录 `rag.evidence.enriched` 事件。
+- 通过权威回查的候选必须经 Evidence API 补充证据字段（`_enrich_evidence`）；Evidence 失败、错误、部分或不安全响应时必须 fail-closed（`available=false`、空候选），并记录 `rag.evidence.enriched` 事件。
+- `RetrievalQuery` 的 `person_ids`、`character_ids`、`actor_ids`、`relation_subject_ids` 只能通过 Business `/api/client/evidence/resolve` 解析为活跃、非 NSFW 动画 Subject allowlist；解析失败不得访问 Redis 或返回未过滤候选。
 - Agent 提示词禁止陈述工具返回中不存在的证据；`_compact` 输出必须包含全部 18 个证据字段，缺失字段使用空默认值。
 - 故障矩阵必须在测试中覆盖：Redis/Embedding/Business/Evidence 每层独立故障与组合故障，证明 fail-closed 或既定降级行为。
+
+## RAG 结构化实体筛选契约
+
+### 1. Scope / Trigger
+
+- Trigger：RAG 工具新增人物、角色、声优和关联条目 ID 过滤，并跨 Agent → Business → MySQL 传递实体关系。
+
+### 2. Signatures
+
+- `RetrievalQuery`: `person_ids`, `character_ids`, `actor_ids`, `relation_subject_ids`，均为最多 50 个正整数。
+- `POST /api/client/evidence/resolve`: `{ "entityType": "PERSON|CHARACTER|ACTOR|SUBJECT", "ids": [1, ...] }`。
+- `BusinessGateway.resolve_evidence(entity_type, entity_ids, *, token) -> dict | list`。
+
+### 3. Contracts
+
+- Business 只返回 `type=2`、`nsfw=false`、`active=true` 的证据候选；Agent 仅提取 `subjectId`。
+- 多种实体过滤取交集；allowlist 同时约束 Redis 召回和 Business fallback，再执行 Subject 权威回查与 Evidence 回查。
+- 实体 ID 不得拼接进 RediSearch 表达式或 SQL 字符串。
+
+### 4. Validation & Error Matrix
+
+| 条件 | 必须行为 |
+|---|---|
+| ID 非正整数、超过 50 个 | Pydantic 校验失败，工具返回空结果 |
+| `/resolve` 超时、错误、异常或返回缺失/不安全字段 | `available=false`、`reason=entity_resolution_unavailable` |
+| `/resolve` 返回空集合 | `available=true`、`reason=no_results`，不得扩大查询范围 |
+| Redis 故障 | Business fallback 仍应用同一 allowlist |
+
+### 5. Good/Base/Bad Cases
+
+- Good：`person_ids=[7]` 解析出 Subject 42，Redis 返回 41/42 时只回查 42。
+- Base：没有实体过滤时保持旧检索路径和 Business fallback。
+- Bad：把 `person_ids` 作为 `@person_id:{7}` 拼入 Subject 索引，或解析失败后继续返回 Redis 候选。
+
+### 6. Tests Required
+
+- Schema：严格拒绝字符串、布尔值、非正数和第 51 个 ID。
+- Retrieval：实体解析调用顺序、交集、空集合、异常 fail-closed、Redis 故障 fallback allowlist。
+- Adapter：断言 `/api/client/evidence/resolve` 方法、路径、JSON body 和 Authorization。
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+expression = f"@subject_id:{{{query.person_ids[0]}}}"
+```
+
+#### Correct
+
+```python
+allowed = resolve_evidence("PERSON", query.person_ids, token=token)
+candidates = [item for item in candidates if item.subject_id in allowed_subject_ids]
+```
 
 ## SSE 契约
 
