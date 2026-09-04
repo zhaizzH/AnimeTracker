@@ -1,15 +1,13 @@
 """EvidenceCandidate 契约测试。
 
-设计文档要求 Agent 返回的每项推荐必须携带可验证证据，
-当前实现只返回 subjectId/title/score/reason，缺少：
-- summary_excerpt（带来源字段的简介摘录）
-- matched_tags/credits/characters/relations
-- rating_total/collection_total（热度）
-- air_status（播出状态）
-- source_fetched_at（数据时间）
-- source_refs（来源引用）
-
-这些测试验证 EvidenceCandidate 应当具备的完整契约。
+Agent 返回的每项推荐必须携带可验证证据。
+use_case._compact 现在输出完整的证据字段，包括：
+- summaryExcerpt / summarySource
+- matchedTags / matchedCredits / matchedCharacters / matchedRelations
+- ratingTotal / collectionTotal（热度）
+- airStatus（播出状态）
+- sourceFetchedAt（数据时间）
+- sourceRefs（来源引用）
 """
 
 from __future__ import annotations
@@ -20,137 +18,81 @@ from typing import Any, Mapping, Sequence
 
 import pytest
 
-
-@dataclass(frozen=True)
-class EvidenceCandidate:
-    """面向 Agent 的证据化候选。
-
-    所有字段均为必填（除 matched_* 可为空集合），确保 LLM 有足够的
-    事实依据生成 grounded explanation。
-    """
-
-    subject_id: int
-    title: str
-    name_cn: str | None
-    aliases: tuple[str, ...]
-    summary_excerpt: str
-    summary_source: str  # "bangumi_official" | "importer" | "backfill"
-    matched_tags: tuple[str, ...]
-    matched_credits: tuple[str, ...]
-    matched_characters: tuple[str, ...]
-    matched_relations: tuple[str, ...]
-    score: float | None
-    rating_total: int | None
-    collection_total: int | None
-    air_status: str  # "UPCOMING" | "AIRING" | "FINISHED" | "UNKNOWN"
-    source_fetched_at: datetime
-    retrieval_score: float
-    retrieval_reason: str
-    source_refs: tuple[str, ...]
+from app.rag.retrieval import RetrievalCandidate, RagRetrievalService
+from app.rag.schemas import RetrievalQuery
+from app.rag.use_case import RetrieveSubjectsUseCase
 
 
-class TestEvidenceCandidateContract:
-    """EvidenceCandidate 必须携带完整的证据字段。"""
+class TestEvidenceCandidateOutput:
+    """use_case._compact 必须输出完整的证据字段。"""
 
-    def test_has_summary_excerpt(self):
-        """必须包含简介摘录，不能为空。"""
-        candidate = self._make_candidate()
-        assert candidate.summary_excerpt, "summary_excerpt 不能为空"
-        assert candidate.summary_source in {"bangumi_official", "importer", "backfill"}
+    def test_compact_has_summary_excerpt(self):
+        """有证据时必须包含简介摘录。"""
+        candidate = _evidence_candidate()
+        compact = RetrieveSubjectsUseCase._compact(candidate)
+        assert compact["summaryExcerpt"] == "这是一个测试动画的简介。"
+        assert compact["summarySource"] == "bangumi_official"
 
-    def test_has_matched_tags(self):
-        """必须包含匹配的标签列表（可为空元组）。"""
-        candidate = self._make_candidate()
-        assert isinstance(candidate.matched_tags, tuple)
+    def test_compact_has_matched_tags(self):
+        compact = RetrieveSubjectsUseCase._compact(_evidence_candidate())
+        assert isinstance(compact["matchedTags"], list)
+        assert compact["matchedTags"] == ["热血", "奇幻"]
 
-    def test_has_matched_credits(self):
-        """必须包含匹配的主创列表。"""
-        candidate = self._make_candidate()
-        assert isinstance(candidate.matched_credits, tuple)
+    def test_compact_has_matched_credits(self):
+        compact = RetrieveSubjectsUseCase._compact(_evidence_candidate())
+        assert isinstance(compact["matchedCredits"], list)
+        assert "导演(Test)(MAIN)" in compact["matchedCredits"]
 
-    def test_has_matched_characters(self):
-        """必须包含匹配的角色列表。"""
-        candidate = self._make_candidate()
-        assert isinstance(candidate.matched_characters, tuple)
+    def test_compact_has_matched_characters(self):
+        compact = RetrieveSubjectsUseCase._compact(_evidence_candidate())
+        assert isinstance(compact["matchedCharacters"], list)
+        assert "主角(MAIN)" in compact["matchedCharacters"]
 
-    def test_has_matched_relations(self):
-        """必须包含匹配的关系列表。"""
-        candidate = self._make_candidate()
-        assert isinstance(candidate.matched_relations, tuple)
+    def test_compact_has_matched_relations(self):
+        compact = RetrieveSubjectsUseCase._compact(_evidence_candidate())
+        assert isinstance(compact["matchedRelations"], list)
+        assert "续作2(续集)" in compact["matchedRelations"]
 
-    def test_has_popularity_metrics(self):
-        """必须包含评分人数和收藏数作为热度指标。"""
-        candidate = self._make_candidate()
-        assert candidate.rating_total is not None, "rating_total 不能为 None"
-        assert candidate.collection_total is not None, "collection_total 不能为 None"
+    def test_compact_has_popularity_metrics(self):
+        compact = RetrieveSubjectsUseCase._compact(_evidence_candidate())
+        assert compact["ratingTotal"] == 5000
+        assert compact["collectionTotal"] == 10000
 
-    def test_has_air_status(self):
-        """必须包含播出状态。"""
-        candidate = self._make_candidate()
-        assert candidate.air_status in {"UPCOMING", "AIRING", "FINISHED", "UNKNOWN"}
+    def test_compact_has_air_status(self):
+        compact = RetrieveSubjectsUseCase._compact(_evidence_candidate())
+        assert compact["airStatus"] in {"UPCOMING", "AIRING", "FINISHED", "UNKNOWN"}
 
-    def test_has_source_fetched_at(self):
-        """必须包含数据来源时间。"""
-        candidate = self._make_candidate()
-        assert candidate.source_fetched_at is not None
-        assert isinstance(candidate.source_fetched_at, datetime)
+    def test_compact_has_source_fetched_at(self):
+        compact = RetrieveSubjectsUseCase._compact(_evidence_candidate())
+        assert compact["sourceFetchedAt"] is not None
 
-    def test_has_source_refs(self):
-        """必须包含来源引用（如 Bangumi URL）。"""
-        candidate = self._make_candidate()
-        assert isinstance(candidate.source_refs, tuple)
-        assert len(candidate.source_refs) > 0, "source_refs 不能为空"
+    def test_compact_has_source_refs(self):
+        compact = RetrieveSubjectsUseCase._compact(_evidence_candidate())
+        assert isinstance(compact["sourceRefs"], list)
+        assert "https://bgm.tv/subject/1" in compact["sourceRefs"]
 
-    @staticmethod
-    def _make_candidate(**overrides) -> EvidenceCandidate:
-        defaults = dict(
-            subject_id=1,
-            title="Test Anime",
-            name_cn="测试动画",
-            aliases=("Test", "测试"),
-            summary_excerpt="这是一个测试动画的简介。",
-            summary_source="bangumi_official",
-            matched_tags=("热血", "奇幻"),
-            matched_credits=("导演：Test",),
-            matched_characters=("主角",),
-            matched_relations=("续作：Test 2",),
-            score=8.5,
-            rating_total=5000,
-            collection_total=10000,
-            air_status="AIRING",
-            source_fetched_at=datetime.now(),
-            retrieval_score=0.9,
-            retrieval_reason="lexical+semantic",
-            source_refs=("https://bgm.tv/subject/1",),
+    def test_compact_without_evidence_has_defaults(self):
+        """无证据时字段使用默认值，不崩溃。"""
+        candidate = RetrievalCandidate(
+            subject_id=2,
+            retrieval_score=0.5,
+            retrieval_reason="lexical",
+            title="No Evidence",
+            details={"nameCn": "无证据", "name": "No Evidence"},
         )
-        defaults.update(overrides)
-        return EvidenceCandidate(**defaults)
+        compact = RetrieveSubjectsUseCase._compact(candidate)
+        assert compact["summaryExcerpt"] == ""
+        assert compact["matchedTags"] == []
+        assert compact["matchedCredits"] == []
+        assert compact["sourceRefs"] == ["https://bgm.tv/subject/2"]
 
 
 class TestBusinessVerificationRequired:
     """未经 Business 回查的候选不得进入模型上下文。"""
 
-    def test_candidates_must_have_details(self):
-        """每个候选必须有 Business 回查后的 details。"""
-        # 当前 RetrievalCandidate.details 可为 None，这是设计缺陷
-        from app.rag.retrieval import RetrievalCandidate
-
-        candidate = RetrievalCandidate(
-            subject_id=1,
-            retrieval_score=0.9,
-            retrieval_reason="lexical",
-            title="Test",
-            details=None,  # 当前允许 None，但应当要求有 details
-        )
-        # 这个测试验证当前行为：details 可以为 None
-        # 后续应当修改为：details 不能为 None，或引入 EvidenceCandidate
-        assert candidate.details is None, "当前允许 details=None，需要修复"
-
     def test_unverified_candidates_excluded(self):
         """Business 回查失败的候选应当被排除。"""
-        from app.rag.retrieval import RagRetrievalService
 
-        # 模拟 Business 回查返回空或错误
         def failing_authority(ids, token=None, exclude_collected=False):
             return {"error": "unavailable"}
 
@@ -160,66 +102,195 @@ class TestBusinessVerificationRequired:
             authority_lookup=failing_authority,
             business_search=lambda q, token=None: [],
         )
-        # 当前实现在 Business 不可用时返回 available=False
-        # 这是正确的 fail-closed 行为
-        from app.rag.schemas import RetrievalQuery
         query = RetrievalQuery(keywords=["test"])
-
-        # 由于 index 为 None，会触发异常进入 business fallback
-        # business_search 返回空列表，最终结果为 available=True, items=[]
-        # 这个行为是正确的
         result = service.retrieve(query, token=None)
         assert result.available is True or result.available is False
-        # 关键断言：items 中不应包含未经 Business 验证的候选
         for item in result.items:
             assert item.details is not None, "候选必须有 Business 验证的 details"
 
-    def test_current_use_case_returns_insufficient_evidence(self):
-        """当前 use_case 返回的格式不足以支撑 grounded explanation。"""
-        from app.rag.use_case import RetrieveSubjectsUseCase
 
-        # 当前 _compact 方法只返回 subjectId/title/score/reason
-        # 缺少 summary、tags、credits、characters、relations、
-        # rating_total、collection_total、air_status、source_fetched_at
-        compact = RetrieveSubjectsUseCase._compact(
-            _mock_candidate()
-        )
-        # 验证当前返回的字段
-        assert "subjectId" in compact
-        assert "title" in compact
-        assert "score" in compact
-        assert "reason" in compact
+class TestEvidenceEnrichment:
+    """RagRetrievalService 在权威回查后应调用 evidence_lookup  enrich 候选。"""
 
-        # 验证缺少的字段（这些测试应当失败，证明需要增强）
-        missing_fields = [
-            "summary_excerpt",
-            "matched_tags",
-            "matched_credits",
-            "matched_characters",
-            "rating_total",
-            "collection_total",
-            "air_status",
-            "source_fetched_at",
-            "source_refs",
+    def test_enrich_attaches_evidence(self):
+        """evidence_lookup 成功时，候选应携带 evidence 字段。"""
+        evidence_data = [
+            {
+                "subjectId": 1,
+                "name": "Test",
+                "nameCn": "测试",
+                "summary": "测试简介",
+                "aliases": ["テスト"],
+                "metaTags": ["SF"],
+                "credits": [{"personName": "导演", "relation": "MAIN"}],
+                "characters": [],
+                "relations": [],
+                "score": 8.0,
+                "ratingTotal": 1000,
+                "collectionTotal": 5000,
+                "airDate": "2024-01-01",
+                "sourceTime": "2026-08-01T12:00:00",
+            }
         ]
-        for field_name in missing_fields:
-            assert field_name not in compact, \
-                f"当前 _compact 缺少 {field_name} 字段，需要增强 EvidenceCandidate"
+
+        def mock_index_search(expression, limit=50):
+            return [{"subject_id": 1, "title": "Test"}]
+
+        def mock_authority(ids, token=None, exclude_collected=False):
+            return [{"id": 1, "name": "Test", "type": 2, "nsfw": False}]
+
+        service = RagRetrievalService(
+            index=MockIndex(mock_index_search),
+            embeddings=MockEmbeddings(),
+            authority_lookup=mock_authority,
+            business_search=lambda q, token=None: [],
+            evidence_lookup=lambda ids, token=None: evidence_data,
+        )
+        query = RetrievalQuery(keywords=["test"])
+        result = service.retrieve(query, token=None)
+        assert result.available
+        assert len(result.items) == 1
+        assert result.items[0].evidence is not None
+        assert result.items[0].evidence["summaryExcerpt"] == "测试简介"
+        assert result.items[0].evidence["metaTags"] == ["SF"]
+
+    def test_enrich_failure_keeps_candidates(self):
+        """evidence_lookup 失败时，候选应保持原样（无 evidence 字段）。"""
+
+        def failing_evidence(ids, token=None):
+            raise ConnectionError("evidence service down")
+
+        def mock_authority(ids, token=None, exclude_collected=False):
+            return [{"id": 1, "name": "Test", "type": 2, "nsfw": False}]
+
+        service = RagRetrievalService(
+            index=MockIndex(lambda expr, limit=50: [{"subject_id": 1, "title": "Test"}]),
+            embeddings=MockEmbeddings(),
+            authority_lookup=mock_authority,
+            business_search=lambda q, token=None: [],
+            evidence_lookup=failing_evidence,
+        )
+        query = RetrievalQuery(keywords=["test"])
+        result = service.retrieve(query, token=None)
+        assert result.available
+        assert len(result.items) == 1
+        assert result.items[0].evidence is None
+
+    def test_enrich_error_response_keeps_candidates(self):
+        """evidence_lookup 返回错误时，候选应保持原样。"""
+
+        def error_evidence(ids, token=None):
+            return {"error": True, "message": "bad request"}
+
+        def mock_authority(ids, token=None, exclude_collected=False):
+            return [{"id": 1, "name": "Test", "type": 2, "nsfw": False}]
+
+        service = RagRetrievalService(
+            index=MockIndex(lambda expr, limit=50: [{"subject_id": 1, "title": "Test"}]),
+            embeddings=MockEmbeddings(),
+            authority_lookup=mock_authority,
+            business_search=lambda q, token=None: [],
+            evidence_lookup=error_evidence,
+        )
+        query = RetrievalQuery(keywords=["test"])
+        result = service.retrieve(query, token=None)
+        assert result.available
+        assert len(result.items) == 1
+        assert result.items[0].evidence is None
 
 
-@dataclass
-class _MockCandidate:
-    subject_id: int = 1
-    retrieval_score: float = 0.9
-    retrieval_reason: str = "lexical"
-    title: str = "Test"
-    details: Mapping[str, Any] | None = field(default_factory=lambda: {
-        "nameCn": "测试动画",
-        "name": "Test Anime",
-        "summary": "测试简介",
-    })
-    vector: Sequence[float] | None = None
+class TestMapEvidence:
+    """_map_evidence 应正确映射 EvidenceCandidateVO 字段。"""
+
+    def test_maps_all_fields(self):
+        ev = {
+            "subjectId": 1,
+            "name": "Test",
+            "nameCn": "测试",
+            "summary": "A" * 300,
+            "aliases": ["alias1"],
+            "metaTags": ["tag1", "tag2"],
+            "credits": [{"personName": "导演A", "relation": "MAIN"}],
+            "characters": [{"characterName": "主角", "relation": "MAIN"}],
+            "relations": [{"relatedSubjectNameCn": "续作", "relation": "续集"}],
+            "score": 8.5,
+            "ratingTotal": 5000,
+            "collectionTotal": 10000,
+            "airDate": "2024-01-01",
+            "sourceTime": "2026-08-01T12:00:00",
+        }
+        mapped = RagRetrievalService._map_evidence(ev)
+        assert mapped["summaryExcerpt"] == "A" * 200
+        assert len(mapped["summaryExcerpt"]) == 200
+        assert mapped["aliases"] == ["alias1"]
+        assert mapped["metaTags"] == ["tag1", "tag2"]
+        assert mapped["credits"] == ["导演A(MAIN)"]
+        assert mapped["characters"] == ["主角(MAIN)"]
+        assert mapped["relations"] == ["续作(续集)"]
+        assert mapped["score"] == 8.5
+        assert mapped["ratingTotal"] == 5000
+        assert mapped["sourceTime"] == "2026-08-01T12:00:00"
+
+    def test_handles_empty_optional_fields(self):
+        ev = {"subjectId": 2, "name": "Minimal"}
+        mapped = RagRetrievalService._map_evidence(ev)
+        assert mapped["aliases"] == []
+        assert mapped["metaTags"] == []
+        assert mapped["credits"] == []
+        assert mapped["characters"] == []
+        assert mapped["relations"] == []
+        assert mapped["summaryExcerpt"] == ""
 
 
-def _mock_candidate():
-    return _MockCandidate()
+# --- Test helpers ---
+
+
+@dataclass(frozen=True)
+class _MockIndex:
+    _search_fn: Any
+
+    def lexical_search(self, expression, limit=50):
+        return self._search_fn(expression, limit=limit)
+
+    def semantic_search(self, expression, vector, limit=50):
+        return []
+
+
+@dataclass(frozen=True)
+class _MockEmbeddings:
+    def embed_documents(self, texts):
+        return [[0.0] * 1024 for _ in texts]
+
+
+def MockIndex(search_fn):
+    return _MockIndex(search_fn)
+
+
+def MockEmbeddings():
+    return _MockEmbeddings()
+
+
+def _evidence_candidate() -> RetrievalCandidate:
+    return RetrievalCandidate(
+        subject_id=1,
+        retrieval_score=0.9,
+        retrieval_reason="lexical+semantic",
+        title="Test Anime",
+        details={"nameCn": "测试动画", "name": "Test Anime"},
+        evidence={
+            "aliases": ["Test", "测试"],
+            "metaTags": ["热血", "奇幻"],
+            "credits": ["导演(Test)(MAIN)"],
+            "characters": ["主角(MAIN)"],
+            "relations": ["续作2(续集)"],
+            "summaryExcerpt": "这是一个测试动画的简介。",
+            "summarySource": "bangumi_official",
+            "score": 8.5,
+            "ratingTotal": 5000,
+            "collectionTotal": 10000,
+            "airDate": "2024-01-01",
+            "sourceTime": "2026-08-01T12:00:00",
+            "nameCn": "测试动画",
+            "name": "Test Anime",
+        },
+    )

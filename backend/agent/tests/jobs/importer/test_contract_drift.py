@@ -132,12 +132,15 @@ class TestCreditTypeDrift:
         session = _Session(existing_id=7)
         repo = ImportRepository(session)
         persons = [
-            {"relation": "导演", "person": {"id": 1, "name": "Test Director"}},
+            {"relation": "导演", "person": {"id": 1, "name": "Test Director", "type": 1}},
         ]
         subject = normalize_subject(_raw_subject_with_eps(), persons)
         repo._upsert_credits(42, subject)
-        sql, values = session.calls[-1]
-        # 当前固定写入 'MAIN'，但 schema 契约为 PERSON|ORGANIZATION
+        # 找到 INSERT INTO subject_credit 的调用（不是最后的 deactivation UPDATE）
+        insert_calls = [(sql, vals) for sql, vals in session.calls if "INSERT INTO subject_credit" in sql]
+        assert insert_calls, "应当有 INSERT INTO subject_credit 调用"
+        sql, values = insert_calls[0]
+        # 不应当硬编码 'MAIN'，应当使用参数绑定
         assert "'MAIN'" not in sql, "credit_type 不应当固定为 MAIN"
         assert "credit_type" in sql
         # 应当根据上游 person type 决定
@@ -146,21 +149,23 @@ class TestCreditTypeDrift:
 
 
 class TestAiringStatusDrift:
-    """indexer 只产出 upcoming/finished，但 RetrievalQuery 允许 AIRING。"""
+    """indexer 现在支持 AIRING 状态：air_date 已过但存在未播出剧集时产出 'airing'。"""
 
     def test_indexer_should_produce_airing_status(self):
-        """当 air_date 在过去且 eps > 0 且存在未播出剧集时，应当产出 AIRING。"""
-        # 这个测试需要 indexer repository 的 load_subject 方法支持 AIRING
-        # 当前实现只检查 air_date > CURDATE() 来判断 upcoming
-        from jobs.indexer.repository import IndexJobRepository
+        """当 air_date 在过去且存在 status='NA' 的剧集时，应当产出 airing。"""
+        from jobs.indexer.repository import IndexJobRepository, IndexJob
 
-        # 模拟一个正在播出的作品：air_date 在过去，但 status 为 Air
         session = _Session()
         repo = IndexJobRepository(session)
-        # 当前 SQL 只产出 upcoming/finished/unknown
-        # 需要增加对 episode.status 的检查来判定 AIRING
-        # 这是一个设计缺陷，需要后续修复
-        pytest.fail("indexer repository 当前不支持 AIRING 状态，需要修复")
+        job = IndexJob(id=1, subject_id=42, index_version="v1", content_hash="abc", attempts=1, status="RUNNING")
+        try:
+            repo.load_subject(job)
+        except Exception:
+            pass  # mock session 不返回完整数据，只检查 SQL
+        # 验证 SQL 中包含 airing 逻辑
+        load_sql = session.calls[0][0] if session.calls else ""
+        assert "airing" in load_sql.lower(), "indexer load_subject SQL 应当包含 'airing' 状态判定"
+        assert "episode" in load_sql.lower(), "airing 判定应当基于 episode 表"
 
 
 class TestStaleReplaceSetDrift:
