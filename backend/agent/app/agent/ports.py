@@ -35,6 +35,12 @@ class BusinessGateway(Protocol):
         token: str | None,
         size: int = 15,
     ) -> dict | list: ...
+    def batch_evidence(
+        self,
+        subject_ids: list[int],
+        *,
+        token: str | None,
+    ) -> dict | list: ...
 
 
 @runtime_checkable

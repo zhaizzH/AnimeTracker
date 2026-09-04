@@ -116,6 +116,7 @@ def _build_agent_dependencies(model_configs, prompts, import_service) -> AgentDe
         embeddings,
         authority_lookup=business.batch_subjects,
         business_search=fallbacks["search"],
+        evidence_lookup=business.batch_evidence,
     )
     return AgentDependencies(
         business=business,
