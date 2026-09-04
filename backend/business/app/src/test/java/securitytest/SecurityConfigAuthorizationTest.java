@@ -70,6 +70,11 @@ class SecurityConfigAuthorizationTest {
             return "subject";
         }
 
+        @PostMapping("/api/client/evidence/batch")
+        String evidenceBatch() {
+            return "evidence";
+        }
+
         @GetMapping("/api/client/private")
         String privateClient() {
             return "private";
@@ -87,6 +92,10 @@ class SecurityConfigAuthorizationTest {
         mvc.perform(post("/api/client/auth/login").contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
         mvc.perform(get("/api/client/subjects/1"))
+                .andExpect(status().isOk());
+        mvc.perform(post("/api/client/evidence/batch")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"subjectIds\":[1]}"))
                 .andExpect(status().isOk());
     }
 
