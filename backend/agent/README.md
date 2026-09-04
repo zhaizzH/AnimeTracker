@@ -215,11 +215,39 @@ backend/agent/
 
 ## RAG 检索（默认关闭）
 
-`app/rag/` 提供语义检索能力，通过 `RAG_ENABLED` 开关控制：
+`app/rag/` 提供语义检索与证据回答能力，通过 `RAG_ENABLED` 开关控制：
 
 - 关闭时（默认）：检索降级为直接调用 business 的 `/api/client/subjects/search` 与 `/api/client/subjects`（按 `collectionTotal` 降序取候选），嵌入与索引对象替换为抛错的占位实现。
-- 开启时：使用 Redis 向量索引（`RAG_INDEX_ALIAS` / `RAG_INDEX_VERSION`）与 DashScope `text-embedding-v4`（1024 维）做语义检索，并结合 `RedisUserPreferenceProvider` 做个性化重排。
-- 检索结果统一经 `business.batch_subjects` 回查权威数据后再返回，避免向量库脏数据直接暴露。
+- 开启时：使用 Redis 向量索引（`RAG_INDEX_ALIAS` / `RAG_INDEX_VERSION`）与 DashScope `text-embedding-v4`（1024 维）做 BM25 + KNN 混合检索，经 RRF 融合后批量回查 Business 权威数据，再经 Evidence API 补充证据字段后返回。
+
+### 证据链（Evidence Enrichment）
+
+检索结果统一经 `business.batch_subjects` 权威回查后再返回，避免向量库脏数据直接暴露。通过权威回查的候选会进一步调用 `POST /api/client/evidence/batch` 获取完整证据字段：
+
+- `summaryExcerpt`：简介摘录（前 200 字）
+- `matchedTags`：匹配的 meta tags
+- `matchedCredits`：匹配的主创（人物+关系）
+- `matchedCharacters`：匹配的角色（角色名+关系）
+- `matchedRelations`：匹配的系列关系
+- `score` / `ratingTotal` / `collectionTotal`：评分与热度
+- `airStatus`：播出状态（从 airDate 推断）
+- `sourceFetchedAt`：数据来源时间
+- `sourceRefs`：Bangumi 来源链接
+- `retrievalScore` / `retrievalReason`：检索分数与原因
+
+Agent 提示词已更新为只可依据工具返回的证据字段陈述事实，严禁编造工具返回中不存在的证据。
+
+### 故障降级矩阵
+
+| 故障场景 | 降级行为 |
+|----------|----------|
+| Redis 不可用 | 回退 Business 搜索，继续权威回查 + Evidence |
+| Embedding 不可用 | 仅使用 BM25 词法搜索 |
+| Business 权威回查不可用 | fail-closed，返回 `available=False` |
+| Evidence API 不可用 | 候选保持原样返回（无证据字段但不崩溃） |
+| Redis + Business 同时不可用 | fail-closed，返回 `available=False` |
+
+结构化事件 `rag.evidence.enriched` 记录 Evidence 回查结果（成功/失败/候选数）。
 
 索引由 [`jobs/indexer/`](jobs/indexer/) 构建，数据在 `resources` 之外，存放于 Redis。
 
@@ -372,9 +400,17 @@ curl -X POST http://localhost:8090/api/client/agent/sessions/<session-id> \
 uv run pytest
 ```
 
-pytest 配置在 `pyproject.toml`（`pythonpath = ["."]`、`asyncio_mode = "auto"`）。当前有效用例位于 `tests/jobs/importer/`，覆盖导入器的条目指标计算。
+pytest 配置在 `pyproject.toml`（`pythonpath = ["."]`、`asyncio_mode = "auto"`、`test.globals = true`）。当前 170 条测试覆盖：
 
-历史文档提到的 `evals/` 确定性评测目录在当前代码树中不存在，相关说明已移除。
+| 目录 | 覆盖范围 |
+|------|----------|
+| `tests/evals/` | 50-case 确定性评测框架（metrics、runner、golden cases） |
+| `tests/rag/` | 证据契约（16 条）、故障矩阵（10 条）、多实体 profile（14 条） |
+| `tests/jobs/importer/` | 导入漂移检测（eps/volumes、credit_type、AIRING、stale replace-set、profile hash） |
+| `tests/jobs/indexer/` | 实体加载、shadow index、search repository |
+| `tests/jobs/backfill/` | 详情回填 repository 与 worker |
+| `tests/jobs/scheduler/` | 定时调度（import/indexer/backfill） |
+| `tests/adapters/` | Business HTTP 网关（batch_evidence） |
 
 ## 常见问题
 
@@ -412,10 +448,3 @@ A：这是既有设计，删除会话使用 POST 而非 DELETE。
 - **索引器**（`jobs/indexer/`）：为 RAG 提供向量数据，依赖 DashScope 嵌入与 `rag_index_job` 表。
 - **提示词**：本地 Markdown 位于 `resources/prompt/`，线上托管版本存于 Redis。
 - **后端总览**：[`../README.md`](../README.md) · **项目总览**：[`../../README.md`](../../README.md)
-
-## 待补充
-
-1. **确定性评测缺失**：历史文档描述的 `evals/` 目录（离线 / Live 两种模式、CI 门禁）在当前代码树中不存在，无从还原数据集与退出码约定，需确认是否已移除或计划重建。
-2. **测试覆盖说明**：当前唯一有效用例是 `tests/jobs/importer/test_subject_metrics.py`，图路由、待确认动作与 SSE 协议缺少自动化测试，补充计划待确认。
-3. **RAG 运维参数**：`jobs/indexer` 的批次大小（代码内固定每批至多 10 条）、租约心跳与容量报告阈值随数据量与嵌入额度变化，尚无文档化的建议值。
-4. **定时任务宿主**：`jobs/scheduler` 的调度逻辑已完成，但仓库中未见 systemd / cron / 容器等常驻配置，实际部署方式待确认。
