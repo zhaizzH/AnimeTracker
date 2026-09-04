@@ -33,3 +33,10 @@
 ## 建议顺序
 
 先执行真实迁移/索引基础设施门禁，再实现 Phase 7 的受限实体查询规划，最后用固定快照跑评测后决定是否需要额外中间件。
+
+## Phase 7 硬化附录（2026-09-04）
+
+- 修复关系语义：新增 `RELATION_SUBJECT`，Business 通过 `subject_relation` 双向参数化查询；`SUBJECT` 仍保持精确 ID 兼容。
+- 修复召回窗口：实体 allowlist 在 Redis Top-50 无命中时走最多 50 个 ID 的精确 Business 回查，并复用年份、季度、评分、热度、标签、状态过滤。
+- 修复输入/响应边界：RAG 工具使用严格正整数列表；`/resolve` 根类型、列表字段、`active/type/nsfw` 任一缺失或不安全时 fail-closed。
+- 复核结果：上述边界测试、关系服务测试和工具 schema 测试均通过；未引入 Neo4j 等额外中间件。
