@@ -151,6 +151,23 @@ def test_entity_name_without_kind_unions_person_and_character_matches():
     assert resolver.calls == [("PERSON", [17]), ("CHARACTER", [23])]
 
 
+def test_relation_subject_name_resolves_through_relation_expansion():
+    index = _Index(rows=[{"subject_id": 3}])
+    resolver = _resolver({"RELATION_SUBJECT": [3]})
+
+    result = _service(
+        index,
+        resolver,
+        name_lookup=lambda name, *, entity_kind=None, limit=50: [
+            {"entity_kind": "RELATION_SUBJECT", "entity_id": 12}
+        ],
+    ).retrieve(RetrievalQuery(entity_name="关联作品", entity_kind="RELATION_SUBJECT"))
+
+    assert result.available is True
+    assert [item.subject_id for item in result.items] == [3]
+    assert resolver.calls == [("RELATION_SUBJECT", [12])]
+
+
 def test_unknown_entity_name_returns_empty_without_subject_search():
     index = _Index(rows=[{"subject_id": 1}])
     resolver = _resolver({"PERSON": [1]})

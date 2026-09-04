@@ -66,7 +66,7 @@ class RetrievalQuery(BaseModel):
     actor_ids: Annotated[list[PositiveEntityId], Field(max_length=50)] = Field(default_factory=list)
     relation_subject_ids: Annotated[list[PositiveEntityId], Field(max_length=50)] = Field(default_factory=list)
     entity_name: SafeTerm | None = None
-    entity_kind: Literal["PERSON", "CHARACTER", "ACTOR"] | None = None
+    entity_kind: Literal["PERSON", "CHARACTER", "ACTOR", "RELATION_SUBJECT"] | None = None
 
     @model_validator(mode="after")
     def validate_intent(self) -> "RetrievalQuery":

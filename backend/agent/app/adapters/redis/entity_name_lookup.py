@@ -14,7 +14,8 @@ from typing import Any, Literal
 from app.rag.retrieval import escape_redis_term
 
 
-EntityNameKind = Literal["PERSON", "CHARACTER", "ACTOR"]
+EntityNameKind = Literal["PERSON", "CHARACTER", "ACTOR", "RELATION_SUBJECT"]
+EntityNameIndexKind = Literal["PERSON", "CHARACTER", "SUBJECT"]
 _MAX_NAME_LENGTH = 48
 _MAX_RESULTS = 50
 _VERSION_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
@@ -22,7 +23,9 @@ _VERSION_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
 
 @dataclass(frozen=True)
 class EntityNameMatch:
-    entity_kind: EntityNameKind
+    # The raw parser may briefly hold the backing SUBJECT kind before the
+    # public RELATION_SUBJECT mapping is applied.
+    entity_kind: EntityNameKind | EntityNameIndexKind
     entity_id: int
 
 
@@ -57,7 +60,14 @@ class RedisEntityNameLookup:
         limit = min(limit, _MAX_RESULTS)
         # ACTOR uses the same local person entity as PERSON, but its later
         # Business resolve path is different (character_actor relation).
-        index_kinds = ("PERSON",) if entity_kind == "ACTOR" else ((entity_kind,) if entity_kind else ("PERSON", "CHARACTER"))
+        if entity_kind == "ACTOR":
+            index_kinds: tuple[EntityNameIndexKind, ...] = ("PERSON",)
+        elif entity_kind == "RELATION_SUBJECT":
+            index_kinds = ("SUBJECT",)
+        elif entity_kind:
+            index_kinds = (entity_kind,)
+        else:
+            index_kinds = ("PERSON", "CHARACTER")
         kind_expression = "|".join(index_kinds)
         # Quoting the escaped term keeps whitespace inside the user term and
         # prevents a name from becoming a RediSearch operator/query fragment.
@@ -85,6 +95,8 @@ class RedisEntityNameLookup:
         matches = _parse_matches(raw, index_kinds)
         if entity_kind == "ACTOR":
             return [EntityNameMatch("ACTOR", match.entity_id) for match in matches]
+        if entity_kind == "RELATION_SUBJECT":
+            return [EntityNameMatch("RELATION_SUBJECT", match.entity_id) for match in matches]
         return matches
 
 
@@ -97,7 +109,7 @@ def _validate_name(value: str) -> str:
     return normalized
 
 
-def _parse_matches(raw: Any, allowed_kinds: tuple[EntityNameKind, ...]) -> list[EntityNameMatch]:
+def _parse_matches(raw: Any, allowed_kinds: tuple[EntityNameIndexKind, ...]) -> list[EntityNameMatch]:
     if not isinstance(raw, (list, tuple)):
         raise ValueError("实体名称索引返回格式无效")
     if not raw:

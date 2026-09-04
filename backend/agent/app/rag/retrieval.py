@@ -220,7 +220,7 @@ class RagRetrievalService:
             ("ACTOR", query.actor_ids),
             ("RELATION_SUBJECT", query.relation_subject_ids),
         ]
-        by_kind: dict[str, list[int]] = {"PERSON": [], "CHARACTER": [], "ACTOR": []}
+        by_kind: dict[str, list[int]] = {"PERSON": [], "CHARACTER": [], "ACTOR": [], "RELATION_SUBJECT": []}
         for entity_type, entity_id in name_matches or []:
             by_kind[entity_type].append(entity_id)
         if not any(ids for _, ids in requested) and not any(by_kind.values()):
@@ -304,7 +304,7 @@ class RagRetrievalService:
             return [], "entity_resolution_unavailable"
         matches: list[tuple[str, int]] = []
         seen: set[tuple[str, int]] = set()
-        allowed_kinds = {query.entity_kind} if query.entity_kind else {"PERSON", "CHARACTER", "ACTOR"}
+        allowed_kinds = {query.entity_kind} if query.entity_kind else {"PERSON", "CHARACTER", "ACTOR", "RELATION_SUBJECT"}
         for row in response:
             if isinstance(row, Mapping):
                 raw_kind = row.get("entity_kind", row.get("entityType"))
