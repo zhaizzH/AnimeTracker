@@ -78,14 +78,29 @@ class BangumiClient:
 
     def get_all_episodes(self, subject_id: int, limit: int = 200) -> list[dict]:
         """获取条目的全部剧集，按响应实际条数推进分页偏移量。"""
+        if limit < 1:
+            raise ValueError("episode page limit must be positive")
         offset = 0
-        episodes = []
+        episodes: list[dict] = []
         while True:
             page = self.get_episodes(subject_id, limit=limit, offset=offset)
+            if not isinstance(page, dict):
+                raise ValueError("episodes response must be an object")
             items = page.get("data") or []
+            if not isinstance(items, list):
+                raise ValueError("episodes.data response must be a list")
+            total = page.get("total")
+            if not isinstance(total, int) or total < 0:
+                raise ValueError("episodes response has no valid total")
+            if offset > total or offset + len(items) > total:
+                raise ValueError("episodes response count is inconsistent")
             episodes.extend(items)
             offset += len(items)
-            if not items or offset >= int(page.get("total") or 0):
+            if not items:
+                if offset < total:
+                    raise ValueError("episodes response ended before total")
+                return episodes
+            if offset >= total:
                 return episodes
 
     def get_subject_persons(self, subject_id: int) -> list[dict]:

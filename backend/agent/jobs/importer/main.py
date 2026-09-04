@@ -136,12 +136,14 @@ def _get_object_storage() -> ObjectStorage:
     return _object_storage
 
 
-def _import_worker(bangumi_id, resume, access_token, user_agent, engine):
+def _import_worker(bangumi_id, resume, access_token, user_agent, engine, import_record_id=None):
     """Thread worker: 独立 Client + Session 导入单个条目。"""
     client = BangumiClient(access_token=access_token, user_agent=user_agent, request_delay=1.5)
     db = Session(engine)
     try:
-        return import_single_subject(client, db, bangumi_id, resume)
+        return import_single_subject(
+            client, db, bangumi_id, resume, import_record_id=import_record_id
+        )
     finally:
         db.close()
 
@@ -159,7 +161,8 @@ def _stagger(ids, workers):
 
 def _run_batch(bangumi_ids, resume, access_token, user_agent,
                host, port, user, password, db_name, max_workers=MAX_WORKERS, base_done=0,
-               record_id=None, mode="", resume_checkpoint=None, track_progress=True):
+               record_id=None, mode="", resume_checkpoint=None, track_progress=True,
+               entity_import_record_id=None):
     """并行导入一批 subject_id，返回成功数。
 
     base_done: 扫描阶段已发现条数，导入进度从该值继续累加（full 模式页面计数连续）。
@@ -177,9 +180,12 @@ def _run_batch(bangumi_ids, resume, access_token, user_agent,
     done = base_done
     ordered_ids = _stagger(bangumi_ids, max_workers)
     positions = {subject_id: index for index, subject_id in enumerate(source_ids)}
+    worker_import_record_id = record_id if entity_import_record_id is None else entity_import_record_id
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
-            executor.submit(_import_worker, bid, resume, access_token, user_agent, engine): bid
+            executor.submit(
+                _import_worker, bid, resume, access_token, user_agent, engine, worker_import_record_id
+            ): bid
             for bid in ordered_ids
         }
         completed_positions = set()
@@ -371,7 +377,7 @@ def _write_related(db, pkg):
         upsert_episodes(db, subject_id, pkg["episodes"])
 
 
-def import_single_subject(client, db, bangumi_id, resume):
+def import_single_subject(client, db, bangumi_id, resume, *, import_record_id=None):
     """预取公开资料后，将单条目交给仓储层原子写入。"""
     for _retry in range(5):
         try:
@@ -396,41 +402,112 @@ def import_single_subject(client, db, bangumi_id, resume):
             storage.put_raw_subject(data["id"], data)
             cover = storage.put_cover(data["id"], (data.get("images") or {}).get("large") or "")
 
-            persons = client.get_subject_persons(bangumi_id)
-            normalized = normalize_subject(data, persons)
+            # Related collections are independent API calls.  A failed call must
+            # not prevent the core Subject from being refreshed, but its old
+            # collection must remain active (the repository receives a
+            # completeness flag and will not run replace-set for it).
+            persons_complete = True
+            try:
+                persons = client.get_subject_persons(bangumi_id)
+                if not isinstance(persons, list):
+                    raise ValueError("persons response must be a list")
+                _validate_summary_items(persons, "persons")
+            except Exception as e:
+                persons = []
+                persons_complete = False
+                logger.warning("  -> 人物列表获取失败 subject %d，保留旧关系: %s", bangumi_id, sanitize_import_error(e))
+
+            characters_complete = True
+            try:
+                characters = client.get_subject_characters(bangumi_id)
+                if not isinstance(characters, list):
+                    raise ValueError("characters response must be a list")
+                _validate_summary_items(characters, "characters")
+            except Exception as e:
+                characters = []
+                characters_complete = False
+                logger.warning("  -> 角色列表获取失败 subject %d，保留旧关系: %s", bangumi_id, sanitize_import_error(e))
+
+            normalized = normalize_subject(data, persons, characters)
             if normalized is None:
                 logger.info("  -> 跳过非公开动画条目 %d", bangumi_id)
                 return OUTCOME_SKIPPED
 
             episodes = []
-            total_eps = data.get("eps") or data.get("total_episodes") or 0
+            # An explicit zero means "the complete source set is empty".  If
+            # both count fields are absent, the payload is partial and old
+            # episodes must be retained.
+            episode_count_present = any(
+                _is_non_negative_int(data.get(field)) for field in ("eps", "total_episodes")
+            )
+            episodes_complete = episode_count_present
+            total_eps = max(
+                _non_negative_int(data.get("eps")),
+                _non_negative_int(data.get("total_episodes")),
+            )
             if total_eps > 0:
                 logger.info("  -> 获取剧集 subject %d（共 %d 集）", bangumi_id, total_eps)
-                episodes = client.get_all_episodes(bangumi_id)
+                try:
+                    episodes = client.get_all_episodes(bangumi_id)
+                    if not isinstance(episodes, list):
+                        raise ValueError("episodes response must be a list")
+                except Exception as e:
+                    episodes_complete = False
+                    logger.warning("  -> 剧集列表获取失败 subject %d，保留旧剧集: %s", bangumi_id, sanitize_import_error(e))
 
             # 关联条目只保留动画关系；仓储层按本地自然键写入已存在的关联目标。
             anime_relations = []
+            relations_complete = True
             try:
                 relations = client.get_relations(bangumi_id)
+                if not isinstance(relations, list):
+                    raise ValueError("relations response must be a list")
+                _validate_relation_items(relations)
                 if relations:
                     for relation in relations:
                         relation_id = relation.get("id")
-                        if not isinstance(relation_id, int):
-                            continue
                         try:
                             target = client.get_subject(relation_id)
                         except Exception as e:
                             logger.warning("  -> 关联目标校验失败 subject %d -> %d: %s", bangumi_id, relation_id, sanitize_import_error(e))
+                            relations_complete = False
+                            continue
+                        if (
+                            not isinstance(target, dict)
+                            or not isinstance(target.get("type"), int)
+                            or isinstance(target.get("type"), bool)
+                            or not isinstance(target.get("nsfw"), bool)
+                        ):
+                            logger.warning("  -> 关联目标响应不完整 subject %d -> %d，保留旧关系", bangumi_id, relation_id)
+                            relations_complete = False
                             continue
                         if target.get("type") == 2 and target.get("nsfw") is False:
                             anime_relations.append(relation)
             except Exception as e:
                 logger.warning("  -> 关联条目导入失败 subject %d: %s", bangumi_id, sanitize_import_error(e))
+                relations_complete = False
 
             # 每个主条目及其索引任务均由 repository 的同一事务提交。
             with _db_lock:
                 ImportRepository(db).write_bundle(
-                    ImportBundle(normalized, cover, tuple(episodes), tuple(anime_relations)),
+                    ImportBundle(
+                        normalized,
+                        cover,
+                        tuple(episodes),
+                        tuple(anime_relations),
+                        persons=normalized.persons,
+                        characters=normalized.characters,
+                        # A present-but-null collection is an incomplete source
+                        # response, not an authoritative empty set.
+                        aliases_complete=isinstance(data.get("infobox"), list),
+                        tags_complete=isinstance(data.get("tags"), list),
+                        meta_tags_complete=isinstance(data.get("meta_tags"), list),
+                        persons_complete=persons_complete,
+                        characters_complete=characters_complete,
+                        episodes_complete=episodes_complete,
+                        relations_complete=relations_complete,
+                        import_record_id=import_record_id,
+                    ),
                     os.getenv("RAG_INDEX_VERSION", "v1"),
                 )
             return OUTCOME_SUCCESS
@@ -472,6 +549,9 @@ def run_full(client, db, resume, *, limit: int | None = None, **kw):
     catchup_kw.pop("mode", None)
     catchup_kw.pop("resume_checkpoint", None)
     catchup_kw["track_progress"] = False
+    # The catch-up batch belongs to the same import record for entity lineage,
+    # but must not overwrite the full-catalog checkpoint/progress counters.
+    catchup_kw["entity_import_record_id"] = kw.get("record_id")
     return imported + run_recent(client, db, resume, **catchup_kw)
 
 
@@ -663,6 +743,71 @@ def main(argv=None):
         main_connection.close()
     log_event("rag.import.completed", jobId=record_id, candidateCount=count, success=True)
     return 0
+
+
+def _validate_summary_items(items: list[object], kind: str) -> None:
+    """Reject malformed successful responses before any replace-set can run."""
+    for item in items:
+        if not isinstance(item, dict):
+            raise ValueError(f"{kind} response contains an invalid summary")
+        # The v0 RelatedPerson payload is a bare Person object with a
+        # top-level ``relation`` field.  Accept the older nested shape too;
+        # rejecting the documented bare shape would make every valid persons
+        # response look incomplete and preserve stale credits forever.
+        nested_person = item.get("person") if kind == "persons" else None
+        entity = nested_person if isinstance(nested_person, dict) else item
+        if (
+            not isinstance(entity, dict)
+            or not isinstance(entity.get("id"), int)
+            or isinstance(entity.get("id"), bool)
+            or entity.get("id") <= 0
+            or not isinstance(entity.get("name"), str)
+            or not entity.get("name", "").strip()
+        ):
+            raise ValueError(f"{kind} response contains an invalid summary")
+        if kind == "persons" and (
+            not isinstance(item.get("relation"), str) or not item.get("relation", "").strip()
+        ):
+            raise ValueError("persons response contains an invalid relation")
+        if kind != "characters":
+            continue
+        if not isinstance(item.get("relation"), str) or not item.get("relation", "").strip():
+            raise ValueError("characters response contains an invalid relation")
+        actors = item.get("actors") or []
+        if not isinstance(actors, list):
+            raise ValueError("characters.actors response must be a list")
+        for actor in actors:
+            if (
+                not isinstance(actor, dict)
+                or not isinstance(actor.get("id"), int)
+                or isinstance(actor.get("id"), bool)
+                or actor.get("id") <= 0
+                or not isinstance(actor.get("name"), str)
+                or not actor.get("name", "").strip()
+            ):
+                raise ValueError("characters response contains an invalid actor summary")
+
+
+def _validate_relation_items(items: list[object]) -> None:
+    """Reject malformed relation payloads before replace-set can remove old edges."""
+    for item in items:
+        if (
+            not isinstance(item, dict)
+            or not isinstance(item.get("id"), int)
+            or isinstance(item.get("id"), bool)
+            or item.get("id") <= 0
+            or not isinstance(item.get("relation"), str)
+            or not item.get("relation", "").strip()
+        ):
+            raise ValueError("relations response contains an invalid relation")
+
+
+def _is_non_negative_int(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
+def _non_negative_int(value: object) -> int:
+    return value if _is_non_negative_int(value) else 0
 
 
 if __name__ == "__main__":

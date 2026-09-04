@@ -119,6 +119,8 @@ class TestEvidenceEnrichment:
                 "subjectId": 1,
                 "name": "Test",
                 "nameCn": "测试",
+                "type": 2,
+                "nsfw": False,
                 "summary": "测试简介",
                 "aliases": ["テスト"],
                 "metaTags": ["SF"],
@@ -130,6 +132,7 @@ class TestEvidenceEnrichment:
                 "collectionTotal": 5000,
                 "airDate": "2024-01-01",
                 "sourceTime": "2026-08-01T12:00:00",
+                "sourceUrl": "https://bgm.tv/subject/1",
             }
         ]
 
@@ -154,8 +157,8 @@ class TestEvidenceEnrichment:
         assert result.items[0].evidence["summaryExcerpt"] == "测试简介"
         assert result.items[0].evidence["metaTags"] == ["SF"]
 
-    def test_enrich_failure_keeps_candidates(self):
-        """evidence_lookup 失败时，候选应保持原样（无 evidence 字段）。"""
+    def test_enrich_failure_is_fail_closed(self):
+        """evidence_lookup 失败时，不返回未经证据回查的候选。"""
 
         def failing_evidence(ids, token=None):
             raise ConnectionError("evidence service down")
@@ -172,12 +175,12 @@ class TestEvidenceEnrichment:
         )
         query = RetrievalQuery(keywords=["test"])
         result = service.retrieve(query, token=None)
-        assert result.available
-        assert len(result.items) == 1
-        assert result.items[0].evidence is None
+        assert result.available is False
+        assert result.items == []
+        assert result.reason == "evidence_unavailable"
 
-    def test_enrich_error_response_keeps_candidates(self):
-        """evidence_lookup 返回错误时，候选应保持原样。"""
+    def test_enrich_error_response_is_fail_closed(self):
+        """evidence_lookup 返回错误时，不返回未经证据回查的候选。"""
 
         def error_evidence(ids, token=None):
             return {"error": True, "message": "bad request"}
@@ -194,9 +197,48 @@ class TestEvidenceEnrichment:
         )
         query = RetrievalQuery(keywords=["test"])
         result = service.retrieve(query, token=None)
-        assert result.available
-        assert len(result.items) == 1
-        assert result.items[0].evidence is None
+        assert result.available is False
+        assert result.items == []
+        assert result.reason == "evidence_unavailable"
+
+    def test_enrich_partial_response_is_fail_closed(self):
+        """Evidence 只返回部分候选时，整批不得进入模型上下文。"""
+
+        def mock_authority(ids, token=None, exclude_collected=False):
+            return [
+                {"id": 1, "name": "One", "type": 2, "nsfw": False},
+                {"id": 2, "name": "Two", "type": 2, "nsfw": False},
+            ]
+
+        service = RagRetrievalService(
+            index=MockIndex(lambda expr, limit=50: [{"subject_id": 1}, {"subject_id": 2}]),
+            embeddings=MockEmbeddings(),
+            authority_lookup=mock_authority,
+            business_search=lambda q, token=None: [],
+            evidence_lookup=lambda ids, token=None: [{"subjectId": 1, "type": 2, "nsfw": False}],
+        )
+        result = service.retrieve(RetrievalQuery(keywords=["test"]), token=None)
+        assert result.available is False
+        assert result.items == []
+        assert result.reason == "evidence_unavailable"
+
+    def test_enrich_unsafe_response_is_fail_closed(self):
+        """Evidence 返回 NSFW 或非动画候选时，整批拒绝。"""
+
+        def mock_authority(ids, token=None, exclude_collected=False):
+            return [{"id": 1, "name": "Test", "type": 2, "nsfw": False}]
+
+        service = RagRetrievalService(
+            index=MockIndex(lambda expr, limit=50: [{"subject_id": 1}]),
+            embeddings=MockEmbeddings(),
+            authority_lookup=mock_authority,
+            business_search=lambda q, token=None: [],
+            evidence_lookup=lambda ids, token=None: [{"subjectId": 1, "type": 1, "nsfw": False}],
+        )
+        result = service.retrieve(RetrievalQuery(keywords=["test"]), token=None)
+        assert result.available is False
+        assert result.items == []
+        assert result.reason == "evidence_unavailable"
 
 
 class TestMapEvidence:
@@ -218,6 +260,7 @@ class TestMapEvidence:
             "collectionTotal": 10000,
             "airDate": "2024-01-01",
             "sourceTime": "2026-08-01T12:00:00",
+            "sourceUrl": "https://bgm.tv/subject/1",
         }
         mapped = RagRetrievalService._map_evidence(ev)
         assert mapped["summaryExcerpt"] == "A" * 200
@@ -230,6 +273,7 @@ class TestMapEvidence:
         assert mapped["score"] == 8.5
         assert mapped["ratingTotal"] == 5000
         assert mapped["sourceTime"] == "2026-08-01T12:00:00"
+        assert mapped["sourceFetchedAt"] == "2026-08-01T12:00:00"
 
     def test_handles_empty_optional_fields(self):
         ev = {"subjectId": 2, "name": "Minimal"}
@@ -290,6 +334,7 @@ def _evidence_candidate() -> RetrievalCandidate:
             "collectionTotal": 10000,
             "airDate": "2024-01-01",
             "sourceTime": "2026-08-01T12:00:00",
+            "sourceUrl": "https://bgm.tv/subject/1",
             "nameCn": "测试动画",
             "name": "Test Anime",
         },

@@ -1,5 +1,6 @@
 package top.zhaizz.client.service;
 
+import top.zhaizz.pojo.dto.evidence.EvidenceEntityBatchRequestDTO;
 import top.zhaizz.pojo.vo.evidence.EvidenceCandidateVO;
 
 import java.util.List;
@@ -13,4 +14,10 @@ public interface EvidenceService {
      * 不存在的 ID 不会出现在结果中。
      */
     List<EvidenceCandidateVO> batchEvidence(List<Long> subjectIds);
+
+    /**
+     * 将人物、角色或声优关系批量解析为安全动画条目证据。
+     * SUBJECT 类型等价于旧 batchEvidence，保留旧 API 兼容。
+     */
+    List<EvidenceCandidateVO> resolveEvidence(EvidenceEntityBatchRequestDTO request);
 }

@@ -32,7 +32,7 @@
 ## 工作原理
 
 1. 按模式拉取一批 Bangumi `subject_id`（`type=2`，即动画）。
-2. 对每个条目：获取详情、制作人员与剧集，过滤 NSFW 与非动画条目，下载封面转存 MinIO（替换 URL）、保存原始 JSON 快照到私有桶，解析别名、标签、元标签与制作人员，最后 upsert 入库。
+2. 对每个条目：获取详情、制作人员、角色（含声优）与剧集，过滤 NSFW 与非动画条目，下载封面转存 MinIO（替换 URL）、保存原始 JSON 快照到私有桶，解析别名、标签、元标签与全部制作人员职责，最后在一个事务中 upsert 实体和关系。
 3. 解析关联条目：只保留 `type=2` 且非 NSFW 的动画关系，由仓储层按本地自然键写入已存在的关联目标。
 4. 并发模型：**网络请求并行、数据库写入串行**（`_db_lock` 全局锁），并对任务按线程数交错重排（`_stagger`）降低同区段锁竞争；遇到死锁自动重试最多 4 次并指数退避。
 5. 每次运行写入一条 `import_record` 记录，标注模式、数量与状态；后台线程每 3 秒把已处理数刷到 `subject_count`。
@@ -123,7 +123,7 @@ uv run python -m jobs.importer.main --mode sample --limit 100
 
 ## 写入的表
 
-`subject`、`episode`、`subject_tag`、`subject_relation`、`subject_alias`、`subject_meta_tag`、`subject_credit`、`import_record` 由 `db.py` 的 upsert 与 `repository.py` 的 `write_bundle` 在同一事务内提交；`rag_index_job` 用于登记待索引条目（由 `jobs/indexer` 消费）。
+`subject`、`episode`、`subject_tag`、`subject_relation`、`subject_alias`、`subject_meta_tag`、`subject_credit`、`person`、`character`、`subject_person_credit`、`subject_character`、`character_actor`、`entity_detail_job`、`import_record` 由 `repository.py` 的 `write_bundle` 在同一事务内提交；`rag_index_job` 用于登记待索引条目（由 `jobs/indexer` 消费）。
 
 表结构定义见 [`docs/database/db-schema.sql`](../../../../docs/database/db-schema.sql)。
 

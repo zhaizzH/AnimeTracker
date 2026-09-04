@@ -46,8 +46,9 @@ class RetrieveSubjectsUseCase:
         title = str(details.get("nameCn") or details.get("name") or candidate.title)
         air_date = evidence.get("airDate") or details.get("airDate")
         air_status = _infer_air_status(air_date)
-        source_time = evidence.get("sourceTime")
+        source_time = evidence.get("sourceFetchedAt") or evidence.get("sourceTime")
         source_fetched_at = _parse_datetime(source_time)
+        source_refs = _source_refs(candidate, evidence)
         return {
             "subjectId": candidate.subject_id,
             "title": title,
@@ -67,7 +68,7 @@ class RetrieveSubjectsUseCase:
             "sourceFetchedAt": source_fetched_at.isoformat() if source_fetched_at else None,
             "retrievalScore": candidate.retrieval_score,
             "retrievalReason": candidate.retrieval_reason,
-            "sourceRefs": [f"https://bgm.tv/subject/{candidate.subject_id}"],
+            "sourceRefs": source_refs,
         }
 
 
@@ -98,3 +99,19 @@ def _parse_datetime(value: Any) -> datetime | None:
         return datetime.fromisoformat(str(value))
     except (TypeError, ValueError):
         return None
+
+
+def _source_refs(candidate: RetrievalCandidate, evidence: Mapping[str, Any]) -> list[str]:
+    """只输出 Business 提供的上游来源引用；无证据时保留旧兼容链接。"""
+    source_url = evidence.get("sourceUrl") or evidence.get("sourceURL")
+    if isinstance(source_url, str) and source_url.strip():
+        return [source_url.strip()]
+    source_id = evidence.get("sourceId") or evidence.get("bangumiId")
+    try:
+        if source_id is not None and int(source_id) > 0:
+            return [f"https://bgm.tv/subject/{int(source_id)}"]
+    except (TypeError, ValueError):
+        pass
+    if not evidence:
+        return [f"https://bgm.tv/subject/{candidate.subject_id}"]
+    return []

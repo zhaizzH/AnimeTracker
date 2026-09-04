@@ -106,7 +106,10 @@ class BackfillWorker:
 
         # 规范化并写入详情
         infobox = raw.get("infobox") or []
-        career = _extract_career(infobox)
+        # PersonDetail exposes career as a first-class field.  Keep that payload
+        # when present; infobox parsing remains a compatibility fallback for
+        # older snapshots.
+        career = raw.get("career") or _extract_career(infobox)
         summary = raw.get("summary") or ""
         images = raw.get("images") or {}
         image_url = images.get("large")
@@ -133,6 +136,13 @@ class BackfillWorker:
         aliases = _extract_aliases(infobox)
         self._replace_person_aliases(job.entity_id, aliases)
 
+        # Persist a replay-safe checkpoint before completing the job.  Detail
+        # endpoints are single responses today, but keeping the source/hash
+        # envelope makes pause/resume and future paginated payloads idempotent.
+        self._repo.save_checkpoint(
+            job.id,
+            {"sourceId": job.source_id, "sourceHash": source_hash, "entityKind": "PERSON"},
+        )
         self._repo.mark_completed(job.id, source_hash=source_hash)
 
     def _backfill_character(self, job: DetailJob) -> None:
@@ -175,6 +185,10 @@ class BackfillWorker:
         aliases = _extract_aliases(infobox)
         self._replace_character_aliases(job.entity_id, aliases)
 
+        self._repo.save_checkpoint(
+            job.id,
+            {"sourceId": job.source_id, "sourceHash": source_hash, "entityKind": "CHARACTER"},
+        )
         self._repo.mark_completed(job.id, source_hash=source_hash)
 
     def _replace_person_aliases(self, person_id: int, aliases: list[str]) -> None:

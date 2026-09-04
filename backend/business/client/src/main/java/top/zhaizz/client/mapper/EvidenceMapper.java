@@ -27,4 +27,13 @@ public interface EvidenceMapper extends BaseMapper<Subject> {
     List<EvidenceCharacterRow> selectCharacters(@Param("ids") List<Long> subjectIds);
 
     List<EvidenceRelationRow> selectRelations(@Param("ids") List<Long> subjectIds);
+
+    /** 通过主创人物本地 ID 扩展安全动画条目。 */
+    List<Long> selectSubjectIdsByPersonIds(@Param("ids") List<Long> personIds);
+
+    /** 通过角色本地 ID 扩展安全动画条目。 */
+    List<Long> selectSubjectIdsByCharacterIds(@Param("ids") List<Long> characterIds);
+
+    /** 通过声优人物本地 ID 沿 character_actor 关系扩展安全动画条目。 */
+    List<Long> selectSubjectIdsByActorIds(@Param("ids") List<Long> actorIds);
 }

@@ -1334,6 +1334,83 @@ paths:
                           type: "integer"
                         default: "new ArrayList<>()"
                     description: ""
+  /api/client/evidence/batch:
+    post:
+      summary: "批量回查番剧证据（兼容接口）"
+      description: "仅返回已导入、动画类型且非 NSFW 的番剧；不存在或不安全的 ID 会被省略。"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+              - "subjectIds"
+              properties:
+                subjectIds:
+                  type: "array"
+                  maxItems: 50
+                  items:
+                    type: "integer"
+                    format: "int64"
+      responses:
+        "200":
+          description: "证据候选列表"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                  message:
+                    type: "string"
+                  data:
+                    type: "array"
+                    items:
+                      $ref: "#/components/schemas/EvidenceCandidate"
+  /api/client/evidence/resolve:
+    post:
+      summary: "按人物、角色、声优关系或条目批量解析番剧证据"
+      description: "ids 使用本地数据库主键；PERSON/ACTOR 为 person.id，CHARACTER 为 character.id，SUBJECT 为 subject.id。仅扩展已导入、动画类型且非 NSFW 的番剧。"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+              - "entityType"
+              - "ids"
+              properties:
+                entityType:
+                  type: "string"
+                  enum: ["SUBJECT", "PERSON", "CHARACTER", "ACTOR"]
+                ids:
+                  type: "array"
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    type: "integer"
+                    format: "int64"
+      responses:
+        "200":
+          description: "去重后的证据候选列表；无匹配时为空数组"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                  message:
+                    type: "string"
+                  data:
+                    type: "array"
+                    items:
+                      $ref: "#/components/schemas/EvidenceCandidate"
+        "400":
+          description: "实体类型缺失、ID 非正数或批量超过 50"
   /api/client/subjects/{id}:
     get:
       summary: "获取番剧详情"
@@ -5432,3 +5509,80 @@ components:
           description: "收藏数"
           format: "int64"
       description: "热门榜条目"
+    EvidenceCandidate:
+      type: "object"
+      description: "供 Agent 使用的已验证番剧证据候选。"
+      properties:
+        subjectId:
+          type: "integer"
+          format: "int64"
+          description: "本地条目 ID"
+        name:
+          type: "string"
+        nameCn:
+          type: "string"
+        type:
+          type: "integer"
+          description: "Bangumi 条目类型；2 为动画"
+        nsfw:
+          type: "boolean"
+        active:
+          type: "boolean"
+          description: "已导入且可用于证据回查"
+        sourceId:
+          type: "integer"
+          description: "Bangumi 条目 ID"
+        sourceUrl:
+          type: "string"
+          format: "uri"
+        sourceFetchedAt:
+          type: "string"
+          format: "date-time"
+        sourceTime:
+          type: "string"
+          format: "date-time"
+          description: "旧字段名，兼容已有 Agent"
+        summary:
+          type: "string"
+        aliases:
+          type: "array"
+          items:
+            type: "string"
+        metaTags:
+          type: "array"
+          items:
+            type: "string"
+        credits:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              personName:
+                type: "string"
+              role:
+                type: "string"
+              relation:
+                type: "string"
+        characters:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              characterName:
+                type: "string"
+              relation:
+                type: "string"
+        relations:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              relatedSubjectId:
+                type: "integer"
+                format: "int64"
+              relatedSubjectName:
+                type: "string"
+              relatedSubjectNameCn:
+                type: "string"
+              relation:
+                type: "string"

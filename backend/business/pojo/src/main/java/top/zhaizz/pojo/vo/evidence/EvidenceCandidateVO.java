@@ -27,6 +27,12 @@ public class EvidenceCandidateVO {
     private String nameCn;
     private Integer type;
     private Boolean nsfw;
+    /** 当前记录是否仍是可供 Agent 使用的活跃来源事实。 */
+    private Boolean active;
+    /** 上游 Bangumi ID。 */
+    private Integer sourceId;
+    /** 上游 Bangumi 详情 URL。 */
+    private String sourceUrl;
     private BigDecimal score;
     private Integer rank;
     private Integer ratingTotal;
@@ -41,6 +47,8 @@ public class EvidenceCandidateVO {
     private List<RelationItem> relations;
 
     private LocalDateTime sourceTime;
+    /** 新字段名；sourceTime 保留用于旧 Agent/客户端兼容。 */
+    private LocalDateTime sourceFetchedAt;
 
     @Data
     @Builder

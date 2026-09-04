@@ -46,7 +46,7 @@ def upsert_subject(session: Session, data: dict, cover: "CoverResult | None" = N
             text("""
                 UPDATE subject SET
                     name = :name, name_cn = :name_cn, summary = :summary,
-                    type = :type, eps = :eps, air_date = :air_date,
+                    type = :type, eps = :eps, volumes = :volumes, air_date = :air_date,
                     air_weekday = :air_weekday,
                     image = :image, score = :score, `rank` = :rank,
                     collection_total = :collection_total, nsfw = :nsfw,
@@ -61,6 +61,7 @@ def upsert_subject(session: Session, data: dict, cover: "CoverResult | None" = N
                 "summary": data.get("summary", ""),
                 "type": data.get("type", 2),
                 "eps": max(data.get("eps") or 0, data.get("total_episodes") or 0) or None,
+                "volumes": data.get("volumes"),
                 "air_date": air_date,
                 "air_weekday": air_weekday,
                 "image": cover.display_url if cover else (data.get("images") or {}).get("large"),
@@ -76,11 +77,11 @@ def upsert_subject(session: Session, data: dict, cover: "CoverResult | None" = N
         result = session.execute(
             text("""
                 INSERT INTO subject
-                    (bangumi_id, name, name_cn, summary, type, eps, air_date, air_weekday,
+                    (bangumi_id, name, name_cn, summary, type, eps, volumes, air_date, air_weekday,
                      image, score, `rank`, collection_total, nsfw,
                      import_status, last_imported_at, created_at, updated_at)
                 VALUES
-                    (:bangumi_id, :name, :name_cn, :summary, :type, :eps, :air_date, :air_weekday,
+                    (:bangumi_id, :name, :name_cn, :summary, :type, :eps, :volumes, :air_date, :air_weekday,
                      :image, :score, :rank, :collection_total, :nsfw,
                      1, :now, :now, :now)
             """),
@@ -91,6 +92,7 @@ def upsert_subject(session: Session, data: dict, cover: "CoverResult | None" = N
                 "summary": data.get("summary", ""),
                 "type": data.get("type", 2),
                 "eps": max(data.get("eps") or 0, data.get("total_episodes") or 0) or None,
+                "volumes": data.get("volumes"),
                 "air_date": air_date,
                 "air_weekday": air_weekday,
                 "image": cover.display_url if cover else (data.get("images") or {}).get("large"),
@@ -205,6 +207,7 @@ def upsert_relations(session: Session, subject_id: int, relations: list[dict]) -
     需先解析为本地 subject.id 再写入，否则 FK 约束会失败。
     """
     resolved = []
+    seen_pairs: set[tuple[int, str]] = set()
     for rel in relations:
         bangumi_id = rel.get("id")
         relation_type = rel.get("relation", "")
@@ -220,7 +223,11 @@ def upsert_relations(session: Session, subject_id: int, relations: list[dict]) -
         if not local_id:
             logger.warning("  -> 跳过关联条目 %d（bangumi_id），数据库中不存在（主条目 %d）", bangumi_id, subject_id)
             return False
-        resolved.append((int(local_id), relation_type))
+        pair = (int(local_id), relation_type)
+        if int(local_id) == int(subject_id) or pair in seen_pairs:
+            continue
+        seen_pairs.add(pair)
+        resolved.append(pair)
 
     # 只有所有可写关系均已解析才删除旧边，避免临时缺失造成图谱退化。
     session.execute(

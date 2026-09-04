@@ -175,7 +175,7 @@ def _credits(persons: list[dict]) -> tuple[Credit, ...]:
     seen: set[tuple[int, str]] = set()
     for entry in persons:
         role = _text(entry.get("relation"))
-        person = entry.get("person") or {}
+        person = entry.get("person") or entry
         person_id = _optional_int(person.get("id"))
         name = _text(person.get("name"))
         # Bangumi person.type: 1=个人, 2=公司, 3=组合
