@@ -57,6 +57,7 @@ public class SecurityConfig {
                                 "/api/client/auth/forgot-password", "/api/client/auth/reset-password", "/api/client/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/client/subjects/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/client/subjects/batch").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/client/evidence/batch").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/client/tags/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/client/**").authenticated()
