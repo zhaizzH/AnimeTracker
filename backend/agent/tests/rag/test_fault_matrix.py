@@ -56,6 +56,8 @@ def _mock_evidence(ids, token=None):
             "subjectId": sid,
             "name": f"Subject {sid}",
             "nameCn": f"测试{sid}",
+            "type": 2,
+            "nsfw": False,
             "summary": f"简介{sid}",
             "aliases": [],
             "metaTags": ["tag1"],
@@ -186,10 +188,10 @@ class TestBusinessFailure:
 
 
 class TestEvidenceFailure:
-    """Evidence API 不可用时，候选应保持原样（无证据字段但不崩溃）。"""
+    """Evidence API 不可用时必须 fail-closed。"""
 
-    def test_evidence_exception_keeps_candidates(self):
-        """Evidence 抛异常 → 候选无 evidence 字段但不影响返回。"""
+    def test_evidence_exception_is_fail_closed(self):
+        """Evidence 抛异常 → 不返回未经证据回查的候选。"""
         service = RagRetrievalService(
             index=_MockIndex(
                 _lexical_fn=lambda expr, limit=50: [{"subject_id": 1, "title": "Test"}],
@@ -201,13 +203,12 @@ class TestEvidenceFailure:
         )
         query = RetrievalQuery(keywords=["test"])
         result = service.retrieve(query, token=None)
-        assert result.available is True
-        assert len(result.items) >= 1
-        for item in result.items:
-            assert item.evidence is None
+        assert result.available is False
+        assert result.items == []
+        assert result.reason == "evidence_unavailable"
 
-    def test_evidence_error_response_keeps_candidates(self):
-        """Evidence 返回错误 → 候选无 evidence 字段。"""
+    def test_evidence_error_response_is_fail_closed(self):
+        """Evidence 返回错误 → 不返回未经证据回查的候选。"""
         service = RagRetrievalService(
             index=_MockIndex(
                 _lexical_fn=lambda expr, limit=50: [{"subject_id": 1, "title": "Test"}],
@@ -219,9 +220,9 @@ class TestEvidenceFailure:
         )
         query = RetrievalQuery(keywords=["test"])
         result = service.retrieve(query, token=None)
-        assert result.available is True
-        for item in result.items:
-            assert item.evidence is None
+        assert result.available is False
+        assert result.items == []
+        assert result.reason == "evidence_unavailable"
 
 
 class TestUseCaseEvidenceIntegration:

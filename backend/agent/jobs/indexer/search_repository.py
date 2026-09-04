@@ -139,16 +139,16 @@ class SearchIndexJobRepositoryImpl:
             self._session.execute(
                 text(
                     "UPDATE search_index_job SET "
-                    "status=CASE WHEN attempts >= :max_attempts THEN 'FAILED' ELSE 'PENDING' END, "
+                    "status=CASE WHEN attempts >= max_attempts THEN 'FAILED' ELSE 'PENDING' END, "
                     "last_error_code='LEASE_EXPIRED', "
                     "last_error_message='search index worker lease expired', "
-                    "next_retry_at=CASE WHEN attempts >= :max_attempts THEN NULL ELSE :now END, "
+                    "next_retry_at=CASE WHEN attempts >= max_attempts THEN NULL ELSE :now END, "
                     "updated_at=:now "
                     "WHERE index_version=:version AND status='CLAIMED' "
                     "AND updated_at <= :lease_before"
                 ),
                 {
-                    "max_attempts": MAX_ATTEMPTS, "now": now,
+                    "now": now,
                     "version": index_version,
                     "lease_before": now - timedelta(seconds=lease_sec),
                 },
@@ -158,11 +158,11 @@ class SearchIndexJobRepositoryImpl:
                     "SELECT id, entity_kind, entity_id, index_version, profile_version, "
                     "content_hash, embedding_provider, embedding_model, embedding_dimensions, attempts "
                     "FROM search_index_job WHERE index_version=:version AND "
-                    "(status='PENDING' OR (status='FAILED' AND attempts < :max_attempts "
+                    "(status='PENDING' OR (status='FAILED' AND attempts < max_attempts "
                     "AND (next_retry_at IS NULL OR next_retry_at <= :now))) "
                     "ORDER BY id LIMIT :limit FOR UPDATE SKIP LOCKED"
                 ),
-                {"version": index_version, "max_attempts": MAX_ATTEMPTS, "now": now, "limit": capped},
+                {"version": index_version, "now": now, "limit": capped},
             ).mappings().all()
 
             jobs: list[ClaimedJob] = []
@@ -195,33 +195,40 @@ class SearchIndexJobRepositoryImpl:
         return jobs
 
     def mark_completed(self, job_id: int, *, claimed_at: datetime | None = None) -> bool:
-        """标记索引完成。"""
+        """标记索引完成，并校验 lease 所有权（兼容旧调用方）。"""
         now = _datetime_seconds(self._now())
         with self._session.begin():
             result = self._session.execute(
                 text(
                     "UPDATE search_index_job SET status='COMPLETED', indexed_at=:now, "
                     "last_error_code=NULL, last_error_message=NULL, updated_at=:now "
-                    "WHERE id=:id AND status='CLAIMED'"
+                    "WHERE id=:id AND status='CLAIMED' "
+                    "AND (:claimed_at IS NULL OR claimed_at=:claimed_at)"
                 ),
-                {"id": job_id, "now": now},
+                {"id": job_id, "now": now, "claimed_at": claimed_at},
             )
         return _updated(result)
 
     def mark_failed(
-        self, job_id: int, *, error_code: str, error_message: str, retry_seconds: int = 0
+        self,
+        job_id: int,
+        *,
+        error_code: str,
+        error_message: str,
+        retry_seconds: int = 0,
+        claimed_at: datetime | None = None,
     ) -> bool:
         """标记失败并设置退避重试；超过最大次数则 ABANDONED。"""
         now = _datetime_seconds(self._now())
         with self._session.begin():
             row = self._session.execute(
-                text("SELECT attempts FROM search_index_job WHERE id=:id AND status='CLAIMED'"),
+                text("SELECT attempts, max_attempts FROM search_index_job WHERE id=:id AND status='CLAIMED'"),
                 {"id": job_id},
             ).mappings().first()
             if row is None:
                 return False
             attempts = int(row["attempts"])
-            if attempts >= MAX_ATTEMPTS:
+            if attempts >= int(row.get("max_attempts", MAX_ATTEMPTS)):
                 status, next_retry = "ABANDONED", None
             else:
                 status = "FAILED"
@@ -230,12 +237,13 @@ class SearchIndexJobRepositoryImpl:
                 text(
                     "UPDATE search_index_job SET status=:status, last_error_code=:code, "
                     "last_error_message=:message, next_retry_at=:retry_at, updated_at=:now "
-                    "WHERE id=:id AND status='CLAIMED'"
+                    "WHERE id=:id AND status='CLAIMED' "
+                    "AND (:claimed_at IS NULL OR claimed_at=:claimed_at)"
                 ),
                 {
                     "id": job_id, "status": status,
                     "code": error_code[:64], "message": _sanitize_message(error_message)[:512],
-                    "retry_at": next_retry, "now": now,
+                    "retry_at": next_retry, "now": now, "claimed_at": claimed_at,
                 },
             )
         return _updated(result)
@@ -293,7 +301,8 @@ class SearchIndexJobRepositoryImpl:
                 job_id = int(row["id"])
                 self._session.execute(
                     text(
-                        "UPDATE search_index_job SET status='CLAIMED', updated_at=:now WHERE id=:id"
+                        "UPDATE search_index_job SET status='CLAIMED', attempts=attempts + 1, "
+                        "claimed_at=:now, updated_at=:now WHERE id=:id AND status='TOMBSTONE'"
                     ),
                     {"id": job_id, "now": now},
                 )
@@ -308,7 +317,7 @@ class SearchIndexJobRepositoryImpl:
                         embedding_provider=str(row["embedding_provider"]),
                         embedding_model=str(row["embedding_model"]),
                         embedding_dimensions=int(row["embedding_dimensions"]),
-                        attempts=int(row["attempts"]),
+                        attempts=int(row["attempts"]) + 1,
                         status=JobStatus.CLAIMED,
                         claimed_at=now,
                     )

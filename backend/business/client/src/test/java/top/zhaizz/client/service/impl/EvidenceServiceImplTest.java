@@ -7,6 +7,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import top.zhaizz.client.mapper.EvidenceMapper;
 import top.zhaizz.client.model.*;
+import top.zhaizz.pojo.dto.evidence.EvidenceEntityBatchRequestDTO;
+import top.zhaizz.pojo.dto.evidence.EvidenceEntityType;
 import top.zhaizz.pojo.vo.evidence.EvidenceCandidateVO;
 
 import java.math.BigDecimal;
@@ -55,6 +57,9 @@ class EvidenceServiceImplTest {
         subject.setNameCn("星际牛仔");
         subject.setType(2);
         subject.setNsfw(false);
+        subject.setActive(true);
+        subject.setSourceId(1_234);
+        subject.setSourceUrl("https://bgm.tv/subject/1234");
         subject.setScore(new BigDecimal("8.9"));
         subject.setRank(10);
         subject.setRatingTotal(5000);
@@ -105,6 +110,9 @@ class EvidenceServiceImplTest {
         assertThat(vo.getNameCn()).isEqualTo("星际牛仔");
         assertThat(vo.getType()).isEqualTo(2);
         assertThat(vo.getNsfw()).isFalse();
+        assertThat(vo.getActive()).isTrue();
+        assertThat(vo.getSourceId()).isEqualTo(1_234);
+        assertThat(vo.getSourceUrl()).isEqualTo("https://bgm.tv/subject/1234");
         assertThat(vo.getScore()).isEqualByComparingTo(new BigDecimal("8.9"));
         assertThat(vo.getRank()).isEqualTo(10);
         assertThat(vo.getRatingTotal()).isEqualTo(5000);
@@ -112,6 +120,7 @@ class EvidenceServiceImplTest {
         assertThat(vo.getAirDate()).isEqualTo(LocalDate.of(1998, 4, 3));
         assertThat(vo.getSummary()).isEqualTo("A group of bounty hunters...");
         assertThat(vo.getSourceTime()).isEqualTo(sourceTime);
+        assertThat(vo.getSourceFetchedAt()).isEqualTo(sourceTime);
 
         assertThat(vo.getAliases()).containsExactly("カウボーイビバップ");
         assertThat(vo.getMetaTags()).containsExactly("SF");
@@ -183,5 +192,72 @@ class EvidenceServiceImplTest {
         evidenceService.batchEvidence(List.of(1L, 1L, 1L));
 
         verify(evidenceMapper).selectSubjectBasics(List.of(1L));
+    }
+
+    @Test
+    void resolveEvidenceByPersonExpandsOnlyActiveSafeSubjects() {
+        EvidenceSubjectRow subject = new EvidenceSubjectRow();
+        subject.setSubjectId(11L);
+        subject.setName("Person work");
+        subject.setType(2);
+        subject.setNsfw(false);
+        subject.setActive(true);
+        subject.setSourceId(101);
+
+        when(evidenceMapper.selectSubjectIdsByPersonIds(List.of(7L))).thenReturn(List.of(11L, 11L));
+        when(evidenceMapper.selectSubjectBasics(List.of(11L))).thenReturn(List.of(subject));
+        when(evidenceMapper.selectAliases(List.of(11L))).thenReturn(Collections.emptyList());
+        when(evidenceMapper.selectMetaTags(List.of(11L))).thenReturn(Collections.emptyList());
+        when(evidenceMapper.selectCredits(List.of(11L))).thenReturn(Collections.emptyList());
+        when(evidenceMapper.selectCharacters(List.of(11L))).thenReturn(Collections.emptyList());
+        when(evidenceMapper.selectRelations(List.of(11L))).thenReturn(Collections.emptyList());
+
+        List<EvidenceCandidateVO> result = evidenceService.resolveEvidence(
+                new EvidenceEntityBatchRequestDTO(EvidenceEntityType.PERSON, List.of(7L)));
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getSubjectId()).isEqualTo(11L);
+        assertThat(result.get(0).getActive()).isTrue();
+        assertThat(result.get(0).getSourceId()).isEqualTo(101);
+        verify(evidenceMapper).selectSubjectIdsByPersonIds(List.of(7L));
+        verify(evidenceMapper).selectSubjectBasics(List.of(11L));
+    }
+
+    @Test
+    void resolveEvidenceByCharacterAndActorUseDedicatedQueries() {
+        when(evidenceMapper.selectSubjectIdsByCharacterIds(List.of(8L))).thenReturn(Collections.emptyList());
+        when(evidenceMapper.selectSubjectIdsByActorIds(List.of(9L))).thenReturn(List.of(12L));
+
+        EvidenceSubjectRow subject = new EvidenceSubjectRow();
+        subject.setSubjectId(12L);
+        subject.setName("Actor work");
+        subject.setType(2);
+        subject.setNsfw(false);
+        when(evidenceMapper.selectSubjectBasics(List.of(12L))).thenReturn(List.of(subject));
+        when(evidenceMapper.selectAliases(List.of(12L))).thenReturn(Collections.emptyList());
+        when(evidenceMapper.selectMetaTags(List.of(12L))).thenReturn(Collections.emptyList());
+        when(evidenceMapper.selectCredits(List.of(12L))).thenReturn(Collections.emptyList());
+        when(evidenceMapper.selectCharacters(List.of(12L))).thenReturn(Collections.emptyList());
+        when(evidenceMapper.selectRelations(List.of(12L))).thenReturn(Collections.emptyList());
+
+        assertThat(evidenceService.resolveEvidence(
+                new EvidenceEntityBatchRequestDTO(EvidenceEntityType.CHARACTER, List.of(8L)))).isEmpty();
+        assertThat(evidenceService.resolveEvidence(
+                new EvidenceEntityBatchRequestDTO(EvidenceEntityType.ACTOR, List.of(9L))))
+                .extracting(EvidenceCandidateVO::getSubjectId)
+                .containsExactly(12L);
+        verify(evidenceMapper).selectSubjectIdsByCharacterIds(List.of(8L));
+        verify(evidenceMapper).selectSubjectIdsByActorIds(List.of(9L));
+    }
+
+    @Test
+    void resolveEvidenceReturnsEmptyForNullRequestAndRejectsTooManyIds() {
+        assertThat(evidenceService.resolveEvidence(null)).isEmpty();
+
+        EvidenceEntityBatchRequestDTO request = new EvidenceEntityBatchRequestDTO(
+                EvidenceEntityType.SUBJECT, java.util.stream.LongStream.rangeClosed(1, 51).boxed().toList());
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> evidenceService.resolveEvidence(request))
+                .isInstanceOf(top.zhaizz.common.exception.BizException.class)
+                .hasMessageContaining("最多 50");
     }
 }

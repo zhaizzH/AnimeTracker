@@ -11,6 +11,9 @@
             s.name_cn AS nameCn,
             s.type,
             s.nsfw,
+            (s.import_status = 1) AS active,
+            s.bangumi_id AS sourceId,
+            CONCAT('https://bgm.tv/subject/', s.bangumi_id) AS sourceUrl,
             s.score,
             s.`rank`,
             s.rating_total AS ratingTotal,
@@ -99,6 +102,65 @@
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
         </foreach>
+          AND rs.type = 2
+          AND rs.nsfw = 0
+          AND rs.import_status = 1
+    </select>
+
+    <!-- 根据主创人物扩展 Subject；ids 是本地 person.id，不使用字符串拼接。 -->
+    <select id="selectSubjectIdsByPersonIds" resultType="java.lang.Long">
+        SELECT DISTINCT s.id
+        FROM subject_person_credit spc
+        INNER JOIN person p ON p.id = spc.person_id
+        INNER JOIN subject s ON s.id = spc.subject_id
+        WHERE spc.source_active = 1
+          AND p.source_active = 1
+          AND s.type = 2
+          AND s.nsfw = 0
+          AND s.import_status = 1
+          AND spc.person_id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY s.score DESC, s.id ASC
+    </select>
+
+    <!-- 根据角色扩展 Subject；ids 是本地 character.id。 -->
+    <select id="selectSubjectIdsByCharacterIds" resultType="java.lang.Long">
+        SELECT DISTINCT s.id
+        FROM subject_character sc
+        INNER JOIN `character` c ON c.id = sc.character_id
+        INNER JOIN subject s ON s.id = sc.subject_id
+        WHERE sc.source_active = 1
+          AND c.source_active = 1
+          AND s.type = 2
+          AND s.nsfw = 0
+          AND s.import_status = 1
+          AND sc.character_id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY s.score DESC, s.id ASC
+    </select>
+
+    <!-- 根据声优关系扩展 Subject；ids 是本地 person.id。 -->
+    <select id="selectSubjectIdsByActorIds" resultType="java.lang.Long">
+        SELECT DISTINCT s.id
+        FROM character_actor ca
+        INNER JOIN person p ON p.id = ca.person_id
+        INNER JOIN `character` c ON c.id = ca.character_id
+        INNER JOIN subject s ON s.id = ca.subject_id
+        WHERE ca.source_active = 1
+          AND p.source_active = 1
+          AND c.source_active = 1
+          AND s.type = 2
+          AND s.nsfw = 0
+          AND s.import_status = 1
+          AND ca.person_id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY s.score DESC, s.id ASC
     </select>
 
 </mapper>

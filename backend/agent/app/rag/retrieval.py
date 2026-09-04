@@ -206,7 +206,12 @@ class RagRetrievalService:
             if candidate.subject_id in details_by_id and self._is_safe_detail(details_by_id[candidate.subject_id], query)
         ]
         if safe and evidence_lookup is not None:
-            safe = self._enrich_evidence(safe, token, evidence_lookup)
+            safe, evidence_ok = self._enrich_evidence(safe, token, evidence_lookup)
+            if not evidence_ok:
+                # Evidence is the final authority boundary before data enters
+                # the Agent context.  A partial/failed response must never
+                # silently fall back to Redis/Subject details.
+                return RetrievalResult(available=False, items=[], reason="evidence_unavailable")
         return RetrievalResult(available=True, items=self._rerank(safe, query, preference)[:_MAX_RESULTS])
 
     def _business_fallback(
@@ -237,29 +242,53 @@ class RagRetrievalService:
         candidates: list[RetrievalCandidate],
         token: str | None,
         evidence_lookup: EvidenceLookup,
-    ) -> list[RetrievalCandidate]:
-        """批量回查 Evidence API，为候选附加证据字段；失败时保持原候选不变。"""
+    ) -> tuple[list[RetrievalCandidate], bool]:
+        """批量回查 Evidence API；失败或部分结果时 fail-closed。"""
         try:
             response = evidence_lookup([c.subject_id for c in candidates], token=token)
         except Exception:
             log_event("rag.evidence.enriched", success=False, errorType="exception")
-            return candidates
+            return [], False
         if _is_error(response):
             log_event("rag.evidence.enriched", success=False, errorType="business_error")
-            return candidates
+            return [], False
         rows = response if isinstance(response, list) else []
         by_id: dict[int, Mapping[str, Any]] = {}
         for row in rows:
             if isinstance(row, Mapping) and row.get("subjectId") is not None:
                 by_id[int(row["subjectId"])] = row
+        expected_ids = {candidate.subject_id for candidate in candidates}
+        if by_id.keys() != expected_ids:
+            log_event(
+                "rag.evidence.enriched",
+                success=False,
+                errorType="partial_response",
+                expectedCount=len(expected_ids),
+                actualCount=len(by_id),
+            )
+            return [], False
         enriched = []
         for candidate in candidates:
             ev = by_id.get(candidate.subject_id)
-            if ev is not None:
-                candidate = replace(candidate, evidence=RagRetrievalService._map_evidence(ev))
+            if ev is None or not RagRetrievalService._is_safe_evidence(ev, candidate.subject_id):
+                log_event("rag.evidence.enriched", success=False, errorType="unsafe_response")
+                return [], False
+            candidate = replace(candidate, evidence=RagRetrievalService._map_evidence(ev))
             enriched.append(candidate)
         log_event("rag.evidence.enriched", success=True, candidateCount=len(enriched))
-        return enriched
+        return enriched, True
+
+    @staticmethod
+    def _is_safe_evidence(item: Mapping[str, Any], subject_id: int) -> bool:
+        """验证 EvidenceCandidateVO 的安全边界，避免错误数据进入上下文。"""
+        try:
+            return (
+                int(item.get("subjectId")) == subject_id
+                and int(item.get("type") or 0) == 2
+                and item.get("nsfw") is False
+            )
+        except (TypeError, ValueError):
+            return False
 
     @staticmethod
     def _map_evidence(ev: Mapping[str, Any]) -> dict[str, Any]:
@@ -290,6 +319,10 @@ class RagRetrievalService:
             "score": ev.get("score"),
             "airDate": ev.get("airDate"),
             "sourceTime": ev.get("sourceTime"),
+            "sourceFetchedAt": ev.get("sourceFetchedAt") or ev.get("sourceTime"),
+            "active": ev.get("active"),
+            "sourceId": ev.get("sourceId"),
+            "sourceUrl": ev.get("sourceUrl"),
             "nameCn": ev.get("nameCn"),
             "name": ev.get("name"),
             "type": ev.get("type"),

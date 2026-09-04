@@ -14,6 +14,9 @@ public class EvidenceSubjectRow {
     private String nameCn;
     private Integer type;
     private Boolean nsfw;
+    private Boolean active;
+    private Integer sourceId;
+    private String sourceUrl;
     private BigDecimal score;
     private Integer rank;
     private Integer ratingTotal;
