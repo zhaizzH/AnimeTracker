@@ -66,6 +66,7 @@ def reciprocal_rank_fusion(
 
 AuthorityLookup = Callable[..., dict | list]
 EvidenceLookup = Callable[..., dict | list]
+EntityResolveLookup = Callable[..., dict | list]
 
 
 class RagRetrievalService:
@@ -79,12 +80,14 @@ class RagRetrievalService:
         authority_lookup: AuthorityLookup,
         business_search: AuthorityLookup,
         evidence_lookup: EvidenceLookup | None = None,
+        resolve_evidence_lookup: EntityResolveLookup | None = None,
     ) -> None:
         self._index = index
         self._embeddings = embeddings
         self._authority_lookup = authority_lookup
         self._business_search = business_search
         self._evidence_lookup = evidence_lookup
+        self._resolve_evidence_lookup = resolve_evidence_lookup
 
     def retrieve(
         self,
@@ -95,7 +98,24 @@ class RagRetrievalService:
         personalization_missing: bool = False,
         business_search: AuthorityLookup | None = None,
         evidence_lookup: EvidenceLookup | None = None,
+        resolve_evidence_lookup: EntityResolveLookup | None = None,
     ) -> RetrievalResult:
+        entity_subject_ids, entity_resolution_error = self._resolve_entity_subject_ids(
+            query,
+            token=token,
+            resolve_lookup=resolve_evidence_lookup or self._resolve_evidence_lookup,
+        )
+        if entity_resolution_error:
+            return self._complete(
+                RetrievalResult(available=False, items=[], reason=entity_resolution_error),
+                personalization_missing,
+            )
+        if entity_subject_ids is not None and not entity_subject_ids:
+            return self._complete(
+                RetrievalResult(available=True, items=[], reason="no_results"),
+                personalization_missing,
+            )
+
         lexical: list[RetrievalCandidate] = []
         semantic: list[RetrievalCandidate] = []
         redis_failed = False
@@ -114,8 +134,11 @@ class RagRetrievalService:
                     semantic = self._as_candidates(self._index.semantic_search(expression, vector, limit=50), "semantic")
                 if not lexical and not semantic:
                     continue
+                candidates = self._filter_entity_subjects(
+                    reciprocal_rank_fusion(lexical, semantic), entity_subject_ids,
+                )
                 result = self._authoritative_result(
-                    reciprocal_rank_fusion(lexical, semantic), query, token, preference, effective_evidence,
+                    candidates, query, token, preference, effective_evidence,
                 )
                 if not result.available or result.items:
                     return self._complete(result, personalization_missing)
@@ -125,11 +148,120 @@ class RagRetrievalService:
 
         if redis_failed:
             return self._complete(
-                self._business_fallback(query, token, preference, business_search or self._business_search, effective_evidence),
+                self._business_fallback(
+                    query,
+                    token,
+                    preference,
+                    business_search or self._business_search,
+                    effective_evidence,
+                    entity_subject_ids,
+                ),
                 personalization_missing,
                 "business",
             )
         return self._complete(RetrievalResult(available=True, items=[], reason="no_results"), personalization_missing)
+
+    def _resolve_entity_subject_ids(
+        self,
+        query: RetrievalQuery,
+        *,
+        token: str | None,
+        resolve_lookup: EntityResolveLookup | None,
+    ) -> tuple[list[int] | None, str | None]:
+        """Resolve typed entity IDs through Business before touching the index.
+
+        The resolver response is reduced to safe Subject IDs only.  Entity IDs
+        never become Redis expressions or SQL fragments in this service.
+        Multiple entity filters are an intersection, preserving Business's
+        deterministic order for the first filter.
+        """
+        requested = (
+            ("PERSON", query.person_ids),
+            ("CHARACTER", query.character_ids),
+            ("ACTOR", query.actor_ids),
+            ("SUBJECT", query.relation_subject_ids),
+        )
+        if not any(ids for _, ids in requested):
+            return None, None
+        if resolve_lookup is None:
+            return [], "entity_resolution_unavailable"
+
+        allowed: list[int] | None = None
+        for entity_type, entity_ids in requested:
+            if not entity_ids:
+                continue
+            try:
+                response = resolve_lookup(entity_type, list(entity_ids), token=token)
+            except Exception:
+                return [], "entity_resolution_unavailable"
+            if _is_error(response):
+                return [], "entity_resolution_unavailable"
+            resolved, valid = self._safe_resolved_subject_ids(response)
+            if not valid:
+                return [], "entity_resolution_unavailable"
+            if allowed is None:
+                allowed = resolved
+            else:
+                resolved_set = set(resolved)
+                allowed = [subject_id for subject_id in allowed if subject_id in resolved_set]
+            if not allowed:
+                return [], None
+        return allowed or [], None
+
+    @staticmethod
+    def _safe_resolved_subject_ids(response: Any) -> tuple[list[int], bool]:
+        """Extract only active, non-NSFW animation Subjects from /resolve."""
+        rows = _items(response)
+        subject_ids: list[int] = []
+        seen: set[int] = set()
+        for row in rows:
+            if not isinstance(row, Mapping):
+                return [], False
+            raw_id = row.get("subjectId", row.get("subject_id", row.get("id")))
+            if isinstance(raw_id, bool):
+                return [], False
+            try:
+                subject_id = int(raw_id)
+            except (TypeError, ValueError):
+                return [], False
+            if subject_id <= 0 or not RagRetrievalService._is_safe_subject_response(row):
+                return [], False
+            if subject_id not in seen:
+                seen.add(subject_id)
+                subject_ids.append(subject_id)
+        return subject_ids, True
+
+    @staticmethod
+    def _is_safe_subject_response(item: Mapping[str, Any]) -> bool:
+        try:
+            if int(item.get("type") or 0) != 2 or item.get("nsfw") is not False:
+                return False
+            # Business exposes import_status as the derived `active` field;
+            # absence is fail-closed because an entity filter must never widen
+            # the candidate set on an incomplete authority response.
+            if item.get("active") is not True:
+                return False
+            if "importStatus" in item and int(item.get("importStatus") or 0) != 1:
+                return False
+            if "import_status" in item and int(item.get("import_status") or 0) != 1:
+                return False
+        except (TypeError, ValueError):
+            return False
+        return True
+
+    @staticmethod
+    def _filter_entity_subjects(
+        candidates: Sequence[RetrievalCandidate],
+        allowed_subject_ids: list[int] | None,
+    ) -> list[RetrievalCandidate]:
+        if allowed_subject_ids is None:
+            return list(candidates)
+        allowed = set(allowed_subject_ids)
+        return [
+            replace(candidate, retrieval_reason=f"{candidate.retrieval_reason}+entity")
+            for candidate in candidates
+            if candidate.subject_id in allowed
+        ]
 
     @staticmethod
     def _complete(result: RetrievalResult, personalization_missing: bool, fallback_type: str | None = None) -> RetrievalResult:
@@ -221,6 +353,7 @@ class RagRetrievalService:
         preference: Mapping[int | str, float] | UserPreference | None,
         business_search: AuthorityLookup,
         evidence_lookup: EvidenceLookup | None = None,
+        allowed_subject_ids: list[int] | None = None,
     ) -> RetrievalResult:
         try:
             response = business_search(query, token=token)
@@ -228,11 +361,30 @@ class RagRetrievalService:
             return RetrievalResult(available=False, items=[], reason="business_unavailable")
         if _is_error(response):
             return RetrievalResult(available=False, items=[], reason="business_unavailable")
-        candidates = [
-            RetrievalCandidate(int(item["id"]), 0.0, "business_fallback", str(item.get("nameCn") or item.get("name") or ""))
-            for item in _items(response)
-            if isinstance(item, Mapping) and item.get("id") is not None and int(item["id"]) not in query.exclude_subject_ids
-        ]
+        allowed = set(allowed_subject_ids) if allowed_subject_ids is not None else None
+        candidates: list[RetrievalCandidate] = []
+        for item in _items(response):
+            if not isinstance(item, Mapping) or item.get("id") is None:
+                continue
+            raw_id = item.get("id")
+            if isinstance(raw_id, bool):
+                continue
+            try:
+                subject_id = int(raw_id)
+            except (TypeError, ValueError):
+                continue
+            if subject_id <= 0 or subject_id in query.exclude_subject_ids:
+                continue
+            if allowed is not None and subject_id not in allowed:
+                continue
+            candidates.append(
+                RetrievalCandidate(
+                    subject_id,
+                    0.0,
+                    "business_fallback",
+                    str(item.get("nameCn") or item.get("name") or ""),
+                )
+            )
         if not candidates:
             return RetrievalResult(available=True, items=[])
         return self._authoritative_result(candidates, query, token, preference, evidence_lookup)

@@ -41,6 +41,13 @@ class BusinessGateway(Protocol):
         *,
         token: str | None,
     ) -> dict | list: ...
+    def resolve_evidence(
+        self,
+        entity_type: str,
+        entity_ids: list[int],
+        *,
+        token: str | None,
+    ) -> dict | list: ...
 
 
 @runtime_checkable

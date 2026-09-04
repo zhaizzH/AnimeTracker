@@ -82,3 +82,18 @@ class HttpBusinessGateway(BusinessGateway):
             token=token,
             json_body={"subjectIds": subject_ids},
         )
+
+    def resolve_evidence(
+        self,
+        entity_type: str,
+        entity_ids: list[int],
+        *,
+        token: str | None,
+    ) -> dict | list:
+        """通过 Business 的受限实体关系查询解析安全 Subject 候选。"""
+        return self.request(
+            "POST",
+            "/api/client/evidence/resolve",
+            token=token,
+            json_body={"entityType": entity_type, "ids": entity_ids},
+        )
