@@ -52,3 +52,21 @@ class TestBatchEvidence:
 
         assert result["error"] is True
         assert "不可用" in result["message"]
+
+
+class TestResolveEvidence:
+    def test_calls_entity_resolve_endpoint(self):
+        gw = HttpBusinessGateway("http://localhost:8080")
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"data": [{"subjectId": 42}]}
+        mock_resp.raise_for_status = MagicMock()
+
+        with patch("httpx.request", return_value=mock_resp) as mock_request:
+            result = gw.resolve_evidence("PERSON", [7, 8], token="test-token")
+
+        assert result == [{"subjectId": 42}]
+        call_args = mock_request.call_args
+        assert call_args.args[0] == "POST"
+        assert call_args.args[1] == "http://localhost:8080/api/client/evidence/resolve"
+        assert call_args.kwargs["json"] == {"entityType": "PERSON", "ids": [7, 8]}
+        assert call_args.kwargs["headers"]["Authorization"] == "Bearer test-token"

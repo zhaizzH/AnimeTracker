@@ -1,7 +1,7 @@
 # 最终跨层质量检查报告
 
 日期：2026-09-04
-范围：Phase 3 导入、Phase 5 多实体索引/outbox、Phase 6 Business 精确查询、Evidence fail-closed。
+范围：Phase 3 导入、Phase 5 多实体索引/outbox、Phase 6 Business 精确查询、Evidence fail-closed，以及 Phase 7 结构化实体 ID 查询切片。
 
 ## 结论
 
@@ -17,7 +17,7 @@
 ## 未通过/未验证
 
 1. AC1/AC9：未在临时空库、带旧数据库、备份恢复链路执行真实 DDL/前向迁移；详情回填和索引仍缺真实 MinIO/数据库运行报告。
-2. AC4：Business 关系解析接口已就绪，但 Python `RetrievalQuery` 尚无 person/character/relation 受限字段，/resolve 尚未接入自然语言查询规划；“找某声优参与作品”仍需 Phase 7。
+2. AC4：结构化 `person_ids`、`character_ids`、`actor_ids`、`relation_subject_ids` 已接入 Python `RetrievalQuery`、RAG 工具和 Business `/resolve`；Redis 与 Business fallback 均执行 allowlist，解析异常 fail-closed。自然语言名称解析/查询规划尚未实现，因此“找某声优参与作品”仍需后续 Phase 7 完整切片。
 3. AC6/AC7：已有 53 条 golden cases 和确定性指标 runner，但没有绑定真实快照的 Recall/MRR/nDCG/过滤正确率/证据完整率/P95 基线，也未完成故障演练、shadow alias 灰度和 24 小时观测。
 4. AC8：当前没有新增 Neo4j/Elasticsearch/Milvus/RabbitMQ/MongoDB；是否引入仍按评测和容量指标决定。
 
@@ -28,6 +28,7 @@
 - `backend/agent` `compileall -q app jobs`：通过。
 - `backend/business` `mvn -B test`：**29 passed，BUILD SUCCESS**。
 - `git diff --check`：通过（仅 CRLF 转换提示）。
+- Phase 7 结构化实体筛选：新增测试 **6 passed**；Business HTTP `/resolve` 契约测试已覆盖。
 
 ## 建议顺序
 

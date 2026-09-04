@@ -21,12 +21,23 @@ def build_rag_tools(use_case: RetrieveSubjectsUseCase) -> list[Any]:
     @tool_call_status(display_name="RAG 搜索番剧")
     def rag_search_subjects(
         semantic_query: str,
+        person_ids: list[int] | None = None,
+        character_ids: list[int] | None = None,
+        actor_ids: list[int] | None = None,
+        relation_subject_ids: list[int] | None = None,
         user: Annotated[UserInfo | None, InjectedState("user")] = None,
     ) -> list[dict[str, Any]]:
-        """按番名、别名和自然语言语义检索目录；返回带 subjectId 的权威候选。"""
+        """按番名、别名、自然语言语义和可选人物/角色/声优/关联条目 ID 检索。"""
         try:
             keyword = [semantic_query] if len(semantic_query.strip()) <= 48 else []
-            query = RetrievalQuery(semantic_query=semantic_query, keywords=keyword)
+            query = RetrievalQuery(
+                semantic_query=semantic_query,
+                keywords=keyword,
+                person_ids=person_ids or [],
+                character_ids=character_ids or [],
+                actor_ids=actor_ids or [],
+                relation_subject_ids=relation_subject_ids or [],
+            )
         except (ValidationError, ValueError):
             return []
         return _items(use_case.execute(query, mode="search", user=user or _anonymous_user()))
@@ -42,6 +53,10 @@ def build_rag_tools(use_case: RetrieveSubjectsUseCase) -> list[Any]:
         rating_total_min: int | None = None,
         meta_tags: list[str] | None = None,
         air_status: Literal["UPCOMING", "AIRING", "FINISHED"] | None = None,
+        person_ids: list[int] | None = None,
+        character_ids: list[int] | None = None,
+        actor_ids: list[int] | None = None,
+        relation_subject_ids: list[int] | None = None,
         user: Annotated[UserInfo | None, InjectedState("user")] = None,
     ) -> list[dict[str, Any]]:
         """优先按年份、季度、评分、标签和播出状态发现符合条件的目录番剧。"""
@@ -55,6 +70,10 @@ def build_rag_tools(use_case: RetrieveSubjectsUseCase) -> list[Any]:
                 rating_total_min=rating_total_min,
                 meta_tags=meta_tags or [],
                 air_status=air_status,
+                person_ids=person_ids or [],
+                character_ids=character_ids or [],
+                actor_ids=actor_ids or [],
+                relation_subject_ids=relation_subject_ids or [],
             )
         except (ValidationError, ValueError):
             return []
@@ -65,11 +84,22 @@ def build_rag_tools(use_case: RetrieveSubjectsUseCase) -> list[Any]:
     def rag_recommend_subjects(
         semantic_query: str = "热门动画",
         meta_tags: list[str] | None = None,
+        person_ids: list[int] | None = None,
+        character_ids: list[int] | None = None,
+        actor_ids: list[int] | None = None,
+        relation_subject_ids: list[int] | None = None,
         user: Annotated[UserInfo | None, InjectedState("user")] = None,
     ) -> list[dict[str, Any]]:
         """基于当前问题和已登录用户的收藏画像推荐未收藏的目录番剧。"""
         try:
-            query = RetrievalQuery(semantic_query=semantic_query or "热门动画", meta_tags=meta_tags or [])
+            query = RetrievalQuery(
+                semantic_query=semantic_query or "热门动画",
+                meta_tags=meta_tags or [],
+                person_ids=person_ids or [],
+                character_ids=character_ids or [],
+                actor_ids=actor_ids or [],
+                relation_subject_ids=relation_subject_ids or [],
+            )
         except (ValidationError, ValueError):
             return []
         return _items(use_case.execute(query, mode="recommend", user=user or _anonymous_user()))

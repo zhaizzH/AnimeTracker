@@ -2,13 +2,18 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StringConstraints, model_validator
 
 
 SafeTerm = Annotated[
     str,
     StringConstraints(strip_whitespace=True, min_length=1, max_length=48, pattern=r"^[^\x00-\x1f]+$"),
 ]
+
+# Entity IDs arrive from a model-facing tool, so reject coercible values such
+# as ``"12"`` and ``true`` at the boundary rather than passing them to a
+# downstream gateway.
+PositiveEntityId = Annotated[StrictInt, Field(gt=0)]
 
 
 class SubjectProfileSource(BaseModel):
@@ -56,6 +61,10 @@ class RetrievalQuery(BaseModel):
     meta_tags: Annotated[list[SafeTerm], Field(max_length=8)] = Field(default_factory=list)
     air_status: Literal["UPCOMING", "AIRING", "FINISHED"] | None = None
     exclude_subject_ids: Annotated[list[int], Field(max_length=100)] = Field(default_factory=list)
+    person_ids: Annotated[list[PositiveEntityId], Field(max_length=50)] = Field(default_factory=list)
+    character_ids: Annotated[list[PositiveEntityId], Field(max_length=50)] = Field(default_factory=list)
+    actor_ids: Annotated[list[PositiveEntityId], Field(max_length=50)] = Field(default_factory=list)
+    relation_subject_ids: Annotated[list[PositiveEntityId], Field(max_length=50)] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_intent(self) -> "RetrievalQuery":
@@ -70,6 +79,10 @@ class RetrievalQuery(BaseModel):
                 self.meta_tags,
                 self.air_status,
                 self.exclude_subject_ids,
+                self.person_ids,
+                self.character_ids,
+                self.actor_ids,
+                self.relation_subject_ids,
             )
         )
         if not (self.semantic_query or self.keywords or has_filter):
