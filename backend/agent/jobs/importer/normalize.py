@@ -40,6 +40,31 @@ class Credit:
 
 
 @dataclass(frozen=True)
+class PersonSummary:
+    """Person payload embedded in a subject/persons or character/actors response."""
+
+    bangumi_id: int
+    name: str
+    person_type: str
+    summary: str = ""
+    career: tuple[object, ...] = ()
+    image_source_url: str | None = None
+
+
+@dataclass(frozen=True)
+class CharacterSummary:
+    """Character payload embedded in a subject/characters response."""
+
+    bangumi_id: int
+    name: str
+    character_type: str
+    summary: str = ""
+    relation: str = "MAIN"
+    image_source_url: str | None = None
+    actors: tuple[PersonSummary, ...] = ()
+
+
+@dataclass(frozen=True)
 class NormalizedSubject:
     bangumi_id: int
     name: str
@@ -61,9 +86,15 @@ class NormalizedSubject:
     source_fetched_at: datetime
     eps: int | None = None
     volumes: int | None = None
+    persons: tuple[PersonSummary, ...] = ()
+    characters: tuple[CharacterSummary, ...] = ()
 
 
-def normalize_subject(raw: dict, persons: list[dict]) -> NormalizedSubject | None:
+def normalize_subject(
+    raw: dict,
+    persons: list[dict],
+    characters: list[dict] | None = None,
+) -> NormalizedSubject | None:
     """将公开动画的 Bangumi 原始响应规范化；其它条目不进入导入流程。"""
     if raw.get("type") != 2 or raw.get("nsfw"):
         return None
@@ -95,6 +126,8 @@ def normalize_subject(raw: dict, persons: list[dict]) -> NormalizedSubject | Non
         source_fetched_at=datetime.now(timezone.utc),
         eps=eps_value,
         volumes=volumes_value,
+        persons=_person_summaries(persons),
+        characters=_character_summaries(characters or []),
     )
 
 
@@ -139,6 +172,7 @@ def _free_tags(tags: list[dict]) -> tuple[Tag, ...]:
 
 def _credits(persons: list[dict]) -> tuple[Credit, ...]:
     credits = []
+    seen: set[tuple[int, str]] = set()
     for entry in persons:
         role = _text(entry.get("relation"))
         person = entry.get("person") or {}
@@ -147,9 +181,107 @@ def _credits(persons: list[dict]) -> tuple[Credit, ...]:
         # Bangumi person.type: 1=个人, 2=公司, 3=组合
         raw_type = _int(person.get("type")) or 1
         person_type = "ORGANIZATION" if raw_type in (2, 3) else "PERSON"
-        if role in MAIN_CREDIT_ROLES and person_id is not None and name:
+        # The subject/persons endpoint is the authoritative credit list. Keep every
+        # non-empty role (not only the six UI "main" roles), otherwise roles such
+        # as 製作, 音乐 and 摄影 disappear before they can be audited or searched.
+        key = (person_id, role)
+        if person_id is not None and name and role and key not in seen:
+            seen.add(key)
             credits.append(Credit(person_id=person_id, name=name, role=role, person_type=person_type))
     return tuple(credits)
+
+
+def _person_summaries(persons: list[dict]) -> tuple[PersonSummary, ...]:
+    result: list[PersonSummary] = []
+    seen: set[int] = set()
+    for entry in persons or []:
+        person = entry.get("person") if isinstance(entry, dict) else None
+        if not isinstance(person, dict):
+            # Be tolerant of callers passing a bare Person payload.
+            person = entry if isinstance(entry, dict) else {}
+        person_id = _optional_int(person.get("id"))
+        name = _text(person.get("name"))
+        if person_id is None or not name or person_id in seen:
+            continue
+        seen.add(person_id)
+        result.append(_normalize_person(person))
+    return tuple(result)
+
+
+def _normalize_person(person: dict) -> PersonSummary:
+    raw_type = _int(person.get("type"))
+    person_type = {1: "PERSON", 2: "COMPANY", 3: "GROUP"}.get(raw_type, "PERSON")
+    career = person.get("career")
+    if isinstance(career, list):
+        career_value = tuple(career)
+    elif career is None:
+        career_value = ()
+    else:
+        career_value = (career,)
+    images = person.get("images") or {}
+    return PersonSummary(
+        bangumi_id=int(person["id"]),
+        name=_text(person.get("name")),
+        person_type=person_type,
+        summary=_text(person.get("summary")),
+        career=career_value,
+        image_source_url=_optional_text(images.get("large")),
+    )
+
+
+def _character_summaries(characters: list[dict]) -> tuple[CharacterSummary, ...]:
+    result: list[CharacterSummary] = []
+    seen: set[int] = set()
+    for item in characters or []:
+        if not isinstance(item, dict):
+            continue
+        character = item
+        character_id = _optional_int(character.get("id"))
+        name = _text(character.get("name"))
+        if character_id is None or not name or character_id in seen:
+            continue
+        seen.add(character_id)
+        raw_type = _int(character.get("type"))
+        character_type = "ORGANIZATION" if raw_type == 4 else "CHARACTER"
+        images = character.get("images") or {}
+        actors: list[PersonSummary] = []
+        actor_seen: set[int] = set()
+        for actor in character.get("actors") or []:
+            if not isinstance(actor, dict):
+                continue
+            actor_id = _optional_int(actor.get("id"))
+            if actor_id is None or actor_id in actor_seen or not _text(actor.get("name")):
+                continue
+            actor_seen.add(actor_id)
+            actors.append(_normalize_person(actor))
+        result.append(
+            CharacterSummary(
+                bangumi_id=int(character_id),
+                name=name,
+                character_type=character_type,
+                summary=_text(character.get("summary")),
+                relation=_normalize_character_relation(character.get("relation")),
+                image_source_url=_optional_text(images.get("large")),
+                actors=tuple(actors),
+            )
+        )
+    return tuple(result)
+
+
+def _normalize_character_relation(value: object) -> str:
+    raw = _text(value)
+    normalized = {
+        "主角": "MAIN",
+        "主要角色": "MAIN",
+        "MAIN": "MAIN",
+        "配角": "SUPPORTING",
+        "SUPPORTING": "SUPPORTING",
+        "客串": "GUEST",
+        "GUEST": "GUEST",
+    }.get(raw, raw)
+    # Keep unknown upstream relation labels for audit, while respecting the schema
+    # column's size. Empty labels are represented by the safe default.
+    return (normalized or "MAIN")[:32]
 
 
 def _counts(raw: dict) -> dict[str, int]:
