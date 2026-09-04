@@ -67,6 +67,7 @@ def reciprocal_rank_fusion(
 AuthorityLookup = Callable[..., dict | list]
 EvidenceLookup = Callable[..., dict | list]
 EntityResolveLookup = Callable[..., dict | list]
+EntityNameLookup = Callable[..., Any]
 
 
 class RagRetrievalService:
@@ -81,6 +82,7 @@ class RagRetrievalService:
         business_search: AuthorityLookup,
         evidence_lookup: EvidenceLookup | None = None,
         resolve_evidence_lookup: EntityResolveLookup | None = None,
+        entity_name_lookup: EntityNameLookup | None = None,
     ) -> None:
         self._index = index
         self._embeddings = embeddings
@@ -88,6 +90,7 @@ class RagRetrievalService:
         self._business_search = business_search
         self._evidence_lookup = evidence_lookup
         self._resolve_evidence_lookup = resolve_evidence_lookup
+        self._entity_name_lookup = entity_name_lookup
 
     def retrieve(
         self,
@@ -99,11 +102,27 @@ class RagRetrievalService:
         business_search: AuthorityLookup | None = None,
         evidence_lookup: EvidenceLookup | None = None,
         resolve_evidence_lookup: EntityResolveLookup | None = None,
+        entity_name_lookup: EntityNameLookup | None = None,
     ) -> RetrievalResult:
+        entity_name_matches, entity_name_error = self._lookup_entity_name(
+            query,
+            lookup=entity_name_lookup or self._entity_name_lookup,
+        )
+        if entity_name_error:
+            return self._complete(
+                RetrievalResult(available=False, items=[], reason=entity_name_error),
+                personalization_missing,
+            )
+        if query.entity_name and not entity_name_matches:
+            return self._complete(
+                RetrievalResult(available=True, items=[], reason="no_results"),
+                personalization_missing,
+            )
         entity_subject_ids, entity_resolution_error = self._resolve_entity_subject_ids(
             query,
             token=token,
             resolve_lookup=resolve_evidence_lookup or self._resolve_evidence_lookup,
+            name_matches=entity_name_matches,
         )
         if entity_resolution_error:
             return self._complete(
@@ -186,6 +205,7 @@ class RagRetrievalService:
         *,
         token: str | None,
         resolve_lookup: EntityResolveLookup | None,
+        name_matches: list[tuple[str, int]] | None = None,
     ) -> tuple[list[int] | None, str | None]:
         """Resolve typed entity IDs through Business before touching the index.
 
@@ -194,13 +214,16 @@ class RagRetrievalService:
         Multiple entity filters are an intersection, preserving Business's
         deterministic order for the first filter.
         """
-        requested = (
+        requested = [
             ("PERSON", query.person_ids),
             ("CHARACTER", query.character_ids),
             ("ACTOR", query.actor_ids),
             ("RELATION_SUBJECT", query.relation_subject_ids),
-        )
-        if not any(ids for _, ids in requested):
+        ]
+        by_kind: dict[str, list[int]] = {"PERSON": [], "CHARACTER": [], "ACTOR": []}
+        for entity_type, entity_id in name_matches or []:
+            by_kind[entity_type].append(entity_id)
+        if not any(ids for _, ids in requested) and not any(by_kind.values()):
             return None, None
         if resolve_lookup is None:
             return [], "entity_resolution_unavailable"
@@ -225,7 +248,84 @@ class RagRetrievalService:
                 allowed = [subject_id for subject_id in allowed if subject_id in resolved_set]
             if not allowed:
                 return [], None
+        # A name without an explicit kind may match both a person and a
+        # character.  Those alternatives are OR within the name constraint;
+        # only different query fields are ANDed below.
+        if any(by_kind.values()):
+            name_allowed: list[int] = []
+            name_seen: set[int] = set()
+            for entity_type, entity_ids in by_kind.items():
+                if not entity_ids:
+                    continue
+                try:
+                    response = resolve_lookup(entity_type, list(entity_ids), token=token)
+                except Exception:
+                    return [], "entity_resolution_unavailable"
+                if _is_error(response):
+                    return [], "entity_resolution_unavailable"
+                resolved, valid = self._safe_resolved_subject_ids(response)
+                if not valid:
+                    return [], "entity_resolution_unavailable"
+                for subject_id in resolved:
+                    if subject_id not in name_seen:
+                        name_seen.add(subject_id)
+                        name_allowed.append(subject_id)
+            if allowed is None:
+                allowed = name_allowed
+            else:
+                name_allowed_set = set(name_allowed)
+                allowed = [subject_id for subject_id in allowed if subject_id in name_allowed_set]
+            if not allowed:
+                return [], None
         return allowed or [], None
+
+    @staticmethod
+    def _lookup_entity_name(
+        query: RetrievalQuery,
+        *,
+        lookup: EntityNameLookup | None,
+    ) -> tuple[list[tuple[str, int]], str | None]:
+        """Resolve a user-facing name to typed local IDs through the shadow index."""
+        if not query.entity_name:
+            return [], None
+        if lookup is None:
+            return [], "entity_resolution_unavailable"
+        try:
+            response = lookup(
+                query.entity_name,
+                entity_kind=query.entity_kind,
+                limit=50,
+            )
+        except Exception:
+            return [], "entity_resolution_unavailable"
+        if isinstance(response, Mapping):
+            response = response.get("items", response.get("matches", response.get("data")))
+        if not isinstance(response, (list, tuple)):
+            return [], "entity_resolution_unavailable"
+        matches: list[tuple[str, int]] = []
+        seen: set[tuple[str, int]] = set()
+        allowed_kinds = {query.entity_kind} if query.entity_kind else {"PERSON", "CHARACTER", "ACTOR"}
+        for row in response:
+            if isinstance(row, Mapping):
+                raw_kind = row.get("entity_kind", row.get("entityType"))
+                raw_id = row.get("entity_id", row.get("entityId"))
+            else:
+                raw_kind = getattr(row, "entity_kind", None)
+                raw_id = getattr(row, "entity_id", None)
+            kind = str(raw_kind or "").upper()
+            if kind not in allowed_kinds or isinstance(raw_id, bool):
+                return [], "entity_resolution_unavailable"
+            try:
+                entity_id = int(raw_id)
+            except (TypeError, ValueError):
+                return [], "entity_resolution_unavailable"
+            if entity_id < 1:
+                return [], "entity_resolution_unavailable"
+            identity = (kind, entity_id)
+            if identity not in seen:
+                seen.add(identity)
+                matches.append(identity)
+        return matches, None
 
     @staticmethod
     def _safe_resolved_subject_ids(response: Any) -> tuple[list[int], bool]:

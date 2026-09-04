@@ -6,13 +6,15 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 from pydantic import Field, StrictInt, ValidationError
 
-
-StrictEntityIds = Annotated[list[Annotated[StrictInt, Field(gt=0)]], Field(max_length=50)]
-
 from app.chat.user import UserInfo
 from app.agent.middleware import tool_call_status
-from app.rag.schemas import RetrievalQuery
+from app.rag.schemas import RetrievalQuery, SafeTerm
 from app.rag.use_case import RetrieveSubjectsUseCase
+
+
+StrictEntityIds = Annotated[list[Annotated[StrictInt, Field(gt=0)]], Field(max_length=50)]
+EntityName = SafeTerm
+EntityKind = Literal["PERSON", "CHARACTER", "ACTOR"]
 
 
 def _anonymous_user() -> UserInfo:
@@ -28,9 +30,11 @@ def build_rag_tools(use_case: RetrieveSubjectsUseCase) -> list[Any]:
         character_ids: StrictEntityIds | None = None,
         actor_ids: StrictEntityIds | None = None,
         relation_subject_ids: StrictEntityIds | None = None,
+        entity_name: EntityName | None = None,
+        entity_kind: EntityKind | None = None,
         user: Annotated[UserInfo | None, InjectedState("user")] = None,
     ) -> list[dict[str, Any]]:
-        """按番名、别名、自然语言语义和可选人物/角色/声优/关联条目 ID 检索。"""
+        """按番名、别名、自然语言语义和可选人物/角色/声优/关联条目检索。实体名称会先解析为本地 ID。"""
         try:
             keyword = [semantic_query] if len(semantic_query.strip()) <= 48 else []
             query = RetrievalQuery(
@@ -40,6 +44,8 @@ def build_rag_tools(use_case: RetrieveSubjectsUseCase) -> list[Any]:
                 character_ids=character_ids or [],
                 actor_ids=actor_ids or [],
                 relation_subject_ids=relation_subject_ids or [],
+                entity_name=entity_name,
+                entity_kind=entity_kind,
             )
         except (ValidationError, ValueError):
             return []
@@ -60,6 +66,8 @@ def build_rag_tools(use_case: RetrieveSubjectsUseCase) -> list[Any]:
         character_ids: StrictEntityIds | None = None,
         actor_ids: StrictEntityIds | None = None,
         relation_subject_ids: StrictEntityIds | None = None,
+        entity_name: EntityName | None = None,
+        entity_kind: EntityKind | None = None,
         user: Annotated[UserInfo | None, InjectedState("user")] = None,
     ) -> list[dict[str, Any]]:
         """优先按年份、季度、评分、标签和播出状态发现符合条件的目录番剧。"""
@@ -77,6 +85,8 @@ def build_rag_tools(use_case: RetrieveSubjectsUseCase) -> list[Any]:
                 character_ids=character_ids or [],
                 actor_ids=actor_ids or [],
                 relation_subject_ids=relation_subject_ids or [],
+                entity_name=entity_name,
+                entity_kind=entity_kind,
             )
         except (ValidationError, ValueError):
             return []
@@ -91,6 +101,8 @@ def build_rag_tools(use_case: RetrieveSubjectsUseCase) -> list[Any]:
         character_ids: StrictEntityIds | None = None,
         actor_ids: StrictEntityIds | None = None,
         relation_subject_ids: StrictEntityIds | None = None,
+        entity_name: EntityName | None = None,
+        entity_kind: EntityKind | None = None,
         user: Annotated[UserInfo | None, InjectedState("user")] = None,
     ) -> list[dict[str, Any]]:
         """基于当前问题和已登录用户的收藏画像推荐未收藏的目录番剧。"""
@@ -102,6 +114,8 @@ def build_rag_tools(use_case: RetrieveSubjectsUseCase) -> list[Any]:
                 character_ids=character_ids or [],
                 actor_ids=actor_ids or [],
                 relation_subject_ids=relation_subject_ids or [],
+                entity_name=entity_name,
+                entity_kind=entity_kind,
             )
         except (ValidationError, ValueError):
             return []
