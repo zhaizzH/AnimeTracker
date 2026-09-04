@@ -163,4 +163,33 @@
         ORDER BY s.score DESC, s.id ASC
     </select>
 
+    <!-- 通过作品关系双向扩展 Subject；返回与输入作品相连的安全动画。 -->
+    <select id="selectRelatedSubjectIds" resultType="java.lang.Long">
+        SELECT DISTINCT related.subject_id
+        FROM (
+            SELECT sr.related_subject_id AS subject_id
+            FROM subject_relation sr
+            INNER JOIN subject related ON related.id = sr.related_subject_id
+            WHERE sr.subject_id IN
+            <foreach collection="ids" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+              AND related.type = 2
+              AND related.nsfw = 0
+              AND related.import_status = 1
+            UNION
+            SELECT sr.subject_id AS subject_id
+            FROM subject_relation sr
+            INNER JOIN subject related ON related.id = sr.subject_id
+            WHERE sr.related_subject_id IN
+            <foreach collection="ids" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+              AND related.type = 2
+              AND related.nsfw = 0
+              AND related.import_status = 1
+        ) related
+        ORDER BY related.subject_id ASC
+    </select>
+
 </mapper>

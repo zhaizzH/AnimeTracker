@@ -6,6 +6,8 @@ package top.zhaizz.pojo.dto.evidence;
  */
 public enum EvidenceEntityType {
     SUBJECT,
+    /** 输入作品 ID，沿 subject_relation 双向扩展关联动画。 */
+    RELATION_SUBJECT,
     PERSON,
     CHARACTER,
     ACTOR

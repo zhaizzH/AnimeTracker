@@ -146,6 +146,25 @@ class RagRetrievalService:
             redis_failed = True
             lexical, semantic = [], []
 
+        # RediSearch returns only its top-N window.  An allowlisted entity can
+        # legitimately rank below that window, so perform an exact authoritative
+        # batch lookup before declaring no results; this keeps entity filters
+        # from becoming an accidental recall limit.
+        if entity_subject_ids and not redis_failed:
+            entity_candidates = [
+                RetrievalCandidate(subject_id, 0.0, "entity_allowlist")
+                for subject_id in entity_subject_ids[:50]
+            ]
+            entity_result = self._authoritative_result(
+                entity_candidates,
+                query,
+                token,
+                preference,
+                effective_evidence,
+            )
+            if not entity_result.available or entity_result.items:
+                return self._complete(entity_result, personalization_missing)
+
         if redis_failed:
             return self._complete(
                 self._business_fallback(
@@ -179,7 +198,7 @@ class RagRetrievalService:
             ("PERSON", query.person_ids),
             ("CHARACTER", query.character_ids),
             ("ACTOR", query.actor_ids),
-            ("SUBJECT", query.relation_subject_ids),
+            ("RELATION_SUBJECT", query.relation_subject_ids),
         )
         if not any(ids for _, ids in requested):
             return None, None
@@ -211,7 +230,22 @@ class RagRetrievalService:
     @staticmethod
     def _safe_resolved_subject_ids(response: Any) -> tuple[list[int], bool]:
         """Extract only active, non-NSFW animation Subjects from /resolve."""
-        rows = _items(response)
+        if isinstance(response, list):
+            # A direct list is the HttpBusinessGateway's normalized success
+            # response.  Redis protocol arrays are not valid here.
+            if response and isinstance(response[0], int):
+                return [], False
+            rows = response
+        elif isinstance(response, Mapping):
+            rows = response.get("items")
+            if rows is None:
+                rows = response.get("content")
+            if rows is None:
+                rows = response.get("data")
+            if not isinstance(rows, list):
+                return [], False
+        else:
+            return [], False
         subject_ids: list[int] = []
         seen: set[int] = set()
         for row in rows:
@@ -484,7 +518,60 @@ class RagRetrievalService:
 
     @staticmethod
     def _is_safe_detail(item: Mapping[str, Any], query: RetrievalQuery) -> bool:
-        return int(item.get("type") or 0) == 2 and item.get("nsfw") is False and int(item.get("id") or -1) not in query.exclude_subject_ids
+        try:
+            if int(item.get("type") or 0) != 2 or item.get("nsfw") is not False:
+                return False
+            if int(item.get("id") or -1) in query.exclude_subject_ids:
+                return False
+        except (TypeError, ValueError):
+            return False
+        return RagRetrievalService._matches_query_filters(item, query)
+
+    @staticmethod
+    def _matches_query_filters(item: Mapping[str, Any], query: RetrievalQuery) -> bool:
+        """Apply query filters to exact Business rows used by entity fallback."""
+        if query.score_min is not None:
+            try:
+                if float(item.get("score")) < query.score_min:
+                    return False
+            except (TypeError, ValueError):
+                return False
+        if query.rating_total_min is not None:
+            try:
+                if int(item.get("ratingTotal")) < query.rating_total_min:
+                    return False
+            except (TypeError, ValueError):
+                return False
+
+        year = _item_year(item)
+        if query.year_from is not None and (year is None or year < query.year_from):
+            return False
+        if query.year_to is not None and (year is None or year > query.year_to):
+            return False
+        if query.quarter is not None:
+            quarter = _item_quarter(item)
+            if quarter != _QUARTERS[query.quarter]:
+                return False
+
+        if query.air_status is not None:
+            status = str(item.get("airStatus") or item.get("air_status") or "").upper()
+            if not status:
+                status = _infer_air_status_name(item.get("airDate") or item.get("air_date"))
+            if status != query.air_status:
+                return False
+
+        if query.meta_tags:
+            raw_tags = item.get("metaTags") or item.get("meta_tags") or item.get("tags")
+            tags: set[str] = set()
+            if isinstance(raw_tags, (list, tuple, set)):
+                for raw_tag in raw_tags:
+                    if isinstance(raw_tag, Mapping):
+                        raw_tag = raw_tag.get("name") or raw_tag.get("title")
+                    if raw_tag is not None:
+                        tags.add(str(raw_tag).casefold())
+            if any(tag.casefold() not in tags for tag in query.meta_tags):
+                return False
+        return True
 
     @staticmethod
     def _as_candidates(response: Any, reason: str) -> list[RetrievalCandidate]:
@@ -575,6 +662,48 @@ def _freshness(value: Any, today: date) -> float:
     except (TypeError, ValueError):
         return 0.0
     return min(max(1.0 - (today.year - year) / 10.0, 0.0), 1.0)
+
+
+def _item_year(item: Mapping[str, Any]) -> int | None:
+    raw_year = item.get("year")
+    if raw_year is not None:
+        try:
+            return int(raw_year)
+        except (TypeError, ValueError):
+            return None
+    raw_date = item.get("airDate") or item.get("air_date")
+    try:
+        return int(str(raw_date)[:4])
+    except (TypeError, ValueError):
+        return None
+
+
+def _item_quarter(item: Mapping[str, Any]) -> int | None:
+    raw_quarter = item.get("quarter")
+    if raw_quarter is not None:
+        if isinstance(raw_quarter, str):
+            normalized = raw_quarter.casefold()
+            if normalized in _QUARTERS:
+                return _QUARTERS[normalized]
+        try:
+            quarter = int(raw_quarter)
+            return quarter if quarter in {1, 2, 3, 4} else None
+        except (TypeError, ValueError):
+            return None
+    raw_date = item.get("airDate") or item.get("air_date")
+    try:
+        month = int(str(raw_date)[5:7])
+    except (TypeError, ValueError):
+        return None
+    return ((month - 1) // 3) + 1 if 1 <= month <= 12 else None
+
+
+def _infer_air_status_name(value: Any) -> str:
+    try:
+        parsed = date.fromisoformat(str(value)[:10])
+    except (TypeError, ValueError):
+        return ""
+    return "UPCOMING" if parsed > date.today() else "FINISHED"
 
 
 def _preference_score(candidate: RetrievalCandidate, preference: Mapping[int | str, float] | UserPreference | None) -> float:

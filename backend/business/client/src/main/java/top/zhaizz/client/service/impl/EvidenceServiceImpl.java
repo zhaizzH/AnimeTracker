@@ -85,6 +85,7 @@ public class EvidenceServiceImpl implements EvidenceService {
 
         List<Long> subjectIds = switch (request.getEntityType()) {
             case SUBJECT -> ids;
+            case RELATION_SUBJECT -> evidenceMapper.selectRelatedSubjectIds(ids);
             case PERSON -> evidenceMapper.selectSubjectIdsByPersonIds(ids);
             case CHARACTER -> evidenceMapper.selectSubjectIdsByCharacterIds(ids);
             case ACTOR -> evidenceMapper.selectSubjectIdsByActorIds(ids);

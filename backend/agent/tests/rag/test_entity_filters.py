@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from app.rag.retrieval import RagRetrievalService
 from app.rag.schemas import RetrievalQuery
+from app.agent.client.rag_tools import build_rag_tools
 
 
 @dataclass
@@ -75,6 +76,16 @@ def test_entity_ids_are_strict_and_capped():
         RetrievalQuery(keywords=["test"], actor_ids=list(range(1, 52)))
 
 
+def test_rag_tool_schema_rejects_coercible_entity_ids():
+    search_tool = build_rag_tools(None)[0]
+    with pytest.raises(ValidationError):
+        search_tool.args_schema.model_validate({"semantic_query": "test", "person_ids": ["1"]})
+    with pytest.raises(ValidationError):
+        search_tool.args_schema.model_validate({"semantic_query": "test", "person_ids": [True]})
+    with pytest.raises(ValidationError):
+        search_tool.args_schema.model_validate({"semantic_query": "test", "person_ids": list(range(1, 52))})
+
+
 def test_entity_filter_resolves_before_redis_and_filters_candidates():
     index = _Index(rows=[{"subject_id": 1}, {"subject_id": 2}])
     resolver = _resolver({"PERSON": [1]})
@@ -98,6 +109,17 @@ def test_multiple_entity_filters_intersect_business_subject_sets():
     assert result.available is True
     assert [item.subject_id for item in result.items] == [2]
     assert resolver.calls == [("PERSON", [7]), ("CHARACTER", [8])]
+
+
+def test_relation_subject_filter_uses_relation_expansion_type():
+    index = _Index(rows=[{"subject_id": 3}])
+    resolver = _resolver({"RELATION_SUBJECT": [3]})
+    result = _service(index, resolver).retrieve(
+        RetrievalQuery(keywords=["test"], relation_subject_ids=[10])
+    )
+    assert result.available is True
+    assert [item.subject_id for item in result.items] == [3]
+    assert resolver.calls == [("RELATION_SUBJECT", [10])]
 
 
 def test_entity_resolution_failure_is_fail_closed_before_index_access():
@@ -132,6 +154,16 @@ def test_business_fallback_keeps_entity_allowlist():
     assert [item.subject_id for item in result.items] == [2]
 
 
+def test_entity_allowlist_is_not_limited_by_redis_top_fifty():
+    index = _Index(rows=[{"subject_id": subject_id} for subject_id in range(1, 101)])
+    resolver = _resolver({"PERSON": [100]})
+    result = _service(index, resolver).retrieve(
+        RetrievalQuery(keywords=["test"], person_ids=[9])
+    )
+    assert result.available is True
+    assert [item.subject_id for item in result.items] == [100]
+
+
 def test_missing_resolver_does_not_leak_unfiltered_candidates():
     index = _Index(rows=[{"subject_id": 1}])
     result = _service(index).retrieve(
@@ -147,6 +179,17 @@ def test_incomplete_resolver_rows_are_fail_closed():
     result = _service(index, lambda entity_type, entity_ids, token=None: [
         {"subjectId": 1, "type": 2, "nsfw": False},
     ]).retrieve(RetrievalQuery(keywords=["test"], person_ids=[7]))
+    assert result.available is False
+    assert result.items == []
+    assert result.reason == "entity_resolution_unavailable"
+
+
+@pytest.mark.parametrize("malformed", [None, "not-a-list", {"message": "ok"}, {"items": "bad"}])
+def test_malformed_resolver_root_is_fail_closed(malformed):
+    index = _Index(rows=[{"subject_id": 1}])
+    result = _service(index, lambda entity_type, entity_ids, token=None: malformed).retrieve(
+        RetrievalQuery(keywords=["test"], person_ids=[7])
+    )
     assert result.available is False
     assert result.items == []
     assert result.reason == "entity_resolution_unavailable"

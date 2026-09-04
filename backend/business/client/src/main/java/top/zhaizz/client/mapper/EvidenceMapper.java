@@ -36,4 +36,7 @@ public interface EvidenceMapper extends BaseMapper<Subject> {
 
     /** 通过声优人物本地 ID 沿 character_actor 关系扩展安全动画条目。 */
     List<Long> selectSubjectIdsByActorIds(@Param("ids") List<Long> actorIds);
+
+    /** 通过作品 ID 沿 subject_relation 双向扩展安全动画条目。 */
+    List<Long> selectRelatedSubjectIds(@Param("ids") List<Long> subjectIds);
 }
