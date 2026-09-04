@@ -23,12 +23,12 @@
 
 ## 验证证据
 
-- `backend/agent` 受影响范围：**131 passed**（importer/backfill/indexer/rag/adapters）。
-- `backend/agent` 全量：**189 passed，1 deselected**；被排除的是依赖 Windows `tmp_path` 的自定义 golden loader 测试，环境临时目录 ACL 返回 WinError 5；同一逻辑使用工作区文件手工验证通过。
+- `backend/agent` 受影响范围：**139 passed**（importer/backfill/indexer/rag/adapters）。
+- `backend/agent` 全量：**197 passed，1 deselected**；被排除的是依赖 Windows `tmp_path` 的自定义 golden loader 测试，环境临时目录 ACL 返回 WinError 5；同一逻辑使用工作区文件手工验证通过。
 - `backend/agent` `compileall -q app jobs`：通过。
 - `backend/business` `mvn -B test`：**29 passed，BUILD SUCCESS**。
 - `git diff --check`：通过（仅 CRLF 转换提示）。
-- Phase 7 结构化实体筛选：新增测试 **6 passed**；Business HTTP `/resolve` 契约测试已覆盖。
+- Phase 7 结构化实体筛选：新增测试 **7 passed**；Business HTTP `/resolve` 契约测试已覆盖。
 
 ## 建议顺序
 
