@@ -48,6 +48,20 @@ def test_actor_name_uses_person_documents_but_returns_actor_kind():
     assert "@entity_kind:{PERSON}" in redis.calls[0][2]
 
 
+def test_relation_subject_name_uses_subject_documents_and_preserves_relation_kind():
+    redis = _Redis([
+        1,
+        b"rag:entity:v1:SUBJECT:12",
+        [b"entity_kind", b"SUBJECT", b"entity_id", b"12", b"name", b"A", b"aliases", b"A"],
+    ])
+    result = RedisEntityNameLookup(redis, index_version="v1").lookup(
+        "A", entity_kind="RELATION_SUBJECT"
+    )
+
+    assert result == [EntityNameMatch("RELATION_SUBJECT", 12)]
+    assert "@entity_kind:{SUBJECT}" in redis.calls[0][2]
+
+
 def test_malformed_index_response_fails_closed_for_caller():
     redis = _Redis([1, b"key"])
     lookup = RedisEntityNameLookup(redis, index_version="v1")

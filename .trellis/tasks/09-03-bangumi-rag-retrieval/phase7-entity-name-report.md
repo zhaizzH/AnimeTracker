@@ -10,6 +10,7 @@
 - 名称命中后只提取 typed local entity ID，再复用 Business `POST /api/client/evidence/resolve`；最终 Subject 仍通过既有 `type=2`、`nsfw=false`、`active=true` 权威边界。
 - 名称索引或 Business resolve 异常返回 `entity_resolution_unavailable`；名称无命中返回空结果，不使用未验证候选。
 - `ACTOR` 名称查询复用索引中的 `PERSON` 文档，但保留 `ACTOR` 关系解析类型。
+- `RELATION_SUBJECT` 名称查询复用索引中的 `SUBJECT` 文档，但保留 `RELATION_SUBJECT` 双向关系扩展类型。
 - 未指定 `entity_kind` 时，PERSON 与 CHARACTER 名称命中在名称约束内取并集；不同查询字段仍取交集，避免同名实体被错误过滤。
 
 ## 验证
@@ -17,10 +18,10 @@
 ```text
 cd backend/agent
 .\.venv\Scripts\python.exe -m pytest tests/adapters/test_business_http.py tests/adapters/test_entity_name_lookup.py tests/rag/test_entity_filters.py tests/rag/test_fault_matrix.py tests/rag/test_evidence_contract.py -q --basetemp .pytest-tmp-phase7-name
-# 59 passed
+# 61 passed
 
 .\.venv\Scripts\python.exe -m pytest tests/rag tests/adapters -q --basetemp .pytest-tmp-phase7-name-all
-# 73 passed
+# 75 passed
 
 .\.venv\Scripts\python.exe -m compileall -q app jobs
 git diff --check

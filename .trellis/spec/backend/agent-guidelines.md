@@ -20,7 +20,7 @@
 
 ### 2. Signatures
 
-- `RetrievalQuery`: `person_ids`, `character_ids`, `actor_ids`, `relation_subject_ids` 均为最多 50 个正整数；`entity_name` 为最多 48 个可见字符，`entity_kind` 可选值为 `PERSON|CHARACTER|ACTOR`，且不能脱离 `entity_name` 单独使用。
+- `RetrievalQuery`: `person_ids`, `character_ids`, `actor_ids`, `relation_subject_ids` 均为最多 50 个正整数；`entity_name` 为最多 48 个可见字符，`entity_kind` 可选值为 `PERSON|CHARACTER|ACTOR|RELATION_SUBJECT`，且不能脱离 `entity_name` 单独使用。
 - `POST /api/client/evidence/resolve`: `{ "entityType": "PERSON|CHARACTER|ACTOR|SUBJECT|RELATION_SUBJECT", "ids": [1, ...] }`；`RELATION_SUBJECT` 沿 `subject_relation` 双向扩展。
 - `BusinessGateway.resolve_evidence(entity_type, entity_ids, *, token) -> dict | list`。
 - `RedisEntityNameLookup.lookup(entity_name, *, entity_kind, limit) -> list[EntityNameMatch]`；读取版本化 `idx:rag:entity:<version>` shadow index。
@@ -30,7 +30,7 @@
 - Business 只返回 `type=2`、`nsfw=false`、`active=true` 的证据候选；Agent 仅提取 `subjectId`。
 - 多种实体过滤取交集；allowlist 同时约束 Redis 召回和 Business fallback，再执行 Subject 权威回查与 Evidence 回查。
 - 实体 ID 不得拼接进 RediSearch 表达式或 SQL 字符串。
-- 名称只作为经过转义并用引号包裹的 TEXT 词项进入 RediSearch；名称命中后必须先按类型调用 Business `/resolve`，不得把 Redis 实体文档直接输出给模型。
+- 名称只作为经过转义并用引号包裹的 TEXT 词项进入 RediSearch；名称命中后必须先按类型调用 Business `/resolve`，不得把 Redis 实体文档直接输出给模型。`RELATION_SUBJECT` 映射到 SUBJECT shadow 文档后仍调用关系扩展查询。
 - 未指定 `entity_kind` 时，PERSON 与 CHARACTER 的名称候选在名称约束内取并集；与显式 ID/关系字段仍取交集。查询声优关系时必须显式传 `entity_kind=ACTOR`；ACTOR 使用 PERSON shadow 文档，但必须保留 `ACTOR` 的关系解析语义。
 
 ### 4. Validation & Error Matrix

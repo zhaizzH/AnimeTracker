@@ -14,7 +14,7 @@ from app.rag.use_case import RetrieveSubjectsUseCase
 
 StrictEntityIds = Annotated[list[Annotated[StrictInt, Field(gt=0)]], Field(max_length=50)]
 EntityName = SafeTerm
-EntityKind = Literal["PERSON", "CHARACTER", "ACTOR"]
+EntityKind = Literal["PERSON", "CHARACTER", "ACTOR", "RELATION_SUBJECT"]
 
 
 def _anonymous_user() -> UserInfo:
