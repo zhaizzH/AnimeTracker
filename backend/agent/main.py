@@ -19,6 +19,7 @@ from app.adapters.business_http import HttpBusinessGateway
 from app.adapters.llm.agent_factory import AgentLlmFactory
 from app.adapters.llm.embeddings import DashScopeEmbeddingClient
 from app.adapters.redis import RedisChatStore
+from app.adapters.redis.entity_name_lookup import RedisEntityNameLookup
 from app.adapters.redis.model_config_repository import RedisModelConfigRepository
 from app.adapters.redis.prompt_repository import RedisPromptRepository
 from app.adapters.redis.subject_index import RedisSubjectIndex
@@ -101,6 +102,10 @@ def _build_agent_dependencies(model_configs, prompts, import_service) -> AgentDe
     if settings.rag_enabled:
         rag_redis = redis.Redis.from_url(settings.effective_rag_redis_url)
         index = RedisSubjectIndex(rag_redis, active_alias=settings.rag_index_alias)
+        entity_name_lookup = RedisEntityNameLookup(
+            rag_redis,
+            index_version=settings.rag_index_version,
+        ).lookup
         embeddings = DashScopeEmbeddingClient(settings.dashscope_api_key)
         preference_provider = RedisUserPreferenceProvider(
             rag_redis,
@@ -109,6 +114,7 @@ def _build_agent_dependencies(model_configs, prompts, import_service) -> AgentDe
         )
     else:
         index = _UnavailableIndex()
+        entity_name_lookup = None
         embeddings = _UnavailableEmbeddings()
         preference_provider = _NoPreferenceProvider()
     retrieval = RagRetrievalService(
@@ -118,6 +124,7 @@ def _build_agent_dependencies(model_configs, prompts, import_service) -> AgentDe
         business_search=fallbacks["search"],
         evidence_lookup=business.batch_evidence,
         resolve_evidence_lookup=business.resolve_evidence,
+        entity_name_lookup=entity_name_lookup,
     )
     return AgentDependencies(
         business=business,

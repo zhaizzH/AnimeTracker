@@ -65,6 +65,8 @@ class RetrievalQuery(BaseModel):
     character_ids: Annotated[list[PositiveEntityId], Field(max_length=50)] = Field(default_factory=list)
     actor_ids: Annotated[list[PositiveEntityId], Field(max_length=50)] = Field(default_factory=list)
     relation_subject_ids: Annotated[list[PositiveEntityId], Field(max_length=50)] = Field(default_factory=list)
+    entity_name: SafeTerm | None = None
+    entity_kind: Literal["PERSON", "CHARACTER", "ACTOR"] | None = None
 
     @model_validator(mode="after")
     def validate_intent(self) -> "RetrievalQuery":
@@ -83,10 +85,13 @@ class RetrievalQuery(BaseModel):
                 self.character_ids,
                 self.actor_ids,
                 self.relation_subject_ids,
+                self.entity_name,
             )
         )
         if not (self.semantic_query or self.keywords or has_filter):
             raise ValueError("检索请求至少需要关键词、语义查询或结构化过滤条件")
+        if self.entity_kind is not None and self.entity_name is None:
+            raise ValueError("entity_kind 必须与 entity_name 一起提供")
         if self.year_from is not None and self.year_to is not None and self.year_to < self.year_from:
             raise ValueError("year_to 不能早于 year_from")
         return self
