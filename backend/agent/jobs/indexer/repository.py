@@ -119,13 +119,18 @@ class IndexJobRepository:
             row = self._session.execute(
                 text(
                     "SELECT s.id AS subject_id, s.name AS title, s.summary, "
-                    "(SELECT GROUP_CONCAT(name ORDER BY name SEPARATOR '\\n') FROM subject_alias WHERE subject_id=s.id) AS aliases, "
-                    "(SELECT GROUP_CONCAT(name ORDER BY name SEPARATOR '\\n') FROM subject_meta_tag WHERE subject_id=s.id) AS meta_tags, "
-                    "(SELECT GROUP_CONCAT(CONCAT(role, '：', name) ORDER BY sort_order, name SEPARATOR '\\n') FROM subject_credit WHERE subject_id=s.id) AS credits, "
+                    "(SELECT GROUP_CONCAT(name ORDER BY name SEPARATOR '\\n') FROM subject_alias WHERE subject_id=s.id AND source_active=1) AS aliases, "
+                    "(SELECT GROUP_CONCAT(name ORDER BY name SEPARATOR '\\n') FROM subject_meta_tag WHERE subject_id=s.id AND source_active=1) AS meta_tags, "
+                    "(SELECT GROUP_CONCAT(CONCAT(role, '：', name) ORDER BY sort_order, name SEPARATOR '\\n') FROM subject_credit WHERE subject_id=s.id AND source_active=1) AS credits, "
                     "(SELECT GROUP_CONCAT(CONCAT(sr.relation, '：', related.name) ORDER BY related.name SEPARATOR '\\n') "
                     "FROM subject_relation sr JOIN subject related ON related.id=sr.related_subject_id WHERE sr.subject_id=s.id) AS relations, "
                     "YEAR(s.air_date) AS year, QUARTER(s.air_date) AS quarter, s.score, s.rating_total, s.collection_total, "
-                    "CASE WHEN s.air_date IS NULL THEN 'unknown' WHEN s.air_date > CURDATE() THEN 'upcoming' ELSE 'finished' END AS air_status, "
+                    "CASE "
+                    "WHEN s.air_date IS NULL THEN 'unknown' "
+                    "WHEN s.air_date > CURDATE() THEN 'upcoming' "
+                    "WHEN EXISTS (SELECT 1 FROM episode e WHERE e.subject_id=s.id AND e.status='NA') THEN 'airing' "
+                    "ELSE 'finished' "
+                    "END AS air_status, "
                     "s.type, s.nsfw FROM subject s WHERE s.id=:subject_id AND s.type=2 AND s.nsfw=0"
                 ),
                 {"subject_id": job.subject_id},
