@@ -9,10 +9,10 @@
 
 ## Phase 1：建立评测基线与契约测试
 
-- [x] 建立至少 50 条检索 golden cases，覆盖标题/别名、过滤、主观语义、人物/角色/声优、系列关系、否定和降级。
-- [x] 实现确定性 eval schema/runner/metrics，先记录当前 Business fallback 与现有 RAG 基线。
-- [x] 为当前 schema↔normalize↔repository 漂移增加失败测试：`eps/volumes`、`credit_type`、AIRING、stale replace-set、profile hash。
-- [x] 固化 EvidenceCandidate 契约测试和”未经 Business 回查不得进入模型”的失败测试。
+- [ ] 建立至少 50 条检索 golden cases，覆盖标题/别名、过滤、主观语义、人物/角色/声优、系列关系、否定和降级。
+- [ ] 实现确定性 eval schema/runner/metrics，先记录当前 Business fallback 与现有 RAG 基线。
+- [ ] 为当前 schema↔normalize↔repository 漂移增加失败测试：`eps/volumes`、`credit_type`、AIRING、stale replace-set、profile hash。
+- [ ] 固化 EvidenceCandidate 契约测试和”未经 Business 回查不得进入模型”的失败测试。
 
 验证：
 
