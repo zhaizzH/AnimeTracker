@@ -134,3 +134,25 @@ class BangumiClient:
     def get_relations(self, subject_id: int) -> list[dict]:
         """GET /v0/subjects/{subject_id}/subjects — 条目关联列表。"""
         return self._request("GET", f"/v0/subjects/{subject_id}/subjects")
+
+    def get_subject_characters(self, subject_id: int) -> list[dict]:
+        """GET /v0/subjects/{subject_id}/characters — 条目的关联角色（含声优）。"""
+        return self._request("GET", f"/v0/subjects/{subject_id}/characters")
+
+    def get_person(self, person_id: int) -> dict:
+        """GET /v0/persons/{person_id} — 人物详情。"""
+        return self._request("GET", f"/v0/persons/{person_id}")
+
+    def get_character(self, character_id: int) -> dict:
+        """GET /v0/characters/{character_id} — 角色详情。"""
+        return self._request("GET", f"/v0/characters/{character_id}")
+
+    def get_person_subjects(self, person_id: int, limit: int = 100, offset: int = 0) -> dict:
+        """GET /v0/persons/{person_id}/subjects — 人物参与的条目。"""
+        params = {"limit": limit, "offset": offset}
+        return self._request("GET", f"/v0/persons/{person_id}/subjects", params=params)
+
+    def get_character_subjects(self, character_id: int, limit: int = 100, offset: int = 0) -> dict:
+        """GET /v0/characters/{character_id}/subjects — 角色出现的条目。"""
+        params = {"limit": limit, "offset": offset}
+        return self._request("GET", f"/v0/characters/{character_id}/subjects", params=params)

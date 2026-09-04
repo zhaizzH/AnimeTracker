@@ -36,6 +36,7 @@ class Credit:
     person_id: int
     name: str
     role: str
+    person_type: str = "PERSON"
 
 
 @dataclass(frozen=True)
@@ -58,6 +59,8 @@ class NormalizedSubject:
     collection_counts: dict[str, int]
     image_source_url: str | None
     source_fetched_at: datetime
+    eps: int | None = None
+    volumes: int | None = None
 
 
 def normalize_subject(raw: dict, persons: list[dict]) -> NormalizedSubject | None:
@@ -69,6 +72,8 @@ def normalize_subject(raw: dict, persons: list[dict]) -> NormalizedSubject | Non
     collection = raw.get("collection") or {}
     images = raw.get("images") or {}
     air_date = _optional_text(raw.get("date"))
+    eps_value = max(_int(raw.get("eps")), _int(raw.get("total_episodes"))) or None
+    volumes_value = _optional_int(raw.get("volumes"))
     return NormalizedSubject(
         bangumi_id=int(raw["id"]),
         name=_text(raw.get("name")),
@@ -88,6 +93,8 @@ def normalize_subject(raw: dict, persons: list[dict]) -> NormalizedSubject | Non
         collection_counts=_counts(collection),
         image_source_url=_optional_text(images.get("large")),
         source_fetched_at=datetime.now(timezone.utc),
+        eps=eps_value,
+        volumes=volumes_value,
     )
 
 
@@ -137,8 +144,11 @@ def _credits(persons: list[dict]) -> tuple[Credit, ...]:
         person = entry.get("person") or {}
         person_id = _optional_int(person.get("id"))
         name = _text(person.get("name"))
+        # Bangumi person.type: 1=个人, 2=公司, 3=组合
+        raw_type = _int(person.get("type")) or 1
+        person_type = "ORGANIZATION" if raw_type in (2, 3) else "PERSON"
         if role in MAIN_CREDIT_ROLES and person_id is not None and name:
-            credits.append(Credit(person_id=person_id, name=name, role=role))
+            credits.append(Credit(person_id=person_id, name=name, role=role, person_type=person_type))
     return tuple(credits)
 
 
