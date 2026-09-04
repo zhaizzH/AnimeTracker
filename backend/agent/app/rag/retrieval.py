@@ -31,6 +31,7 @@ class RetrievalCandidate:
     retrieval_reason: str
     title: str = ""
     details: Mapping[str, Any] | None = None
+    evidence: Mapping[str, Any] | None = None
     vector: Sequence[float] | None = None
 
 
@@ -64,6 +65,7 @@ def reciprocal_rank_fusion(
 
 
 AuthorityLookup = Callable[..., dict | list]
+EvidenceLookup = Callable[..., dict | list]
 
 
 class RagRetrievalService:
@@ -76,11 +78,13 @@ class RagRetrievalService:
         *,
         authority_lookup: AuthorityLookup,
         business_search: AuthorityLookup,
+        evidence_lookup: EvidenceLookup | None = None,
     ) -> None:
         self._index = index
         self._embeddings = embeddings
         self._authority_lookup = authority_lookup
         self._business_search = business_search
+        self._evidence_lookup = evidence_lookup
 
     def retrieve(
         self,
@@ -90,6 +94,7 @@ class RagRetrievalService:
         preference: Mapping[int | str, float] | UserPreference | None = None,
         personalization_missing: bool = False,
         business_search: AuthorityLookup | None = None,
+        evidence_lookup: EvidenceLookup | None = None,
     ) -> RetrievalResult:
         lexical: list[RetrievalCandidate] = []
         semantic: list[RetrievalCandidate] = []
@@ -100,6 +105,7 @@ class RagRetrievalService:
                 vector = self._embeddings.embed_documents([query.semantic_query])[0]
             except Exception:
                 vector = None
+        effective_evidence = evidence_lookup or self._evidence_lookup
         try:
             for expression in self._expressions(query):
                 if self._lexical_terms(query) or vector is None:
@@ -108,7 +114,9 @@ class RagRetrievalService:
                     semantic = self._as_candidates(self._index.semantic_search(expression, vector, limit=50), "semantic")
                 if not lexical and not semantic:
                     continue
-                result = self._authoritative_result(reciprocal_rank_fusion(lexical, semantic), query, token, preference)
+                result = self._authoritative_result(
+                    reciprocal_rank_fusion(lexical, semantic), query, token, preference, effective_evidence,
+                )
                 if not result.available or result.items:
                     return self._complete(result, personalization_missing)
         except Exception:
@@ -117,7 +125,7 @@ class RagRetrievalService:
 
         if redis_failed:
             return self._complete(
-                self._business_fallback(query, token, preference, business_search or self._business_search),
+                self._business_fallback(query, token, preference, business_search or self._business_search, effective_evidence),
                 personalization_missing,
                 "business",
             )
@@ -183,6 +191,7 @@ class RagRetrievalService:
         query: RetrievalQuery,
         token: str | None,
         preference: Mapping[int | str, float] | UserPreference | None,
+        evidence_lookup: EvidenceLookup | None = None,
     ) -> RetrievalResult:
         try:
             response = self._authority_lookup([item.subject_id for item in candidates[:50]], token=token, exclude_collected=True)
@@ -196,6 +205,8 @@ class RagRetrievalService:
             for candidate in candidates
             if candidate.subject_id in details_by_id and self._is_safe_detail(details_by_id[candidate.subject_id], query)
         ]
+        if safe and evidence_lookup is not None:
+            safe = self._enrich_evidence(safe, token, evidence_lookup)
         return RetrievalResult(available=True, items=self._rerank(safe, query, preference)[:_MAX_RESULTS])
 
     def _business_fallback(
@@ -204,6 +215,7 @@ class RagRetrievalService:
         token: str | None,
         preference: Mapping[int | str, float] | UserPreference | None,
         business_search: AuthorityLookup,
+        evidence_lookup: EvidenceLookup | None = None,
     ) -> RetrievalResult:
         try:
             response = business_search(query, token=token)
@@ -218,7 +230,72 @@ class RagRetrievalService:
         ]
         if not candidates:
             return RetrievalResult(available=True, items=[])
-        return self._authoritative_result(candidates, query, token, preference)
+        return self._authoritative_result(candidates, query, token, preference, evidence_lookup)
+
+    @staticmethod
+    def _enrich_evidence(
+        candidates: list[RetrievalCandidate],
+        token: str | None,
+        evidence_lookup: EvidenceLookup,
+    ) -> list[RetrievalCandidate]:
+        """批量回查 Evidence API，为候选附加证据字段；失败时保持原候选不变。"""
+        try:
+            response = evidence_lookup([c.subject_id for c in candidates], token=token)
+        except Exception:
+            log_event("rag.evidence.enriched", success=False, errorType="exception")
+            return candidates
+        if _is_error(response):
+            log_event("rag.evidence.enriched", success=False, errorType="business_error")
+            return candidates
+        rows = response if isinstance(response, list) else []
+        by_id: dict[int, Mapping[str, Any]] = {}
+        for row in rows:
+            if isinstance(row, Mapping) and row.get("subjectId") is not None:
+                by_id[int(row["subjectId"])] = row
+        enriched = []
+        for candidate in candidates:
+            ev = by_id.get(candidate.subject_id)
+            if ev is not None:
+                candidate = replace(candidate, evidence=RagRetrievalService._map_evidence(ev))
+            enriched.append(candidate)
+        log_event("rag.evidence.enriched", success=True, candidateCount=len(enriched))
+        return enriched
+
+    @staticmethod
+    def _map_evidence(ev: Mapping[str, Any]) -> dict[str, Any]:
+        """将 EvidenceCandidateVO 映射为 Agent 内部证据字典。"""
+        summary = str(ev.get("summary") or "")
+        return {
+            "aliases": [str(a) for a in (ev.get("aliases") or [])],
+            "metaTags": [str(t) for t in (ev.get("metaTags") or [])],
+            "credits": [
+                f"{str(c.get('personName', ''))}({str(c.get('relation', ''))})"
+                for c in (ev.get("credits") or [])
+                if isinstance(c, Mapping)
+            ],
+            "characters": [
+                f"{str(c.get('characterName', ''))}({str(c.get('relation', ''))})"
+                for c in (ev.get("characters") or [])
+                if isinstance(c, Mapping)
+            ],
+            "relations": [
+                f"{str(r.get('relatedSubjectNameCn') or r.get('relatedSubjectName', ''))}({str(r.get('relation', ''))})"
+                for r in (ev.get("relations") or [])
+                if isinstance(r, Mapping)
+            ],
+            "summaryExcerpt": summary[:200] if summary else "",
+            "summarySource": "bangumi_official",
+            "ratingTotal": ev.get("ratingTotal"),
+            "collectionTotal": ev.get("collectionTotal"),
+            "score": ev.get("score"),
+            "airDate": ev.get("airDate"),
+            "sourceTime": ev.get("sourceTime"),
+            "nameCn": ev.get("nameCn"),
+            "name": ev.get("name"),
+            "type": ev.get("type"),
+            "nsfw": ev.get("nsfw"),
+            "rank": ev.get("rank"),
+        }
 
     @staticmethod
     def _is_safe_detail(item: Mapping[str, Any], query: RetrievalQuery) -> bool:

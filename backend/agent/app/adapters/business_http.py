@@ -74,3 +74,11 @@ class HttpBusinessGateway(BusinessGateway):
             params={"q": query, "page": 1, "size": size},
             token=token,
         )
+
+    def batch_evidence(self, subject_ids: list[int], *, token: str | None) -> dict | list:
+        return self.request(
+            "POST",
+            "/api/client/evidence/batch",
+            token=token,
+            json_body={"subjectIds": subject_ids},
+        )

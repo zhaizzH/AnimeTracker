@@ -45,6 +45,7 @@ _ALLOWED_FIELDS = {
 _RAG_EVENTS = frozenset({
     "rag.import.completed", "rag.index.completed", "rag.retrieval.completed",
     "rag.index.switch", "rag.fallback.used", "rag.data_quality.completed",
+    "rag.evidence.enriched",
 })
 
 _RAG_ALLOWED_FIELDS = frozenset({
