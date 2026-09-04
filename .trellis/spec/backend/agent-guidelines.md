@@ -24,6 +24,7 @@
 - `POST /api/client/evidence/resolve`: `{ "entityType": "PERSON|CHARACTER|ACTOR|SUBJECT|RELATION_SUBJECT", "ids": [1, ...] }`；`RELATION_SUBJECT` 沿 `subject_relation` 双向扩展。
 - `BusinessGateway.resolve_evidence(entity_type, entity_ids, *, token) -> dict | list`。
 - `RedisEntityNameLookup.lookup(entity_name, *, entity_kind, limit) -> list[EntityNameMatch]`；读取版本化 `idx:rag:entity:<version>` shadow index。
+- `plan_retrieval_query(query) -> RetrievalQuery` 只补全带明确标记的中文年份、季度、播出状态、评分和评分人数；显式结构化字段优先。
 
 ### 3. Contracts
 
@@ -55,6 +56,7 @@
 - Schema：严格拒绝字符串、布尔值、非正数和第 51 个 ID。
 - Retrieval：实体解析调用顺序、交集、空集合、异常 fail-closed、Redis 故障 fallback allowlist。
 - Retrieval：名称成功、PERSON/CHARACTER 同名并集、名称无匹配与名称解析故障 fail-closed。
+- Planner：明确条件提取、显式字段优先，以及不明确/越界提示保留在原始语义查询。
 - Adapter：断言 `/api/client/evidence/resolve` 方法、路径、JSON body 和 Authorization；名称查询的转义、类型映射和 malformed response。
 
 ### 7. Wrong vs Correct
