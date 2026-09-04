@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, Literal, Mapping
 
 from app.rag.retrieval import RagRetrievalService, RetrievalCandidate
+from app.rag.query_planner import plan_retrieval_query
 from app.rag.schemas import RetrievalQuery
 
 
@@ -19,6 +20,7 @@ class RetrieveSubjectsUseCase:
     evidence_lookup: Any = None
 
     def execute(self, query: RetrievalQuery, *, mode: RetrievalMode, user) -> dict:
+        query = plan_retrieval_query(query)
         preference, missing = (None, False)
         if mode == "recommend":
             preference, missing = self.preference_provider.load(user.user_id, user.token)

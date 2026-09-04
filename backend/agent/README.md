@@ -400,12 +400,12 @@ curl -X POST http://localhost:8090/api/client/agent/sessions/<session-id> \
 uv run pytest
 ```
 
-pytest 配置在 `pyproject.toml`（`pythonpath = ["."]`、`asyncio_mode = "auto"`、`test.globals = true`）。当前 218 条测试覆盖：
+pytest 配置在 `pyproject.toml`（`pythonpath = ["."]`、`asyncio_mode = "auto"`、`test.globals = true`）。当前 224 条测试覆盖：
 
 | 目录 | 覆盖范围 |
 |------|----------|
 | `tests/evals/` | 50-case 确定性评测框架（metrics、runner、golden cases） |
-| `tests/rag/` | 证据契约、故障矩阵、多实体 profile、结构化实体 ID/名称 allowlist 与 fail-closed |
+| `tests/rag/` | 证据契约、故障矩阵、多实体 profile、结构化实体 ID/名称 allowlist、查询规划与 fail-closed |
 | `tests/jobs/importer/` | 导入漂移检测（eps/volumes、credit_type、AIRING、stale replace-set、profile hash） |
 | `tests/jobs/indexer/` | 实体加载、shadow index、search repository |
 | `tests/jobs/backfill/` | 详情回填 repository 与 worker |
