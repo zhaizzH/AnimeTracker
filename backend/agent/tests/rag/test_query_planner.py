@@ -63,3 +63,13 @@ def test_negative_finished_phrase_is_not_misclassified():
     planned = plan_retrieval_query(RetrievalQuery(semantic_query="尚未完结的动画"))
 
     assert planned.air_status is None
+
+
+def test_conflicting_or_descending_hints_are_not_inferred():
+    conflicting = plan_retrieval_query(RetrievalQuery(semantic_query="2024年春季或夏季在播或已完结"))
+    descending = plan_retrieval_query(RetrievalQuery(semantic_query="2025-2024年动画"))
+
+    assert conflicting.quarter is None
+    assert conflicting.air_status is None
+    assert descending.year_from is None
+    assert descending.year_to is None
