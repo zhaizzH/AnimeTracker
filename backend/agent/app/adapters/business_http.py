@@ -83,6 +83,19 @@ class HttpBusinessGateway(BusinessGateway):
             json_body={"subjectIds": subject_ids},
         )
 
+    def lexical_search(self, query: dict, *, token: str | None) -> dict | list:
+        """Call the versioned MySQL FULLTEXT retrieval contract.
+
+        Business returns ``{"indexVersion": "...", "candidates": [...]}``;
+        callers reject a response without that version before querying Redis.
+        """
+        return self.request(
+            "POST",
+            "/api/client/subjects/lexical-search",
+            json_body=query,
+            token=token,
+        )
+
     def resolve_evidence(
         self,
         entity_type: str,

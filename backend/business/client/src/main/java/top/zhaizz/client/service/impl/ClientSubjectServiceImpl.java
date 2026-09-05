@@ -5,10 +5,13 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import top.zhaizz.client.converter.SubjectConverter;
 import top.zhaizz.client.mapper.CollectionMapper;
 import top.zhaizz.client.mapper.SubjectMapper;
+import top.zhaizz.client.model.LexicalSearchRow;
+import top.zhaizz.client.model.SearchIndexReleaseRow;
 import top.zhaizz.client.mapper.SubjectRelationMapper;
 import top.zhaizz.client.mapper.SubjectTagMapper;
 import top.zhaizz.client.service.ClientSubjectService;
@@ -21,6 +24,7 @@ import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
 import top.zhaizz.pojo.dto.subject.SeasonQueryDTO;
 import top.zhaizz.pojo.dto.subject.SubjectListQueryDTO;
 import top.zhaizz.pojo.dto.subject.SubjectSearchQueryDTO;
+import top.zhaizz.pojo.dto.subject.LexicalSearchRequestDTO;
 import top.zhaizz.pojo.entity.Subject;
 import top.zhaizz.pojo.entity.SubjectRelation;
 import top.zhaizz.pojo.entity.SubjectTag;
@@ -29,6 +33,8 @@ import top.zhaizz.pojo.vo.subject.SubjectBatchResultVO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
 import top.zhaizz.pojo.vo.subject.SubjectRelationVO;
+import top.zhaizz.pojo.vo.subject.LexicalSearchCandidateVO;
+import top.zhaizz.pojo.vo.subject.LexicalSearchResultVO;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -135,6 +141,45 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
                 (int) mpPage.getCurrent(),
                 (int) mpPage.getSize()
         );
+    }
+
+    @Override
+    public LexicalSearchResultVO lexicalSearch(LexicalSearchRequestDTO request) {
+        SearchIndexReleaseRow release;
+        try {
+            release = subjectMapper.selectActiveSearchIndexRelease();
+        } catch (DataAccessException ex) {
+            // A deployment that has not run migration-003 must fail closed as
+            // an unavailable lexical index, never expose a 500 SQL detail.
+            throw new BizException(ErrorType.SERVICE_UNAVAILABLE, "词法索引尚未迁移");
+        }
+        if (release == null || release.getIndexVersion() == null || release.getIndexVersion().isBlank()) {
+            throw new BizException(ErrorType.SERVICE_UNAVAILABLE, "词法索引尚未发布");
+        }
+
+        List<Long> subjectIds = request.getSubjectIds() == null
+                ? null
+                : request.getSubjectIds().stream().distinct().toList();
+        List<LexicalSearchRow> rows = subjectMapper.lexicalSearch(
+                request.getQ().trim(), request.getTags(), request.getScoreMin(), request.getScoreMax(),
+                request.getYear(), request.getWeekday(), subjectIds, release.getIndexVersion(), request.getLimit());
+
+        List<LexicalSearchCandidateVO> candidates = new ArrayList<>();
+        for (int i = 0; i < rows.size(); i++) {
+            LexicalSearchRow row = rows.get(i);
+            candidates.add(LexicalSearchCandidateVO.builder()
+                    .subjectId(row.getSubjectId())
+                    .name(row.getName())
+                    .nameCn(row.getNameCn())
+                    .lexicalScore(row.getLexicalScore())
+                    .rank(i + 1)
+                    .build());
+        }
+        return LexicalSearchResultVO.builder()
+                .indexVersion(release.getIndexVersion())
+                .profileVersion(release.getProfileVersion())
+                .candidates(candidates)
+                .build();
     }
 
     @Override

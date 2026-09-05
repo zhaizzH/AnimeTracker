@@ -3,9 +3,8 @@
 The gate deliberately treats reports as untrusted input.  It does not import
 the offline evaluation package: a report may be produced by a temporary eval
 checkout and can be removed after rollout without making this module depend on
-it.  The default CLI mode only reads reports.  Alias mutation is reachable
-only through the explicit ``--activate`` flag and consists of one
-``FT.ALIASUPDATE`` command.
+ it.  The default CLI mode only reads reports. Activation is delegated to
+the MySQL ``search_index_release`` store; this module never mutates Redis.
 """
 
 from __future__ import annotations
@@ -220,14 +219,18 @@ def load_gate_inputs(report_dir: str | Path, index_version: str) -> GateInputs:
 read_gate_reports = load_gate_inputs
 
 
-def activate_alias(redis_client: Any, index_version: str, *, alias: str | None = None) -> None:
-    """Atomically update the alias; this function never deletes old data."""
-
+def activate_release(release_store: Any, index_version: str) -> None:
+    """Activate a gate-passed version through the MySQL release contract."""
     _validate_name(index_version, "index version")
-    alias_name = alias or os.getenv("RAG_INDEX_ALIAS", "idx:rag:subject:active")
-    _validate_alias(alias_name)
-    index_name = f"idx:rag:subject:{index_version}"
-    redis_client.execute_command("FT.ALIASUPDATE", alias_name, index_name)
+    activate = getattr(release_store, "activate", None)
+    if not callable(activate):
+        raise TypeError("release_store 必须提供 activate(index_version)")
+    activate(index_version)
+
+
+def activate_alias(_redis_client: Any, _index_version: str, *, alias: str | None = None) -> None:
+    """Compatibility guard: Redis aliases are intentionally unsupported."""
+    raise RuntimeError("Redis alias 已移除；请通过 MySQL search_index_release 激活")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -254,17 +257,25 @@ def main(argv: list[str] | None = None) -> int:
         print("activation=SKIPPED")
         return 0
 
-    # Keep the activation summary visible immediately before the sole alias
-    # mutation.  Values are report-derived; no secrets or query text are shown.
-    print(f"old_index=unchanged new_index=idx:rag:subject:{args.index_version}")
+    # Keep the activation summary visible; release mutation requires an
+    # application-provided MySQL store and is intentionally not implicit CLI I/O.
+    print(f"old_index=unchanged new_index=rag:vectors:SUBJECT:{args.index_version}")
     for name in REPORT_NAMES:
         print(f"report={name} present={name in inputs.report_summaries}")
     try:
-        import redis
+        from sqlalchemy.orm import Session
 
-        url = os.getenv("RAG_REDIS_URL") or os.getenv("REDIS_URL", "redis://localhost:6379/0")
-        client = redis.Redis.from_url(url)
-        activate_alias(client, args.index_version)
+        from app.adapters.mysql.import_records import get_engine
+        from app.adapters.mysql.release_store import MySqlReleaseStore
+
+        engine = get_engine(
+            os.getenv("DB_HOST", "127.0.0.1"),
+            int(os.getenv("DB_PORT", "3306")),
+            os.getenv("DB_USER", "root"),
+            os.getenv("DB_PASSWORD", ""),
+            os.getenv("DB_NAME", "anime_tracker"),
+        )
+        activate_release(MySqlReleaseStore(lambda: Session(engine)), args.index_version)
     except Exception as error:
         print(f"activation=FAIL reason={type(error).__name__}")
         return 1

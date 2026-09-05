@@ -41,6 +41,7 @@ class BusinessGateway(Protocol):
         *,
         token: str | None,
     ) -> dict | list: ...
+    def lexical_search(self, query: dict, *, token: str | None) -> dict | list: ...
     def resolve_evidence(
         self,
         entity_type: str,

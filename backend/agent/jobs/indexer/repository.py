@@ -164,6 +164,40 @@ class IndexJobRepository:
             bool(row["nsfw"]),
         )
 
+    def upsert_search_document(self, job: IndexJob, subject: IndexSubject, profile: Any) -> None:
+        """Persist the MySQL lexical shadow before the Vector Set write.
+
+        The projection is rebuildable and never becomes an authority source;
+        keeping it in the same worker transaction boundary makes a failed
+        Redis write retryable without losing the lexical half.
+        """
+        now = _datetime_seconds(self._now())
+        aliases = "\n".join(subject.aliases)
+        lexical_text = "\n".join((profile.text, subject.summary, *subject.meta_tags, *subject.credits, *subject.relations))
+        with self._session.begin():
+            self._session.execute(
+                text(
+                    "INSERT INTO search_document "
+                    "(entity_kind, entity_id, index_version, profile_version, title, aliases, lexical_text, "
+                    "content_hash, source_active, source_fetched_at, created_at, updated_at) "
+                    "VALUES ('SUBJECT', :entity_id, :index_version, :profile_version, :title, :aliases, :lexical_text, "
+                    ":content_hash, 1, :now, :now, :now) "
+                    "ON DUPLICATE KEY UPDATE profile_version=VALUES(profile_version), title=VALUES(title), "
+                    "aliases=VALUES(aliases), lexical_text=VALUES(lexical_text), content_hash=VALUES(content_hash), "
+                    "source_active=1, source_fetched_at=VALUES(source_fetched_at), updated_at=VALUES(updated_at)"
+                ),
+                {
+                    "entity_id": subject.subject_id,
+                    "index_version": job.index_version,
+                    "profile_version": profile.schema_version,
+                    "title": subject.title[:255],
+                    "aliases": aliases,
+                    "lexical_text": lexical_text,
+                    "content_hash": job.content_hash,
+                    "now": now,
+                },
+            )
+
     @property
     def supports_lease_heartbeat(self) -> bool:
         return self._lease_session_factory is not None

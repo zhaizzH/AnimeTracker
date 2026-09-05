@@ -13,10 +13,12 @@ import top.zhaizz.pojo.dto.subject.SeasonQueryDTO;
 import top.zhaizz.pojo.dto.subject.SubjectBatchRequestDTO;
 import top.zhaizz.pojo.dto.subject.SubjectListQueryDTO;
 import top.zhaizz.pojo.dto.subject.SubjectSearchQueryDTO;
+import top.zhaizz.pojo.dto.subject.LexicalSearchRequestDTO;
 import top.zhaizz.pojo.vo.subject.EpisodeVO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 import top.zhaizz.pojo.vo.subject.SubjectBatchResultVO;
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
+import top.zhaizz.pojo.vo.subject.LexicalSearchResultVO;
 
 import java.util.List;
 
@@ -45,6 +47,16 @@ public class SubjectController {
     @GetMapping("/search")
     public Result<PageResult<SubjectListVO>> searchSubjects(@Valid SubjectSearchQueryDTO request) {
         return Result.success(clientSubjectService.searchSubjects(request));
+    }
+
+    /**
+     * 面向 Agent 的受控词法召回；请求只包含结构化字段和普通搜索词，
+     * 不接受 MATCH/SQL 表达式。详细证据必须继续调用 evidence/batch。
+     */
+    @PostMapping("/lexical-search")
+    public Result<LexicalSearchResultVO> lexicalSearch(
+            @Valid @RequestBody LexicalSearchRequestDTO request) {
+        return Result.success(clientSubjectService.lexicalSearch(request));
     }
 
     /**

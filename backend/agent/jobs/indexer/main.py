@@ -84,6 +84,9 @@ def run_search_batch(
     remaining -= len(tombstones)
     for job in tombstones:
         try:
+            deactivate = getattr(repository, "deactivate_search_document", None)
+            if callable(deactivate):
+                deactivate(job)
             redis_index.delete(index_version, job.entity_kind, job.entity_id)
             if repository.mark_completed(job.id, claimed_at=job.claimed_at):
                 indexed += 1
@@ -194,6 +197,9 @@ def run_search_batch(
     durations.append((time.monotonic() - started) * 1000)
     for (job, document, _), vector in zip(loaded, vectors):
         try:
+            upsert = getattr(repository, "upsert_search_document", None)
+            if callable(upsert):
+                upsert(job, document)
             redis_index.write(
                 EntityIndexDocument(
                     entity_kind=document.entity_kind,
@@ -205,6 +211,15 @@ def run_search_batch(
                     aliases=document.aliases,
                     summary=document.summary,
                     subject_id=document.subject_id,
+                    source_active=document.source_active,
+                    type=document.type,
+                    nsfw=document.nsfw,
+                    year=document.year,
+                    quarter=document.quarter,
+                    score=document.score,
+                    rating_total=document.rating_total,
+                    collection_total=document.collection_total,
+                    air_status=document.air_status,
                 )
             )
             if repository.mark_completed(job.id, claimed_at=job.claimed_at):
@@ -329,6 +344,14 @@ def _load_search_document(
             aliases=subject.aliases,
             summary=subject.summary,
             subject_id=subject.subject_id,
+            type=subject.type,
+            nsfw=subject.nsfw,
+            year=subject.year,
+            quarter=subject.quarter,
+            score=subject.score,
+            rating_total=subject.rating_total,
+            collection_total=subject.collection_total,
+            air_status=subject.air_status,
         )
         return profile, document
 
@@ -500,6 +523,9 @@ def run_batch(
             continue
         document = _document(subject, job, profile, vector)
         try:
+            upsert = getattr(repository, "upsert_search_document", None)
+            if callable(upsert):
+                upsert(job, subject, profile)
             redis_index.write(document)
         except Exception as exc:
             if _is_unavailable(exc):
