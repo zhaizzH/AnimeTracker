@@ -18,6 +18,7 @@
 
 - 全新空库初始化入口：`mysql ... < docs/database/db-schema.sql`。
 - 存量库变更入口：必须由评审确认的前向 `ALTER`/回填步骤；不得把完整 Schema 文件当作升级脚本。
+- `docs/database/migration-002-rag-entities.sql` 的旧表兼容列变更使用 `INFORMATION_SCHEMA.COLUMNS` + `PREPARE` 条件执行；MySQL 8.4 不支持 `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`。
 
 ### 3. Contracts
 
@@ -25,6 +26,7 @@
 - 任何非空库执行前必须完成可恢复备份，并记录备份位置、影响表和回滚方式。
 - 字段或索引变更必须定义：前向 DDL、数据回填、旧新版本兼容窗口、应用切换顺序和回滚路径。
 - 当前不支持在线升级时，必须把它写成显式产品/运维限制，不得暗示可安全复用初始化脚本。
+- 前向迁移必须在 MySQL 8.4 上支持重复执行：已存在的列走空操作，不得依赖客户端忽略 1064 语法错误。
 
 ### 4. Validation & Error Matrix
 
@@ -34,18 +36,21 @@
 | 检测到任意业务表或无法确认环境为空 | 禁止执行初始化 Schema；转为存量库迁移评审 |
 | 需要删除/重命名字段 | 先备份，采用兼容字段/回填/切换顺序；没有回滚计划则拒绝 |
 | Schema 与 Entity/Mapper/importer/OpenAPI 不一致 | 先修复事实来源和映射，禁止只执行其中一层 |
+| MySQL 报 `1064` 指向 `ADD COLUMN IF NOT EXISTS` | 改用 `INFORMATION_SCHEMA.COLUMNS` 条件构造动态 `ALTER`，再在临时库重跑 |
 
 ### 5. Good / Base / Bad Cases
 
 - Good：空库初始化后运行映射检查，并保留备份/日志记录。
 - Base：存量库使用经过评审的 `ALTER` 和回填步骤，应用先兼容旧字段再切换。
 - Bad：为“重置开发环境”直接对未知数据库执行带 `DROP TABLE` 的完整 Schema。
+- Good：空库初始化后，模拟删除新表和旧兼容列，再执行前向迁移两次；两次都成功且关键表/列存在。
 
 ### 6. Tests Required
 
 - 初始化检查：在临时空库执行 Schema，断言关键表、索引和外键存在。
 - 迁移检查：在包含旧数据的临时库执行前向 DDL 与回填，断言旧数据可读、新旧应用兼容。
 - 回滚演练：验证备份可恢复，且失败步骤不会留下不可解释的半迁移状态。
+- MySQL 版本门禁：至少在项目声明的 MySQL 8.0+ 实际小版本（当前验证为 8.4.9）执行空库初始化、旧表前向迁移和二次迁移；断言不出现 1064，且检查 `source_active` 三列与 9 张新增表。
 
 ### 7. Wrong vs Correct
 
@@ -61,6 +66,26 @@ mysql -h "$DB_HOST" "$DB_NAME" < docs/database/db-schema.sql
 ```text
 确认是全新空库 → 备份/记录环境 → 执行初始化 Schema → 核对表与索引
 已有数据 → 先设计 ALTER/回填/兼容/回滚 → 评审通过后再执行
+```
+
+#### 迁移列的正确写法
+
+```sql
+-- Wrong: MySQL 8.4 会报 1064
+ALTER TABLE subject_alias ADD COLUMN IF NOT EXISTS source_active tinyint NOT NULL;
+
+-- Correct: 先检查，再动态执行；重复迁移时执行 SELECT 1 空操作
+SET @sql = IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+   WHERE TABLE_SCHEMA = DATABASE()
+     AND TABLE_NAME = 'subject_alias'
+     AND COLUMN_NAME = 'source_active') = 0,
+  'ALTER TABLE subject_alias ADD COLUMN source_active tinyint NOT NULL',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 ```
 
 ## Spring / MyBatis
