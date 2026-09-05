@@ -212,7 +212,10 @@ class RedisSubjectIndex:
 
 def _vector_filter(query: RetrievalQuery) -> str:
     """Build only literals from typed query; never accept user expressions."""
-    parts = ['.entity_kind == "SUBJECT"', ".source_active == true", ".type == 2", ".nsfw == false"]
+    # Vector Set filter expressions use numeric JSON values for booleans;
+    # Redis 8 rejects the ``true``/``false`` literals accepted by neither its
+    # filter parser nor the RESP command grammar.
+    parts = ['.entity_kind == "SUBJECT"', ".source_active == 1", ".type == 2", ".nsfw == 0"]
     if query.year_from is not None:
         parts.append(f".year >= {int(query.year_from)}")
     if query.year_to is not None:
@@ -224,7 +227,9 @@ def _vector_filter(query: RetrievalQuery) -> str:
     if query.rating_total_min is not None:
         parts.append(f".rating_total >= {int(query.rating_total_min)}")
     if query.air_status:
-        parts.append(f'.air_status == "{query.air_status}"')
+        # Indexer stores the derived status in lowercase (upcoming/airing/
+        # finished); normalize the typed query to that storage contract.
+        parts.append(f'.air_status == "{query.air_status.lower()}"')
     for subject_id in query.exclude_subject_ids:
         parts.append(f".subject_id != {int(subject_id)}")
     return " && ".join(parts)
@@ -275,4 +280,8 @@ def _command_info_present(info: Any) -> bool:
     """Redis returns ``[None]`` for an unknown COMMAND INFO entry."""
     if not info:
         return False
-    return not isinstance(info, (list, tuple)) or any(item is not None for item in info)
+    if isinstance(info, Mapping):
+        return any(item is not None for item in info.values())
+    if isinstance(info, (list, tuple)):
+        return any(item is not None for item in info)
+    return True

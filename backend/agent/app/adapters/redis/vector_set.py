@@ -237,4 +237,8 @@ def _command_info_present(info: Any) -> bool:
     """Redis returns ``[None]`` for an unknown COMMAND INFO entry."""
     if not info:
         return False
-    return not isinstance(info, (list, tuple)) or any(item is not None for item in info)
+    if isinstance(info, Mapping):
+        return any(item is not None for item in info.values())
+    if isinstance(info, (list, tuple)):
+        return any(item is not None for item in info)
+    return True

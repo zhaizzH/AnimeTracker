@@ -6,7 +6,10 @@ import json
 
 from app.entities.enums import EntityKind
 from app.rag.retrieval import RagRetrievalService
-from app.rag.schemas import SubjectProfile
+from app.rag.schemas import RetrievalQuery, SubjectProfile
+from app.adapters.redis.subject_index import _vector_filter
+from app.adapters.redis.subject_index import _command_info_present as subject_command_info_present
+from app.adapters.redis.vector_set import _command_info_present as vector_command_info_present
 from jobs.indexer.entity_index import EntityIndexDocument, RedisEntityIndex
 
 
@@ -74,3 +77,25 @@ def test_generic_subject_vector_writes_filter_metadata():
     assert attributes["year"] == 2026
     assert attributes["quarter"] == 3
     assert attributes["air_status"] == "finished"
+
+
+def test_vector_filter_uses_redis_numeric_boolean_literals():
+    expression = _vector_filter(RetrievalQuery(semantic_query="测试"))
+
+    assert ".source_active == 1" in expression
+    assert ".nsfw == 0" in expression
+    assert "true" not in expression
+    assert "false" not in expression
+
+
+def test_vector_filter_matches_lowercase_indexed_air_status():
+    expression = _vector_filter(RetrievalQuery(semantic_query="测试", air_status="FINISHED"))
+
+    assert '.air_status == "finished"' in expression
+
+
+def test_unknown_command_info_mapping_is_not_treated_as_supported():
+    assert not subject_command_info_present({"VADD": None})
+    assert not vector_command_info_present({"VADD": None})
+    assert subject_command_info_present({"VADD": {"arity": -5}})
+    assert vector_command_info_present({"VADD": {"arity": -5}})

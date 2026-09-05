@@ -58,6 +58,7 @@ def _mock_evidence(ids, token=None):
             "nameCn": f"测试{sid}",
             "type": 2,
             "nsfw": False,
+            "active": True,
             "summary": f"简介{sid}",
             "aliases": [],
             "metaTags": ["tag1"],
