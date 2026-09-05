@@ -66,3 +66,10 @@ BUILD SUCCESS
 - 关闭代理后重试成功：`rag_index_job` 为 `INDEXED=4`、`PENDING=216`，无 `RETRY/FAILED`。
 - MySQL `search_document` 已写入 `v1` 版本 4 条；Redis `rag:vectors:SUBJECT:v1` 已有 4 个成员。
 - 词法 API 仍返回 HTTP 503 `词法索引尚未发布`，因为尚未创建并激活 `search_index_release` 的 ACTIVE 记录。
+
+## 2026-09-05 全量回填尝试结果
+
+- 全量进程在代理环境下启动后已主动停止，避免继续触发外部 embedding 重试。
+- 当前 `rag_index_job`：`INDEXED=4`、`PENDING=66`、`RETRY=150`；被中断的 10 条 `RUNNING` 已恢复为 `PENDING`。
+- 150 条 RETRY 均为 `EmbeddingUnavailable`，未写入错误的投影数据；ACTIVE release 仍为 0。
+- 后续必须在确认 `DASHSCOPE_API_KEY` 的无代理 HTTPS 出网后，再重试 RETRY/PENDING，成功后才进入评测和 release 激活。
