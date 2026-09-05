@@ -52,5 +52,7 @@
     ,"phase6_lexical_api_implemented": "2026-09-05"
     ,"phase7_versioned_rrf_implemented": "2026-09-05"
     ,"phase5_release_store_integration_pending": false
+    ,"runtime_ports_verified": "2026-09-05"
+    ,"runtime_lexical_api_blocked_by_migration": true
   }
 }

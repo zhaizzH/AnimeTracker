@@ -33,3 +33,17 @@ BUILD SUCCESS
 1. 先迁移投影表，再运行 indexer；`search_index_release` 没有 active 行时词法 API 按设计返回 503。
 2. Redis 必须支持 `VADD`、`VSIM`、`VREM`；普通 Redis 不满足条件时保持 RAG 关闭。
 3. 真实 gate 通过后才允许激活 MySQL release，旧版本在回滚窗口内保留。
+
+## 2026-09-05 运行态检查
+
+- 8080 Business、8090 Agent、6379 Redis 端口均可连接。
+- Agent `/api/client/agent/health` 返回 HTTP 200，`llm_configured=true`。
+- Redis `COMMAND INFO` 确认 `VADD`、`VSIM`、`VREM` 可用。
+- Business `/api/client/subjects/lexical-search` 返回 HTTP 503 `词法索引尚未迁移`；服务已加载新代码，但真实库尚未执行 `migration-003-search-projection.sql`，符合 fail-closed 约束。
+
+## 2026-09-05 质量检查补充
+
+- Redis Vector Set 过滤器已统一使用数值布尔值（`1/0`），并将 `air_status` 规范化为小写；`COMMAND INFO` 的映射响应不会再被误判为“不支持”。
+- Evidence authority 响应必须显式 `active=true` 才能进入 RAG 上下文；缺失或失效响应按 `evidence_unavailable` fail-closed。
+- Python 全量测试结果：236 passed；仅 `tests/evals/test_runner.py::TestLoadGoldenCases::test_loads_from_custom_path` 受当前 Windows 临时目录权限（`C:\Users\zzz\AppData\Local\Temp\pytest-of-zzz`）阻塞，非业务断言失败。
+- Maven 全量测试：36 passed；前端 `npm run typecheck` 与受控权限下 `npm run build` 均通过。

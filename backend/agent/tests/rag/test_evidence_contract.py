@@ -121,6 +121,7 @@ class TestEvidenceEnrichment:
                 "nameCn": "测试",
                 "type": 2,
                 "nsfw": False,
+                "active": True,
                 "summary": "测试简介",
                 "aliases": ["テスト"],
                 "metaTags": ["SF"],
@@ -234,6 +235,24 @@ class TestEvidenceEnrichment:
             authority_lookup=mock_authority,
             business_search=lambda q, token=None: [],
             evidence_lookup=lambda ids, token=None: [{"subjectId": 1, "type": 1, "nsfw": False}],
+        )
+        result = service.retrieve(RetrievalQuery(keywords=["test"]), token=None)
+        assert result.available is False
+        assert result.items == []
+        assert result.reason == "evidence_unavailable"
+
+    def test_enrich_inactive_response_is_fail_closed(self):
+        """Evidence 必须明确标记为 active，缺失/失效都不能进入上下文。"""
+
+        def mock_authority(ids, token=None, exclude_collected=False):
+            return [{"id": 1, "name": "Test", "type": 2, "nsfw": False}]
+
+        service = RagRetrievalService(
+            index=MockIndex(lambda expr, limit=50: [{"subject_id": 1}]),
+            embeddings=MockEmbeddings(),
+            authority_lookup=mock_authority,
+            business_search=lambda q, token=None: [],
+            evidence_lookup=lambda ids, token=None: [{"subjectId": 1, "type": 2, "nsfw": False, "active": False}],
         )
         result = service.retrieve(RetrievalQuery(keywords=["test"]), token=None)
         assert result.available is False

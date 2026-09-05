@@ -597,6 +597,7 @@ class RagRetrievalService:
                 int(item.get("subjectId")) == subject_id
                 and int(item.get("type") or 0) == 2
                 and item.get("nsfw") is False
+                and item.get("active") is True
             )
         except (TypeError, ValueError):
             return False
