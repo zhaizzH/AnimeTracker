@@ -18,7 +18,7 @@
 
 1. AC1/AC9：MySQL 8.4.9 已完成临时空库初始化、旧表模拟前向迁移和二次幂等迁移；实际 `anime_tracker` 已按用户授权完成前向迁移，当前 21 张表、9 张新增实体/RAG 表和 3 个 `source_active` 列均已核对，详情回填和索引仍未执行。
 2. AC4：结构化 `person_ids`、`character_ids`、`actor_ids`、`relation_subject_ids`、受控 `entity_name/entity_kind` 与明确中文条件规划已接入 Python `RetrievalQuery`、RAG 工具和 Business `/resolve`；名称从版本化实体 shadow index 解析，PERSON/CHARACTER 同名候选按名称约束取并集，ACTOR 保留关系语义，`RELATION_SUBJECT` 名称映射到 SUBJECT shadow 文档后沿 `subject_relation` 双向扩展；规划器仅补全明确的年份/季度/播出状态/评分/评分人数，显式字段优先；Redis Top-50 不足时改走精确权威回查，Redis 与 Business fallback 均执行 allowlist，解析异常 fail-closed。通用自然语言查询规划（含复杂否定和自由关系表达）仍需后续切片。
-3. AC6/AC7：已有 53 条 golden cases 和确定性指标 runner，但没有绑定真实快照的 Recall/MRR/nDCG/过滤正确率/证据完整率/P95 基线，也未完成故障演练、shadow alias 灰度和 24 小时观测。
+3. AC6/AC7：已有 53 条 golden cases 和确定性指标 runner；本轮离线评测与 Redis/Embedding/Business/Evidence 故障矩阵共 52 项测试通过，但仍没有绑定真实快照的 Recall/MRR/nDCG/过滤正确率/证据完整率/P95 基线，也未完成 MinIO/真实 Redis、shadow alias 灰度和 24 小时观测。详见 `phase8-offline-evidence-report.md`。
 4. AC8：当前没有新增 Neo4j/Elasticsearch/Milvus/RabbitMQ/MongoDB；是否引入仍按评测和容量指标决定。
 5. RAG 基础设施门禁：应用配置的 Redis 可连接，但服务端仅加载 `vectorset`，`FT.CREATE`、`FT.SEARCH`、`FT._LIST` 均为 unknown command；现有 indexer/名称解析依赖 RediSearch，故 RAG 索引构建与 alias 发布暂不可验证。详见 `phase8-redis-report.md`。
 6. HTTP 端到端门禁：Business `/actuator/health`、`/liveness`、`/readiness` 已返回 HTTP 200；Agent `/api/client/agent/health`（不是根路径 `/health`）已返回 HTTP 200。Business Subject 列表和 Evidence PERSON/CHARACTER/ACTOR 查询均返回 HTTP 200；当前实体 ID 1 无匹配时安全返回空数组。
@@ -35,6 +35,7 @@
 - Business `8080/actuator/health`、`liveness`、`readiness`：HTTP 200；Agent `8090/api/client/agent/health`：HTTP 200，返回 `status=ok`、`llm_configured=true`。Subject 列表和 PERSON/CHARACTER/ACTOR Evidence 均 HTTP 200；本次 HTTP 探测未触发写操作。
 - `git diff --check`：通过（仅 CRLF 转换提示）。
 - Phase 7 结构化实体筛选、名称解析与规划：定向测试 **68 passed**，RAG/适配器范围 **82 passed**；Business HTTP `/resolve` 契约、`RELATION_SUBJECT` 服务、名称转义/类型映射、规划器显式字段优先和 fail-closed 测试已覆盖。
+- Phase 8 离线评测/故障矩阵：**52 passed**；仅证明确定性指标与 fail-closed 行为，不代表真实索引发布门禁通过。
 - Spring Boot 启动回归：`Character` 注册为 `BangumiCharacter`，内置 `Character` 保持 `java.lang.Character`，测试通过。
 
 ## 建议顺序

@@ -38,6 +38,7 @@
     "phase2_mapping_verified": "2026-09-05",
     "phase4_backfill_report_verified": "2026-09-05",
     "phase5_shadow_contract_verified": "2026-09-05",
+    "phase8_offline_evidence_verified": "2026-09-05",
     "phase8_mysql_verified": "2026-09-05",
     "phase8_springboot_alias_verified": "2026-09-05",
     "phase8_redisearch_blocked": true,
