@@ -26,7 +26,7 @@ cd backend/agent
 
 # query planner
 .\.venv\Scripts\python.exe -m pytest tests/rag/test_query_planner.py -q
-# 6 passed
+# 7 passed
 
 .\.venv\Scripts\python.exe -m compileall -q app jobs
 git diff --check

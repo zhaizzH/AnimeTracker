@@ -48,8 +48,11 @@ def plan_retrieval_query(query: RetrievalQuery) -> RetrievalQuery:
     if query.year_from is None and query.year_to is None:
         year_range = _YEAR_RANGE.search(text)
         if year_range:
-            updates["year_from"] = int(year_range.group("start"))
-            updates["year_to"] = int(year_range.group("end"))
+            start = int(year_range.group("start"))
+            end = int(year_range.group("end"))
+            if start <= end:
+                updates["year_from"] = start
+                updates["year_to"] = end
         else:
             year_single = _YEAR_SINGLE.search(text)
             if year_single:
@@ -58,18 +61,19 @@ def plan_retrieval_query(query: RetrievalQuery) -> RetrievalQuery:
                 updates["year_to"] = year
 
     if query.quarter is None:
-        for quarter, markers in _QUARTERS:
-            if any(marker in text for marker in markers):
-                updates["quarter"] = quarter
-                break
+        quarter_matches = [quarter for quarter, markers in _QUARTERS if any(marker in text for marker in markers)]
+        if len(quarter_matches) == 1:
+            updates["quarter"] = quarter_matches[0]
 
     if query.air_status is None:
+        status_matches = []
         for status, markers in _AIR_STATUS:
             if any(marker in text for marker in markers):
                 if status == "FINISHED" and any(negative in text for negative in ("未完结", "尚未完结")):
                     continue
-                updates["air_status"] = status
-                break
+                status_matches.append(status)
+        if len(status_matches) == 1:
+            updates["air_status"] = status_matches[0]
 
     if query.score_min is None:
         score_match = _SCORE_MIN.search(text)

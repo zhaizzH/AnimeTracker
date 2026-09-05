@@ -400,7 +400,7 @@ curl -X POST http://localhost:8090/api/client/agent/sessions/<session-id> \
 uv run pytest
 ```
 
-pytest 配置在 `pyproject.toml`（`pythonpath = ["."]`、`asyncio_mode = "auto"`、`test.globals = true`）。当前 224 条测试覆盖：
+pytest 配置在 `pyproject.toml`（`pythonpath = ["."]`、`asyncio_mode = "auto"`、`test.globals = true`）。当前 225 条测试覆盖：
 
 | 目录 | 覆盖范围 |
 |------|----------|
