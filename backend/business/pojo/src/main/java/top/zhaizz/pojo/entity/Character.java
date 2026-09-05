@@ -1,6 +1,7 @@
 package top.zhaizz.pojo.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import org.apache.ibatis.type.Alias;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
  * 注意: 类名为 Character，与 java.lang.Character 同名，使用时请通过包名 top.zhaizz.pojo.entity.Character 区分
  */
 @Data
+@Alias("BangumiCharacter")
 @TableName("character")
 public class Character {
 

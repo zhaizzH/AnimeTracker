@@ -5,7 +5,7 @@
 
 ## 结论
 
-代码级门禁通过；任务仍不能宣称生产 RAG 已启用。当前实现已把 Subject、Episode、Person、Character 的事实写入、索引任务和证据回查接通；真实 MySQL 已完成临时库验证，但当前 Redis 没有 RediSearch 模块，MinIO/Embedding/Bangumi API 与灰度发布尚未执行。
+代码级门禁通过；任务仍不能宣称生产 RAG 已启用。当前实现已把 Subject、Episode、Person、Character 的事实写入、索引任务和证据回查接通，并修复 Spring Boot 的 `Character` 类型别名启动冲突；真实 MySQL 已完成临时库验证，但当前 Redis 没有 RediSearch 模块，MinIO/Embedding/Bangumi API 与灰度发布尚未执行。
 
 ## 已通过
 
@@ -21,19 +21,21 @@
 3. AC6/AC7：已有 53 条 golden cases 和确定性指标 runner，但没有绑定真实快照的 Recall/MRR/nDCG/过滤正确率/证据完整率/P95 基线，也未完成故障演练、shadow alias 灰度和 24 小时观测。
 4. AC8：当前没有新增 Neo4j/Elasticsearch/Milvus/RabbitMQ/MongoDB；是否引入仍按评测和容量指标决定。
 5. RAG 基础设施门禁：应用配置的 Redis 可连接，但服务端仅加载 `vectorset`，`FT.CREATE`、`FT.SEARCH`、`FT._LIST` 均为 unknown command；现有 indexer/名称解析依赖 RediSearch，故 RAG 索引构建与 alias 发布暂不可验证。详见 `phase8-redis-report.md`。
-6. HTTP 端到端门禁：按项目配置探测 `127.0.0.1:8080/actuator/health` 与 `127.0.0.1:8090/health` 均连接被拒；当前只能证明 MySQL/Redis 基础设施运行，Business/Agent/Evidence 链路尚未验证。
+6. HTTP 端到端门禁：本次复核中 `127.0.0.1:8080/actuator/health` 仍连接被拒；Agent 实际健康路由是 `/api/client/agent/health`（不是根路径 `/health`），已返回 HTTP 200。Business/Evidence 真实链路仍未验证。
+7. Spring Boot 启动门禁：已修复 `Character` 与 `java.lang.Character` 的 MyBatis alias 冲突，新增回归测试并通过完整 Maven 构建；详见 `phase8-springboot-startup-report.md`。
 
 ## 验证证据
 
 - `backend/agent` 受影响范围：**167 passed**（importer/backfill/indexer/rag/adapters）。
-- `backend/agent` 全量：**225 passed，1 deselected**；被排除的是依赖 Windows `tmp_path` 的自定义 golden loader 测试，环境临时目录 ACL 返回 WinError 5；同一逻辑使用工作区文件手工验证通过。
+- `backend/agent` 全量：**226 passed**。
 - `backend/agent` `compileall -q app jobs`：通过。
-- `backend/business` `mvn -B test`：**30 passed，BUILD SUCCESS**。
+- `backend/business` `mvn -B clean test`：**31 passed，BUILD SUCCESS**；包含 MyBatis alias 回归测试。
 - MySQL 8.4.9 临时库：初始化、旧表前向迁移、重复迁移和 9 张新表/3 个兼容列断言通过；验证库已删除。
 - Redis 8.8.0：连接与 PING 通过；模块列表仅有 `vectorset`，RediSearch 命令探针失败。
-- Business `8080`、Agent `8090`：健康检查连接被拒，未触发任何写操作。
+- Business `8080/actuator/health`：连接被拒；Agent `8090/api/client/agent/health`：HTTP 200，返回 `status=ok`、`llm_configured=true`。本次探测未触发写操作。
 - `git diff --check`：通过（仅 CRLF 转换提示）。
 - Phase 7 结构化实体筛选、名称解析与规划：定向测试 **68 passed**，RAG/适配器范围 **82 passed**；Business HTTP `/resolve` 契约、`RELATION_SUBJECT` 服务、名称转义/类型映射、规划器显式字段优先和 fail-closed 测试已覆盖。
+- Spring Boot 启动回归：`Character` 注册为 `BangumiCharacter`，内置 `Character` 保持 `java.lang.Character`，测试通过。
 
 ## 建议顺序
 

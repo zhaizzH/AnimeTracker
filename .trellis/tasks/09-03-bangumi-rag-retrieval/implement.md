@@ -7,12 +7,20 @@
 - 产品开关默认关闭；每阶段可独立回滚，不能依赖一次性总切换。
 - 非空数据库只使用经评审的前向 DDL，不执行 `docs/database/db-schema.sql`。
 
+## 执行状态快照（2026-09-05）
+
+- Phase 1：golden/eval/契约测试已建立并通过代码门禁；真实快照基线和指标报告仍未完成。
+- Phase 2：schema、前向迁移和 MySQL 8.4.9 临时库验证已完成；完整 Java 实体映射、存量备份恢复演练仍未完成。
+- Phase 3–7：导入关系、详情任务、多实体 outbox/indexer、Business Evidence、结构化实体检索和受限规划已接通；真实外部服务链路仍待门禁验证。
+- Phase 8：未完成。Redis 缺少 RediSearch，Business 8080 未监听，MinIO/Embedding/真实快照评测/灰度观察均未通过。
+- 最新验证报告：`phase8-mysql-migration-report.md`、`phase8-redis-report.md`、`phase8-springboot-startup-report.md`、`check-report-final.md`。
+
 ## Phase 1：建立评测基线与契约测试
 
-- [ ] 建立至少 50 条检索 golden cases，覆盖标题/别名、过滤、主观语义、人物/角色/声优、系列关系、否定和降级。
-- [ ] 实现确定性 eval schema/runner/metrics，先记录当前 Business fallback 与现有 RAG 基线。
-- [ ] 为当前 schema↔normalize↔repository 漂移增加失败测试：`eps/volumes`、`credit_type`、AIRING、stale replace-set、profile hash。
-- [ ] 固化 EvidenceCandidate 契约测试和”未经 Business 回查不得进入模型”的失败测试。
+- [x] 建立至少 50 条检索 golden cases，覆盖标题/别名、过滤、主观语义、人物/角色/声优、系列关系、否定和降级。
+- [x] 实现确定性 eval schema/runner/metrics，先记录当前 Business fallback 与现有 RAG 基线。
+- [x] 为当前 schema↔normalize↔repository 漂移增加失败测试：`eps/volumes`、`credit_type`、AIRING、stale replace-set、profile hash。
+- [x] 固化 EvidenceCandidate 契约测试和”未经 Business 回查不得进入模型”的失败测试。
 
 验证：
 
@@ -25,10 +33,10 @@ uv run pytest tests/evals tests/jobs/importer tests/rag -v
 
 ## Phase 2：数据库与存量迁移
 
-- [ ] 更新 `docs/database/db-schema.sql`，新增 person、character、alias、三类关系、detail job 和通用 search index job。
-- [ ] 编写存量库前向迁移 SQL/运行手册：备份、只新增 DDL、兼容窗口、回填校验、停止/恢复步骤。
+- [x] 更新 `docs/database/db-schema.sql`，新增 person、character、alias、三类关系、detail job 和通用 search index job。
+- [x] 编写存量库前向迁移 SQL/运行手册：备份、只新增 DDL、兼容窗口、回填校验、停止/恢复步骤。
 - [ ] 补齐 Java/Python 映射需要的实体、枚举、repository contract；保留旧 `subject_credit` 读取兼容。
-- [ ] 在临时空库与带旧数据的临时库分别验证初始化与前向迁移；检查唯一约束、反向索引和外键。
+- [x] 在临时空库与旧 schema 模拟库分别验证初始化与前向迁移；检查唯一约束、反向索引和外键。
 
 验证：
 
@@ -43,11 +51,11 @@ uv run pytest tests/jobs/importer -v
 
 ## Phase 3：导入修复与关系摘要
 
-- [ ] 修复 subject `eps/volumes/platform/total_episodes`、credit type 与当前 normalize/repository 漂移。
-- [ ] 扩展 Bangumi client：分页完整读取 characters，并统一 persons/characters/episodes/relations 的错误和限速策略。
-- [ ] 保存 Subject 响应附带的 Person/Character 摘要、全部 credits、角色关系与 subject-scoped actors。
-- [ ] 对 tags、meta tags、credits、characters、actors、episodes、relations 实现完整响应后的事务性 replace-set；不完整响应不得清空旧集合。
-- [ ] 同事务写入索引 outbox；修复 content hash 与 profile 文本的一致性。
+- [x] 修复 subject `eps/volumes/platform/total_episodes`、credit type 与当前 normalize/repository 漂移。
+- [x] 扩展 Bangumi client：分页完整读取 characters，并统一 persons/characters/episodes/relations 的错误和限速策略。
+- [x] 保存 Subject 响应附带的 Person/Character 摘要、全部 credits、角色关系与 subject-scoped actors。
+- [x] 对 tags、meta tags、credits、characters、actors、episodes、relations 实现完整响应后的事务性 replace-set；不完整响应不得清空旧集合。
+- [x] 同事务写入索引 outbox；修复 content hash 与 profile 文本的一致性。
 
 验证：
 
@@ -60,9 +68,9 @@ uv run pytest tests/jobs/importer tests/rag/test_profile.py -v
 
 ## Phase 4：人物/角色详情渐进回填
 
-- [ ] 实现 `entity_detail_job` repository、claim/lease、重试、退避、checkpoint、暂停/恢复和失败报告。
-- [ ] 实现 Person/Character 详情 normalize 与幂等写入；详情失败保留已有摘要和关系。
-- [ ] 增加 CLI 与 scheduler 低速批次入口；避免与 Subject importer 争用同一锁或超过上游限速预算。
+- [x] 实现 `entity_detail_job` repository、claim/lease、重试、退避、checkpoint、暂停/恢复和失败报告。
+- [x] 实现 Person/Character 详情 normalize 与幂等写入；详情失败保留已有摘要和关系。
+- [x] 增加 CLI 与 scheduler 低速批次入口；避免与 Subject importer 争用同一锁或超过上游限速预算。
 - [ ] 生成回填覆盖率、失败原因和 stale 数据报告。
 
 验证：
@@ -76,9 +84,9 @@ uv run pytest tests/jobs/backfill -v
 
 ## Phase 5：多实体 profile 与索引自动化
 
-- [ ] 为 SUBJECT/EPISODE/PERSON/CHARACTER 建立确定性 profile 与 profile_version；只向量化语义正文。
-- [ ] 演进 indexer repository，安全消费通用任务、处理 tombstone、hash 漂移、失败重试和幂等完成。
-- [ ] scheduler 增加受控 indexer/backfill 调度，提供重叠任务和进程重启测试；是否常驻部署仍由运行手册明确。
+- [x] 为 SUBJECT/EPISODE/PERSON/CHARACTER 建立确定性 profile 与 profile_version；只向量化语义正文。
+- [x] 演进 indexer repository，安全消费通用任务、处理 tombstone、hash 漂移、失败重试和幂等完成。
+- [x] scheduler 增加受控 indexer/backfill 调度，提供重叠任务和进程重启测试；是否常驻部署仍由运行手册明确。
 - [ ] 建 shadow index、容量/数据质量报告与 alias 回滚流程；旧 index 不提前删除。
 
 验证：
@@ -92,10 +100,10 @@ uv run pytest tests/jobs/indexer tests/jobs/scheduler tests/rag -v
 
 ## Phase 6：Business 精确查询与证据接口
 
-- [ ] 增加标题/别名/人物/角色解析与关系过滤 Mapper/Service；复杂联表使用参数绑定的 XML。
-- [ ] 增加面向 Agent 的批量 EvidenceCandidate 回查接口，验证 type、NSFW、active 状态并返回来源时间。
-- [ ] 同步 Java DTO/VO、OpenAPI；若前端直接消费新字段，再同步 shared types。
-- [ ] 添加成功、空结果、无效 ID、越权/错误和批量上限测试。
+- [x] 增加标题/别名/人物/角色解析与关系过滤 Mapper/Service；复杂联表使用参数绑定的 XML。
+- [x] 增加面向 Agent 的批量 EvidenceCandidate 回查接口，验证 type、NSFW、active 状态并返回来源时间。
+- [x] 同步 Java DTO/VO、OpenAPI；若前端直接消费新字段，再同步 shared types。
+- [x] 添加成功、空结果、无效 ID、越权/错误和批量上限测试。
 
 验证：
 
@@ -110,11 +118,11 @@ npm run typecheck
 
 ## Phase 7：混合检索与 Agent 证据回答
 
-- [ ] 将自然语言解析成受限 RetrievalQuery；结构化过滤、原 query 与可选 rewrite 分离，rewrite 失败回退原 query。
-- [ ] 完成精确实体解析 → 关系扩展 → Subject BM25/KNN → RRF → Business 回查 → 可选 rerank → evidence format 链。
-- [ ] Reranker 失败回退确定性融合；Redis/Embedding 故障回退 Business 搜索，并发出结构化 fallback 事件。
-- [ ] search/discover/recommend 共用 retrieval use case，更新提示词以禁止无证据事实；保持当前 SSE wire 类型兼容。
-- [ ] 返回简介摘录、匹配标签/主创/角色/关系、评分热度、状态、来源时间和 retrieval reason。
+- [x] 将自然语言解析成受限 RetrievalQuery；结构化过滤、原 query 与可选 rewrite 分离，rewrite 失败回退原 query。
+- [x] 完成精确实体解析 → 关系扩展 → Subject BM25/KNN → RRF → Business 回查 → 可选 rerank → evidence format 链。
+- [x] Reranker 失败回退确定性融合；Redis/Embedding 故障回退 Business 搜索，并发出结构化 fallback 事件。
+- [x] search/discover/recommend 共用 retrieval use case，更新提示词以禁止无证据事实；保持当前 SSE wire 类型兼容。
+- [x] 返回简介摘录、匹配标签/主创/角色/关系、评分热度、状态、来源时间和 retrieval reason。
 
 验证：
 
