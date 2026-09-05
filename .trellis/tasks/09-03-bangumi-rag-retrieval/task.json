@@ -38,6 +38,7 @@
     "phase8_mysql_verified": "2026-09-05",
     "phase8_springboot_alias_verified": "2026-09-05",
     "phase8_redisearch_blocked": true,
-    "phase8_business_health_blocked": true
+    "phase8_business_health_verified": "2026-09-05",
+    "phase8_entity_evidence_blocked": true
   }
 }
