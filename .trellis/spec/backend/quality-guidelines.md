@@ -25,6 +25,7 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 - Java `app` 模块包含配置迁移回归测试：`AppConfigurationBindingTest`、`SecurityConfigAuthorizationTest`、`CookieOriginFilterTest`、`AgentConfigTest` 与 `ArchitectureBoundaryTest`。
 - Python 当前只有 `tests/jobs/importer/test_subject_metrics.py`。
 - Java 配置迁移必须使用 `clean`，避免旧 `target/classes` 中的配置类造成重复 Bean 或假成功。
+- MyBatis `type-aliases-package` 会把实体简单类名注册为不区分大小写的别名；实体类名若与 MyBatis/JDK 内置类型冲突，必须显式使用 `@Alias` 绑定业务别名，并用 `TypeAliasRegistry.registerAliases` 回归测试扫描结果。
 - 这些用例覆盖配置绑定、授权矩阵、Cookie Origin、Agent 超时/Trace/SSE 和模块边界；不启动完整 `AppApplication`，不连接真实 MySQL、Redis、MinIO 或 Python Agent。
 - 新增业务分支应补最小回归测试；修复契约漂移时优先增加跨层或适配器测试。
 - `ArchitectureBoundaryTest` 必须排除测试类，否则测试夹具中的 `app` 引用会污染下层边界判断。
@@ -51,6 +52,12 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 - importer/indexer 改动：测试 dry-run、锁释放、断点续传或 fail-closed gate。
 - 跨层改动：从浏览器 API 调用一路核对到存储，再核对返回类型。
 - 配置改动：同步示例文件，确认日志不会打印真实密钥；若是 Java 配置迁移，补齐上述五类测试并运行 `mvn -B clean test`。
+
+### MyBatis 类型别名冲突
+
+- 错误：在 `mybatis-plus.type-aliases-package` 扫描包中直接新增名为 `Character`、`String` 等与内置别名冲突的实体类，依赖默认简单类名注册。
+- 正确：为业务实体显式指定不冲突别名，例如 `@Alias("BangumiCharacter")`，并保留 Mapper/XML 使用的全限定类名兼容。
+- 验证：至少断言业务别名解析到实体类、内置别名仍解析到 JDK 类型，再运行 `mvn -B clean test`。
 
 ## Git 提交信息
 

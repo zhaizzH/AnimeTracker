@@ -30,10 +30,14 @@
     "backend/agent/tests/jobs/importer/test_contract_drift.py",
     "backend/agent/tests/rag/test_evidence_contract.py"
   ],
-  "notes": "Phase 1 完成：54 条 golden cases + eval 框架 + 8 条契约漂移失败测试 + EvidenceCandidate 契约测试。测试结果 59 passed / 8 failed（均为设计失败的漂移文档测试）。",
+  "notes": "Phase 1-7 代码实现与门禁已持续跟进；Phase 8 仍未完成。MySQL 8.4.9 迁移验证通过，Spring Boot Character MyBatis alias 冲突已修复并通过 Maven；Redis 8.8.0 仅有 vectorset、缺少 RediSearch FT.*，Business 8080/Evidence 真实链路和 RAG 灰度仍待完成。",
   "meta": {
     "phase1_completed": "2026-09-03",
     "phase1_tests_passed": 59,
-    "phase1_tests_failed_designed": 8
+    "phase1_tests_failed_designed": 8,
+    "phase8_mysql_verified": "2026-09-05",
+    "phase8_springboot_alias_verified": "2026-09-05",
+    "phase8_redisearch_blocked": true,
+    "phase8_business_health_blocked": true
   }
 }
