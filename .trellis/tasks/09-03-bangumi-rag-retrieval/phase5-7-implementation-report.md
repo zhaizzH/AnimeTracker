@@ -50,6 +50,6 @@ BUILD SUCCESS
 
 ## 2026-09-05 真实迁移结果
 
-- 幂等迁移执行 2 条 `CREATE TABLE IF NOT EXISTS` 语句成功。
+- 幂等迁移首次执行 2 条 `CREATE TABLE IF NOT EXISTS` 语句成功；第二次重复执行也成功。
 - 校验通过：`search_document`、`search_index_release` 存在；`ft_search_document_text` 覆盖 `title`、`aliases`、`lexical_text`。
 - 当前 `search_index_release` 的 `ACTIVE` 行数为 0；词法 API 返回 HTTP 503 `词法索引尚未发布`，符合发布指针 fail-closed 约束。
