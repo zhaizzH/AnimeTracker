@@ -2,16 +2,16 @@
 
 ## 1. 设计目标
 
-在不新增数据库或消息中间件的前提下，把当前“条目级候选召回”升级为可运营的自然语言找番与可解释推荐系统：MySQL 保存权威事实，Redis/RediSearch 保存可重建索引，Agent 只基于权威回查后的证据回答。
+在不新增数据库或消息中间件的前提下，把当前“条目级候选召回”升级为可运营的自然语言找番与可解释推荐系统：MySQL 保存权威事实、版本化词法投影与发布指针，现有 Redis 8 Vector Set 保存可重建向量，Agent 只基于权威回查后的证据回答。
 
 ## 2. 边界与不变量
 
-- MySQL 是唯一权威事实库；Redis 索引、MinIO 快照和未来图投影都可从 MySQL/原始快照重建。
-- 用户查询不能直接拼接 RediSearch 或 SQL 表达式；必须先转换为受限强类型查询对象。
+- MySQL 是唯一权威事实库和 release 指针来源；MySQL FULLTEXT 投影、Redis 向量、MinIO 快照和未来图投影都可从 MySQL/原始快照重建。
+- 用户查询不能直接拼接 `MATCH ... AGAINST`、Vector Set `FILTER` 或其他存储表达式；必须先转换为受限强类型查询对象。
 - 结构化事实走 SQL/Business 工具，主观语义走全文与向量召回；LLM 不得用参数记忆填补数据库事实。
 - 共享索引不包含用户私有收藏、评论、JWT、聊天正文或其他个人数据。
 - 新 schema 必须同时提供空库初始化定义和存量库前向迁移方案；绝不对非空库执行 `db-schema.sql`。
-- 索引只通过 shadow version + gate + alias 切换发布，旧版本保留到回滚窗口结束。
+- 索引只通过 shadow version + gate + MySQL active release 切换发布；词法结果返回 `indexVersion`，Agent 必须查询同版本 Vector Set。旧版本保留到回滚窗口结束。
 
 ## 3. 目标架构
 
@@ -28,11 +28,12 @@ MySQL authoritative catalog
   └─ search_index_job outbox
                     │
                     ▼
-Indexer ── deterministic profiles + embedding ─► Redis shadow index
+Indexer ── deterministic profiles ───────► MySQL FULLTEXT shadow projection
+       └── embedding ────────────────────► Redis Vector Set shadow key
                                                      │
 Typed query planner                                   │
   ├─ SQL exact filters / entity resolution            │
-  └─ BM25 + KNN + RRF ────────────────────────────────┘
+  └─ MATCH...AGAINST + VSIM + RRF ───────────────────┘
                     │
                     ▼
 Business evidence batch lookup → optional rerank → compact evidence blocks
@@ -74,6 +75,13 @@ LangGraph search / discover / recommend → SSE answer
 - 将当前仅指向 subject 的 `rag_index_job` 演进为通用 `search_index_job(entity_kind, entity_id, index_version, profile_version, content_hash, status, attempts, next_retry_at, indexed_at)`。
 - 通用任务表不承担事实外键；写任务前校验实体存在，消费者再次校验 `source_active`。实体删除会产生 delete/tombstone 工作。
 - job 中的 `content_hash` 必须来自同一份规范化 profile；消费者发现实时 profile hash 与 job 不同，应废弃旧 job 并产生新版本，不能把新文本写到旧 hash 下。
+
+新增两个可重建控制面对象：
+
+- `search_document(entity_kind, entity_id, index_version, profile_version, title, aliases, lexical_text, content_hash, source_active, source_fetched_at)`：InnoDB 投影表，按 `(entity_kind, entity_id, index_version)` 唯一，`FULLTEXT(title, aliases, lexical_text) WITH PARSER ngram`。它不是事实源，允许按版本整体重建。
+- `search_index_release(index_version, profile_version, status, activated_at, retired_at, active_slot)`：MySQL 中唯一的发布状态。`active_slot` 仅在 `ACTIVE` 时生成固定非空值并建立唯一约束，使数据库保证同一时刻只有一个 active release；Redis 不再保存具有发布决定权的 alias。
+
+Vector Set 使用受控版本键：`rag:vectors:{entity_kind}:{index_version}`。元素 ID 只保存实体类型与数据库 ID，属性只保存过滤所需的非私有元数据；删除通过 `VREM`，查询通过 `VSIM`。
 
 ## 5. 导入与渐进回填
 
@@ -117,13 +125,13 @@ LangGraph search / discover / recommend → SSE answer
 
 1. 精确名称解析：标题/别名/人物/角色名先走词法解析。
 2. 人物或角色命中后，通过 MySQL 关系表扩展为 subject IDs。
-3. 结构化条件产生受限过滤器；不允许模型输出原始 Redis 查询语法。
-4. Subject profile 分别进行 BM25 与 KNN，各自取候选后用 RRF 融合。
+3. Business 候选接口在 MySQL active release 上执行参数化 `MATCH ... AGAINST` 与结构化过滤，并始终返回候选和 `indexVersion`；纯向量查询也必须先取得该版本。
+4. Agent 使用同一 `indexVersion` 查询 `rag:vectors:SUBJECT:{indexVersion}` 的 `VSIM`，再用现有 RRF 融合词法与语义候选。
 5. 合并关系扩展候选，保留每条来源与匹配原因。
 6. Business 批量回查类型、NSFW、有效状态和展示证据；回查失败的候选被丢弃。
 7. 可选 reranker 只处理已验证候选；失败时回退确定性 RRF/规则排序。
 
-Redis 当前手写 BM25 + KNN + RRF 可继续使用；是否迁移原生 `FT.HYBRID` 作为独立兼容性优化，不是首版前置条件。
+当前 Redis 8.8 已确认支持 `VADD`、`VSIM`、`VREM`、`VSETATTR`、`VGETATTR`，但不支持 `FT.*`。首版直接使用 Vector Set，不安装 Redis Stack。向量默认采用 Vector Set 的 Q8 量化并由真实 Recall/容量门禁验证；若召回不足，先对比 `NOQUANT`，再决定是否更换组件。若 MySQL `ngram` 的中文/拼音词法指标或整体 P95 未达标，再以独立决策评估 OpenSearch/Elasticsearch；若向量容量或延迟仍未达标，再评估 Qdrant。
 
 ## 7. Agent 与证据契约
 
@@ -147,16 +155,19 @@ SSE 事件类型不扩展时无需改前端状态机；若要展示结构化引�
 - 年份/季度/播出状态/评分/热度/标签组合过滤。
 - 主观语义与否定条件。
 - 人物、角色、声优、制作公司及系列关系。
-- 冷门条目、无结果、Redis/Embedding/Business 失败降级。
+- 冷门条目、无结果、MySQL FULLTEXT/Redis Vector Set/Embedding/Business 失败降级。
 
-指标：Recall@20、MRR@10、nDCG@10、硬过滤正确率、证据完整率、无依据陈述率、Redis P95、Business 回查后 P95。具体阈值先以当前 120-case 计划中的目标作为候选，由基线结果校准并在启用前锁定。
+指标：Recall@20、MRR@10、nDCG@10、硬过滤正确率、证据完整率、无依据陈述率、MySQL lexical P95、Redis VSIM P95、Business 回查后 P95。继续使用现有 gate 候选阈值：覆盖率 ≥99.5%、Recall@20 ≥0.85、MRR@10 ≥0.90、nDCG@10 ≥0.75、向量召回 P95 <250ms、权威回查后 P95 <500ms、Redis 预计内存占用 ≤60%，并要求 120/120 必选评测通过及至少 20 条人工证据检查无严重错误。
+
+五份报告必须绑定同一 `indexVersion/profileVersion`。激活时只在 MySQL 事务中切换 `search_index_release`；Agent 从 Business 词法响应取得该版本并查询对应 Vector Set，因此不会出现 MySQL 新版本配 Redis 旧版本的静默混用。回滚同样只切回上一条已通过 gate 的 release。
 
 结构化事件只记录 traceId、indexVersion、候选/过滤数量、fallbackType、延迟和错误码；禁止记录用户原文、完整回答、向量、API Key、JWT 或私有收藏。
 
 ## 9. 技术栈决策
 
-- Adopt：MySQL、Redis/RediSearch、MinIO、FastAPI/LangGraph、现有 Embedding provider 抽象、可失败降级的 reranker。
-- Later：Neo4j（稳定三跳以上查询/图算法 + SQL 基准失败）、Elasticsearch（中文/拼音 golden cases 失败）、Milvus（Redis 容量/P95 失败）、RabbitMQ（需要跨机器 worker 与背压）、MongoDB（现有 Trace/聊天存储不够）。
+- Adopt：MySQL 8.4 `ngram` FULLTEXT、Redis 8 Vector Set、MinIO、FastAPI/LangGraph、现有 Embedding provider 抽象、Python RRF 与可失败降级的 reranker。
+- Do not adopt：Redis Stack/RediSearch。原因是当前 Redis 已具备向量能力，词法和结构化过滤可由现有 MySQL 承担，新增运行时不能解决尚未出现的指标失败。
+- Later：OpenSearch/Elasticsearch（中文/拼音或全文 P95 golden gate 失败）、Qdrant（Redis Vector Set 容量/召回/P95 失败）、Neo4j（稳定三跳以上查询/图算法 + SQL 基准失败）、Milvus（Qdrant/Vector Set 均不足）、RabbitMQ（需要跨机器 worker 与背压）、MongoDB（现有 Trace/聊天存储不够）。
 - 参考项目只复用职责分离、rewrite/retrieve/rerank/format、来源元数据和 Trace 思路，不复制其全部中间件。
 
 ## 10. 迁移、兼容与回滚
@@ -170,11 +181,12 @@ SSE 事件类型不扩展时无需改前端状态机；若要展示结构化引�
 
 任一步失败时停止后续步骤；应用回退到旧读取路径，新表保留用于排查，不执行破坏性逆迁移。
 
-### Redis
+### MySQL FULLTEXT 与 Redis Vector Set
 
-- 新 profile/index version 建 shadow index。
-- gate 未通过不切 alias；切换后指标异常立即将 alias 指回旧 index。
-- 回滚窗口结束前不删除旧 index。
+- 新 `profileVersion/indexVersion` 同时建立 MySQL `search_document` shadow 行和版本化 Vector Set key。
+- gate 未通过不把 `search_index_release` 置为 `ACTIVE`；发布后异常时在 MySQL 事务中切回上一版本。
+- Business 词法 API 返回其实际查询的 `indexVersion`；Agent 只查询同名 Vector Set。任一版本缺失或不一致均 fail-closed 到现有 Business 精确搜索，不允许跨版本融合。
+- 回滚窗口结束前不删除旧 `search_document` 版本或旧 Vector Set；清理属于独立确认操作。
 
 ### 应用
 
@@ -185,5 +197,6 @@ SSE 事件类型不扩展时无需改前端状态机；若要展示结构化引�
 
 - API 无可靠全局增量流，完整性依赖周期复核和数据质量报告。
 - Person/Character 全详情形成大量 N+1 请求，必须渐进回填并尊重限速。
-- 中文分词、拼音和别名召回可能成为 Redis 短板，必须用 golden cases 决策，而不是提前引入 Elasticsearch。
+- MySQL `ngram` 对中文标题有效，但拼音、同义词和长简介相关性可能不足；必须用 golden cases 决定是否引入 OpenSearch/Elasticsearch，而不是凭感觉升级。
+- Vector Set 与 MySQL release 分属两个存储，不能做分布式事务；通过“先构建两份 shadow → 同版本 gate → MySQL 单点激活 → 查询携带版本”消除静默错配。
 - 跨层变更范围大；按数据契约、导入、索引、检索、评测顺序交付，禁止一次性打开全部开关。
