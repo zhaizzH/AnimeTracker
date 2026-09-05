@@ -218,7 +218,7 @@ backend/agent/
 `app/rag/` 提供语义检索与证据回答能力，通过 `RAG_ENABLED` 开关控制：
 
 - 关闭时（默认）：检索降级为直接调用 business 的 `/api/client/subjects/search` 与 `/api/client/subjects`（按 `collectionTotal` 降序取候选），嵌入与索引对象替换为抛错的占位实现。
-- 开启时：使用 Redis 向量索引（`RAG_INDEX_ALIAS` / `RAG_INDEX_VERSION`）与 DashScope `text-embedding-v4`（1024 维）做 BM25 + KNN 混合检索，经 RRF 融合后批量回查 Business 权威数据，再经 Evidence API 补充证据字段后返回。
+- 开启时：使用启用 RediSearch 的 Redis Stack/Redis Enterprise 向量索引（`RAG_INDEX_ALIAS` / `RAG_INDEX_VERSION`）与 DashScope `text-embedding-v4`（1024 维）做 BM25 + KNN 混合检索，经 RRF 融合后批量回查 Business 权威数据，再经 Evidence API 补充证据字段后返回；只有普通 Redis 或仅启用 `vectorset` 时不能运行当前 `FT.*` 索引路径。
 
 ### 证据链（Evidence Enrichment）
 
