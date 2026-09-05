@@ -35,7 +35,7 @@ uv run pytest tests/evals tests/jobs/importer tests/rag -v
 
 - [x] 更新 `docs/database/db-schema.sql`，新增 person、character、alias、三类关系、detail job 和通用 search index job。
 - [x] 编写存量库前向迁移 SQL/运行手册：备份、只新增 DDL、兼容窗口、回填校验、停止/恢复步骤。
-- [ ] 补齐 Java/Python 映射需要的实体、枚举、repository contract；保留旧 `subject_credit` 读取兼容。
+- [x] 补齐 Java/Python 映射需要的实体、枚举、repository contract；保留旧 `subject_credit` 读取兼容。
 - [x] 在临时空库与旧 schema 模拟库分别验证初始化与前向迁移；检查唯一约束、反向索引和外键。
 
 验证：

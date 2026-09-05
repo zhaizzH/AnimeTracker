@@ -49,6 +49,13 @@ class CreditRelation(StrEnum):
     SUB = "SUB"
 
 
+class CreditType(StrEnum):
+    """subject_credit.credit_type（旧版兼容表）。"""
+
+    PERSON = "PERSON"
+    ORGANIZATION = "ORGANIZATION"
+
+
 class CharacterRelation(StrEnum):
     """subject_character.relation"""
 

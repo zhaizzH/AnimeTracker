@@ -27,9 +27,9 @@
 ## 验证证据
 
 - `backend/agent` 受影响范围：**167 passed**（importer/backfill/indexer/rag/adapters）。
-- `backend/agent` 全量：**226 passed**。
+- `backend/agent` 全量：**227 passed**；新增旧 `subject_credit` Java/Python 映射契约测试。
 - `backend/agent` `compileall -q app jobs`：通过。
-- `backend/business` `mvn -B clean test`：**32 passed，BUILD SUCCESS**；包含 MyBatis alias 与 MySQL 8.4 SQL 兼容性回归测试。
+- `backend/business` `mvn -B clean test`：**32 passed，BUILD SUCCESS**；包含 MyBatis alias、MySQL 8.4 SQL 兼容性回归测试和新 POJO 编译验证。
 - MySQL 8.4.9 临时库：初始化、旧表前向迁移、重复迁移和 9 张新表/3 个兼容列断言通过；验证库已删除。实际 `anime_tracker` 已完成同一迁移，核对 21 张表、3 个兼容列，二次执行幂等通过，已有 Subject 220 条。
 - Redis 8.8.0：连接与 PING 通过；模块列表仅有 `vectorset`，RediSearch 命令探针失败。
 - Business `8080/actuator/health`、`liveness`、`readiness`：HTTP 200；Agent `8090/api/client/agent/health`：HTTP 200，返回 `status=ok`、`llm_configured=true`。Subject 列表和 PERSON/CHARACTER/ACTOR Evidence 均 HTTP 200；本次 HTTP 探测未触发写操作。

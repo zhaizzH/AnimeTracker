@@ -14,6 +14,7 @@ from app.entities.enums import (
     CharacterRelation,
     CharacterType,
     CreditRelation,
+    CreditType,
     DetailStatus,
     EntityKind,
     ImageStorageStatus,
@@ -104,6 +105,22 @@ class SubjectPersonCredit:
     person_id: int
     role: str
     relation: CreditRelation = CreditRelation.MAIN
+    sort_order: int = 0
+    source_active: bool = True
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+@dataclass(frozen=True)
+class SubjectCredit:
+    """subject_credit 旧版兼容表行映射。"""
+
+    id: int
+    subject_id: int
+    bangumi_person_id: int | None
+    name: str
+    role: str
+    credit_type: CreditType
     sort_order: int = 0
     source_active: bool = True
     created_at: datetime | None = None

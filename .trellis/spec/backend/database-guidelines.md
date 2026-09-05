@@ -97,6 +97,58 @@ DEALLOCATE PREPARE stmt;
 - 多步写入在 Service 声明事务；每项独立提交可参考 `CollectionProgressItemExecutor` 的 `REQUIRES_NEW`。
 - 并发幂等写入依赖唯一约束并处理冲突，参考 `CollectionServiceImpl.addToWishlistIfAbsent`。
 
+## Scenario: 新旧主创关系映射兼容
+
+### 1. Scope / Trigger
+
+- 触发：新增 `person`/`subject_person_credit` 关系，或维护已有 `subject_credit` 存量数据。
+
+### 2. Signatures
+
+- 新关系表：`subject_person_credit(subject_id, person_id, role, relation, source_active)`。
+- 旧兼容表：`subject_credit(subject_id, bangumi_person_id, name, role, credit_type, source_active)`。
+
+### 3. Contracts
+
+- 新导入关系写入 `subject_person_credit`；旧表只保留兼容读取窗口。
+- `credit_type` 只能使用 `PERSON` 或 `ORGANIZATION`；Java `SubjectCredit` 与 Python `CreditType` 必须保持相同字面值。
+- 旧表读取继续使用参数化 SQL，不得因为新增关系表而删除或改写旧查询语义。
+
+### 4. Validation & Error Matrix
+
+| 条件 | 处理 |
+|---|---|
+| 新实体/关系查询 | 使用新关系表和本地外键 ID |
+| 存量旧主创读取 | 保留 `subject_credit` 兼容路径 |
+| `credit_type` 非 `PERSON|ORGANIZATION` | 拒绝写入并记录契约错误 |
+| 新旧字段混写 | 阻止发布，先补齐 Entity/枚举/测试 |
+
+### 5. Good/Base/Bad Cases
+
+- Good：新关系使用 `subject_person_credit`，旧报表仍可读取 `subject_credit`。
+- Base：仅需要旧数据展示时，通过参数化 SQL 读取旧表。
+- Bad：把 `subject_credit.credit_type` 的 `ORGANIZATION` 写成新关系的 `relation=MAIN`。
+
+### 6. Tests Required
+
+- Java 编译/映射检查：`SubjectCredit` 的表名和字段映射存在。
+- Python 单测：`CreditType` 仅接受两个数据库字面值，`SubjectCredit` 可实例化。
+- 导入器 SQL 契约测试：旧 `subject_credit` 读取路径仍存在，新关系写入不替换旧表查询。
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```text
+把旧 subject_credit 行直接当作 subject_person_credit，或删除旧表读取以“清理重复模型”。
+```
+
+#### Correct
+
+```text
+新事实写 subject_person_credit；旧 subject_credit 保留只读兼容契约，待独立迁移任务确认后再移除。
+```
+
 ## Python 离线任务
 
 - importer 将标准化和持久化分开，参考 `jobs/importer/normalize.py` 与 `repository.py`。
