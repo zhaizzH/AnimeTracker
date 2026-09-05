@@ -24,3 +24,10 @@
 
 - 真实存量业务数据备份/恢复演练。
 - Person/Character 详情回填、MinIO 对象写入和 Redis/Embedding 索引发布。
+
+## 运行中业务库观察（2026-09-05）
+
+- 本机 `anime_tracker` 当前仍是旧 schema：12 张表，缺少 `person`、`character`、三类实体关系、`entity_detail_job` 和 `search_index_job`。
+- `subject_alias`、`subject_meta_tag`、`subject_credit` 均尚未增加 `source_active`。
+- 未对该业务库执行迁移；按任务规则，真实存量库迁移需要备份和独立人工确认。
+- Business readiness 已返回 HTTP 200，但 `POST /api/client/evidence/resolve` 使用 `PERSON` 查询时因缺少 `person` 表返回 HTTP 500；`RELATION_SUBJECT` 空结果路径可返回 HTTP 200。
