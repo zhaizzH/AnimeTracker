@@ -15,7 +15,7 @@
 ```text
 cd backend/agent
 \.venv\Scripts\python.exe -m pytest tests/jobs/indexer tests/rag -q -p no:cacheprovider -p no:tmpdir
-117 passed
+120 passed
 python -m compileall -q app jobs
 git diff --check
 ```

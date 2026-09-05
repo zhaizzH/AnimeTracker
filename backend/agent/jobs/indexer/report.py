@@ -29,11 +29,12 @@ def build_capacity_report(
     redis_used_memory: int,
     available_bytes: int,
 ) -> CapacityReport:
-    if sample_count < 0 or catalog_count < 0 or available_bytes < 1:
+    if sample_bytes < 0 or sample_count < 0 or catalog_count < 0 or redis_used_memory < 0 or available_bytes < 1:
         raise ValueError("容量报告参数无效")
     if sample_count == 0:
         return CapacityReport(0, 0, 0, redis_used_memory, available_bytes, 0.0, False)
-    bytes_per_document = sample_bytes // sample_count
+    # 向上取整，避免样本大小不能整除时低估全量索引占用。
+    bytes_per_document = (sample_bytes + sample_count - 1) // sample_count
     projected_total_bytes = bytes_per_document * catalog_count
     utilization = projected_total_bytes / available_bytes
     return CapacityReport(
