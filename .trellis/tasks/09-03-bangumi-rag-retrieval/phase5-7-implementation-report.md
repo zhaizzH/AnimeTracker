@@ -24,7 +24,7 @@ BUILD SUCCESS
 
 ## 尚未完成
 
-- 尚未在真实存量库执行 `migration-003-search-projection.sql` 和全量投影回填。
+- 已在本地运行库 `localhost:3306/anime_tracker` 执行 `migration-003-search-projection.sql`；`search_document` 与 `search_index_release` 已创建，但尚未进行全量投影回填。
 - 尚未生成 120 条真实 golden case、完成 Recall/MRR/nDCG/延迟门禁和 20 条人工证据检查。
 - 尚未进行 24 小时灰度；因此任务保持 `in_progress`，RAG 不应宣称已发布。
 
@@ -47,3 +47,9 @@ BUILD SUCCESS
 - Evidence authority 响应必须显式 `active=true` 才能进入 RAG 上下文；缺失或失效响应按 `evidence_unavailable` fail-closed。
 - Python 全量测试结果：236 passed；仅 `tests/evals/test_runner.py::TestLoadGoldenCases::test_loads_from_custom_path` 受当前 Windows 临时目录权限（`C:\Users\zzz\AppData\Local\Temp\pytest-of-zzz`）阻塞，非业务断言失败。
 - Maven 全量测试：36 passed；前端 `npm run typecheck` 与受控权限下 `npm run build` 均通过。
+
+## 2026-09-05 真实迁移结果
+
+- 幂等迁移执行 2 条 `CREATE TABLE IF NOT EXISTS` 语句成功。
+- 校验通过：`search_document`、`search_index_release` 存在；`ft_search_document_text` 覆盖 `title`、`aliases`、`lexical_text`。
+- 当前 `search_index_release` 的 `ACTIVE` 行数为 0；词法 API 返回 HTTP 503 `词法索引尚未发布`，符合发布指针 fail-closed 约束。
