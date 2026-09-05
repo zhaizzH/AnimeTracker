@@ -26,5 +26,5 @@ The alias 'Character' is already mapped to the value 'java.lang.Character'.
 
 ## 仍未通过的 Phase 8 门禁
 
-- Business `127.0.0.1:8080/actuator/health` 当前未监听，Evidence 真实 HTTP 链路仍未验证。
+- Business `127.0.0.1:8080` 已监听；修复后的 health 放行规则已通过安全测试，但当前运行进程尚未重启，旧进程仍返回 401，需重启后再验证实际 health 响应。Evidence 真实 HTTP 链路仍未验证。
 - Redis 仅加载 `vectorset`，缺少现有 indexer 所需的 RediSearch `FT.*` 命令；RAG 仍保持关闭。

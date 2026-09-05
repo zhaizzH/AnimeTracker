@@ -12,7 +12,7 @@
 - Phase 1：golden/eval/契约测试已建立并通过代码门禁；真实快照基线和指标报告仍未完成。
 - Phase 2：schema、前向迁移和 MySQL 8.4.9 临时库验证已完成；完整 Java 实体映射、存量备份恢复演练仍未完成。
 - Phase 3–7：导入关系、详情任务、多实体 outbox/indexer、Business Evidence、结构化实体检索和受限规划已接通；真实外部服务链路仍待门禁验证。
-- Phase 8：未完成。Redis 缺少 RediSearch，Business 8080 未监听，MinIO/Embedding/真实快照评测/灰度观察均未通过。
+- Phase 8：未完成。Redis 缺少 RediSearch，Business 旧进程的 health 返回 401（代码已修复，待重启复测），MinIO/Embedding/真实快照评测/灰度观察均未通过。
 - 最新验证报告：`phase8-mysql-migration-report.md`、`phase8-redis-report.md`、`phase8-springboot-startup-report.md`、`check-report-final.md`。
 
 ## Phase 1：建立评测基线与契约测试

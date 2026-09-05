@@ -107,7 +107,7 @@ AgentService agentService(RestTemplate restTemplate, ObjectMapper mapper, AgentP
 - 数据库、Redis、Agent 和 CORS 读取的 key 以 `application.yml` 的占位符为准；文档示例不得改写成未在配置或启动脚本中出现的环境变量名。
 - `at.cors.origins` 当前没有安全默认值；缺失/空白值时应保持 fail closed，并通过配置绑定测试确认启动或请求阶段的失败语义。
 - CORS 绑定类的属性路径是 `at.cors.allowed-origins`，但当前 YAML 占位符写成 `${at.cors.origins}`；这是必须由配置绑定测试裁决的现状偏差，新增环境变量前先统一命名。
-- `/actuator/health/**` 的公开范围、liveness/readiness 分组和匿名访问权限必须作为一个整体验证；当前 Security 的 `anyRequest().denyAll()` 意味着只改 management 配置不足以证明探针可访问。
+- `/actuator/health/**` 的公开范围、liveness/readiness 分组和匿名访问权限必须作为一个整体验证；当前 Security 仅显式放行 health 路径，其他 URL 仍由 `anyRequest().denyAll()` 拒绝。
 
 | 变更 | 必须核对 |
 |---|---|
