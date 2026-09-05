@@ -53,3 +53,10 @@ BUILD SUCCESS
 - 幂等迁移首次执行 2 条 `CREATE TABLE IF NOT EXISTS` 语句成功；第二次重复执行也成功。
 - 校验通过：`search_document`、`search_index_release` 存在；`ft_search_document_text` 覆盖 `title`、`aliases`、`lexical_text`。
 - 当前 `search_index_release` 的 `ACTIVE` 行数为 0；词法 API 返回 HTTP 503 `词法索引尚未发布`，符合发布指针 fail-closed 约束。
+
+## 2026-09-05 回填 smoke 结果
+
+- 读取到 `rag_index_job` 共 220 条 `v1` 任务：218 条仍为 `PENDING`，2 条 smoke 任务进入 `RETRY`。
+- 两条任务均因 `EmbeddingUnavailable` 未写入 `search_document`；Redis 与 MySQL 连接正常。
+- DashScope `text-embedding-v4` 连通性在清空本地代理后仍返回 TLS/网络错误（`SSLEOFError`），因此暂停全量回填，未激活任何 release。
+- 待外部 embedding 网络恢复后，可直接重试 `RETRY` 任务，再以小批量验证后继续全量回填。

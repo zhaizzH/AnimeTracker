@@ -57,5 +57,8 @@
     ,"runtime_lexical_api_blocked_by_unpublished_release": true
     ,"runtime_projection_migration_applied": "2026-09-05"
     ,"runtime_active_release_count": 0
+    ,"runtime_backfill_smoke_blocked": "2026-09-05"
+    ,"runtime_backfill_pending_jobs": 218
+    ,"runtime_backfill_retry_jobs": 2
   }
 }
