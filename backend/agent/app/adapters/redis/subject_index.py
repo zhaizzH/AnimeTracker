@@ -2,20 +2,36 @@ from __future__ import annotations
 
 from array import array
 from dataclasses import dataclass
+import json
 import math
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence
 
-from redis.exceptions import ResponseError
-
-from app.rag.schemas import SubjectProfile
+from app.entities.enums import EntityKind
+from app.rag.schemas import RetrievalQuery, SubjectProfile
 
 
 VECTOR_DIMENSIONS = 1024
 
 
+def vector_bytes(values: Sequence[float]) -> bytes:
+    """Encode and validate a fixed-dimension little-endian Float32 vector."""
+    if len(values) != VECTOR_DIMENSIONS:
+        raise ValueError("embedding 必须是 1024 个有限浮点数")
+    try:
+        normalized = [float(value) for value in values]
+    except (OverflowError, TypeError, ValueError) as exc:
+        raise ValueError("embedding 必须是 1024 个有限浮点数") from exc
+    if not all(math.isfinite(value) for value in normalized):
+        raise ValueError("embedding 必须是 1024 个有限浮点数")
+    encoded = array("f", normalized)
+    if not all(math.isfinite(value) for value in encoded):
+        raise ValueError("embedding 必须是 1024 个有限浮点数")
+    return encoded.tobytes()
+
+
 @dataclass(frozen=True)
 class SubjectIndexDocument:
-    """写入版本化 RediSearch HASH 的条目资料。"""
+    """A versioned public Subject document written to a Redis Vector Set."""
 
     subject_id: int
     index_version: str
@@ -35,275 +51,228 @@ class SubjectIndexDocument:
     air_status: str = ""
     type: int = 2
     nsfw: bool = False
+    source_active: bool = True
 
 
-def vector_bytes(values: Sequence[float]) -> bytes:
-    """编码并验证固定维度的 Float32 向量。"""
-    if len(values) != VECTOR_DIMENSIONS:
-        raise ValueError("embedding 必须是 1024 个有限浮点数")
-    try:
-        normalized = [float(value) for value in values]
-    except (OverflowError, TypeError, ValueError) as exc:
-        raise ValueError("embedding 必须是 1024 个有限浮点数") from exc
-    if not all(math.isfinite(value) for value in normalized):
-        raise ValueError("embedding 必须是 1024 个有限浮点数")
-    try:
-        encoded = array("f", normalized)
-    except OverflowError as exc:
-        raise ValueError("embedding 必须是 1024 个有限浮点数") from exc
-    if not all(math.isfinite(value) for value in encoded):
-        raise ValueError("embedding 必须是 1024 个有限浮点数")
-    return encoded.tobytes()
+class LexicalSearchUnavailable(RuntimeError):
+    """The lexical half is owned by Business/MySQL, not Redis."""
 
 
 class RedisSubjectIndex:
-    """RediSearch 的版本化条目索引；调用方负责索引重建门禁。"""
+    """Redis 8 Vector Set adapter for versioned Subject embeddings.
 
-    def __init__(self, redis: Any, key_prefix: str = "rag:", index_prefix: str = "idx:rag:", active_alias: str | None = None):
+    Lexical retrieval is deliberately not implemented here. Callers must
+    inject a Business lexical adapter so MySQL release and Vector Set version
+    can be checked together.
+    """
+
+    def __init__(self, redis: Any, key_prefix: str = "rag:vectors:", index_prefix: str = "idx:rag:", active_alias: str | None = None):
         self._redis = redis
         self._key_prefix = key_prefix
         self._index_prefix = index_prefix
-        default_alias = f"{self._index_prefix}subject:active"
-        self._active_alias = self._validate_alias(active_alias or default_alias)
+        # Compatibility property only. Publication is controlled by MySQL.
+        self._active_alias = active_alias or "search_index_release"
 
     @property
     def active_alias(self) -> str:
         return self._active_alias
 
     def index_name(self, index_version: str) -> str:
-        return f"{self._index_prefix}subject:{self._validate_version(index_version)}"
+        return self.vector_key(index_version)
+
+    def vector_key(self, index_version: str) -> str:
+        return f"{self._key_prefix}SUBJECT:{self._validate_version(index_version)}"
 
     def document_key(self, index_version: str, subject_id: int) -> str:
-        return f"{self._key_prefix}subject:{self._validate_version(index_version)}:{subject_id}"
+        self._validate_subject_id(subject_id)
+        return f"{self.vector_key(index_version)}:{subject_id}"
 
     def ensure_version(self, index_version: str) -> str:
-        """创建索引版本；已存在的索引可安全复用。"""
-        version = self._validate_version(index_version)
-        name = self.index_name(version)
-        prefix = f"{self._key_prefix}subject:{version}:"
-        try:
-            self._redis.execute_command(
-                "FT.CREATE",
-                name,
-                "ON",
-                "HASH",
-                "PREFIX",
-                "1",
-                prefix,
-                "SCHEMA",
-                "title",
-                "TEXT",
-                "aliases",
-                "TEXT",
-                "summary",
-                "TEXT",
-                "meta_tags",
-                "TAG",
-                "SEPARATOR",
-                "|",
-                "trusted_tags",
-                "TEXT",
-                "credits",
-                "TEXT",
-                "profile",
-                "TEXT",
-                "subject_id",
-                "NUMERIC",
-                "year",
-                "NUMERIC",
-                "quarter",
-                "NUMERIC",
-                "score",
-                "NUMERIC",
-                "rating_total",
-                "NUMERIC",
-                "collection_total",
-                "NUMERIC",
-                "air_status",
-                "TAG",
-                "type",
-                "NUMERIC",
-                "nsfw",
-                "TAG",
-                "vector",
-                "VECTOR",
-                "FLAT",
-                "6",
-                "TYPE",
-                "FLOAT32",
-                "DIM",
-                str(VECTOR_DIMENSIONS),
-                "DISTANCE_METRIC",
-                "COSINE",
-            )
-        except ResponseError as exc:
-            if "exists" not in str(exc).lower():
-                raise
-        return name
+        self._validate_version(index_version)
+        for command in ("VADD", "VSIM", "VREM"):
+            try:
+                info = self._redis.execute_command("COMMAND", "INFO", command)
+            except Exception as exc:
+                raise RuntimeError(f"无法探测 Redis Vector Set {command}") from exc
+            if not _command_info_present(info):
+                raise RuntimeError(f"Redis 未启用 Vector Set {command}；RAG 索引保持关闭")
+        return self.vector_key(index_version)
 
     def write(self, document: SubjectIndexDocument) -> None:
-        """写入指定版本的 HASH 文档，向量必须先通过 Float32 验证。"""
         if document.type != 2 or document.nsfw:
             raise ValueError("RAG 索引仅接收 type=2 且非 NSFW 的动画条目")
-        mapping: dict[str, Any] = {
-            "subject_id": document.subject_id,
-            "title": document.title,
-            "aliases": self._join(document.aliases),
-            "summary": document.summary,
-            "meta_tags": self._join_tags(document.meta_tags),
-            "trusted_tags": self._join(document.trusted_tags),
-            "credits": self._join(document.credits),
-            "profile": document.profile.text,
-            "content_hash": document.profile.content_hash,
-            "schema_version": document.profile.schema_version,
-            "air_status": document.air_status,
-            "type": document.type,
-            "nsfw": "true" if document.nsfw else "false",
-            "vector": vector_bytes(document.vector),
-        }
-        for field in ("year", "quarter", "score", "rating_total", "collection_total"):
-            value = getattr(document, field)
-            if value is not None:
-                mapping[field] = value
-        self._redis.hset(self.document_key(document.index_version, document.subject_id), mapping=mapping)
+        self._redis.execute_command(
+            "VADD", self.vector_key(document.index_version), "FP32", vector_bytes(document.vector),
+            f"SUBJECT:{self._validate_subject_id(document.subject_id)}", "Q8", "SETATTR", self._attributes(document),
+        )
 
     def content_hashes(self, index_version: str) -> dict[int, str]:
-        """读取指定版本实际写入的 subjectId/content_hash，失败不伪造空结果。"""
-        version = self._validate_version(index_version)
-        scan_iter = getattr(self._redis, "scan_iter", None)
-        hget = getattr(self._redis, "hget", None)
-        if not callable(scan_iter) or not callable(hget):
-            raise RuntimeError("Redis 不支持索引文档抽样读取")
-        prefix = f"{self._key_prefix}subject:{version}:"
+        """Read a bounded sample via Vector Set attributes for quality gates."""
+        try:
+            members = self._redis.execute_command("VRANGE", self.vector_key(index_version), "-", "+", 100)
+        except Exception as exc:
+            raise RuntimeError("Redis 不支持 Vector Set 抽样读取") from exc
         result: dict[int, str] = {}
-        for raw_key in scan_iter(match=f"{prefix}*"):
-            key = raw_key.decode("utf-8") if isinstance(raw_key, bytes) else str(raw_key)
-            if not key.startswith(prefix):
-                continue
-            raw_subject_id = key[len(prefix):]
+        if not isinstance(members, (list, tuple)):
+            return result
+        for member in members:
             try:
-                subject_id = int(raw_subject_id)
-            except (TypeError, ValueError):
+                member = member.decode() if isinstance(member, bytes) else str(member)
+                subject_id = int(member.rsplit(":", 1)[1])
+                raw_attrs = self._redis.execute_command("VGETATTR", self.vector_key(index_version), member)
+                attrs_text = raw_attrs.decode() if isinstance(raw_attrs, bytes) else str(raw_attrs)
+                content_hash = json.loads(attrs_text).get("content_hash")
+            except (AttributeError, IndexError, TypeError, ValueError, KeyError, json.JSONDecodeError):
                 continue
-            raw_hash = hget(raw_key, "content_hash")
-            result[subject_id] = raw_hash.decode("utf-8") if isinstance(raw_hash, bytes) else str(raw_hash or "")
-
+            if isinstance(content_hash, str):
+                result[subject_id] = content_hash
         return result
 
     def activate(self, index_version: str) -> None:
-        """原子切换检索别名；绝不删除旧索引、文档或会话键。"""
-        self._redis.execute_command("FT.ALIASUPDATE", self.active_alias, self.index_name(index_version))
+        raise RuntimeError("发布指针由 MySQL search_index_release 管理；不允许更新 Redis alias")
 
-    def lexical_search(self, query: str, limit: int = 50) -> Any:
-        """在当前别名上运行受控的全文和结构化过滤查询。"""
+    def lexical_search(self, _query: str, limit: int = 50) -> Any:
         if limit < 1:
             raise ValueError("limit 必须大于 0")
-        return self._search(query, limit=limit)
+        raise LexicalSearchUnavailable("MySQL FULLTEXT lexical API 尚未注入")
 
-    def semantic_search(self, query: str, vector: Sequence[float], limit: int = 50) -> Any:
-        """在当前别名上运行受控过滤与 KNN 查询。"""
+    def semantic_search(self, _query: str, _vector: Sequence[float], limit: int = 50) -> Any:
         if limit < 1:
             raise ValueError("limit 必须大于 0")
-        knn_query = f"({self._with_safety_filters(query)})=>[KNN {limit} @vector $vector AS vector_score]"
-        return self._redis.execute_command(
-            "FT.SEARCH",
-            self.active_alias,
-            knn_query,
-            "RETURN",
-            "19",
-            "title",
-            "aliases",
-            "summary",
-            "meta_tags",
-            "trusted_tags",
-            "credits",
-            "profile",
-            "content_hash",
-            "schema_version",
-            "year",
-            "quarter",
-            "score",
-            "rating_total",
-            "collection_total",
-            "air_status",
-            "type",
-            "nsfw",
-            "vector",
-            "vector_score",
-            "PARAMS",
-            "2",
-            "vector",
-            vector_bytes(vector),
-            "SORTBY",
-            "vector_score",
-            "ASC",
-            "LIMIT",
-            "0",
-            str(limit),
-            "DIALECT",
-            "2",
-        )
+        raise RuntimeError("Vector Set 查询需要 RetrievalQuery；请调用 semantic_search_query")
+
+    def semantic_search_query(self, query: RetrievalQuery, vector: Sequence[float], limit: int = 50) -> list[dict[str, Any]]:
+        if limit < 1:
+            raise ValueError("limit 必须大于 0")
+        index_version = getattr(query, "index_version", None)
+        if not index_version:
+            raise RuntimeError("查询缺少 indexVersion；拒绝跨版本 Vector Set 查询")
+        args: list[Any] = [
+            "VSIM", self.vector_key(index_version), "FP32", vector_bytes(vector),
+            "WITHSCORES", "WITHATTRIBS", "COUNT", limit,
+        ]
+        filter_expression = _vector_filter(query)
+        if filter_expression:
+            args.extend(("FILTER", filter_expression))
+        raw = self._redis.execute_command(*args)
+        return _parse_vsim_rows(raw)
+
+    def semantic_search_for_version(
+        self, index_version: str, query: RetrievalQuery, vector: Sequence[float], *, limit: int = 50
+    ) -> list[dict[str, Any]]:
+        """Run VSIM only against the release returned by Business lexical search."""
+        version = self._validate_version(index_version)
+        if limit < 1:
+            raise ValueError("limit 必须大于 0")
+        args: list[Any] = [
+            "VSIM", self.vector_key(version), "FP32", vector_bytes(vector),
+            "WITHSCORES", "WITHATTRIBS", "COUNT", limit,
+        ]
+        filter_expression = _vector_filter(query)
+        if filter_expression:
+            args.extend(("FILTER", filter_expression))
+        raw = self._redis.execute_command(*args)
+        return _parse_vsim_rows(raw)
 
     def search(self, query: str, vector: Sequence[float], *, limit: int = 10) -> Any:
-        """兼容既有调用；新检索服务应分别调用 lexical_search/semantic_search。"""
         return self.semantic_search(query, vector, limit=limit)
-
-    def _search(self, query: str, *, limit: int) -> Any:
-        return self._redis.execute_command(
-            "FT.SEARCH",
-            self.active_alias,
-            self._with_safety_filters(query),
-            "RETURN",
-            "19",
-            "subject_id",
-            "title",
-            "aliases",
-            "summary",
-            "meta_tags",
-            "trusted_tags",
-            "credits",
-            "profile",
-            "content_hash",
-            "schema_version",
-            "year",
-            "quarter",
-            "score",
-            "rating_total",
-            "collection_total",
-            "air_status",
-            "type",
-            "nsfw",
-            "vector",
-            "LIMIT",
-            "0",
-            str(limit),
-            "DIALECT",
-            "2",
-        )
-
-    @staticmethod
-    def _with_safety_filters(query: str) -> str:
-        expression = query.strip()
-        filters = "@type:[2 2] @nsfw:{false}"
-        return filters if not expression or expression == "*" else f"({expression}) {filters}"
-
-    @staticmethod
-    def _join(values: Sequence[str]) -> str:
-        return " ".join(str(value) for value in values)
-
-    @staticmethod
-    def _join_tags(values: Sequence[str]) -> str:
-        """使用自定义 | 分隔符，保留标签值内的逗号。"""
-        return "|".join(str(value).replace("\\", "\\\\").replace("|", "\\|") for value in values)
 
     @staticmethod
     def _validate_version(index_version: str) -> str:
-        if not index_version or ":" in index_version:
-            raise ValueError("index_version 不能为空且不能包含冒号")
+        if not isinstance(index_version, str) or not index_version or ":" in index_version or any(char.isspace() for char in index_version):
+            raise ValueError("index_version 不能为空、不能包含冒号或空白")
         return index_version
 
     @staticmethod
-    def _validate_alias(alias: str) -> str:
-        if not alias or not all(char.isalnum() or char in "._:-" for char in alias):
-            raise ValueError("active_alias 必须是受控 Redis key")
-        return alias
+    def _validate_subject_id(subject_id: int) -> int:
+        if isinstance(subject_id, bool) or int(subject_id) < 1:
+            raise ValueError("subject_id 必须是正整数")
+        return int(subject_id)
+
+    @staticmethod
+    def _attributes(document: SubjectIndexDocument) -> str:
+        payload: dict[str, Any] = {
+            "entity_kind": EntityKind.SUBJECT.value,
+            "entity_id": document.subject_id,
+            "subject_id": document.subject_id,
+            "name": document.title[:128],
+            "aliases": [str(value)[:128] for value in document.aliases if str(value)],
+            "content_hash": document.profile.content_hash,
+            "schema_version": document.profile.schema_version,
+            "source_active": bool(document.source_active),
+            "type": document.type,
+            "nsfw": document.nsfw,
+        }
+        for field in ("year", "quarter", "score", "rating_total", "collection_total", "air_status"):
+            value = getattr(document, field)
+            if value is not None:
+                payload[field] = value
+        return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+
+
+def _vector_filter(query: RetrievalQuery) -> str:
+    """Build only literals from typed query; never accept user expressions."""
+    parts = ['.entity_kind == "SUBJECT"', ".source_active == true", ".type == 2", ".nsfw == false"]
+    if query.year_from is not None:
+        parts.append(f".year >= {int(query.year_from)}")
+    if query.year_to is not None:
+        parts.append(f".year <= {int(query.year_to)}")
+    if query.quarter:
+        parts.append(f".quarter == {int({'spring': 1, 'summer': 2, 'autumn': 3, 'winter': 4}[query.quarter])}")
+    if query.score_min is not None:
+        parts.append(f".score >= {float(query.score_min):.8g}")
+    if query.rating_total_min is not None:
+        parts.append(f".rating_total >= {int(query.rating_total_min)}")
+    if query.air_status:
+        parts.append(f'.air_status == "{query.air_status}"')
+    for subject_id in query.exclude_subject_ids:
+        parts.append(f".subject_id != {int(subject_id)}")
+    return " && ".join(parts)
+
+
+def _parse_vsim_rows(raw: Any) -> list[dict[str, Any]]:
+    if isinstance(raw, Mapping):
+        rows: list[dict[str, Any]] = []
+        for member, value in raw.items():
+            try:
+                member_text = member.decode() if isinstance(member, bytes) else str(member)
+                score, attrs_value = (value[0], value[1]) if isinstance(value, (list, tuple)) else (value, None)
+                score_value = float(score.decode() if isinstance(score, bytes) else score)
+                attrs_text = attrs_value.decode() if isinstance(attrs_value, bytes) else attrs_value
+                attrs = json.loads(attrs_text) if attrs_text else {}
+                kind, raw_id = member_text.rsplit(":", 1)
+                subject_id = int(raw_id)
+            except (AttributeError, IndexError, TypeError, ValueError, KeyError, json.JSONDecodeError):
+                continue
+            if kind != EntityKind.SUBJECT.value or not isinstance(attrs, Mapping):
+                continue
+            row = dict(attrs)
+            row.update({"subject_id": subject_id, "id": subject_id, "score": score_value})
+            rows.append(row)
+        return rows
+    if not isinstance(raw, (list, tuple)):
+        return []
+    rows: list[dict[str, Any]] = []
+    for offset in range(0, len(raw) - 2, 3):
+        try:
+            member = raw[offset].decode() if isinstance(raw[offset], bytes) else str(raw[offset])
+            score = float(raw[offset + 1].decode() if isinstance(raw[offset + 1], bytes) else raw[offset + 1])
+            attrs_text = raw[offset + 2].decode() if isinstance(raw[offset + 2], bytes) else raw[offset + 2]
+            attrs = json.loads(attrs_text) if attrs_text else {}
+            kind, raw_id = member.rsplit(":", 1)
+            subject_id = int(raw_id)
+        except (AttributeError, IndexError, TypeError, ValueError, KeyError, json.JSONDecodeError):
+            continue
+        if kind != EntityKind.SUBJECT.value or not isinstance(attrs, Mapping):
+            continue
+        row = dict(attrs)
+        row.update({"subject_id": subject_id, "id": subject_id, "score": score})
+        rows.append(row)
+    return rows
+
+
+def _command_info_present(info: Any) -> bool:
+    """Redis returns ``[None]`` for an unknown COMMAND INFO entry."""
+    if not info:
+        return False
+    return not isinstance(info, (list, tuple)) or any(item is not None for item in info)

@@ -88,10 +88,10 @@ uv run pytest tests/jobs/backfill -v
 - [x] 为 SUBJECT/EPISODE/PERSON/CHARACTER 建立确定性 profile 与 profile_version；只向量化语义正文。
 - [x] 演进 indexer repository，安全消费通用任务、处理 tombstone、hash 漂移、失败重试和幂等完成。
 - [x] scheduler 增加受控 indexer/backfill 调度，提供重叠任务和进程重启测试；是否常驻部署仍由运行手册明确。
-- [ ] 新增版本化 MySQL `search_document` FULLTEXT（`ngram`）投影与 `search_index_release`，同步空库 schema 和只新增前向迁移。
-- [ ] 将 indexer 改为同一 job 同时写 MySQL lexical shadow 与 Redis `rag:vectors:{entity_kind}:{indexVersion}`；任一侧失败不得确认 job 完成。
-- [ ] 使用 `VADD/VSIM/VREM` 实现四类实体的向量写入、查询和 tombstone；属性只包含允许过滤的非私有元数据。
-- [ ] 将 gate/容量/质量报告和 rollback 改为双投影版本契约；激活与回滚只更新 MySQL release，旧版本不提前删除。
+- [x] 新增版本化 MySQL `search_document` FULLTEXT（`ngram`）投影与 `search_index_release`，同步空库 schema 和只新增前向迁移。
+- [x] 将 indexer 改为同一 job 同时写 MySQL lexical shadow 与 Redis `rag:vectors:{entity_kind}:{indexVersion}`；任一侧失败不得确认 job 完成。
+- [x] 使用 `VADD/VSIM/VREM` 实现四类实体的向量写入、查询和 tombstone；属性只包含允许过滤的非私有元数据。
+- [x] 将 gate/容量/质量报告和 rollback 接入真实 MySQL release store；真实 gate 报告和灰度仍需运行环境证据。
 
 验证：
 
@@ -106,7 +106,7 @@ python -m jobs.indexer.vector_probe
 ## Phase 6：Business 精确查询与证据接口
 
 - [x] 增加标题/别名/人物/角色解析与关系过滤 Mapper/Service；复杂联表使用参数绑定的 XML。
-- [ ] 增加受控 lexical search API：在 active release 上执行 `MATCH(title, aliases, lexical_text) AGAINST (?)` 与结构化过滤，返回候选、词法排名和 `indexVersion`。
+- [x] 增加受控 lexical search API：在 active release 上执行 `MATCH(title, aliases, lexical_text) AGAINST (?)` 与结构化过滤，返回候选、词法排名和 `indexVersion`。
 - [x] 增加面向 Agent 的批量 EvidenceCandidate 回查接口，验证 type、NSFW、active 状态并返回来源时间。
 - [x] 同步 Java DTO/VO、OpenAPI；若前端直接消费新字段，再同步 shared types。
 - [x] 添加成功、空结果、无效 ID、越权/错误和批量上限测试。
@@ -125,8 +125,8 @@ npm run typecheck
 ## Phase 7：混合检索与 Agent 证据回答
 
 - [x] 将自然语言解析成受限 RetrievalQuery；结构化过滤、原 query 与可选 rewrite 分离，rewrite 失败回退原 query。
-- [ ] 将召回链改为精确实体解析 → 关系扩展 → Business MySQL FULLTEXT → 同版本 Redis `VSIM` → RRF → Business 回查 → 可选 rerank → evidence format。
-- [ ] 版本不一致、Vector Set/Embedding 故障时 fail-closed 到 Business 精确/词法搜索，并发出不含查询原文的结构化 fallback 事件。
+- [x] 将召回链改为精确实体解析 → 关系扩展 → Business MySQL FULLTEXT → 同版本 Redis `VSIM` → RRF → Business 回查 → 可选 rerank → evidence format。
+- [x] 版本不一致、Vector Set/Embedding 故障时 fail-closed 到 Business 精确/词法搜索，并发出不含查询原文的结构化 fallback 事件。
 - [x] search/discover/recommend 共用 retrieval use case，更新提示词以禁止无证据事实；保持当前 SSE wire 类型兼容。
 - [x] 返回简介摘录、匹配标签/主创/角色/关系、评分热度、状态、来源时间和 retrieval reason。
 

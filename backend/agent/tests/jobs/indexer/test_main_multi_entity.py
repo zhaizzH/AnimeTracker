@@ -323,6 +323,8 @@ def test_redis_entity_index_writes_versioned_hash_and_deletes():
     ))
     index.delete("v-test", EntityKind.PERSON, 1)
 
-    assert redis.commands[0][0:2] == ("FT.CREATE", "idx:rag:entity:v-test")
-    assert redis.hashes["rag:entity:v-test:PERSON:1"]["content_hash"] == profile.content_hash
-    assert redis.deleted == ["rag:entity:v-test:PERSON:1"]
+    assert redis.commands[0][0:3] == ("COMMAND", "INFO", "VADD")
+    assert redis.commands[1][0:3] == ("COMMAND", "INFO", "VSIM")
+    assert redis.commands[2][0:3] == ("COMMAND", "INFO", "VREM")
+    assert redis.commands[3][0:2] == ("VADD", "rag:vectors:PERSON:v-test")
+    assert redis.commands[-1][0:2] == ("VREM", "rag:vectors:PERSON:v-test")

@@ -171,27 +171,24 @@ class TestParseFtInfo:
 class TestShadowIndexManager:
     def test_list_indexes_filters_flat_redis_response(self):
         redis = MagicMock()
-        redis.execute_command.return_value = [
-            b"idx:rag:subject:v1",
-            b"unrelated:index",
-            b"idx:rag:subject:v2",
+        redis.scan_iter.return_value = [
+            b"rag:vectors:SUBJECT:v1",
+            b"rag:vectors:SUBJECT:v2",
+            b"rag:vectors:PERSON:v1",
         ]
         manager = ShadowIndexManager(redis)
 
-        assert manager.list_indexes() == ["idx:rag:subject:v1", "idx:rag:subject:v2"]
-        redis.execute_command.assert_called_once_with("FT._LIST")
+        assert manager.list_indexes() == ["rag:vectors:SUBJECT:v1", "rag:vectors:SUBJECT:v2"]
+        redis.scan_iter.assert_called_once_with(match="rag:vectors:SUBJECT:*")
 
     def test_get_info_returns_document_count(self):
         redis = MagicMock()
-        redis.execute_command.return_value = [
-            b"index_name", b"idx:rag:subject:v2026-09",
-            b"num_docs", b"5000",
-        ]
+        redis.execute_command.return_value = 5000
         manager = ShadowIndexManager(redis)
         info = manager.get_info("v2026-09")
         assert info is not None
         assert info.document_count == 5000
-        assert info.index_name == "idx:rag:subject:v2026-09"
+        assert info.index_name == "rag:vectors:SUBJECT:v2026-09"
 
     def test_get_info_returns_none_for_missing_index(self):
         redis = MagicMock()
@@ -203,7 +200,7 @@ class TestShadowIndexManager:
         redis = MagicMock()
         manager = ShadowIndexManager(redis)
         plan = SwitchPlan(
-            current_alias_target="idx:rag:subject:old",
+            current_alias_target="rag:vectors:SUBJECT:old",
             new_index_version="v2026-09",
             new_index_name="idx:rag:subject:v2026-09",
             document_count=5000,
@@ -217,10 +214,17 @@ class TestShadowIndexManager:
 
     def test_execute_switch_succeeds_with_gate(self):
         redis = MagicMock()
-        redis.execute_command.return_value = b"OK"
-        manager = ShadowIndexManager(redis)
+        class Release:
+            def __init__(self):
+                self.activated = []
+            def active_version(self):
+                return "old"
+            def activate(self, version):
+                self.activated.append(version)
+        release = Release()
+        manager = ShadowIndexManager(redis, release_store=release)
         plan = SwitchPlan(
-            current_alias_target="idx:rag:subject:old",
+            current_alias_target="rag:vectors:SUBJECT:old",
             new_index_version="v2026-09",
             new_index_name="idx:rag:subject:v2026-09",
             document_count=5000,
@@ -228,25 +232,27 @@ class TestShadowIndexManager:
         )
         result = manager.execute_switch(plan)
         assert result.success is True
-        assert result.old_target == "idx:rag:subject:old"
-        redis.execute_command.assert_called_once_with(
-            "FT.ALIASUPDATE", "idx:rag:subject:active", "idx:rag:subject:v2026-09"
-        )
+        assert result.old_target == "rag:vectors:SUBJECT:old"
+        assert release.activated == ["v2026-09"]
+        redis.execute_command.assert_not_called()
 
     def test_rollback_switches_to_previous(self):
         redis = MagicMock()
-        redis.execute_command.return_value = b"OK"
-        manager = ShadowIndexManager(redis)
+        class Release:
+            def active_version(self):
+                return "v2026-09"
+            def activate(self, version):
+                self.version = version
+        release = Release()
+        manager = ShadowIndexManager(redis, release_store=release)
         result = manager.rollback("v2026-08")
         assert result.success is True
-        assert "v2026-08" in result.new_target
+        assert result.new_target == "rag:vectors:SUBJECT:v2026-08"
+        assert release.version == "v2026-08"
 
     def test_prepare_switch_includes_gate_info(self):
         redis = MagicMock()
-        redis.execute_command.return_value = [
-            b"index_name", b"idx:rag:subject:v2026-09",
-            b"num_docs", b"3000",
-        ]
+        redis.execute_command.return_value = 3000
         manager = ShadowIndexManager(redis)
         plan = manager.prepare_switch("v2026-09", gate_passed=True)
         assert plan.gate_passed is True

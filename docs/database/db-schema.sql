@@ -257,6 +257,51 @@ CREATE TABLE `user_collection`  (
   CONSTRAINT `fk_uc_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户追番收藏表' ROW_FORMAT = Dynamic;
 
+-- ----------------------------
+-- Table structure for search_document
+-- ----------------------------
+-- 可按 index_version 整体重建的词法 shadow 投影，不是事实来源。
+DROP TABLE IF EXISTS `search_document`;
+CREATE TABLE `search_document`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '投影行 ID',
+  `entity_kind` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '实体类型: SUBJECT/EPISODE/PERSON/CHARACTER',
+  `entity_id` bigint NOT NULL COMMENT '本地实体 ID',
+  `index_version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '索引版本',
+  `profile_version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '档案模板版本',
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '用于全文召回的标题',
+  `aliases` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '用于全文召回的别名串',
+  `lexical_text` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '用于全文召回的规范化语义文本',
+  `content_hash` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '档案内容哈希',
+  `source_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT '来源事实是否活跃',
+  `source_fetched_at` datetime NULL DEFAULT NULL COMMENT '来源事实抓取时间',
+  `created_at` datetime NOT NULL COMMENT '创建时间',
+  `updated_at` datetime NOT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_search_document_entity_version`(`entity_kind` ASC, `entity_id` ASC, `index_version` ASC) USING BTREE,
+  INDEX `idx_search_document_version_kind`(`index_version` ASC, `entity_kind` ASC, `source_active` ASC) USING BTREE,
+  FULLTEXT INDEX `ft_search_document_text`(`title`, `aliases`, `lexical_text`) WITH PARSER ngram
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '版本化全文检索 shadow 投影' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for search_index_release
+-- ----------------------------
+-- active_slot 由 status 派生；唯一索引保证同一时刻只有一个 ACTIVE release。
+DROP TABLE IF EXISTS `search_index_release`;
+CREATE TABLE `search_index_release`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '发布记录 ID',
+  `index_version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '索引版本',
+  `profile_version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '档案模板版本',
+  `status` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'BUILDING' COMMENT '发布状态: BUILDING/ACTIVE/RETIRED/FAILED',
+  `activated_at` datetime NULL DEFAULT NULL COMMENT '激活时间',
+  `retired_at` datetime NULL DEFAULT NULL COMMENT '退役时间',
+  `active_slot` tinyint GENERATED ALWAYS AS (CASE WHEN `status` = 'ACTIVE' THEN 1 ELSE NULL END) STORED COMMENT 'ACTIVE 唯一槽位',
+  `created_at` datetime NOT NULL COMMENT '创建时间',
+  `updated_at` datetime NOT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_search_release_version`(`index_version` ASC) USING BTREE,
+  UNIQUE INDEX `uk_search_release_active_slot`(`active_slot` ASC)
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '词法与向量索引发布指针' ROW_FORMAT = Dynamic;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ----------------------------

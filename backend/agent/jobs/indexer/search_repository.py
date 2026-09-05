@@ -269,6 +269,49 @@ class SearchIndexJobRepositoryImpl:
                 },
             )
 
+    def upsert_search_document(self, job: ClaimedJob, document: Any, *, source_active: bool = True) -> None:
+        """Write the rebuildable MySQL lexical projection for this entity."""
+        now = _datetime_seconds(self._now())
+        profile = document.profile
+        aliases = "\n".join(document.aliases)
+        lexical_text = "\n".join((profile.text, document.summary, aliases))
+        with self._session.begin():
+            self._session.execute(
+                text(
+                    "INSERT INTO search_document "
+                    "(entity_kind, entity_id, index_version, profile_version, title, aliases, lexical_text, "
+                    "content_hash, source_active, source_fetched_at, created_at, updated_at) "
+                    "VALUES (:kind, :entity_id, :index_version, :profile_version, :title, :aliases, :lexical_text, "
+                    ":content_hash, :source_active, :now, :now, :now) "
+                    "ON DUPLICATE KEY UPDATE profile_version=VALUES(profile_version), title=VALUES(title), "
+                    "aliases=VALUES(aliases), lexical_text=VALUES(lexical_text), content_hash=VALUES(content_hash), "
+                    "source_active=VALUES(source_active), source_fetched_at=VALUES(source_fetched_at), updated_at=VALUES(updated_at)"
+                ),
+                {
+                    "kind": job.entity_kind.value,
+                    "entity_id": job.entity_id,
+                    "index_version": job.index_version,
+                    "profile_version": profile.schema_version,
+                    "title": str(document.name)[:255],
+                    "aliases": aliases,
+                    "lexical_text": lexical_text,
+                    "content_hash": job.content_hash,
+                    "source_active": 1 if source_active else 0,
+                    "now": now,
+                },
+            )
+
+    def deactivate_search_document(self, job: ClaimedJob) -> None:
+        now = _datetime_seconds(self._now())
+        with self._session.begin():
+            self._session.execute(
+                text(
+                    "UPDATE search_document SET source_active=0, updated_at=:now "
+                    "WHERE entity_kind=:kind AND entity_id=:entity_id AND index_version=:index_version"
+                ),
+                {"kind": job.entity_kind.value, "entity_id": job.entity_id, "index_version": job.index_version, "now": now},
+            )
+
     def pending_count(self, index_version: str) -> int:
         """返回指定版本的待处理任务数量。"""
         with self._session.begin():

@@ -44,4 +44,63 @@
     <select id="selectYears" resultType="java.lang.Integer">
         SELECT DISTINCT YEAR(air_date) FROM subject WHERE air_date IS NOT NULL ORDER BY 1 DESC
     </select>
+    <select id="selectActiveSearchIndexRelease" resultType="top.zhaizz.client.model.SearchIndexReleaseRow">
+        SELECT index_version AS indexVersion, profile_version AS profileVersion
+        FROM search_index_release
+        WHERE status = 'ACTIVE' AND active_slot = 1
+        ORDER BY activated_at DESC, index_version DESC
+        LIMIT 1
+    </select>
+    <select id="lexicalSearch" resultType="top.zhaizz.client.model.LexicalSearchRow">
+        SELECT
+            s.id AS subjectId,
+            s.name,
+            s.name_cn AS nameCn,
+            MATCH(d.title, d.aliases, d.lexical_text)
+                AGAINST (#{query} IN NATURAL LANGUAGE MODE) AS lexicalScore
+        FROM search_document d
+        INNER JOIN search_index_release r
+            ON r.index_version = d.index_version
+           AND r.profile_version = d.profile_version
+           AND r.status = 'ACTIVE'
+           AND r.active_slot = 1
+        INNER JOIN subject s ON s.id = d.entity_id
+        WHERE d.entity_kind = 'SUBJECT'
+          AND d.index_version = #{indexVersion}
+          AND d.source_active = 1
+          AND s.type = 2
+          AND s.nsfw = 0
+          AND s.import_status = 1
+          AND MATCH(d.title, d.aliases, d.lexical_text)
+                AGAINST (#{query} IN NATURAL LANGUAGE MODE) &gt; 0
+        <if test="tags != null and tags.size > 0">
+            <foreach collection="tags" item="tag">
+                AND EXISTS (
+                    SELECT 1 FROM subject_tag st
+                    WHERE st.subject_id = s.id AND st.name = #{tag}
+                )
+            </foreach>
+        </if>
+        <if test="scoreMin != null">
+            AND s.score &gt;= #{scoreMin}
+        </if>
+        <if test="scoreMax != null">
+            AND s.score &lt;= #{scoreMax}
+        </if>
+        <if test="year != null">
+            AND s.air_date &gt;= CONCAT(#{year}, '-01-01')
+            AND s.air_date &lt;= CONCAT(#{year}, '-12-31')
+        </if>
+        <if test="weekday != null">
+            AND s.air_weekday = #{weekday}
+        </if>
+        <if test="subjectIds != null and subjectIds.size > 0">
+            AND s.id IN
+            <foreach collection="subjectIds" item="subjectId" open="(" separator="," close=")">
+                #{subjectId}
+            </foreach>
+        </if>
+        ORDER BY lexicalScore DESC, s.id ASC
+        LIMIT #{limit}
+    </select>
 </mapper>

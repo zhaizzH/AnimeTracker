@@ -8,6 +8,8 @@ import top.zhaizz.pojo.dto.subject.SubjectSearchQueryDTO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 import top.zhaizz.pojo.vo.subject.SubjectBatchResultVO;
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
+import top.zhaizz.pojo.dto.subject.LexicalSearchRequestDTO;
+import top.zhaizz.pojo.vo.subject.LexicalSearchResultVO;
 
 import java.util.List;
 
@@ -22,6 +24,9 @@ public interface ClientSubjectService {
 
     /** 搜索番剧（分页、多维筛选） */
     PageResult<SubjectListVO> searchSubjects(SubjectSearchQueryDTO request);
+
+    /** 在 active search release 上执行受控 MySQL FULLTEXT 召回。 */
+    LexicalSearchResultVO lexicalSearch(LexicalSearchRequestDTO request);
 
     /** 按季度筛选番剧（分页） */
     PageResult<SubjectListVO> listBySeason(SeasonQueryDTO request);

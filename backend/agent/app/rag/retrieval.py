@@ -20,7 +20,7 @@ _REDIS_TAG_RESERVED = re.compile(r'([\.< >\{\}\[\}"\':;!@#$%^&*()\-+=~|\\/])')
 
 
 def escape_redis_term(value: str, *, preserve_comma: bool = False) -> str:
-    """唯一的 RediSearch 词元转义入口；调用方不能提供查询片段。"""
+    """兼容旧索引表达式的唯一转义入口；调用方不能提供查询片段。"""
     return (_REDIS_TAG_RESERVED if preserve_comma else _REDIS_RESERVED).sub(r"\\\1", value)
 
 
@@ -83,6 +83,7 @@ class RagRetrievalService:
         evidence_lookup: EvidenceLookup | None = None,
         resolve_evidence_lookup: EntityResolveLookup | None = None,
         entity_name_lookup: EntityNameLookup | None = None,
+        lexical_search: AuthorityLookup | None = None,
     ) -> None:
         self._index = index
         self._embeddings = embeddings
@@ -91,6 +92,7 @@ class RagRetrievalService:
         self._evidence_lookup = evidence_lookup
         self._resolve_evidence_lookup = resolve_evidence_lookup
         self._entity_name_lookup = entity_name_lookup
+        self._lexical_search = lexical_search
 
     def retrieve(
         self,
@@ -103,6 +105,7 @@ class RagRetrievalService:
         evidence_lookup: EvidenceLookup | None = None,
         resolve_evidence_lookup: EntityResolveLookup | None = None,
         entity_name_lookup: EntityNameLookup | None = None,
+        lexical_search: AuthorityLookup | None = None,
     ) -> RetrievalResult:
         entity_name_matches, entity_name_error = self._lookup_entity_name(
             query,
@@ -145,17 +148,39 @@ class RagRetrievalService:
             except Exception:
                 vector = None
         effective_evidence = evidence_lookup or self._evidence_lookup
+        effective_lexical = lexical_search or self._lexical_search
+        versioned_semantic = getattr(self._index, "semantic_search_for_version", None)
         try:
+            lexical_payload: Any = None
+            index_version: str | None = None
+            if callable(versioned_semantic):
+                # The Business lexical contract is the only source of the
+                # release version.  A versionless response must fail closed.
+                if effective_lexical is None:
+                    raise RuntimeError("MySQL lexical search adapter unavailable")
+                lexical_payload = effective_lexical(query, token=token)
+                index_version = _index_version(lexical_payload)
+                if not index_version:
+                    raise RuntimeError("Business lexical response missing indexVersion")
+                lexical = self._as_candidates(lexical_payload, "lexical")
             for expression in self._expressions(query):
-                if self._lexical_terms(query) or vector is None:
+                if not callable(versioned_semantic) and (self._lexical_terms(query) or vector is None):
                     lexical = self._as_candidates(self._index.lexical_search(expression, limit=50), "lexical")
                 if vector is not None:
-                    semantic = self._as_candidates(self._index.semantic_search(expression, vector, limit=50), "semantic")
+                    if callable(versioned_semantic):
+                        semantic = self._as_candidates(
+                            versioned_semantic(index_version, query, vector, limit=50), "semantic"
+                        )
+                    else:
+                        semantic = self._as_candidates(self._index.semantic_search(expression, vector, limit=50), "semantic")
                 if not lexical and not semantic:
                     continue
                 candidates = self._filter_entity_subjects(
                     reciprocal_rank_fusion(lexical, semantic), entity_subject_ids,
                 )
+                excluded = set(query.exclude_subject_ids)
+                if excluded:
+                    candidates = [candidate for candidate in candidates if candidate.subject_id not in excluded]
                 result = self._authoritative_result(
                     candidates, query, token, preference, effective_evidence,
                 )
@@ -165,7 +190,7 @@ class RagRetrievalService:
             redis_failed = True
             lexical, semantic = [], []
 
-        # RediSearch returns only its top-N window.  An allowlisted entity can
+        # A vector/text index returns only its top-N window.  An allowlisted entity can
         # legitimately rank below that window, so perform an exact authoritative
         # batch lookup before declaring no results; this keeps entity filters
         # from becoming an accidental recall limit.
@@ -680,18 +705,34 @@ class RagRetrievalService:
         for item in rows:
             if not isinstance(item, Mapping):
                 continue
-            raw_id = item.get("subject_id", item.get("id"))
+            # Business lexical candidates use the public ``subjectId`` field,
+            # while the Redis/legacy adapters use ``subject_id`` or ``id``.
+            # Normalize all three at this boundary so a valid FULLTEXT
+            # response is not silently discarded before RRF.
+            raw_id = item.get("subject_id", item.get("subjectId", item.get("id")))
+            if isinstance(raw_id, bool):
+                continue
             try:
                 subject_id = int(raw_id)
             except (TypeError, ValueError):
                 continue
+            if subject_id <= 0:
+                continue
             vector = item.get("vector")
+            raw_score = item.get(
+                "score",
+                item.get("lexicalScore", item.get("vector_score", item.get("similarity", 0.0))),
+            )
+            try:
+                retrieval_score = float(raw_score)
+            except (TypeError, ValueError):
+                retrieval_score = 0.0
             candidates.append(
                 RetrievalCandidate(
                     subject_id,
-                    0.0,
+                    retrieval_score,
                     reason,
-                    str(item.get("title") or ""),
+                    str(item.get("title") or item.get("nameCn") or item.get("name") or ""),
                     vector=vector if isinstance(vector, Sequence) and not isinstance(vector, (str, bytes)) else None,
                 )
             )
@@ -731,6 +772,8 @@ def _items(response: Any) -> list[Any]:
     if isinstance(response, Mapping):
         if isinstance(response.get("items"), list):
             return response["items"]
+        if isinstance(response.get("candidates"), list):
+            return response["candidates"]
         if isinstance(response.get("content"), list):
             return response["content"]
         return []
@@ -750,6 +793,19 @@ def _items(response: Any) -> list[Any]:
             return rows
         return response
     return []
+
+
+def _index_version(response: Any) -> str | None:
+    """Extract the Business release pointer from a lexical response."""
+    if not isinstance(response, Mapping):
+        return None
+    value = response.get("indexVersion", response.get("index_version"))
+    if not isinstance(value, str) or not value.strip():
+        return None
+    value = value.strip()
+    if ":" in value or any(char.isspace() for char in value):
+        return None
+    return value
 
 
 def _is_error(response: Any) -> bool:

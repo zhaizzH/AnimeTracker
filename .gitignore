@@ -127,6 +127,8 @@ backend/business/app/src/main/resources/application-local.yml
 # AI Agent local env
 backend/agent/.env
 backend/agent/agent.db*
+backend/agent/.pytest-work/
+backend/agent/.pytest-tmp*/
 
 frontend\client\.workbuddy
 

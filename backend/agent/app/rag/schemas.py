@@ -45,7 +45,7 @@ class SubjectProfile(BaseModel):
 
 
 class RetrievalQuery(BaseModel):
-    """仅允许受控字段组成检索请求，不能携带原始 RediSearch 表达式。"""
+    """仅允许受控字段组成检索请求，不能携带底层存储表达式。"""
 
     model_config = ConfigDict(extra="forbid")
 

@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379/0"
     rag_redis_url: str = ""
-    rag_index_alias: str = "idx:rag:subject:active"
+    # Redis alias was removed. MySQL search_index_release is the only active pointer.
     rag_index_version: str = "v1"
     rag_embedding_model: Literal["text-embedding-v4"] = "text-embedding-v4"
     rag_embedding_dim: Literal[1024] = 1024

@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.ibatis.annotations.Param;
 import top.zhaizz.pojo.entity.Subject;
+import top.zhaizz.client.model.LexicalSearchRow;
+import top.zhaizz.client.model.SearchIndexReleaseRow;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -32,4 +34,19 @@ public interface SubjectMapper extends BaseMapper<Subject> {
 
     /** 查询库中实际存在番剧年份（去重，降序） */
     List<Integer> selectYears();
+
+    /** 读取唯一 active release；不存在时由 service fail-closed。 */
+    SearchIndexReleaseRow selectActiveSearchIndexRelease();
+
+    /** 在指定 active release 的 SUBJECT 投影上执行参数化 FULLTEXT 召回。 */
+    List<LexicalSearchRow> lexicalSearch(
+            @Param("query") String query,
+            @Param("tags") List<String> tags,
+            @Param("scoreMin") BigDecimal scoreMin,
+            @Param("scoreMax") BigDecimal scoreMax,
+            @Param("year") Integer year,
+            @Param("weekday") Integer weekday,
+            @Param("subjectIds") List<Long> subjectIds,
+            @Param("indexVersion") String indexVersion,
+            @Param("limit") int limit);
 }

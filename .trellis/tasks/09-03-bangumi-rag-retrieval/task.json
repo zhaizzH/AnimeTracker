@@ -15,7 +15,7 @@
   "branch": null,
   "base_branch": "main",
   "worktree_path": null,
-  "commit": null,
+  "commit": "5b4df84b",
   "pr_url": null,
   "subtasks": [],
   "children": [],
@@ -30,7 +30,7 @@
     "backend/agent/tests/jobs/importer/test_contract_drift.py",
     "backend/agent/tests/rag/test_evidence_contract.py"
   ],
-  "notes": "Phase 1-4 与可复用的 Phase 5-7 基础代码已验证。用户于 2026-09-05 批准将检索路线从 Redis/RediSearch 调整为 MySQL 8.4 ngram FULLTEXT + Redis 8 Vector Set + Python RRF；本轮仅更新规划，不实现代码。实际 Redis 已确认支持 VADD/VSIM/VREM/VSETATTR/VGETATTR，后续需完成双投影、MySQL release 指针、同版本 gate、120-case 真实评测与 24 小时灰度。",
+  "notes": "Phase 1-4 与 Phase 5-7 代码实现已验证。用户于 2026-09-05 批准将检索路线调整为 MySQL 8.4 ngram FULLTEXT + Redis 8 Vector Set + Python RRF；本轮已完成双投影 indexer、Business lexical API、MySQL release 指针、同版本 VSIM 查询和本地测试。实际数据库回填、120-case 真实评测与 24 小时灰度仍待运行环境证据。",
   "meta": {
     "phase1_completed": "2026-09-03",
     "phase1_tests_passed": 59,
@@ -48,5 +48,9 @@
     "phase8_entity_evidence_verified": "2026-09-05",
     "phase8_entity_evidence_blocked": false,
     "documentation_organized": "2026-09-05"
+    ,"phase5_dual_projection_implemented": "2026-09-05"
+    ,"phase6_lexical_api_implemented": "2026-09-05"
+    ,"phase7_versioned_rrf_implemented": "2026-09-05"
+    ,"phase5_release_store_integration_pending": false
   }
 }

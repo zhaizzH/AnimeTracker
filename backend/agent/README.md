@@ -218,7 +218,7 @@ backend/agent/
 `app/rag/` 提供语义检索与证据回答能力，通过 `RAG_ENABLED` 开关控制：
 
 - 关闭时（默认）：检索降级为直接调用 business 的 `/api/client/subjects/search` 与 `/api/client/subjects`（按 `collectionTotal` 降序取候选），嵌入与索引对象替换为抛错的占位实现。
-- 开启时：使用启用 RediSearch 的 Redis Stack/Redis Enterprise 向量索引（`RAG_INDEX_ALIAS` / `RAG_INDEX_VERSION`）与 DashScope `text-embedding-v4`（1024 维）做 BM25 + KNN 混合检索，经 RRF 融合后批量回查 Business 权威数据，再经 Evidence API 补充证据字段后返回；只有普通 Redis 或仅启用 `vectorset` 时不能运行当前 `FT.*` 索引路径。
+- 开启时：MySQL 8.4 `ngram` FULLTEXT 提供词法召回，Redis 8 Vector Set（`rag:vectors:{entity_kind}:{indexVersion}`）提供语义召回，使用 DashScope `text-embedding-v4`（1024 维）并经 Python RRF 融合；Business 词法响应返回 `indexVersion`，Agent 只查询同版本 Vector Set，再批量回查 Business 权威数据和 Evidence API。没有 Vector Set 时保持 RAG 关闭并降级到 Business 搜索。
 
 ### 证据链（Evidence Enrichment）
 
@@ -296,8 +296,7 @@ Agent 提示词已更新为只可依据工具返回的证据字段陈述事实�
 |------|--------|------|
 | `RAG_ENABLED` | `false` | 总开关；关闭时检索降级为 business 直接搜索 |
 | `RAG_REDIS_URL` | 空 | 索引专用 Redis；留空则复用 `REDIS_URL` |
-| `RAG_INDEX_ALIAS` | `idx:rag:subject:active` | 活跃索引别名 |
-| `RAG_INDEX_VERSION` | `v1` | 索引版本（同时作为 Redis 键前缀的一部分） |
+| `RAG_INDEX_VERSION` | `v1` | indexer 构建版本；在线查询版本以 Business `search_index_release` 返回值为准 |
 | `RAG_EMBEDDING_MODEL` | `text-embedding-v4` | 嵌入模型（当前仅支持该值） |
 | `RAG_EMBEDDING_DIM` | `1024` | 向量维度（当前仅支持该值） |
 

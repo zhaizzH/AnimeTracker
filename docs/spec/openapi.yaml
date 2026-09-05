@@ -1008,6 +1008,74 @@ paths:
                         type: "integer"
                         description: ""
                     description: ""
+  /api/client/subjects/lexical-search:
+    post:
+      summary: "按 active release 执行 MySQL FULLTEXT 词法召回"
+      description: "仅接受普通搜索词和结构化过滤；返回的 indexVersion 必须用于同版本 Vector Set 查询，详细事实继续通过 Evidence API 回查。"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [q]
+              properties:
+                q:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                tags:
+                  type: array
+                  maxItems: 20
+                  items:
+                    type: string
+                    maxLength: 64
+                scoreMin:
+                  type: number
+                  minimum: 0
+                  maximum: 10
+                scoreMax:
+                  type: number
+                  minimum: 0
+                  maximum: 10
+                year:
+                  type: integer
+                  minimum: 1970
+                  maximum: 2100
+                weekday:
+                  type: integer
+                  minimum: 0
+                  maximum: 6
+                subjectIds:
+                  type: array
+                  maxItems: 50
+                  items:
+                    type: integer
+                    format: int64
+                    minimum: 1
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                  default: 50
+      responses:
+        "200":
+          description: "词法候选及其发布版本"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/LexicalSearchResult"
+        "400":
+          description: "搜索词、过滤器或候选上限无效"
+        "503":
+          description: "没有 active search release"
   /api/client/subjects/season:
     get:
       summary: "按季度筛选用户番剧"
@@ -5509,6 +5577,38 @@ components:
           description: "收藏数"
           format: "int64"
       description: "热门榜条目"
+    LexicalSearchResult:
+      type: object
+      description: "绑定 MySQL active release 的词法召回结果。"
+      required: [indexVersion, candidates]
+      properties:
+        indexVersion:
+          type: string
+          description: "必须与 Redis Vector Set 版本一致"
+        profileVersion:
+          type: string
+        candidates:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/LexicalSearchCandidate"
+    LexicalSearchCandidate:
+      type: object
+      required: [subjectId, rank, lexicalScore]
+      properties:
+        subjectId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        nameCn:
+          type: string
+        lexicalScore:
+          type: number
+        rank:
+          type: integer
+          minimum: 1
+      description: "需要通过 Evidence API 补充权威证据的词法候选。"
     EvidenceCandidate:
       type: "object"
       description: "供 Agent 使用的已验证番剧证据候选。"

@@ -165,6 +165,60 @@ DEALLOCATE PREPARE stmt;
 - Business 对象存储走 `ImageStorageGateway`；实现位于 `app/infrastructure/storage/minio`。
 - importer 的公开封面桶与私有原始桶必须使用不同名称。
 
+## Scenario: RAG 词法投影与发布指针
+
+### 1. Scope / Trigger
+
+- 触发：新增 `search_document`/`search_index_release`、MySQL FULLTEXT 词法召回或索引版本发布。
+
+### 2. Signatures
+
+- `search_document(entity_kind, entity_id, index_version, profile_version, title, aliases, lexical_text, content_hash, source_active, source_fetched_at)`。
+- `search_index_release(index_version, profile_version, status, activated_at, retired_at, active_slot)`。
+- 存量库入口：`docs/database/migration-003-search-projection.sql`；空库入口：`docs/database/db-schema.sql`。
+
+### 3. Contracts
+
+- `search_document` 是可按 `index_version` 重建的 InnoDB 投影，不是事实来源；全文索引使用 `WITH PARSER ngram`。
+- `search_index_release.active_slot` 是由 `status='ACTIVE'` 派生的生成列，唯一索引保证最多一个 active release。
+- 前向迁移只使用 `CREATE TABLE IF NOT EXISTS`；同名但结构不一致时必须人工检查，不得假装迁移完成。
+- MySQL lexical API 返回 `indexVersion`；Agent 用同版本查询 Redis Vector Set。
+
+### 4. Validation & Error Matrix
+
+| 条件 | 必须行为 |
+|---|---|
+| 存量库未执行迁移 | Business lexical API 失败或返回 503，不伪造候选 |
+| 无 active release | 返回 503，Agent 降级到既有 Business 搜索 |
+| 第二条 ACTIVE release | 唯一约束拒绝写入，保留原 active |
+| 初始化 Schema 用于非空库 | 禁止执行，改走前向迁移评审 |
+
+### 5. Good / Base / Bad Cases
+
+- Good：先迁移投影表，再由 indexer 写入同一版本，gate 通过后在事务中切换 release。
+- Base：旧版本保留到回滚窗口结束，清理作为独立运维操作。
+- Bad：把 `db-schema.sql` 当升级脚本，或让 Redis key 充当 active release 事实。
+
+### 6. Tests Required
+
+- DDL：MySQL 8.4 空库初始化和迁移脚本二次执行均成功，断言 FULLTEXT、唯一键和生成列存在。
+- Mapper：断言 `MATCH ... AGAINST` 绑定参数和 `indexVersion` 过滤。
+- Service：断言无 active release 返回 503，成功响应包含版本和候选排名。
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```sql
+ALTER TABLE search_document ADD COLUMN IF NOT EXISTS lexical_text TEXT;
+```
+
+#### Correct
+
+```text
+存量库执行 migration-003；结构不一致先检查 INFORMATION_SCHEMA，再由评审决定 ALTER/回填/回滚。
+```
+
 ## 常见错误
 
 - 只改 ORM 或只改 Schema，造成运行时字段漂移。

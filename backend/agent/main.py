@@ -19,7 +19,6 @@ from app.adapters.business_http import HttpBusinessGateway
 from app.adapters.llm.agent_factory import AgentLlmFactory
 from app.adapters.llm.embeddings import DashScopeEmbeddingClient
 from app.adapters.redis import RedisChatStore
-from app.adapters.redis.entity_name_lookup import RedisEntityNameLookup
 from app.adapters.redis.model_config_repository import RedisModelConfigRepository
 from app.adapters.redis.prompt_repository import RedisPromptRepository
 from app.adapters.redis.subject_index import RedisSubjectIndex
@@ -93,7 +92,33 @@ def _business_fallbacks(business):
             token=token,
         )
 
-    return {"search": search, "discover": discover, "recommend": recommend}
+    def lexical(query: RetrievalQuery, *, token: str | None) -> dict | list:
+        """Versioned MySQL FULLTEXT contract owned by Business.
+
+        The endpoint is intentionally separate from the legacy subject search:
+        it must return ``indexVersion`` and ``items`` from one active release.
+        Until Business exposes it, the adapter returns an explicit error and
+        the retrieval service falls back to the legacy authoritative search.
+        """
+        text = query.semantic_query or " ".join(query.keywords)
+        payload = {
+            "q": text,
+            "tags": list(query.meta_tags),
+            "scoreMin": query.score_min,
+            "scoreMax": None,
+            "year": query.year_from if query.year_from == query.year_to else None,
+            "weekday": None,
+            # Exclusions are enforced by the typed Agent query path; they are
+            # not a Business allowlist and must never be sent as subjectIds.
+            "subjectIds": None,
+            "limit": _MAX_CANDIDATES,
+        }
+        lexical = getattr(business, "lexical_search", None)
+        if callable(lexical):
+            return lexical(payload, token=token)
+        return business.request("POST", "/api/client/subjects/lexical-search", json_body=payload, token=token)
+
+    return {"search": search, "discover": discover, "recommend": recommend, "lexical": lexical}
 
 
 def _build_agent_dependencies(model_configs, prompts, import_service) -> AgentDependencies:
@@ -101,11 +126,10 @@ def _build_agent_dependencies(model_configs, prompts, import_service) -> AgentDe
     fallbacks = _business_fallbacks(business)
     if settings.rag_enabled:
         rag_redis = redis.Redis.from_url(settings.effective_rag_redis_url)
-        index = RedisSubjectIndex(rag_redis, active_alias=settings.rag_index_alias)
-        entity_name_lookup = RedisEntityNameLookup(
-            rag_redis,
-            index_version=settings.rag_index_version,
-        ).lookup
+        index = RedisSubjectIndex(rag_redis)
+        # Name resolution is authoritative Business work. The old Redis
+        # text-index adapter is intentionally not wired.
+        entity_name_lookup = None
         embeddings = DashScopeEmbeddingClient(settings.dashscope_api_key)
         preference_provider = RedisUserPreferenceProvider(
             rag_redis,
@@ -125,6 +149,7 @@ def _build_agent_dependencies(model_configs, prompts, import_service) -> AgentDe
         evidence_lookup=business.batch_evidence,
         resolve_evidence_lookup=business.resolve_evidence,
         entity_name_lookup=entity_name_lookup,
+        lexical_search=fallbacks["lexical"],
     )
     return AgentDependencies(
         business=business,
@@ -142,7 +167,12 @@ def _build_agent_dependencies(model_configs, prompts, import_service) -> AgentDe
 def _subject_vector_lookup(rag_redis):
     def lookup(subject_id: int):
         try:
-            raw = rag_redis.hget(f"rag:subject:{settings.rag_index_version}:{subject_id}", "vector")
+            raw = rag_redis.execute_command(
+                "VEMB",
+                f"rag:vectors:SUBJECT:{settings.rag_index_version}",
+                f"SUBJECT:{int(subject_id)}",
+                "RAW",
+            )
         except Exception:
             return None
         if not isinstance(raw, bytes) or len(raw) != _VECTOR_BYTES:
