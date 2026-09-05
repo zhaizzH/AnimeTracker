@@ -71,7 +71,7 @@ uv run pytest tests/jobs/importer tests/rag/test_profile.py -v
 - [x] 实现 `entity_detail_job` repository、claim/lease、重试、退避、checkpoint、暂停/恢复和失败报告。
 - [x] 实现 Person/Character 详情 normalize 与幂等写入；详情失败保留已有摘要和关系。
 - [x] 增加 CLI 与 scheduler 低速批次入口；避免与 Subject importer 争用同一锁或超过上游限速预算。
-- [ ] 生成回填覆盖率、失败原因和 stale 数据报告。
+- [x] 生成回填覆盖率、失败原因和 stale 数据报告。
 
 验证：
 
