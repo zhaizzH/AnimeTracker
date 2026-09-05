@@ -30,7 +30,7 @@
     "backend/agent/tests/jobs/importer/test_contract_drift.py",
     "backend/agent/tests/rag/test_evidence_contract.py"
   ],
-  "notes": "Phase 1-4 与 Phase 5-7 代码实现已验证。用户于 2026-09-05 批准将检索路线调整为 MySQL 8.4 ngram FULLTEXT + Redis 8 Vector Set + Python RRF；本轮已完成双投影 indexer、Business lexical API、MySQL release 指针、同版本 VSIM 查询和本地测试。实际数据库回填、120-case 真实评测与 24 小时灰度仍待运行环境证据。",
+  "notes": "Phase 1-4 与 Phase 5-7 代码实现已验证。用户于 2026-09-05 批准将检索路线调整为 MySQL 8.4 ngram FULLTEXT + Redis 8 Vector Set + Python RRF；本轮已完成双投影 indexer、Business lexical API、MySQL release 指针、同版本 VSIM 查询、本地测试和本地运行库投影表迁移。全量投影回填、120-case 真实评测与 24 小时灰度仍待运行环境证据。",
   "meta": {
     "phase1_completed": "2026-09-03",
     "phase1_tests_passed": 59,
@@ -53,6 +53,9 @@
     ,"phase7_versioned_rrf_implemented": "2026-09-05"
     ,"phase5_release_store_integration_pending": false
     ,"runtime_ports_verified": "2026-09-05"
-    ,"runtime_lexical_api_blocked_by_migration": true
+    ,"runtime_lexical_api_blocked_by_migration": false
+    ,"runtime_lexical_api_blocked_by_unpublished_release": true
+    ,"runtime_projection_migration_applied": "2026-09-05"
+    ,"runtime_active_release_count": 0
   }
 }
