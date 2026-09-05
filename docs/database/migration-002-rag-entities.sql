@@ -221,17 +221,41 @@ CREATE TABLE IF NOT EXISTS `search_index_job` (
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '通用搜索索引任务表' ROW_FORMAT = Dynamic;
 
 -- Step 10: 为旧表补充索引（可选，提升新查询路径性能）
+-- MySQL 8.4 不支持 ALTER TABLE ... ADD COLUMN IF NOT EXISTS；使用
+-- INFORMATION_SCHEMA + PREPARE 保持空库前向迁移和重复执行都幂等。
+
 -- subject_alias 增加 source_active 列以支持 replace-set 语义
-ALTER TABLE `subject_alias`
-  ADD COLUMN IF NOT EXISTS `source_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT '上游是否仍然活跃' AFTER `source`;
+SET @sql = IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'subject_alias' AND COLUMN_NAME = 'source_active') = 0,
+  'ALTER TABLE `subject_alias` ADD COLUMN `source_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''上游是否仍然活跃'' AFTER `source`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- subject_meta_tag 增加 source_active 列
-ALTER TABLE `subject_meta_tag`
-  ADD COLUMN IF NOT EXISTS `source_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT '上游是否仍然活跃' AFTER `name`;
+SET @sql = IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'subject_meta_tag' AND COLUMN_NAME = 'source_active') = 0,
+  'ALTER TABLE `subject_meta_tag` ADD COLUMN `source_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''上游是否仍然活跃'' AFTER `name`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- subject_credit 增加 source_active 列（兼容窗口内保留旧表读取）
-ALTER TABLE `subject_credit`
-  ADD COLUMN IF NOT EXISTS `source_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT '上游是否仍然活跃' AFTER `sort_order`;
+SET @sql = IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'subject_credit' AND COLUMN_NAME = 'source_active') = 0,
+  'ALTER TABLE `subject_credit` ADD COLUMN `source_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT ''上游是否仍然活跃'' AFTER `sort_order`',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ============================================================================
 -- Step 11: 回填校验（执行后人工确认）

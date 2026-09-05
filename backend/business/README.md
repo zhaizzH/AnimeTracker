@@ -136,7 +136,7 @@ java -jar app/target/animetracker-app-*.jar --spring.profiles.active=local
 - `application-local.yml` —— 本地开发覆盖（数据源、Redis、JWT、MinIO、Resend、Agent 地址）。该文件已被 `.gitignore` 忽略，可安全填写真实密钥。
 - `logback-spring.xml` —— 结构化 JSON 日志格式。
 
-数据库结构不使用 Flyway（`spring.sql.init.mode: never`），统一由项目级 [`../../docs/database/db-schema.sql`](../../docs/database/db-schema.sql) 维护；新环境手动执行该脚本建表。
+数据库结构不使用 Flyway（`spring.sql.init.mode: never`）。新环境手动执行 [`../../docs/database/db-schema.sql`](../../docs/database/db-schema.sql)；存量库按评审后的 [`../../docs/database/migration-002-rag-entities.sql`](../../docs/database/migration-002-rag-entities.sql) 前向迁移。
 
 ### 需配置的关键项
 
