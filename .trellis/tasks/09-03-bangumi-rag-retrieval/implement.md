@@ -14,7 +14,7 @@
 - Phase 3–4：导入关系、详情任务和多实体 outbox 已接通，可直接复用。
 - Phase 5–7：原 RediSearch `FT.*` 实现的 profile、任务、RRF、Evidence 与降级结构可复用；索引写入、词法召回、向量召回和版本发布需要按用户已同意的“MySQL FULLTEXT + Redis Vector Set”技术方向重新接线。
 - Phase 8：Business/Agent/MinIO health 已通过；真实库已迁移至 21 张表，Redis 8.8 已确认支持 `VADD/VSIM/VREM/VSETATTR/VGETATTR`。真实双投影索引、Embedding、120-case 评测和灰度观察仍未执行。
-- 最新验证报告：`phase8-mysql-migration-report.md`、`phase8-redis-report.md`、`phase8-springboot-startup-report.md`、`phase8-offline-evidence-report.md`、`check-report-final.md`。
+- 当前文档入口：`README.md`。有效运行证据包括 `phase2-mapping-report.md`、`phase4-backfill-report.md`、`phase6-business-report.md`、`phase8-mysql-migration-report.md`、`phase8-springboot-startup-report.md` 和 `phase8-offline-evidence-report.md`；被替代的 RediSearch/阶段审查报告保存在 `history/`。
 
 ## Phase 1：建立评测基线与契约测试
 

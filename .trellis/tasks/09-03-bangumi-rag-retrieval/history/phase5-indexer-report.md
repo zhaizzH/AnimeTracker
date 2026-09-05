@@ -1,5 +1,7 @@
 # Phase 5 Shadow Index 与发布报告
 
+> 历史报告：本文验证的是 RediSearch shadow/alias 契约，已被 MySQL FULLTEXT + Redis Vector Set 发布设计取代。当前状态以 [任务文档索引](../README.md) 为准。
+
 日期：2026-09-05
 
 ## 已实现的本地契约

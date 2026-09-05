@@ -37,7 +37,8 @@
     "phase1_tests_failed_designed": 8,
     "phase2_mapping_verified": "2026-09-05",
     "phase4_backfill_report_verified": "2026-09-05",
-    "phase5_shadow_contract_verified": "2026-09-05",
+    "phase5_redisearch_shadow_contract_verified": "2026-09-05",
+    "phase5_vectorset_release_planned": "2026-09-05",
     "phase8_offline_evidence_verified": "2026-09-05",
     "retrieval_stack_direction_approved": "2026-09-05",
     "phase8_mysql_verified": "2026-09-05",
@@ -45,6 +46,7 @@
     "phase8_redisearch_required": false,
     "phase8_business_health_verified": "2026-09-05",
     "phase8_entity_evidence_verified": "2026-09-05",
-    "phase8_entity_evidence_blocked": false
+    "phase8_entity_evidence_blocked": false,
+    "documentation_organized": "2026-09-05"
   }
 }

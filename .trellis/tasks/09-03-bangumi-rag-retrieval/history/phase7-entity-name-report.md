@@ -1,5 +1,7 @@
 # Phase 7 实体名称解析切片报告
 
+> 历史报告：实体解析与 fail-closed 结论仍可参考，但基于 RediSearch 的名称索引将由 MySQL FULLTEXT 取代。当前状态以 [任务文档索引](../README.md) 为准。
+
 日期：2026-09-04
 
 ## 已完成
