@@ -7,12 +7,13 @@
 - 产品开关默认关闭；每阶段可独立回滚，不能依赖一次性总切换。
 - 非空数据库只使用经评审的前向 DDL，不执行 `docs/database/db-schema.sql`。
 
-## 执行状态快照（2026-09-05）
+## 执行状态快照（2026-09-05，技术路线调整）
 
 - Phase 1：golden/eval/契约测试已建立并通过代码门禁；真实快照基线和指标报告仍未完成。
 - Phase 2：schema、前向迁移和 MySQL 8.4.9 临时库验证已完成；真实 `anime_tracker` 已按用户授权完成前向迁移并通过二次幂等验证；完整 Java 实体映射、存量备份恢复演练仍未完成。
-- Phase 3–7：导入关系、详情任务、多实体 outbox/indexer、Business Evidence、结构化实体检索和受限规划已接通；真实外部服务链路仍待门禁验证。
-- Phase 8：部分完成。Business health 与 PERSON/CHARACTER/ACTOR Evidence 已 200，真实库已迁移至 21 张表；Redis 缺少 RediSearch，MinIO/Embedding/真实快照评测/灰度观察均未通过。
+- Phase 3–4：导入关系、详情任务和多实体 outbox 已接通，可直接复用。
+- Phase 5–7：原 RediSearch `FT.*` 实现的 profile、任务、RRF、Evidence 与降级结构可复用；索引写入、词法召回、向量召回和版本发布需要按用户已同意的“MySQL FULLTEXT + Redis Vector Set”技术方向重新接线。
+- Phase 8：Business/Agent/MinIO health 已通过；真实库已迁移至 21 张表，Redis 8.8 已确认支持 `VADD/VSIM/VREM/VSETATTR/VGETATTR`。真实双投影索引、Embedding、120-case 评测和灰度观察仍未执行。
 - 最新验证报告：`phase8-mysql-migration-report.md`、`phase8-redis-report.md`、`phase8-springboot-startup-report.md`、`phase8-offline-evidence-report.md`、`check-report-final.md`。
 
 ## Phase 1：建立评测基线与契约测试
@@ -87,20 +88,25 @@ uv run pytest tests/jobs/backfill -v
 - [x] 为 SUBJECT/EPISODE/PERSON/CHARACTER 建立确定性 profile 与 profile_version；只向量化语义正文。
 - [x] 演进 indexer repository，安全消费通用任务、处理 tombstone、hash 漂移、失败重试和幂等完成。
 - [x] scheduler 增加受控 indexer/backfill 调度，提供重叠任务和进程重启测试；是否常驻部署仍由运行手册明确。
-- [x] 建 shadow index、容量/数据质量报告与 alias 回滚流程；旧 index 不提前删除（真实 Redis 门禁另见 Phase 8）。
+- [ ] 新增版本化 MySQL `search_document` FULLTEXT（`ngram`）投影与 `search_index_release`，同步空库 schema 和只新增前向迁移。
+- [ ] 将 indexer 改为同一 job 同时写 MySQL lexical shadow 与 Redis `rag:vectors:{entity_kind}:{indexVersion}`；任一侧失败不得确认 job 完成。
+- [ ] 使用 `VADD/VSIM/VREM` 实现四类实体的向量写入、查询和 tombstone；属性只包含允许过滤的非私有元数据。
+- [ ] 将 gate/容量/质量报告和 rollback 改为双投影版本契约；激活与回滚只更新 MySQL release，旧版本不提前删除。
 
 验证：
 
 ```powershell
 cd backend/agent
 uv run pytest tests/jobs/indexer tests/jobs/scheduler tests/rag -v
+python -m jobs.indexer.vector_probe
 ```
 
-回滚点：停止消费者并保持 alias 指向旧 index。
+回滚点：停止消费者并保持 MySQL active release 指向旧版本；新 `search_document` 行和 Vector Set key 保留排查。
 
 ## Phase 6：Business 精确查询与证据接口
 
 - [x] 增加标题/别名/人物/角色解析与关系过滤 Mapper/Service；复杂联表使用参数绑定的 XML。
+- [ ] 增加受控 lexical search API：在 active release 上执行 `MATCH(title, aliases, lexical_text) AGAINST (?)` 与结构化过滤，返回候选、词法排名和 `indexVersion`。
 - [x] 增加面向 Agent 的批量 EvidenceCandidate 回查接口，验证 type、NSFW、active 状态并返回来源时间。
 - [x] 同步 Java DTO/VO、OpenAPI；若前端直接消费新字段，再同步 shared types。
 - [x] 添加成功、空结果、无效 ID、越权/错误和批量上限测试。
@@ -119,8 +125,8 @@ npm run typecheck
 ## Phase 7：混合检索与 Agent 证据回答
 
 - [x] 将自然语言解析成受限 RetrievalQuery；结构化过滤、原 query 与可选 rewrite 分离，rewrite 失败回退原 query。
-- [x] 完成精确实体解析 → 关系扩展 → Subject BM25/KNN → RRF → Business 回查 → 可选 rerank → evidence format 链。
-- [x] Reranker 失败回退确定性融合；Redis/Embedding 故障回退 Business 搜索，并发出结构化 fallback 事件。
+- [ ] 将召回链改为精确实体解析 → 关系扩展 → Business MySQL FULLTEXT → 同版本 Redis `VSIM` → RRF → Business 回查 → 可选 rerank → evidence format。
+- [ ] 版本不一致、Vector Set/Embedding 故障时 fail-closed 到 Business 精确/词法搜索，并发出不含查询原文的结构化 fallback 事件。
 - [x] search/discover/recommend 共用 retrieval use case，更新提示词以禁止无证据事实；保持当前 SSE wire 类型兼容。
 - [x] 返回简介摘录、匹配标签/主创/角色/关系、评分热度、状态、来源时间和 retrieval reason。
 
@@ -131,13 +137,13 @@ cd backend/agent
 uv run pytest tests/rag tests/agent tests/api -v
 ```
 
-回滚点：关闭 evidence retrieval/RAG 开关，回退现有 Business 工具；旧 Redis alias 不变。
+回滚点：关闭 evidence retrieval/RAG 开关，回退现有 Business 工具；MySQL active release 不变。
 
 ## Phase 8：端到端门禁与灰度启用
 
-- [ ] 运行数据质量、容量、50-case eval、延迟与人工证据检查，所有报告绑定同一 index/profile version。
-- [ ] 覆盖 MySQL、Redis、Embedding、Business、MinIO 故障矩阵，证明 fail-closed 或既定降级行为。
-- [ ] 小流量启用新 alias 与 RAG，观测 24 小时；异常时回切 alias 和功能开关。
+- [ ] 将 golden cases 从 53 条补齐为恰好 120 条；运行数据质量、双投影容量、120-case eval、延迟与至少 20 条人工证据检查，所有报告绑定同一 index/profile version。
+- [ ] 覆盖 MySQL FULLTEXT、Redis Vector Set、版本错配、Embedding、Business、MinIO 故障矩阵，证明 fail-closed 或既定降级行为。
+- [ ] 小流量激活新 MySQL release 与 RAG，观测 24 小时；异常时回切 release 和功能开关。
 - [ ] 指标稳定后更新 README、运行手册与 `.trellis/spec/`；旧索引/旧表删除另行确认和规划。
 
 全量验证：
@@ -157,4 +163,4 @@ npm run build
 - [ ] PRD、design、implement 已由用户批准。
 - [ ] `implement.jsonl` 与 `check.jsonl` 含真实 spec/research 条目。
 - [ ] 先实现 Phase 1，不直接修改生产数据库或启用 RAG。
-- [ ] 所有真实数据库迁移、alias 激活和旧数据删除均需要独立人工确认。
+- [ ] 所有真实数据库迁移、release 激活和旧数据删除均需要独立人工确认。

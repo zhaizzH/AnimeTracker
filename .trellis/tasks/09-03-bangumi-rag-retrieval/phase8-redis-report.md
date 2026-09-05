@@ -1,5 +1,7 @@
 # Phase 8 Redis/RediSearch 验证报告
 
+> 规划更新（2026-09-05）：本报告保留为原 RediSearch 路线的历史证据。用户已同意改用 MySQL FULLTEXT + Redis Vector Set，缺少 `FT.*` 不再是新路线的发布前置条件；后续以 `VADD/VSIM/VREM` 和同版本 MySQL release 门禁为准。
+
 日期：2026-09-05（继续验证）
 
 ## 验证范围

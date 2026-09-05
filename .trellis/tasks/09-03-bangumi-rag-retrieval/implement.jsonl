@@ -2,3 +2,4 @@
 {"file":".trellis/spec/backend/agent-guidelines.md","reason":"约束 LangGraph 工具、RAG 降级、SSE、索引 gate 与离线任务"}
 {"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"约束 Schema、Java/Python、OpenAPI、shared types 的跨层同步"}
 {"file":".trellis/tasks/09-03-bangumi-rag-retrieval/research/architecture-audit.md","reason":"记录 Bangumi API、当前实现缺口、参考项目技术栈和阶段依赖证据"}
+{"file":".trellis/tasks/09-03-bangumi-rag-retrieval/research/mysql-fulltext-redis-vectorset-decision.md","reason":"记录用户批准的 MySQL FULLTEXT + Redis Vector Set 替代路线、发布版本契约与实施顺序"}
