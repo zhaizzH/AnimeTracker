@@ -87,7 +87,7 @@ uv run pytest tests/jobs/backfill -v
 - [x] 为 SUBJECT/EPISODE/PERSON/CHARACTER 建立确定性 profile 与 profile_version；只向量化语义正文。
 - [x] 演进 indexer repository，安全消费通用任务、处理 tombstone、hash 漂移、失败重试和幂等完成。
 - [x] scheduler 增加受控 indexer/backfill 调度，提供重叠任务和进程重启测试；是否常驻部署仍由运行手册明确。
-- [ ] 建 shadow index、容量/数据质量报告与 alias 回滚流程；旧 index 不提前删除。
+- [x] 建 shadow index、容量/数据质量报告与 alias 回滚流程；旧 index 不提前删除（真实 Redis 门禁另见 Phase 8）。
 
 验证：
 

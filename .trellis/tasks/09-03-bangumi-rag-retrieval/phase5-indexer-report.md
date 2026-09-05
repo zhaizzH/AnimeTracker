@@ -1,35 +1,27 @@
-# Phase 5 indexer 接线报告
+# Phase 5 Shadow Index 与发布报告
 
-## 已完成
+日期：2026-09-05
 
-- `backend/agent/jobs/indexer/main.py` 新增 `run_search_batch`，生产 CLI 默认同时消费旧 `rag_index_job` 与通用 `search_index_job`；可用 `--queue legacy|search|both` 显式选择。
-- 通用队列支持 `SUBJECT`、`EPISODE`、`PERSON`、`CHARACTER`，通过 `MultiEntityLoader` 加载事实、通过多实体 profile 构建文本，并在 profile hash 漂移时重新入队，不把新文本写入旧 hash。
-- 新增 `backend/agent/jobs/indexer/entity_index.py`，按版本写入通用 Redis/RediSearch shadow HASH；失效实体通过 tombstone 删除后才完成任务。
-- `search_index_job` 完成/失败写回增加 `claimed_at` lease 校验；tombstone 认领会更新时间、尝试次数和 claim 时间。
-- 保留旧 Subject indexer 的 Redis alias 与任务状态流程；新通用 Subject 任务写入实体 shadow index，二者不互相标记状态。
-- importer 在 Subject 事实事务中同时写入旧 `rag_index_job` 与通用 `search_index_job` outbox；Subject、Episode、Person、Character 均使用现有多实体 profile builder 生成 `profile_version/content_hash`。
-- importer 的 `write_bundle` 行为测试已覆盖完整 Subject 导入：旧 `rag_index_job` 与 Subject、Episode、Person、Character 五类通用任务均在同一写入流程中发布；实体响应不完整时不发布对应人物/角色任务。
-- Person/Character profile 的职业、别名、代表作品、登场作品和声优关系从同一事务已写入的权威表读取；persons/characters/episodes 上游响应不完整时不发布对应实体任务。
-- 通用 outbox 使用 `(entity_kind, entity_id, index_version)` 幂等键；同 hash 的已完成/进行中任务不重置，失败、失效或 hash 变化任务重置为 `PENDING`。
+## 已实现的本地契约
+
+- `ShadowIndexManager` 通过 `idx:rag:subject:<version>` 建立/读取 shadow index，不删除旧 index。
+- `prepare_switch` 只生成计划；`execute_switch` 只有在 gate 通过时才调用 `FT.ALIASUPDATE`。
+- `rollback(previous_version)` 原子切回旧 alias，并保留旧索引作为回滚窗口。
+- `build_capacity_report` 根据样本文档大小投影总容量，超过 60% 可用物理内存时拒绝发布；空样本 fail-closed。
+- `jobs.indexer.gate` 要求 quality/capacity/eval/latency/human 五份同版本报告，缺失或版本不一致时拒绝 alias 激活。
 
 ## 验证
 
 ```text
 cd backend/agent
-pytest tests/jobs/indexer tests/rag/test_multi_profile.py -q --basetemp .pytest-tmp-phase5-final
-59 passed
+\.venv\Scripts\python.exe -m pytest tests/jobs/indexer tests/rag -q -p no:cacheprovider -p no:tmpdir
+117 passed
 python -m compileall -q app jobs
 git diff --check
 ```
 
-测试覆盖四种实体成功写入、tombstone 删除、profile hash 漂移重入队和 embedding 暂时不可用时的失败/重试状态。未连接真实 MySQL、Redis 或 Embedding 服务；Phase 8 的真实基础设施门禁仍待执行。
+新增容量报告 JSON 回归测试，覆盖容量投影、空样本拒绝和机器可读输出；既有 shadow 测试覆盖 gate 未通过拒绝切换及 rollback。
 
-importer outbox 补充测试：
+## 未通过的运行时门禁
 
-```text
-cd backend/agent
-pytest tests/jobs/importer/test_search_outbox.py -q --basetemp .pytest-tmp-outbox
-5 passed
-```
-
-该测试验证通用任务 SQL 写入、完成任务幂等、失败任务重试、不完整实体响应的 fail-closed 行为，以及 `write_bundle` 对五类实体任务的接线。
+当前 Redis 仅加载 `vectorset`，缺少 `FT.*`；因此本报告只证明代码契约，不代表真实 shadow index、BM25/KNN、alias 灰度或容量压测已执行。RAG 仍保持关闭。

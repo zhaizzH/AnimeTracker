@@ -5,7 +5,7 @@
 
 ## 结论
 
-代码级门禁通过；任务仍不能宣称生产 RAG 已启用。当前实现已把 Subject、Episode、Person、Character 的事实写入、索引任务和证据回查接通，并修复 Spring Boot 的 `Character` 类型别名启动冲突及 MySQL 8.4 排序兼容性；真实 MySQL 前向迁移已执行，回填报告契约已补齐，但当前 Redis 没有 RediSearch 模块，MinIO/Embedding/Bangumi API 与灰度发布尚未执行。
+代码级门禁通过；任务仍不能宣称生产 RAG 已启用。当前实现已把 Subject、Episode、Person、Character 的事实写入、索引任务、回填报告和证据回查接通，并修复 Spring Boot 的 `Character` 类型别名启动冲突及 MySQL 8.4 排序兼容性；真实 MySQL 前向迁移已执行，shadow/容量/rollback 代码契约已覆盖，但当前 Redis 没有 RediSearch 模块，MinIO/Embedding/Bangumi API 与灰度发布尚未执行。
 
 ## 已通过
 
