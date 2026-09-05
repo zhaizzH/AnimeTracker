@@ -46,7 +46,7 @@
 | Python | 3.10（含）以上 | `pyproject.toml` 声明 `requires-python = ">=3.10"` |
 | uv | 最新版 | Agent 依赖由 `uv.lock` 锁定，CI 使用 `astral-sh/setup-uv@v5` |
 | MySQL | 8 | 库名 `anime_tracker` |
-| Redis | 5+ 协议兼容 | 会话、消息、提示词、待确认动作、RAG 索引（可选） |
+| Redis | 5+ 协议兼容；RAG 需 RediSearch/Redis Stack | 会话、消息、提示词、待确认动作；RAG 索引需要 `FT.*` 命令（可选） |
 | MinIO | 任意近期版本 | 头像、封面、原始快照存储 |
 
 ## 目录结构

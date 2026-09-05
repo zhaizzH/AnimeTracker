@@ -7,6 +7,7 @@
 - `app/agent/graph.py` 先按角色分流；普通用户只允许 `search_agent / discover_agent / recommend_agent`。
 - 每个节点只注册完成职责所需的工具；新增工具先确定最小可见节点。
 - RAG 关闭时使用显式不可用适配器与 Business fallback，不能把检索失败静默伪装为空结果。
+- RAG 索引运行前必须验证 Redis 提供 RediSearch 命令（至少 `FT.CREATE`、`FT.SEARCH`、`FT.ALIASUPDATE`）；只有 `vectorset` 等模块而无 `FT.*` 时视为索引基础设施不可用，保持 `RAG_ENABLED=false` 或按既定 Business fallback，不得宣称已发布 RAG。
 - 通过权威回查的候选必须经 Evidence API 补充证据字段（`_enrich_evidence`）；Evidence 失败、错误、部分或不安全响应时必须 fail-closed（`available=false`、空候选），并记录 `rag.evidence.enriched` 事件。
 - `RetrievalQuery` 的 `person_ids`、`character_ids`、`actor_ids`、`relation_subject_ids` 只能通过 Business `/api/client/evidence/resolve` 解析为活跃、非 NSFW 动画 Subject allowlist；解析失败不得访问 Redis 或返回未过滤候选。
 - Agent 提示词禁止陈述工具返回中不存在的证据；`_compact` 输出必须包含全部 18 个证据字段，缺失字段使用空默认值。
@@ -143,4 +144,5 @@ allowed = resolve_evidence(match.entity_kind, ids, token=token)
 - importer 使用 MySQL `GET_LOCK` 做跨进程互斥；每个 worker 独立 Session，失败必须 rollback、关闭连接并返回非零结果。
 - indexer 报告缺失、版本不一致、契约/指标不达标时必须 fail closed；只有显式 `--activate` 且所有报告通过时才更新 alias，旧索引不得先删除。
 - scheduler 使用 Asia/Shanghai 的固定时刻（每日 recent、每周 since、季度 full），同一分钟同模式去重；仓库不提供常驻宿主、重叠任务终止或重启托管。
+- 运行环境仅提供普通 Redis 或 `vectorset` 而未加载 RediSearch 时，不能执行现有 `jobs.indexer` 的 HASH/FT 索引路径；应先切换到 Redis Stack/RediSearch 实例，再进行索引报告、alias 灰度和评测。
 - 以上契约的参数、退出码、报告字段或阈值发生变化时，必须同时更新本文件和 `quality-guidelines.md` 的验证清单，并补失败路径测试。
