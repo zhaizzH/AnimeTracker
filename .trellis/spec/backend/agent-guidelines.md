@@ -127,8 +127,8 @@ allowed = resolve_evidence(match.entity_kind, ids, token=token)
 
 ### 健康检查语义
 
-- Agent `/health` 当前始终返回 HTTP 200，并只反映 LLM 配置是否可解析；不代表 Redis、Business、RAG 或 MinIO 可用。
-- Business 的 liveness/readiness 配置见 `backend/business/app/src/main/resources/application.yml`；当前 readiness 计划检查 MySQL 与 Redis，但 Security 默认拒绝未显式放行的 URL，修改健康探针时必须补授权测试。
+- Agent `/api/client/agent/health` 当前始终返回 HTTP 200，并只反映 LLM 配置是否可解析；不代表 Redis、Business、RAG 或 MinIO 可用。
+- Business 的 liveness/readiness 配置见 `backend/business/app/src/main/resources/application.yml`；readiness 检查 MySQL 与 Redis，Security 只匿名放行 `/actuator/health` 与 `/actuator/health/**`，其他未显式允许的 URL 仍拒绝；修改健康探针时必须补授权测试。
 - 变更健康检查时必须明确：检查项、HTTP 状态、依赖不可用时的响应、公开字段和是否允许匿名访问。
 
 ## 离线任务

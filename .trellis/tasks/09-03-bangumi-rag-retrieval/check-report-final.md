@@ -21,7 +21,7 @@
 3. AC6/AC7：已有 53 条 golden cases 和确定性指标 runner，但没有绑定真实快照的 Recall/MRR/nDCG/过滤正确率/证据完整率/P95 基线，也未完成故障演练、shadow alias 灰度和 24 小时观测。
 4. AC8：当前没有新增 Neo4j/Elasticsearch/Milvus/RabbitMQ/MongoDB；是否引入仍按评测和容量指标决定。
 5. RAG 基础设施门禁：应用配置的 Redis 可连接，但服务端仅加载 `vectorset`，`FT.CREATE`、`FT.SEARCH`、`FT._LIST` 均为 unknown command；现有 indexer/名称解析依赖 RediSearch，故 RAG 索引构建与 alias 发布暂不可验证。详见 `phase8-redis-report.md`。
-6. HTTP 端到端门禁：本次复核中 `127.0.0.1:8080/actuator/health` 仍连接被拒；Agent 实际健康路由是 `/api/client/agent/health`（不是根路径 `/health`），已返回 HTTP 200。Business/Evidence 真实链路仍未验证。
+6. HTTP 端到端门禁：`127.0.0.1:8080` 已监听，但当前旧进程的 `/actuator/health` 返回 401；代码已补充匿名 health 放行，需重启 Business 后复测。Agent 实际健康路由是 `/api/client/agent/health`（不是根路径 `/health`），已返回 HTTP 200。Business/Evidence 真实链路仍未验证。
 7. Spring Boot 启动门禁：已修复 `Character` 与 `java.lang.Character` 的 MyBatis alias 冲突，新增回归测试并通过完整 Maven 构建；详见 `phase8-springboot-startup-report.md`。
 
 ## 验证证据
@@ -32,7 +32,7 @@
 - `backend/business` `mvn -B clean test`：**31 passed，BUILD SUCCESS**；包含 MyBatis alias 回归测试。
 - MySQL 8.4.9 临时库：初始化、旧表前向迁移、重复迁移和 9 张新表/3 个兼容列断言通过；验证库已删除。
 - Redis 8.8.0：连接与 PING 通过；模块列表仅有 `vectorset`，RediSearch 命令探针失败。
-- Business `8080/actuator/health`：连接被拒；Agent `8090/api/client/agent/health`：HTTP 200，返回 `status=ok`、`llm_configured=true`。本次探测未触发写操作。
+- Business `8080/actuator/health`：当前旧进程 HTTP 401；修复后的匿名放行规则已由 `SecurityConfigAuthorizationTest` 验证，需重启进程复测。Agent `8090/api/client/agent/health`：HTTP 200，返回 `status=ok`、`llm_configured=true`。本次探测未触发写操作。
 - `git diff --check`：通过（仅 CRLF 转换提示）。
 - Phase 7 结构化实体筛选、名称解析与规划：定向测试 **68 passed**，RAG/适配器范围 **82 passed**；Business HTTP `/resolve` 契约、`RELATION_SUBJECT` 服务、名称转义/类型映射、规划器显式字段优先和 fail-closed 测试已覆盖。
 - Spring Boot 启动回归：`Character` 注册为 `BangumiCharacter`，内置 `Character` 保持 `java.lang.Character`，测试通过。

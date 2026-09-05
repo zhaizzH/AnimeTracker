@@ -70,6 +70,11 @@ class SecurityConfigAuthorizationTest {
             return "subject";
         }
 
+        @GetMapping("/actuator/health")
+        String health() {
+            return "ok";
+        }
+
         @PostMapping("/api/client/evidence/batch")
         String evidenceBatch() {
             return "evidence";
@@ -105,6 +110,8 @@ class SecurityConfigAuthorizationTest {
         mvc.perform(post("/api/client/evidence/resolve")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"entityType\":\"PERSON\",\"ids\":[1]}"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/actuator/health"))
                 .andExpect(status().isOk());
     }
 

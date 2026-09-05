@@ -51,6 +51,7 @@ public class SecurityConfig {
                         .accessDeniedHandler((request, response, accessDeniedException) ->
                                 writeJson(response, ErrorType.FORBIDDEN)))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/api/client/auth/register", "/api/client/auth/login",
                                 "/api/client/auth/verify-email", "/api/client/auth/resend-code",
                                 "/api/client/auth/refresh",
