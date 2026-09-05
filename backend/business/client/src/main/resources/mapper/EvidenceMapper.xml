@@ -109,7 +109,7 @@
 
     <!-- 根据主创人物扩展 Subject；ids 是本地 person.id，不使用字符串拼接。 -->
     <select id="selectSubjectIdsByPersonIds" resultType="java.lang.Long">
-        SELECT DISTINCT s.id
+        SELECT s.id
         FROM subject_person_credit spc
         INNER JOIN person p ON p.id = spc.person_id
         INNER JOIN subject s ON s.id = spc.subject_id
@@ -122,12 +122,13 @@
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
         </foreach>
+        GROUP BY s.id, s.score
         ORDER BY s.score DESC, s.id ASC
     </select>
 
     <!-- 根据角色扩展 Subject；ids 是本地 character.id。 -->
     <select id="selectSubjectIdsByCharacterIds" resultType="java.lang.Long">
-        SELECT DISTINCT s.id
+        SELECT s.id
         FROM subject_character sc
         INNER JOIN `character` c ON c.id = sc.character_id
         INNER JOIN subject s ON s.id = sc.subject_id
@@ -140,12 +141,13 @@
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
         </foreach>
+        GROUP BY s.id, s.score
         ORDER BY s.score DESC, s.id ASC
     </select>
 
     <!-- 根据声优关系扩展 Subject；ids 是本地 person.id。 -->
     <select id="selectSubjectIdsByActorIds" resultType="java.lang.Long">
-        SELECT DISTINCT s.id
+        SELECT s.id
         FROM character_actor ca
         INNER JOIN person p ON p.id = ca.person_id
         INNER JOIN `character` c ON c.id = ca.character_id
@@ -160,6 +162,7 @@
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
         </foreach>
+        GROUP BY s.id, s.score
         ORDER BY s.score DESC, s.id ASC
     </select>
 

@@ -92,6 +92,7 @@ DEALLOCATE PREPARE stmt;
 
 - 单表 CRUD 优先使用 MyBatis-Plus `BaseMapper`；复杂联表和动态条件写在 `resources/mapper/*.xml`。
 - Mapper 参数使用 `@Param` 命名，XML 使用 `#{...}` 绑定。参考 `CollectionMapper.java` 与 `CollectionMapper.xml`。
+- MySQL 8.4 默认 `ONLY_FULL_GROUP_BY` 下，禁止在 `SELECT DISTINCT` 查询中按未出现在投影中的字段排序；需要去重并按评分排序时使用 `SELECT` + `GROUP BY`（将排序字段一并分组），例如 `GROUP BY s.id, s.score ORDER BY s.score DESC, s.id ASC`。涉及实体扩展查询的 SQL 必须有 MySQL 8.4 回归断言，避免本地宽松模式掩盖 3065 错误。
 - 分页统一返回 `PageResult<T>{content,total,page,size}`，不要把 MyBatis `Page` 暴露给 Controller。
 - 多步写入在 Service 声明事务；每项独立提交可参考 `CollectionProgressItemExecutor` 的 `REQUIRES_NEW`。
 - 并发幂等写入依赖唯一约束并处理冲突，参考 `CollectionServiceImpl.addToWishlistIfAbsent`。

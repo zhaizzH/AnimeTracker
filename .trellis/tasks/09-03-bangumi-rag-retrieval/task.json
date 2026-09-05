@@ -30,7 +30,7 @@
     "backend/agent/tests/jobs/importer/test_contract_drift.py",
     "backend/agent/tests/rag/test_evidence_contract.py"
   ],
-  "notes": "Phase 1-7 代码实现与门禁已持续跟进；Phase 8 仍未完成。MySQL 8.4.9 迁移验证通过，Spring Boot Character MyBatis alias 冲突已修复并通过 Maven；Redis 8.8.0 仅有 vectorset、缺少 RediSearch FT.*，Business 8080/Evidence 真实链路和 RAG 灰度仍待完成。",
+  "notes": "Phase 1-7 代码实现与门禁已持续跟进；Phase 8 部分完成。MySQL 8.4.9 临时库与实际 anime_tracker 前向迁移、二次幂等验证通过（实际库 21 表、3 个 source_active 列）；Spring Boot Character alias 与 MySQL 8.4 Evidence 排序兼容已修复并通过 Maven，8080 健康与三类实体 Evidence 均 200。Redis 8.8.0 仅有 vectorset、缺少 RediSearch FT.*，RAG 灰度仍待完成。",
   "meta": {
     "phase1_completed": "2026-09-03",
     "phase1_tests_passed": 59,
@@ -39,6 +39,7 @@
     "phase8_springboot_alias_verified": "2026-09-05",
     "phase8_redisearch_blocked": true,
     "phase8_business_health_verified": "2026-09-05",
-    "phase8_entity_evidence_blocked": true
+    "phase8_entity_evidence_verified": "2026-09-05",
+    "phase8_entity_evidence_blocked": false
   }
 }

@@ -20,11 +20,11 @@ The alias 'Character' is already mapped to the value 'java.lang.Character'.
 
 ## 验证
 
-- `mvn -B clean test`：BUILD SUCCESS；Business 全部 **31 tests passed**（Client 19、App 12）。
+- `mvn -B clean test`：BUILD SUCCESS；Business 全部 **32 tests passed**（Client 20、App 12）。新增 SQL 兼容性回归测试覆盖三个实体扩展查询。
 - Agent RAG/适配器测试：**82 passed**；质量复核全量 Agent：**226 passed**。
 - Agent 健康路由：`GET /api/client/agent/health` 返回 HTTP 200；根路径 `/health` 不是有效路由。
 
 ## 仍未通过的 Phase 8 门禁
 
-- Business `127.0.0.1:8080` 已重启并监听；`/actuator/health`、`/liveness`、`/readiness` 均返回 HTTP 200。实际 Evidence 的 PERSON 查询因业务库尚未执行前向迁移而返回 HTTP 500，详见 `phase8-mysql-migration-report.md`。
+- Business `127.0.0.1:8080` 已使用 reactor 依赖重启并监听；`/actuator/health`、`/liveness`、`/readiness` 均返回 HTTP 200。真实库迁移完成后，Evidence 的 PERSON、CHARACTER、ACTOR 查询均返回 HTTP 200；MySQL 8.4 的 3065 排序错误已由分组查询修复。
 - Redis 仅加载 `vectorset`，缺少现有 indexer 所需的 RediSearch `FT.*` 命令；RAG 仍保持关闭。
