@@ -35,11 +35,12 @@ class _Result:
 
 
 class _Session:
-    def __init__(self, claim_rows=None, report_rows=None, failure_rows=None):
+    def __init__(self, claim_rows=None, report_rows=None, failure_rows=None, stale_rows=None):
         self.calls: list[tuple[str, dict]] = []
         self._claim_rows = claim_rows or []
         self._report_rows = report_rows or []
         self._failure_rows = failure_rows or []
+        self._stale_rows = stale_rows or []
         self._call_index = 0
         self.commits = 0
         self.rollbacks = 0
@@ -55,6 +56,8 @@ class _Session:
             return _Result(mappings_result=self._report_rows)
         if "last_error_code" in sql and "GROUP BY" in sql:
             return _Result(mappings_result=self._failure_rows)
+        if "detail_status <> 'COMPLETE'" in sql:
+            return _Result(mappings_result=self._stale_rows)
         if "SELECT attempts" in sql or "SELECT source_hash" in sql:
             return _Result(mappings_result=[{"attempts": 1, "max_attempts": 5, "source_hash": None}])
         if sql.strip().startswith("SELECT"):
@@ -172,6 +175,10 @@ class TestEntityDetailJobRepository:
                 {"last_error_code": "HTTPError", "cnt": 3},
                 {"last_error_code": "Timeout", "cnt": 2},
             ],
+            stale_rows=[
+                {"entity_kind": "PERSON", "cnt": 4},
+                {"entity_kind": "CHARACTER", "cnt": 1},
+            ],
         )
         repo = EntityDetailJobRepository(session)
         report = repo.generate_report()
@@ -180,6 +187,9 @@ class TestEntityDetailJobRepository:
         assert report.completed == 80
         assert report.coverage_pct == pytest.approx(80.0)
         assert report.failure_reasons["HTTPError"] == 3
+        assert report.stale_entities == 5
+        assert report.stale_by_kind == {"PERSON": 4, "CHARACTER": 1}
+        assert report.as_dict()["coveragePct"] == pytest.approx(80.0)
 
     def test_save_checkpoint(self):
         session = _Session()

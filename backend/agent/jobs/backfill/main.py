@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 import sys
@@ -30,6 +31,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-batches", type=int, default=None, help="最大批次数（None=无限）")
     parser.add_argument("--delay", type=float, default=DEFAULT_REQUEST_DELAY, help="请求间隔秒数")
     parser.add_argument("--report", action="store_true", help="生成回填报告")
+    parser.add_argument("--report-json", action="store_true", help="以 JSON 输出回填报告")
     parser.add_argument("--pause", action="store_true", help="暂停所有待处理任务")
     parser.add_argument("--resume", action="store_true", help="恢复暂停的任务")
     args = parser.parse_args(argv)
@@ -51,14 +53,22 @@ def main(argv: list[str] | None = None) -> int:
     try:
         repo = EntityDetailJobRepository(session)
 
-        if args.report:
+        if args.report or args.report_json:
             report = repo.generate_report()
+            if args.report_json:
+                print(json.dumps(report.as_dict(), ensure_ascii=False, indent=2))
+                return 0
             print(f"\n=== 回填报告 ===")
             print(f"总任务数: {report.total_jobs}")
             print(f"已完成:   {report.completed} ({report.coverage_pct:.1f}%)")
             print(f"待处理:   {report.pending}")
             print(f"失败:     {report.failed}")
             print(f"放弃:     {report.abandoned}")
+            print(f"stale:    {report.stale_entities}")
+            if report.stale_by_kind:
+                print("stale 按实体:")
+                for kind, count in report.stale_by_kind.items():
+                    print(f"  {kind}: {count}")
             if report.failure_reasons:
                 print(f"\n失败原因 TOP:")
                 for code, cnt in report.failure_reasons.items():

@@ -137,6 +137,51 @@ allowed = resolve_evidence(match.entity_kind, ids, token=token)
 - indexer 只有显式 `--activate` 且全部报告通过时才执行 `FT.ALIASUPDATE`。
 - scheduler 使用 Asia/Shanghai 规则；仓库没有常驻宿主配置，不得假设已有 cron/systemd/容器部署。
 
+### Scenario: Person/Character 回填报告
+
+#### 1. Scope / Trigger
+
+- 触发：运行 `jobs.backfill.main --report` 或定时采集回填状态。
+
+#### 2. Signatures
+
+- 文本：`python -m jobs.backfill.main --report`。
+- JSON：`python -m jobs.backfill.main --report-json`。
+- `EntityDetailJobRepository.generate_report() -> BackfillReport`。
+
+#### 3. Contracts
+
+- 报告字段包含 `totalJobs/completed/pending/failed/abandoned/coveragePct/failureReasons`。
+- stale 字段为 `staleEntities/staleByKind`，统计 active Person/Character 且 `detail_status <> COMPLETE` 的实体。
+- 报告只读，不认领、暂停、恢复或修改任务；错误正文不得输出到 JSON。
+
+#### 4. Validation & Error Matrix
+
+| 条件 | 必须行为 |
+|---|---|
+| 无任务 | 覆盖率为 0，报告仍成功生成 |
+| 任务失败/放弃 | 按 `last_error_code` 聚合，不输出错误正文 |
+| active 实体未完成详情 | 计入 `staleEntities` 与 `staleByKind` |
+| 数据库查询失败 | CLI 返回非零退出码，不伪造空报告 |
+
+#### 5. Good/Base/Bad Cases
+
+- Good：调度器采集 `--report-json`，按同一时间窗口记录覆盖率和 stale 数量。
+- Base：人工使用 `--report` 查看摘要。
+- Bad：报告命令顺便认领任务，或把 API 错误正文写入报告。
+
+#### 6. Tests Required
+
+- Backfill repository 单测断言覆盖率、失败原因、stale 按实体类型聚合及 JSON 字段。
+- CLI/编译检查断言 `--report-json` 可导入并返回稳定字段。
+
+#### 7. Wrong vs Correct
+
+```text
+Wrong: 只统计 COMPLETED/TOTAL，忽略 active 实体仍处于 SUMMARY_ONLY 的 stale 状态。
+Correct: 同时统计任务状态和 person/character 的 detail_status，并通过 --report-json 输出。
+```
+
 ### 离线任务最低契约
 
 - importer CLI 的 `--mode` 为 `full|season|recent|since|sample`；`--dry-run` 只扫描，不打开数据库或写对象存储，当前仅支持 full 扫描语义。

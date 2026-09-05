@@ -12,7 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Callable
 
@@ -50,6 +50,22 @@ class BackfillReport:
     abandoned: int
     coverage_pct: float
     failure_reasons: dict[str, int]
+    stale_entities: int = 0
+    stale_by_kind: dict[str, int] = field(default_factory=dict)
+
+    def as_dict(self) -> dict[str, object]:
+        """返回不含敏感错误正文的机器可读报告。"""
+        return {
+            "totalJobs": self.total_jobs,
+            "completed": self.completed,
+            "pending": self.pending,
+            "failed": self.failed,
+            "abandoned": self.abandoned,
+            "coveragePct": self.coverage_pct,
+            "failureReasons": dict(self.failure_reasons),
+            "staleEntities": self.stale_entities,
+            "staleByKind": dict(self.stale_by_kind),
+        }
 
 
 class EntityDetailJobRepository:
@@ -258,6 +274,16 @@ class EntityDetailJobRepository:
             ),
         ).mappings().all()
         failure_reasons = {str(r["last_error_code"]): int(r["cnt"]) for r in failure_rows}
+        stale_rows = self._session.execute(
+            text(
+                "SELECT 'PERSON' AS entity_kind, COUNT(*) AS cnt FROM person "
+                "WHERE source_active=1 AND detail_status <> 'COMPLETE' "
+                "UNION ALL "
+                "SELECT 'CHARACTER' AS entity_kind, COUNT(*) AS cnt FROM `character` "
+                "WHERE source_active=1 AND detail_status <> 'COMPLETE'"
+            ),
+        ).mappings().all()
+        stale_by_kind = {str(r["entity_kind"]): int(r["cnt"]) for r in stale_rows}
         return BackfillReport(
             total_jobs=total,
             completed=completed,
@@ -266,6 +292,8 @@ class EntityDetailJobRepository:
             abandoned=counts.get("ABANDONED", 0),
             coverage_pct=(completed / total * 100) if total > 0 else 0.0,
             failure_reasons=failure_reasons,
+            stale_entities=sum(stale_by_kind.values()),
+            stale_by_kind=stale_by_kind,
         )
 
 
