@@ -60,3 +60,9 @@ BUILD SUCCESS
 - 两条任务均因 `EmbeddingUnavailable` 未写入 `search_document`；Redis 与 MySQL 连接正常。
 - DashScope `text-embedding-v4` 连通性在清空本地代理后仍返回 TLS/网络错误（`SSLEOFError`），因此暂停全量回填，未激活任何 release。
 - 待外部 embedding 网络恢复后，可直接重试 `RETRY` 任务，再以小批量验证后继续全量回填。
+
+## 2026-09-05 代理关闭后重试结果
+
+- 关闭代理后重试成功：`rag_index_job` 为 `INDEXED=4`、`PENDING=216`，无 `RETRY/FAILED`。
+- MySQL `search_document` 已写入 `v1` 版本 4 条；Redis `rag:vectors:SUBJECT:v1` 已有 4 个成员。
+- 词法 API 仍返回 HTTP 503 `词法索引尚未发布`，因为尚未创建并激活 `search_index_release` 的 ACTIVE 记录。
