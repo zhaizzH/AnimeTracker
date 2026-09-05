@@ -23,3 +23,7 @@ git diff --check
 ```
 
 真实数据库回填尚未执行；报告只补齐观测契约，Person/Character 详情仍按既定限速和 checkpoint 流程渐进处理。
+
+## 运行中业务库观察（2026-09-05）
+
+对本机 `anime_tracker` 执行只读 `--report-json`：当前 `totalJobs=0`、`coveragePct=0`、`staleEntities=0`，`PERSON` 与 `CHARACTER` stale 均为 0；未认领或修改任何任务。
