@@ -45,8 +45,11 @@ class MySqlReleaseStore:
                 ).mappings().first()
                 if target is None:
                     raise ValueError(f"release 不存在: {index_version}")
-                if str(target["status"]) == "ACTIVE":
+                status = str(target["status"])
+                if status == "ACTIVE":
                     return
+                if status != "BUILDING":
+                    raise ValueError(f"release 状态不可激活: {status}")
                 session.execute(
                     text(
                         "UPDATE search_index_release SET status='RETIRED', retired_at=:now, updated_at=:now "
