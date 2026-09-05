@@ -1,6 +1,6 @@
 # 最终跨层质量检查报告
 
-> 规划更新（2026-09-05）：本报告记录的是 RediSearch 路线的历史检查结果。后续实现已改为 MySQL FULLTEXT + Redis Vector Set，`FT.*` 缺失不再阻塞；新的双投影与 release 门禁仍需按更新后的 `design.md`、`implement.md` 重新验证。
+> 历史报告：本报告记录 RediSearch 路线的最终检查结果。当前方向已改为 MySQL FULLTEXT + Redis Vector Set，`FT.*` 缺失不再阻塞；新的双投影与 release 门禁仍需按 [design.md](../design.md) 和 [implement.md](../implement.md) 重新验证。
 
 日期：2026-09-05
 范围：Phase 3 导入、Phase 5 多实体索引/outbox、Phase 6 Business 精确查询、Evidence fail-closed，以及 Phase 7 结构化实体 ID、实体名称与受限查询规划切片。
