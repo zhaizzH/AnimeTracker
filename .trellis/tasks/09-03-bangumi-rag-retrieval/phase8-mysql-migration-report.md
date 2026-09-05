@@ -6,7 +6,7 @@
 
 - 连接本机 MySQL，服务版本：`8.4.9`。
 - 使用临时库 `anime_tracker_verify_20260905`，验证结束后已删除。
-- 未连接或修改开发/生产业务库 `anime_tracker`。
+- 随后按用户明确授权，直接对本机业务库 `anime_tracker` 执行前向迁移；未创建备份。
 
 ## 场景与结果
 
@@ -27,7 +27,8 @@
 
 ## 运行中业务库观察（2026-09-05）
 
-- 本机 `anime_tracker` 当前仍是旧 schema：12 张表，缺少 `person`、`character`、三类实体关系、`entity_detail_job` 和 `search_index_job`。
-- `subject_alias`、`subject_meta_tag`、`subject_credit` 均尚未增加 `source_active`。
-- 未对该业务库执行迁移；按任务规则，真实存量库迁移需要备份和独立人工确认。
-- Business readiness 已返回 HTTP 200，但 `POST /api/client/evidence/resolve` 使用 `PERSON` 查询时因缺少 `person` 表返回 HTTP 500；`RELATION_SUBJECT` 空结果路径可返回 HTTP 200。
+- `anime_tracker` 前向迁移已完成：当前共 21 张表，9 张实体/RAG 新表均存在，`subject_alias`、`subject_meta_tag`、`subject_credit` 均已增加 `source_active`。
+- 迁移脚本已在真实库重复执行一次，二次执行通过，确认幂等；迁移前已有的 `subject` 数据共 220 条，未执行破坏性初始化脚本。
+- 该次真实库操作遵循用户“无需备份，直接修改”的明确授权；生产环境仍必须遵守数据库备份门禁。
+- Business 重启后 readiness 与 liveness 均返回 HTTP 200；`POST /api/client/evidence/resolve` 的 `PERSON`、`CHARACTER`、`ACTOR` `[1]` 请求均返回 HTTP 200（当前无匹配时返回空数组）。
+- 修复了 MySQL 8.4 `ONLY_FULL_GROUP_BY` 下 `DISTINCT + ORDER BY s.score` 的 3065 错误：三个实体扩展查询改为 `GROUP BY s.id, s.score`。
