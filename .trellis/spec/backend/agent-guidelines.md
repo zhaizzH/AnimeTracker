@@ -191,3 +191,52 @@ Correct: 同时统计任务状态和 person/character 的 detail_status，并通
 - scheduler 使用 Asia/Shanghai 的固定时刻（每日 recent、每周 since、季度 full），同一分钟同模式去重；仓库不提供常驻宿主、重叠任务终止或重启托管。
 - 运行环境仅提供普通 Redis 或 `vectorset` 而未加载 RediSearch 时，不能执行现有 `jobs.indexer` 的 HASH/FT 索引路径；应先切换到 Redis Stack/RediSearch 实例，再进行索引报告、alias 灰度和评测。
 - 以上契约的参数、退出码、报告字段或阈值发生变化时，必须同时更新本文件和 `quality-guidelines.md` 的验证清单，并补失败路径测试。
+
+### Scenario: Shadow index 发布与回滚
+
+#### 1. Scope / Trigger
+
+- 触发：重建 RAG index version、生成容量/质量报告、切换或回滚 active alias。
+
+#### 2. Signatures
+
+- `ShadowIndexManager.prepare_switch(version, quality_report_path, gate_passed) -> SwitchPlan`。
+- `ShadowIndexManager.execute_switch(plan) -> SwitchResult`。
+- `ShadowIndexManager.rollback(previous_version) -> SwitchResult`。
+- `build_capacity_report(sample_bytes, sample_count, catalog_count, redis_used_memory, available_bytes)`。
+
+#### 3. Contracts
+
+- 新版本写入 `idx:rag:subject:<version>` shadow index；旧 index 在回滚窗口内不得删除。
+- 只有五份同一版本报告通过 gate，`execute_switch` 才能发出唯一的 `FT.ALIASUPDATE`。
+- 容量投影利用率必须不高于 60%；空样本报告必须 `allowed=false`。
+- `rollback` 只更新 alias，不删除任何索引或文档。
+
+#### 4. Validation & Error Matrix
+
+| 条件 | 必须行为 |
+|---|---|
+| 报告缺失/版本不一致 | gate fail-closed，拒绝 alias 切换 |
+| RediSearch `FT.*` 不可用 | 不建索引、不激活 alias，保持 RAG 关闭 |
+| 容量利用率 > 60% | 报告拒绝发布 |
+| alias 切换失败 | 返回失败结果，保留旧 alias |
+| 需要回滚 | 指向已验证的旧版本，保留新索引供排查 |
+
+#### 5. Good/Base/Bad Cases
+
+- Good：先写 shadow → 生成同版本报告 → gate → 原子切 alias → 观察后再清理旧版本。
+- Base：gate 未通过时只保留 shadow 构建结果，不影响在线旧 alias。
+- Bad：直接覆盖 active index、先删除旧 index，或用 `--activate` 绕过报告。
+
+#### 6. Tests Required
+
+- Shadow 单测断言 gate 未通过拒绝切换、旧 alias 保留、rollback 调用正确版本。
+- 容量报告单测断言投影、空样本拒绝和 JSON 字段稳定。
+- 真实 Redis Stack 门禁断言 `FT.CREATE/FT.SEARCH/FT.ALIASUPDATE` 可用后才允许后续灰度。
+
+#### 7. Wrong vs Correct
+
+```text
+Wrong: 删除 idx:rag:subject:old 后直接把新索引改名为 active。
+Correct: 保留旧索引，使用 FT.ALIASUPDATE 原子切换；异常时 rollback 到旧版本。
+```
