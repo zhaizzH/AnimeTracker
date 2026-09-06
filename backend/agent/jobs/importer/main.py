@@ -584,7 +584,10 @@ def run_recent(client, db, resume, **kw):
         calendar = client.get_calendar()
     except Exception as e:
         logger.error("日历获取失败: %s", sanitize_import_error(e))
-        return 0
+        # 日历是 recent 模式的扫描来源；失败时不能把“未扫描到条目”
+        # 当作成功，否则 main() 会将 import_record 错误标记为 COMPLETED，
+        # 也会阻断基于 checkpoint/success_count 的 --resume。
+        raise RuntimeError("日历获取失败") from e
     seen = set()
     ids = []
     for day in calendar:
