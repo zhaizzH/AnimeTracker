@@ -66,10 +66,10 @@
     ,"runtime_services_rechecked": "2026-09-06"
     ,"runtime_embedding_still_unavailable": "2026-09-06"
     ,"runtime_codex_proxy_env_still_set": "2026-09-06"
-    ,"runtime_dual_projection_mismatch": true
-    ,"runtime_missing_vector_subject_ids": [1, 2, 3, 4]
-    ,"runtime_backfill_pending_jobs_latest": 4
-    ,"runtime_backfill_indexed_jobs_latest": 216
+    ,"runtime_dual_projection_mismatch": false
+    ,"runtime_missing_vector_subject_ids": []
+    ,"runtime_backfill_pending_jobs_latest": 0
+    ,"runtime_backfill_indexed_jobs_latest": 220
     ,"runtime_backfill_retry_jobs_latest": 0
   }
 }

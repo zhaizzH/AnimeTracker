@@ -94,3 +94,8 @@ BUILD SUCCESS
 - 全量任务表显示 `INDEXED=220`，MySQL `search_document` 为 220 条，但 Redis `rag:vectors:SUBJECT:v1` 只有 216 个成员。
 - 缺失成员为 Subject 1–4；为避免错误发布，已将这 4 条任务恢复为 `PENDING`（其余 216 条保持 `INDEXED`），等待无代理终端补写向量。
 - 在 Redis 成员数达到 220 且与 MySQL entity ID 集合一致前，不创建或激活 `search_index_release`。
+
+## 2026-09-06 缺失向量修复结果
+
+- 无代理终端已补写 Subject 1–4；最终 `rag_index_job=INDEXED 220`、`search_document(v1)=220`、`rag:vectors:SUBJECT:v1=220`，entity ID 集合一致。
+- 当前双投影回填通过；但 Phase 8 仍缺 120-case 真实评测、延迟/容量报告和至少 20 条人工证据检查，因此保持 release 未发布。
