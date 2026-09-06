@@ -106,3 +106,11 @@ BUILD SUCCESS
 - 人物/角色关系数据尚未具备：`person=0`、`character_alias=0`、`subject_person_credit=0`、`subject_character=0`、`character_actor=0`；`subject_relation` 仅 6 行（3 对双向关系）。
 - 现有 53 条 golden case 含部分与真实库不匹配的人物、角色、经典番名和系列关系样例，不能在此基础上直接补 67 条并宣称已完成真实 120-case 门禁。
 - 结论：先补齐人物/角色/关系真实导入，或将评测目标拆成“当前数据可验证子集 + 明确缺口报告”；在此之前不激活 release。
+
+## 2026-09-06 recent 导入代理复核
+
+- 首次 `recent --resume` 使用环境代理 `127.0.0.1:9` 时，Bangumi 日历请求被拒绝；旧逻辑将“日历未获取到”当作 0 条成功并错误完成 `import_record=9`。
+- 已修复 `backend/agent/jobs/importer/main.py`：日历请求失败现在抛出异常，由主流程将记录置为 `FAILED`，保留 checkpoint 和累计计数，不再伪造完成；新增回归测试 `tests/jobs/importer/test_recent_failure.py`。
+- 使用可用代理 `http://127.0.0.1:7897` 执行 `--mode recent --resume` 成功：日历去重后 113 条，数据库已有条目 113/113，无缺失；`import_record=9` 最终为 `COMPLETED`、`success_count=111`、`failure_count=0`、`skipped_count=90`、checkpoint `offset=113`。
+- 原日志中的“跳过关联条目”仍是关联目标不在当前本地集合的非致命警告，不代表主条目导入失败；当前日历条目集合与数据库集合差集为空。
+- 验证：导入器测试 26 passed，Python compileall 通过，`git diff --check` 通过；修复提交为 `7da6006`。
