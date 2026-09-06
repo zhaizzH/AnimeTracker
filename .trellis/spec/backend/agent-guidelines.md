@@ -255,6 +255,65 @@ except Exception as error:
     raise RuntimeError("日历获取失败") from error
 ```
 
+### Scenario: search indexer 基础设施错误码
+
+#### 1. Scope / Trigger
+
+- 触发：修改 `jobs.indexer.main.run_search_batch` 的 Embedding、Redis 或任务重试处理。
+- 目的：错误码必须能区分 Embedding 与 Redis 故障，避免排障时把 Embedding 网络问题误判为 Redis 故障。
+
+#### 2. Signatures
+
+- `run_search_batch(...) -> IndexBatchResult`：批量消费 `search_index_job`，失败任务进入可重试状态。
+- `SearchIndexJobRepository.mark_failed(job_id, error_code, error_message, retry_seconds, claimed_at)`：写入错误码并设置 `next_retry_at`。
+
+#### 3. Contracts
+
+- `EmbeddingUnavailable` 映射为 `EMBEDDING_UNAVAILABLE`。
+- `EmbeddingRateLimited` 映射为 `EMBEDDING_RATE_LIMITED`。
+- Redis 连接/超时异常映射为 `REDIS_UNAVAILABLE`。
+- 上述异常都必须保持失败可重试语义；不能因为错误码分类改变而确认索引成功或激活 release。
+- 其他异常保留稳定类型名，不把数据库/配置错误伪装成 Redis 故障。
+
+#### 4. Validation & Error Matrix
+
+| 条件 | 必须行为 |
+|---|---|
+| Embedding 服务不可用 | `EMBEDDING_UNAVAILABLE`、`FAILED + next_retry_at` |
+| Embedding 限流 | `EMBEDDING_RATE_LIMITED`、`FAILED + next_retry_at` |
+| Redis 连接或超时 | `REDIS_UNAVAILABLE`、`FAILED + next_retry_at` |
+| 数据库/实体加载异常 | 使用异常类型名，不生成 Redis/Embedding 专属码 |
+| 重试次数耗尽 | 由仓储层进入 `ABANDONED`，gate 必须拒绝发布 |
+
+#### 5. Good/Base/Bad Cases
+
+- Good：EmbeddingUnavailable 记录为 `EMBEDDING_UNAVAILABLE`，任务保留 `next_retry_at`。
+- Base：Redis 写入连接失败记录为 `REDIS_UNAVAILABLE`，不写入 `search_document` 完成状态。
+- Bad：对所有可重试异常统一写 `REDIS_UNAVAILABLE`，导致监控和修复方向错误。
+
+#### 6. Tests Required
+
+- `tests/jobs/indexer/test_main_multi_entity.py`：断言 EmbeddingUnavailable、EmbeddingRateLimited、Redis 连接失败分别产生准确错误码。
+- 断言三类故障的 `IndexBatchResult` 均为 `retried=1、failed=0`，且仓储收到 `mark_failed`。
+- 运行 `pytest tests/jobs/indexer tests/jobs/scheduler tests/rag` 与 `python -m compileall -q jobs/indexer`。
+
+#### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+code = "REDIS_UNAVAILABLE" if _is_retryable(error) else type(error).__name__
+```
+
+#### Correct
+
+```python
+if isinstance(error, EmbeddingUnavailable):
+    code = "EMBEDDING_UNAVAILABLE"
+elif isinstance(error, RedisConnectionError):
+    code = "REDIS_UNAVAILABLE"
+```
+
 ### Scenario: Shadow Vector Set 与 MySQL release 发布与回滚
 
 #### 1. Scope / Trigger

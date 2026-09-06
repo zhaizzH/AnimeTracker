@@ -114,3 +114,11 @@ BUILD SUCCESS
 - 使用可用代理 `http://127.0.0.1:7897` 执行 `--mode recent --resume` 成功：日历去重后 113 条，数据库已有条目 113/113，无缺失；`import_record=9` 最终为 `COMPLETED`、`success_count=111`、`failure_count=0`、`skipped_count=90`、checkpoint `offset=113`。
 - 原日志中的“跳过关联条目”仍是关联目标不在当前本地集合的非致命警告，不代表主条目导入失败；当前日历条目集合与数据库集合差集为空。
 - 验证：导入器测试 26 passed，Python compileall 通过，`git diff --check` 通过；修复提交为 `7da6006`。
+
+## 2026-09-06 recent 导入后实体索引复核
+
+- recent 导入后真实库实体计数为：`subject=220`、`person=9275`、`character=2129`、`subject_person_credit=14434`、`subject_character=2160`、`character_actor=2293`。
+- 导入已产生通用 `search_index_job`：`SUBJECT=111`、`PERSON=9275`、`CHARACTER=2129`、`EPISODE=1658` 条待消费任务；此前已有 Subject 投影仍为 MySQL 220 条、Redis Vector Set 220 个成员。
+- 使用代理 `http://127.0.0.1:7897` 消费 search 队列 10 条进行 smoke；DashScope 返回 `EmbeddingUnavailable`，未新增投影，10 条任务进入带 `next_retry_at` 的可重试失败状态。未激活 release。
+- 本次 smoke 暴露错误码语义问题：Embedding 故障曾被记录为 `REDIS_UNAVAILABLE`；已修复为 `EMBEDDING_UNAVAILABLE`，并补充限流与 Redis 故障区分测试。修复前产生的历史 10 条失败记录不作为成功证据。
+- 当前 `rag_index_job` 为 `INDEXED=118/PENDING=102`，`search_index_release` 仍为空；真实 120-case 端到端评测、版本发布和灰度继续阻断。
