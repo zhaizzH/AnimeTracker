@@ -192,6 +192,69 @@ Correct: 同时统计任务状态和 person/character 的 detail_status，并通
 - 运行环境仅提供普通 Redis 而未加载 Vector Set 时，不能执行 `jobs.indexer`；Redis Vector Set 与 MySQL `search_document` 必须使用同一 `indexVersion`，发布指针只在 MySQL 更新。
 - 以上契约的参数、退出码、报告字段或阈值发生变化时，必须同时更新本文件和 `quality-guidelines.md` 的验证清单，并补失败路径测试。
 
+### Scenario: recent 导入日历源失败
+
+#### 1. Scope / Trigger
+
+- 触发：修改 `jobs.importer.main` 的 `recent` 扫描、代理配置或导入断点/状态处理。
+- 目的：避免 Bangumi 日历请求失败时把“未扫描到条目”误记为成功，导致断点无法恢复。
+
+#### 2. Signatures
+
+- 命令：`python -m jobs.importer.main --mode recent [--resume]`。
+- 扫描源：`BangumiClient.get_calendar() -> list[dict]`。
+- 代理环境变量：`HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY`；只由进程环境注入，不写入日志或任务记录。
+
+#### 3. Contracts
+
+- `recent` 必须先成功获取并去重日历 ID，再调用 `_run_batch`。
+- 日历获取异常必须抛出 `RuntimeError("日历获取失败")`，由 `main()` 统一将当前 `import_record` 标为 `FAILED`，退出码为 `1`。
+- 失败时不得调用 `complete_import_record(..., "COMPLETED")`，不得清除 `checkpoint_json`、累计成功/失败计数或把 `subject_count` 伪造为 0 成功。
+- 成功时 checkpoint 的 `offset` 必须到达本次日历 ID 总数；已有条目可返回 `SKIPPED`，这不等于导入失败。
+
+#### 4. Validation & Error Matrix
+
+| 条件 | 必须行为 |
+|---|---|
+| `get_calendar()` 返回有效列表 | 去重 ID 后执行批处理，完成时记录 `COMPLETED` |
+| `get_calendar()` 超时、代理拒绝或响应异常 | 记录 `FAILED`、保留 checkpoint、返回退出码 1 |
+| `--resume` 且记录为 `RUNNING/FAILED` | 校验扫描 ID SHA-256、offset 和最后 ID；不匹配则拒绝恢复 |
+| 日历条目已存在且 `import_status=1` | 记录 `SKIPPED`，推进 checkpoint，不计入 failure |
+| 代理不可用 | 不把空日历当作成功；错误日志只保留归一化错误类型/消息 |
+
+#### 5. Good/Base/Bad Cases
+
+- Good：代理可用，日历 113 条，resume 推进到 `offset=113`，所有条目已存在时状态为 `COMPLETED`、`failure_count=0`。
+- Base：日历请求中断，状态为 `FAILED`，下次使用同一 checkpoint 可继续，不重复伪造成功。
+- Bad：捕获日历异常后 `return 0`，让主流程把未扫描批次标记为 `COMPLETED`。
+
+#### 6. Tests Required
+
+- `tests/jobs/importer/test_recent_failure.py`：日历客户端抛异常时断言 `run_recent` 抛出 `RuntimeError`，消息为“日历获取失败”。
+- `tests/jobs/importer` 全套：断言成功、跳过、失败计数和 checkpoint 行为不回归。
+- 运行 `python -m compileall -q jobs/importer` 与 `git diff --check`。
+
+#### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+try:
+    calendar = client.get_calendar()
+except Exception:
+    return 0  # main() 会错误地写入 COMPLETED
+```
+
+#### Correct
+
+```python
+try:
+    calendar = client.get_calendar()
+except Exception as error:
+    logger.error("日历获取失败: %s", sanitize_import_error(error))
+    raise RuntimeError("日历获取失败") from error
+```
+
 ### Scenario: Shadow Vector Set 与 MySQL release 发布与回滚
 
 #### 1. Scope / Trigger
