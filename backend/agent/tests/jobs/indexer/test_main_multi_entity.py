@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from app.adapters.llm.embeddings import EmbeddingRateLimited, EmbeddingUnavailable
 from app.entities.enums import EntityKind
 from app.rag.multi_profile import (
     CharacterProfileSource,
@@ -111,6 +112,13 @@ class _RedisIndex:
 
     def delete(self, index_version, entity_kind, entity_id):
         self.deletes.append((index_version, entity_kind, entity_id))
+
+
+class _FailingRedisIndex(_RedisIndex):
+    def write(self, document):
+        from redis.exceptions import ConnectionError as RedisConnectionError
+
+        raise RedisConnectionError("redis unavailable")
 
 
 class _Embedding:
@@ -273,7 +281,7 @@ def test_run_search_batch_reschedules_profile_hash_drift():
     assert kwargs["profile_version"] == "person-profile-v1"
 
 
-def test_run_search_batch_marks_embedding_failure_for_retry():
+def test_run_search_batch_marks_embedding_unavailable_for_retry():
     person = PersonEntity(1, "某导演", "PERSON", "人物", (), (), ())
     profile_hash = build_person_profile(PersonProfileSource(name=person.name, summary=person.summary), MODEL, 1024).content_hash
     repo = _Repo(jobs=[_job(EntityKind.PERSON, 1, profile_hash, 2)])
@@ -283,8 +291,46 @@ def test_run_search_batch_marks_embedding_failure_for_retry():
         repository=repo,
         entity_loader=_Loader(person=person),
         legacy_repository=_LegacyRepository(None),
-        embedding_client=_Embedding(RuntimeError("embedding temporarily unavailable")),
+        embedding_client=_Embedding(EmbeddingUnavailable("embedding unavailable")),
         redis_index=_RedisIndex(),
+    )
+
+    assert result.retried == 1
+    assert result.failed == 0
+    assert repo.failed[0][1]["error_code"] == "EMBEDDING_UNAVAILABLE"
+
+
+def test_run_search_batch_marks_embedding_rate_limit_for_retry():
+    person = PersonEntity(1, "某导演", "PERSON", "人物", (), (), ())
+    profile_hash = build_person_profile(PersonProfileSource(name=person.name, summary=person.summary), MODEL, 1024).content_hash
+    repo = _Repo(jobs=[_job(EntityKind.PERSON, 1, profile_hash, 2)])
+    result = run_search_batch(
+        limit=1,
+        index_version="v-test",
+        repository=repo,
+        entity_loader=_Loader(person=person),
+        legacy_repository=_LegacyRepository(None),
+        embedding_client=_Embedding(EmbeddingRateLimited("embedding rate limited")),
+        redis_index=_RedisIndex(),
+    )
+
+    assert result.retried == 1
+    assert result.failed == 0
+    assert repo.failed[0][1]["error_code"] == "EMBEDDING_RATE_LIMITED"
+
+
+def test_run_search_batch_keeps_redis_failure_code_and_retry_state():
+    person = PersonEntity(1, "某导演", "PERSON", "人物", (), (), ())
+    profile_hash = build_person_profile(PersonProfileSource(name=person.name, summary=person.summary), MODEL, 1024).content_hash
+    repo = _Repo(jobs=[_job(EntityKind.PERSON, 1, profile_hash, 2)])
+    result = run_search_batch(
+        limit=1,
+        index_version="v-test",
+        repository=repo,
+        entity_loader=_Loader(person=person),
+        legacy_repository=_LegacyRepository(None),
+        embedding_client=_Embedding(),
+        redis_index=_FailingRedisIndex(),
     )
 
     assert result.retried == 1

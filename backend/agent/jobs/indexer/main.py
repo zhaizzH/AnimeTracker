@@ -277,13 +277,24 @@ def _mark_search_failure(
     job: ClaimedJob,
     error: Exception,
 ) -> bool:
-    code = "REDIS_UNAVAILABLE" if _is_retryable(error) else type(error).__name__[:64]
+    code = _search_failure_code(error)
     return repository.mark_failed(
         job.id,
         error_code=code,
         error_message=str(error),
         claimed_at=job.claimed_at,
     )
+
+
+def _search_failure_code(error: Exception) -> str:
+    """返回稳定的 search index 错误码，并保留各基础设施的故障语义。"""
+    if isinstance(error, EmbeddingRateLimited):
+        return "EMBEDDING_RATE_LIMITED"
+    if isinstance(error, EmbeddingUnavailable):
+        return "EMBEDDING_UNAVAILABLE"
+    if isinstance(error, (RedisConnectionError, RedisTimeoutError)):
+        return "REDIS_UNAVAILABLE"
+    return type(error).__name__[:64]
 
 
 def _is_missing_entity(error: Exception) -> bool:
