@@ -201,6 +201,47 @@ class TestEntityDetailJobRepository:
 class TestBackfillWorkerIntegration:
     """Worker 逻辑的集成测试（mock client + mock session）。"""
 
+    def test_worker_processes_character_job_with_quoted_table(self):
+        from unittest.mock import MagicMock
+        from jobs.backfill.worker import BackfillWorker
+
+        session = _Session(claim_rows=[
+            {"id": 3, "entity_kind": "CHARACTER", "entity_id": 20, "source_id": 200,
+             "status": "PENDING", "attempts": 0, "max_attempts": 5, "checkpoint_json": None},
+        ])
+        repo = EntityDetailJobRepository(session)
+
+        client = MagicMock()
+        client.get_character.return_value = {
+            "id": 200,
+            "name": "Test Character",
+            "summary": "A test character",
+            "infobox": [{"key": "别名", "value": "TC"}],
+            "images": {"large": "http://img.example.com/c.jpg"},
+        }
+
+        worker = BackfillWorker(
+            client=client,
+            repo=repo,
+            session=session,
+            batch_size=1,
+            request_delay=0,
+            max_batches=1,
+        )
+        stats = worker.run()
+
+        assert stats["processed"] == 1
+        assert stats["completed"] == 1
+        assert stats["failed"] == 0
+        character_lookup = [
+            sql for sql, _ in session.calls
+            if "SELECT source_hash" in sql
+        ]
+        assert len(character_lookup) == 1
+        assert "FROM `character`" in character_lookup[0]
+        assert "FROM character " not in character_lookup[0]
+        client.get_character.assert_called_once_with(200)
+
     def test_worker_processes_person_job(self):
         from unittest.mock import MagicMock, patch
         from jobs.backfill.worker import BackfillWorker

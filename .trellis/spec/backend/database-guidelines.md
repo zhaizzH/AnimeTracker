@@ -223,5 +223,6 @@ ALTER TABLE search_document ADD COLUMN IF NOT EXISTS lexical_text TEXT;
 
 - 只改 ORM 或只改 Schema，造成运行时字段漂移。
 - XML 拼接未校验字符串而不是使用参数绑定。
+- MySQL 8.4 中 `character` 是保留字；Python/SQLAlchemy、MyBatis XML 和迁移 SQL 引用该表时必须写成 `` `character` ``，并为索引、回填查询增加 SQL 引用回归断言。
 - 不要笼统假设所有 Java `Long` 都映射为前端 `string`；必须按领域核对 DTO/VO、OpenAPI 与 shared 类型的实际契约。
 - 索引发布时删除旧版本，导致无法回滚。
