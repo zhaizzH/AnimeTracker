@@ -88,3 +88,9 @@ BUILD SUCCESS
 
 - 用户在无代理终端成功完成 1 条 smoke：队列更新为 `INDEXED=5`、`PENDING=66`、`RETRY=149`。
 - 当前 Codex 进程仍检测到代理变量，因此不从本会话启动全量任务；应在同一无代理终端继续消费剩余任务。
+
+## 2026-09-06 双投影一致性复核
+
+- 全量任务表显示 `INDEXED=220`，MySQL `search_document` 为 220 条，但 Redis `rag:vectors:SUBJECT:v1` 只有 216 个成员。
+- 缺失成员为 Subject 1–4；为避免错误发布，已将这 4 条任务恢复为 `PENDING`（其余 216 条保持 `INDEXED`），等待无代理终端补写向量。
+- 在 Redis 成员数达到 220 且与 MySQL entity ID 集合一致前，不创建或激活 `search_index_release`。
