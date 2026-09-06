@@ -61,7 +61,7 @@
 
 - Business lexical API 设计为必须读取 MySQL active release，并在无 ACTIVE 行时返回 HTTP 503；当前服务无法提供带 `indexVersion` 的真实词法候选。
 - Agent 的设计要求先从 Business 取得 `indexVersion`，再查询同版本 Redis Vector Set 并做 RRF（`design.md:128-129`）。直接调用 `VSIM` 虽然可以测组件，但不能替代线上同版本检索链。
-- 因此目前不能生成可信的端到端 Recall@20、MRR@10、nDCG@10、Business/Evidence hydrated P95、证据完整率，也不能把“Redis 220 成员”当作真实 Agent 召回通过。
+- 因此目前不能生成发布意义上的端到端 Recall@20、MRR@10、nDCG@10、Business/Evidence hydrated P95，也不能把 shadow 报告或“Redis 220 成员”当作真实 Agent 召回通过。shadow 结果只能作为候选索引诊断：115/120 通过，Evidence completeness=1.0。
 - Gate 明确要求五份报告同版本、`requiredTotal=120`、`requiredPassed=120`、无失败，并要求 Recall/MRR/nDCG、P95 和人工检查达标（`backend/agent/jobs/indexer/gate.py:90-125`）。在 release=0 时若生成评测 JSON，只能是 `blocked`/诊断报告；填入 120 passed 会伪造发布证据。
 - 版本激活也不应作为绕过评测的手段。必须先生成五份同一 `v1/subject-profile-v1` 的报告并通过 gate，再由 MySQL release store 激活。
 
@@ -107,6 +107,7 @@
 - `search_index_job` 已为 `COMPLETED=13,173`，`PENDING=0`、`FAILED=0`；MySQL `search_document` 与 Redis Vector Set 的四类实体数量一致。
 - DashScope 直连探针返回 HTTP 200，Embedding 阻断已解除；但 `search_index_release` 仍无 ACTIVE，真实 120-case 回放和五份 gate 报告仍不能生成通过结论。
 - 当前质量报告覆盖率为 100%，另有 1 条 `EPISODE_SHORTAGE` 与 38 条 `EPISODE_STATUS_DRIFT`，须在发布门禁前处理或形成豁免记录。
+- 当前 shadow 报告为 `SHADOW_ONLY`，失败 5 条，主要为过滤/语义/否定 case；其指标和失败列表仍不能直接升格为 `RELEASE_CANDIDATE`。
 
 ## Caveats / Not Found
 

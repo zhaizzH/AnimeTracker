@@ -149,6 +149,12 @@ class RagRetrievalService:
                 vector = None
         effective_evidence = evidence_lookup or self._evidence_lookup
         effective_lexical = lexical_search or self._lexical_search
+        # An entity relation is an authoritative allowlist.  When textual
+        # intent is present, preserve the lexical/vector result whenever it
+        # has candidates; only use the complete allowlist as a bounded-index
+        # fallback when that result is empty.
+        has_textual_intent = bool(query.semantic_query or query.keywords)
+        entity_candidates_exhausted = False
         versioned_semantic = getattr(self._index, "semantic_search_for_version", None)
         try:
             lexical_payload: Any = None
@@ -181,9 +187,39 @@ class RagRetrievalService:
                 excluded = set(query.exclude_subject_ids)
                 if excluded:
                     candidates = [candidate for candidate in candidates if candidate.subject_id not in excluded]
+                if not candidates:
+                    # An entity filter can remove every item from the bounded
+                    # index window.  Do not call Business with an empty batch:
+                    # some adapters reject it, and the allowlist fallback
+                    # below must get a chance to query the resolved IDs.
+                    entity_candidates_exhausted = entity_subject_ids is not None
+                    continue
                 result = self._authoritative_result(
                     candidates, query, token, preference, effective_evidence,
                 )
+                if entity_subject_ids and result.available and (not has_textual_intent or not result.items):
+                    # The lexical/vector stores deliberately return a bounded
+                    # top-N window.  An entity relation expansion is an
+                    # authoritative allowlist, so candidates outside that
+                    # window must still be checked in bounded Business
+                    # batches before declaring the result complete.
+                    allowlist_result = self._authoritative_allowlist_result(
+                        entity_subject_ids,
+                        query,
+                        token,
+                        preference,
+                        effective_evidence,
+                    )
+                    if not allowlist_result.available:
+                        return self._complete(allowlist_result, personalization_missing)
+                    if allowlist_result.items:
+                        merged: dict[int, RetrievalCandidate] = {
+                            item.subject_id: item for item in allowlist_result.items
+                        }
+                        for item in result.items:
+                            merged[item.subject_id] = item
+                        merged_items = self._rerank(list(merged.values()), query, preference)[:_MAX_RESULTS]
+                        result = RetrievalResult(available=True, items=merged_items)
                 if not result.available or result.items:
                     return self._complete(result, personalization_missing)
         except Exception:
@@ -194,17 +230,11 @@ class RagRetrievalService:
         # legitimately rank below that window, so perform an exact authoritative
         # batch lookup before declaring no results; this keeps entity filters
         # from becoming an accidental recall limit.
-        if entity_subject_ids and not redis_failed:
-            entity_candidates = [
-                RetrievalCandidate(subject_id, 0.0, "entity_allowlist")
-                for subject_id in entity_subject_ids[:50]
-            ]
-            entity_result = self._authoritative_result(
-                entity_candidates,
-                query,
-                token,
-                preference,
-                effective_evidence,
+        if entity_subject_ids and not redis_failed and (
+            not has_textual_intent or not lexical or not semantic or entity_candidates_exhausted
+        ):
+            entity_result = self._authoritative_allowlist_result(
+                entity_subject_ids, query, token, preference, effective_evidence
             )
             if not entity_result.available or entity_result.items:
                 return self._complete(entity_result, personalization_missing)
@@ -223,6 +253,44 @@ class RagRetrievalService:
                 "business",
             )
         return self._complete(RetrievalResult(available=True, items=[], reason="no_results"), personalization_missing)
+
+    def _authoritative_allowlist_result(
+        self,
+        subject_ids: Sequence[int],
+        query: RetrievalQuery,
+        token: str | None,
+        preference: Mapping[int | str, float] | UserPreference | None,
+        evidence_lookup: EvidenceLookup | None,
+    ) -> RetrievalResult:
+        """回查完整实体 allowlist，避免索引 top-N 截断关系结果。"""
+        safe_items: dict[int, RetrievalCandidate] = {}
+        for offset in range(0, len(subject_ids), 50):
+            batch = subject_ids[offset : offset + 50]
+            candidates = [
+                RetrievalCandidate(subject_id, 0.0, "entity_allowlist")
+                for subject_id in batch
+                if subject_id not in query.exclude_subject_ids
+            ]
+            if not candidates:
+                continue
+            result = self._authoritative_result(
+                candidates,
+                query,
+                token,
+                preference,
+                evidence_lookup,
+                result_limit=len(candidates),
+            )
+            if not result.available:
+                return result
+            for item in result.items:
+                safe_items[item.subject_id] = item
+        if not safe_items:
+            return RetrievalResult(available=True, items=[], reason="no_results")
+        return RetrievalResult(
+            available=True,
+            items=self._rerank(list(safe_items.values()), query, preference)[:_MAX_RESULTS],
+        )
 
     def _resolve_entity_subject_ids(
         self,
@@ -483,6 +551,7 @@ class RagRetrievalService:
         token: str | None,
         preference: Mapping[int | str, float] | UserPreference | None,
         evidence_lookup: EvidenceLookup | None = None,
+        result_limit: int = _MAX_RESULTS,
     ) -> RetrievalResult:
         try:
             response = self._authority_lookup([item.subject_id for item in candidates[:50]], token=token, exclude_collected=True)
@@ -490,11 +559,25 @@ class RagRetrievalService:
             return RetrievalResult(available=False, items=[], reason="business_unavailable")
         if _is_error(response):
             return RetrievalResult(available=False, items=[], reason="business_unavailable")
-        details_by_id = {int(item["id"]): item for item in _items(response) if isinstance(item, Mapping) and item.get("id") is not None}
+        details_by_id: dict[int, Mapping[str, Any]] = {}
+        for item in _items(response):
+            if not isinstance(item, Mapping) or item.get("id") is None or isinstance(item.get("id"), bool):
+                continue
+            try:
+                subject_id = int(item["id"])
+            except (TypeError, ValueError, OverflowError):
+                continue
+            if subject_id > 0:
+                details_by_id[subject_id] = item
+        # The batch Subject endpoint intentionally returns only the basic
+        # authority fields.  Validate that boundary before Evidence, but do
+        # not apply structured filters here: fields such as metaTags are only
+        # available from the Evidence response.
         safe = [
             replace(candidate, details=details_by_id[candidate.subject_id])
             for candidate in candidates
-            if candidate.subject_id in details_by_id and self._is_safe_detail(details_by_id[candidate.subject_id], query)
+            if candidate.subject_id in details_by_id
+            and self._is_safe_authority_detail(details_by_id[candidate.subject_id], query)
         ]
         if safe and evidence_lookup is not None:
             safe, evidence_ok = self._enrich_evidence(safe, token, evidence_lookup)
@@ -503,7 +586,24 @@ class RagRetrievalService:
                 # the Agent context.  A partial/failed response must never
                 # silently fall back to Redis/Subject details.
                 return RetrievalResult(available=False, items=[], reason="evidence_unavailable")
-        return RetrievalResult(available=True, items=self._rerank(safe, query, preference)[:_MAX_RESULTS])
+            # Apply structured filters only after Evidence has supplied the
+            # complete fields (metaTags, score, ratingTotal, airDate, etc.).
+            safe = [
+                candidate
+                for candidate in safe
+                if candidate.evidence is not None
+                and self._matches_query_filters(candidate.evidence, query)
+            ]
+        elif safe:
+            # Preserve the existing Business fallback behaviour when no
+            # Evidence adapter is configured; there is no evidence payload
+            # from which to evaluate the richer fields in that mode.
+            safe = [
+                candidate
+                for candidate in safe
+                if self._matches_query_filters(candidate.details or {}, query)
+            ]
+        return RetrievalResult(available=True, items=self._rerank(safe, query, preference)[:max(0, result_limit)])
 
     def _business_fallback(
         self,
@@ -566,8 +666,15 @@ class RagRetrievalService:
         rows = response if isinstance(response, list) else []
         by_id: dict[int, Mapping[str, Any]] = {}
         for row in rows:
-            if isinstance(row, Mapping) and row.get("subjectId") is not None:
-                by_id[int(row["subjectId"])] = row
+            if not isinstance(row, Mapping) or row.get("subjectId") is None or isinstance(row.get("subjectId"), bool):
+                return [], False
+            try:
+                subject_id = int(row["subjectId"])
+            except (TypeError, ValueError, OverflowError):
+                return [], False
+            if subject_id <= 0:
+                return [], False
+            by_id[subject_id] = row
         expected_ids = {candidate.subject_id for candidate in candidates}
         if by_id.keys() != expected_ids:
             log_event(
@@ -643,15 +750,24 @@ class RagRetrievalService:
         }
 
     @staticmethod
-    def _is_safe_detail(item: Mapping[str, Any], query: RetrievalQuery) -> bool:
+    def _is_safe_authority_detail(item: Mapping[str, Any], query: RetrievalQuery) -> bool:
+        """Validate only the fields available from Business batch authority.
+
+        Structured filters must not run at this stage because the batch
+        endpoint does not include Evidence fields such as ``metaTags``.
+        """
         try:
-            if int(item.get("type") or 0) != 2 or item.get("nsfw") is not False:
+            if (
+                int(item.get("type") or 0) != 2
+                or item.get("nsfw") is not False
+                or item.get("active") is not True
+            ):
                 return False
             if int(item.get("id") or -1) in query.exclude_subject_ids:
                 return False
         except (TypeError, ValueError):
             return False
-        return RagRetrievalService._matches_query_filters(item, query)
+        return True
 
     @staticmethod
     def _matches_query_filters(item: Mapping[str, Any], query: RetrievalQuery) -> bool:

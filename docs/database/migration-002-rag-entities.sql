@@ -22,7 +22,7 @@
 --   Step 7: 新增 character_actor 表
 --   Step 8: 新增 entity_detail_job 表
 --   Step 9: 新增 search_index_job 表
---   Step 10: 为旧 subject 表新增索引（可选，提升新查询路径性能）
+--   Step 10: 为旧关系表新增 source_active 兼容列（可选，支持 replace-set）
 --   Step 11: 回填校验
 -- ============================================================================
 
@@ -220,7 +220,7 @@ CREATE TABLE IF NOT EXISTS `search_index_job` (
   INDEX `idx_sij_entity`(`entity_kind` ASC, `entity_id` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '通用搜索索引任务表' ROW_FORMAT = Dynamic;
 
--- Step 10: 为旧表补充索引（可选，提升新查询路径性能）
+-- Step 10: 为旧关系表补充 source_active 兼容列（可选，支持 replace-set）
 -- MySQL 8.4 不支持 ALTER TABLE ... ADD COLUMN IF NOT EXISTS；使用
 -- INFORMATION_SCHEMA + PREPARE 保持空库前向迁移和重复执行都幂等。
 

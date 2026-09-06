@@ -36,7 +36,7 @@ class _Embeddings:
 
 def _authority(ids, token=None, exclude_collected=False):
     return [
-        {"id": subject_id, "name": f"Subject {subject_id}", "type": 2, "nsfw": False}
+        {"id": subject_id, "name": f"Subject {subject_id}", "type": 2, "nsfw": False, "active": True}
         for subject_id in ids
     ]
 
@@ -242,8 +242,8 @@ def test_business_fallback_keeps_entity_allowlist():
 
     def business_search(query, token=None):
         return [
-            {"id": 1, "name": "not allowed"},
-            {"id": 2, "name": "allowed"},
+            {"id": 1, "name": "not allowed", "type": 2, "nsfw": False, "active": True},
+            {"id": 2, "name": "allowed", "type": 2, "nsfw": False, "active": True},
         ]
 
     result = _service(index, resolver, business_search).retrieve(
@@ -261,6 +261,50 @@ def test_entity_allowlist_is_not_limited_by_redis_top_fifty():
     )
     assert result.available is True
     assert [item.subject_id for item in result.items] == [100]
+
+
+def test_relation_allowlist_fallback_skips_empty_filtered_batch():
+    # The resolved relation subject is outside Redis's bounded top-50 window.
+    # Business adapters may reject an empty batch, so the filtered expression
+    # must be skipped and the exact relation allowlist queried instead.
+    index = _Index(rows=[{"subject_id": subject_id} for subject_id in range(1, 51)])
+    resolver = _resolver({"RELATION_SUBJECT": [100]})
+    authority_calls: list[list[int]] = []
+
+    def authority(ids, token=None, exclude_collected=False):
+        authority_calls.append(list(ids))
+        if not ids:
+            return {"error": "subjectIds must not be empty"}
+        return _authority(ids, token=token, exclude_collected=exclude_collected)
+
+    service = RagRetrievalService(
+        index=index,
+        embeddings=_Embeddings(),
+        authority_lookup=authority,
+        business_search=lambda query, token=None: [],
+        resolve_evidence_lookup=resolver,
+    )
+    result = service.retrieve(
+        RetrievalQuery(keywords=["test"], relation_subject_ids=[9]), token="token"
+    )
+
+    assert result.available is True
+    assert [item.subject_id for item in result.items] == [100]
+    assert authority_calls == [[100]]
+
+
+def test_entity_allowlist_does_not_replace_textual_relevance():
+    # Subject 2 is in the authoritative relation expansion but absent from
+    # the lexical/vector result.  A person + keyword query must not broaden
+    # into every work for that person.
+    index = _Index(rows=[{"subject_id": 1}])
+    resolver = _resolver({"PERSON": [1, 2]})
+    result = _service(index, resolver).retrieve(
+        RetrievalQuery(keywords=["test"], person_ids=[9])
+    )
+
+    assert result.available is True
+    assert [item.subject_id for item in result.items] == [1]
 
 
 def test_missing_resolver_does_not_leak_unfiltered_candidates():

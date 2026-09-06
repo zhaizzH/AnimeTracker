@@ -46,6 +46,8 @@ class GateInputs:
     required_passed: int | None = None
     required_total: int | None = None
     eval_failures: tuple[str, ...] | None = None
+    evaluation_status: str | None = None
+    evidence_completeness: float | None = None
     mrr10: float | None = None
     recall20: float | None = None
     ndcg10: float | None = None
@@ -111,6 +113,16 @@ def evaluate_gate(inputs: GateInputs) -> GateDecision:
     require("required_total", inputs.required_total == 120, "required eval count is missing or is not exactly 120")
     require("required_consistency", inputs.required_passed is not None and inputs.required_failed is not None and inputs.required_total is not None and inputs.required_passed + inputs.required_failed == inputs.required_total, "required eval counts are inconsistent")
     require("eval_failures", inputs.eval_failures == (), "eval report contains failures or is missing failures")
+    require(
+        "evaluation_status",
+        inputs.evaluation_status == "RELEASE_CANDIDATE",
+        "eval report status must be explicit RELEASE_CANDIDATE; SHADOW_ONLY or missing status cannot activate a release",
+    )
+    require(
+        "evidence_completeness",
+        _at_least(inputs.evidence_completeness, 1.0),
+        "evidence completeness is below 100%",
+    )
     require("mrr10", _at_least(inputs.mrr10, MRR10_MIN), "MRR@10 is below 0.90")
     require("recall20", _at_least(inputs.recall20, RECALL20_MIN), "Recall@20 is below 0.85")
     require("ndcg10", _at_least(inputs.ndcg10, NDCG10_MIN), "nDCG@10 is below 0.75")
@@ -186,6 +198,7 @@ def load_gate_inputs(report_dir: str | Path, index_version: str) -> GateInputs:
         eval_failures = None
     else:
         eval_failures = tuple(str(item) for item in failures_value)
+    evaluation_status = _text(evaluation, "status")
     human_check_count = _integer(human_values, "checkCount", "humanCheckCount", "human_check_count")
     if human_check_count is None:
         errors.append("missing human check count")
@@ -198,6 +211,8 @@ def load_gate_inputs(report_dir: str | Path, index_version: str) -> GateInputs:
         required_passed=required_passed,
         required_total=required_total,
         eval_failures=eval_failures,
+        evaluation_status=evaluation_status,
+        evidence_completeness=_number(evaluation, "evidenceCompleteness", "evidence_completeness"),
         mrr10=_number(evaluation, "mrr10", "mrrAt10", "mrr_at_10"),
         recall20=_number(evaluation, "recall20", "recallAt20", "recall_at_20"),
         ndcg10=_number(evaluation, "ndcg10", "ndcgAt10", "ndcg_at_10"),
@@ -388,7 +403,11 @@ def _contract_match(*payloads: Mapping[str, Any]) -> tuple[bool | None, str | No
         if not isinstance(raw, Mapping):
             flag = next((payload[key] for key in ("embeddingContractMatch", "embedding_contract_match", "profileConsistent", "profile_consistent") if isinstance(payload.get(key), bool)), None)
             return (False, "embedding contract mismatch") if flag is False else (None, "missing embedding contract evidence")
-        contract = _normalize_contract(raw)
+        contract_payload = dict(raw)
+        for key in ("releaseProfileVersion", "release_profile_version"):
+            if key in payload and key not in contract_payload:
+                contract_payload[key] = payload[key]
+        contract = _normalize_contract(contract_payload)
         if contract is None:
             return False, "embedding contract is incomplete"
         contracts.append(contract)
@@ -410,6 +429,24 @@ def _normalize_contract(payload: Mapping[str, Any]) -> dict[str, Any] | None:
     values: dict[str, Any] = {}
     for name, keys in aliases.items():
         value = next((payload[key] for key in keys if key in payload), None)
+        # A release may contain entity-specific projection profiles (for
+        # example SUBJECT vs PERSON) while the embedding contract used by the
+        # gate must be explicit and shared by all five reports.  Prefer the
+        # release-level contract when supplied; older reports continue to use
+        # their embeddingContract.profileVersion value.
+        if name == "profileVersion":
+            release_profile = next(
+                (payload[key] for key in ("releaseProfileVersion", "release_profile_version") if key in payload),
+                None,
+            )
+            raw_contract = payload.get("embeddingContract", payload.get("embedding_contract"))
+            if isinstance(raw_contract, Mapping):
+                release_profile = next(
+                    (raw_contract[key] for key in ("releaseProfileVersion", "release_profile_version") if key in raw_contract),
+                    release_profile,
+                )
+            if _nonempty(release_profile):
+                value = release_profile
         if not _nonempty(value):
             return None
         if name == "dimensions":

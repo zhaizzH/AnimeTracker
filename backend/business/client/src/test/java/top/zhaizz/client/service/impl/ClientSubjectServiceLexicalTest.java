@@ -14,7 +14,9 @@ import top.zhaizz.client.model.LexicalSearchRow;
 import top.zhaizz.client.model.SearchIndexReleaseRow;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.pojo.dto.subject.LexicalSearchRequestDTO;
+import top.zhaizz.pojo.entity.Subject;
 import top.zhaizz.pojo.vo.subject.LexicalSearchResultVO;
+import top.zhaizz.pojo.vo.subject.SubjectBatchResultVO;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -90,5 +92,20 @@ class ClientSubjectServiceLexicalTest {
         assertThatThrownBy(() -> subjectService.lexicalSearch(request))
                 .isInstanceOf(BizException.class)
                 .hasMessageContaining("尚未迁移");
+    }
+
+    @Test
+    void batchSubjectsExposesActiveFlagForAgentAuthorityChecks() {
+        Subject subject = new Subject();
+        subject.setId(42L);
+        subject.setType(2);
+        subject.setNsfw(false);
+        subject.setImportStatus(1);
+        when(subjectMapper.selectBatchIds(List.of(42L))).thenReturn(List.of(subject));
+
+        SubjectBatchResultVO result = subjectService.batch(List.of(42L), false, null);
+
+        assertThat(result.getItems()).hasSize(1);
+        assertThat(result.getItems().get(0).getActive()).isTrue();
     }
 }

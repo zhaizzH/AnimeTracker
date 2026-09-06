@@ -679,7 +679,7 @@ def main(argv: list[str] | None = None) -> int:
             redis_used_memory_after=after_memory,
             redis_memory_delta=max(0, after_memory - before_memory),
             indexVersion=args.index_version,
-            embeddingContract={"provider": "dashscope", "model": "text-embedding-v4", "dimensions": 1024, "profileVersion": "mixed-entity-v1"},
+            embeddingContract=_embedding_contract(),
         )
     # 可重试任务仍返回成功；终态失败或批级错误必须让调度器感知并 fail closed。
     return 1 if total.failed else 0
@@ -695,6 +695,19 @@ def _combine(batches: list[IndexBatchResult]) -> IndexBatchResult:
         input_characters=sum(item.input_characters for item in batches),
         durations_ms=tuple(duration for item in batches for duration in item.durations_ms),
     )
+
+
+def _embedding_contract() -> dict[str, Any]:
+    """Return the explicit release-level Subject embedding contract."""
+    return {
+        "provider": "dashscope",
+        "model": os.getenv("RAG_EMBEDDING_MODEL", "text-embedding-v4"),
+        "dimensions": int(os.getenv("RAG_EMBEDDING_DIM", "1024")),
+        # Business lexical JOINs release.profile_version to the SUBJECT
+        # projection.  Entity-specific profiles remain projection metadata;
+        # the release-level contract must be configured explicitly.
+        "profileVersion": os.getenv("RAG_PROFILE_VERSION", "subject-profile-v1"),
+    }
 
 
 def _percentile(values: tuple[float, ...], percentile: int) -> float | None:

@@ -3,6 +3,7 @@ import json
 import pytest
 
 from jobs.indexer.report import build_capacity_report
+from jobs.indexer.main import _embedding_contract
 
 
 def test_capacity_report_projects_document_memory_and_gate():
@@ -18,6 +19,14 @@ def test_capacity_report_projects_document_memory_and_gate():
     assert report.projected_total_bytes == 50_000
     assert report.utilization == pytest.approx(0.05)
     assert report.allowed is True
+
+
+def test_indexer_embedding_contract_uses_configured_release_profile(monkeypatch):
+    monkeypatch.delenv("RAG_PROFILE_VERSION", raising=False)
+    assert _embedding_contract()["profileVersion"] == "subject-profile-v1"
+
+    monkeypatch.setenv("RAG_PROFILE_VERSION", "release-subject-v2")
+    assert _embedding_contract()["profileVersion"] == "release-subject-v2"
 
 
 def test_capacity_report_rejects_empty_sample():

@@ -30,5 +30,6 @@
 - `anime_tracker` 前向迁移已完成：当前共 21 张表，9 张实体/RAG 新表均存在，`subject_alias`、`subject_meta_tag`、`subject_credit` 均已增加 `source_active`。
 - 迁移脚本已在真实库重复执行一次，二次执行通过，确认幂等；迁移前已有的 `subject` 数据共 220 条，未执行破坏性初始化脚本。
 - 该次真实库操作遵循用户“无需备份，直接修改”的明确授权；生产环境仍必须遵守数据库备份门禁。
+- 门禁结论：由于该次本机业务库操作未创建可恢复备份，不满足 `database-guidelines.md` 对非空库的备份要求；它只能作为用户授权的运行观察，不能作为生产迁移安全门禁通过证据。
 - Business 重启后 readiness 与 liveness 均返回 HTTP 200；`POST /api/client/evidence/resolve` 的 `PERSON`、`CHARACTER`、`ACTOR` `[1]` 请求均返回 HTTP 200（当前无匹配时返回空数组）。
 - 修复了 MySQL 8.4 `ONLY_FULL_GROUP_BY` 下 `DISTINCT + ORDER BY s.score` 的 3065 错误：三个实体扩展查询改为 `GROUP BY s.id, s.score`。

@@ -141,7 +141,7 @@ class TestEvidenceEnrichment:
             return [{"subject_id": 1, "title": "Test"}]
 
         def mock_authority(ids, token=None, exclude_collected=False):
-            return [{"id": 1, "name": "Test", "type": 2, "nsfw": False}]
+            return [{"id": 1, "name": "Test", "type": 2, "nsfw": False, "active": True}]
 
         service = RagRetrievalService(
             index=MockIndex(mock_index_search),
@@ -158,6 +158,68 @@ class TestEvidenceEnrichment:
         assert result.items[0].evidence["summaryExcerpt"] == "测试简介"
         assert result.items[0].evidence["metaTags"] == ["SF"]
 
+    def test_structured_filters_run_after_evidence_enrichment(self):
+        """批量权威回查的基础字段不足时，结构化过滤必须使用 Evidence。"""
+        evidence_calls = []
+        evidence_data = [
+            {
+                "subjectId": 1,
+                "type": 2,
+                "nsfw": False,
+                "active": True,
+                "metaTags": ["SF"],
+                "score": 8.5,
+                "ratingTotal": 1500,
+                "airDate": "2024-01-01",
+            },
+            {
+                "subjectId": 2,
+                "type": 2,
+                "nsfw": False,
+                "active": True,
+                "metaTags": ["Action"],
+                "score": 8.5,
+                "ratingTotal": 1500,
+                "airDate": "2024-01-01",
+            },
+        ]
+
+        def mock_authority(ids, token=None, exclude_collected=False):
+            # This mirrors /subjects/batch: no metaTags, score, ratingTotal,
+            # or airDate fields are required for the authority boundary.
+            return [
+                {"id": subject_id, "type": 2, "nsfw": False, "active": True}
+                for subject_id in ids
+            ]
+
+        def mock_evidence(ids, token=None):
+            evidence_calls.append(list(ids))
+            return [row for row in evidence_data if row["subjectId"] in ids]
+
+        service = RagRetrievalService(
+            index=MockIndex(lambda expr, limit=50: [{"subject_id": 1}, {"subject_id": 2}]),
+            embeddings=MockEmbeddings(),
+            authority_lookup=mock_authority,
+            business_search=lambda q, token=None: [],
+            evidence_lookup=mock_evidence,
+        )
+        query = RetrievalQuery(
+            keywords=["test"],
+            meta_tags=["SF"],
+            year_from=2024,
+            year_to=2024,
+            quarter="spring",
+            score_min=8.0,
+            rating_total_min=1000,
+            air_status="FINISHED",
+        )
+
+        result = service.retrieve(query, token=None)
+
+        assert result.available is True
+        assert [item.subject_id for item in result.items] == [1]
+        assert evidence_calls == [[1, 2]]
+
     def test_enrich_failure_is_fail_closed(self):
         """evidence_lookup 失败时，不返回未经证据回查的候选。"""
 
@@ -165,7 +227,7 @@ class TestEvidenceEnrichment:
             raise ConnectionError("evidence service down")
 
         def mock_authority(ids, token=None, exclude_collected=False):
-            return [{"id": 1, "name": "Test", "type": 2, "nsfw": False}]
+            return [{"id": 1, "name": "Test", "type": 2, "nsfw": False, "active": True}]
 
         service = RagRetrievalService(
             index=MockIndex(lambda expr, limit=50: [{"subject_id": 1, "title": "Test"}]),
@@ -187,7 +249,7 @@ class TestEvidenceEnrichment:
             return {"error": True, "message": "bad request"}
 
         def mock_authority(ids, token=None, exclude_collected=False):
-            return [{"id": 1, "name": "Test", "type": 2, "nsfw": False}]
+            return [{"id": 1, "name": "Test", "type": 2, "nsfw": False, "active": True}]
 
         service = RagRetrievalService(
             index=MockIndex(lambda expr, limit=50: [{"subject_id": 1, "title": "Test"}]),
@@ -207,8 +269,8 @@ class TestEvidenceEnrichment:
 
         def mock_authority(ids, token=None, exclude_collected=False):
             return [
-                {"id": 1, "name": "One", "type": 2, "nsfw": False},
-                {"id": 2, "name": "Two", "type": 2, "nsfw": False},
+                {"id": 1, "name": "One", "type": 2, "nsfw": False, "active": True},
+                {"id": 2, "name": "Two", "type": 2, "nsfw": False, "active": True},
             ]
 
         service = RagRetrievalService(
@@ -223,11 +285,29 @@ class TestEvidenceEnrichment:
         assert result.items == []
         assert result.reason == "evidence_unavailable"
 
+    def test_enrich_non_numeric_subject_id_is_fail_closed(self):
+        """Evidence 返回非法 subjectId 时，不应让解析异常穿透。"""
+
+        def mock_authority(ids, token=None, exclude_collected=False):
+            return [{"id": 1, "name": "Test", "type": 2, "nsfw": False, "active": True}]
+
+        service = RagRetrievalService(
+            index=MockIndex(lambda expr, limit=50: [{"subject_id": 1}]),
+            embeddings=MockEmbeddings(),
+            authority_lookup=mock_authority,
+            business_search=lambda q, token=None: [],
+            evidence_lookup=lambda ids, token=None: [{"subjectId": "not-an-id"}],
+        )
+        result = service.retrieve(RetrievalQuery(keywords=["test"]), token=None)
+        assert result.available is False
+        assert result.items == []
+        assert result.reason == "evidence_unavailable"
+
     def test_enrich_unsafe_response_is_fail_closed(self):
         """Evidence 返回 NSFW 或非动画候选时，整批拒绝。"""
 
         def mock_authority(ids, token=None, exclude_collected=False):
-            return [{"id": 1, "name": "Test", "type": 2, "nsfw": False}]
+            return [{"id": 1, "name": "Test", "type": 2, "nsfw": False, "active": True}]
 
         service = RagRetrievalService(
             index=MockIndex(lambda expr, limit=50: [{"subject_id": 1}]),
@@ -245,7 +325,7 @@ class TestEvidenceEnrichment:
         """Evidence 必须明确标记为 active，缺失/失效都不能进入上下文。"""
 
         def mock_authority(ids, token=None, exclude_collected=False):
-            return [{"id": 1, "name": "Test", "type": 2, "nsfw": False}]
+            return [{"id": 1, "name": "Test", "type": 2, "nsfw": False, "active": True}]
 
         service = RagRetrievalService(
             index=MockIndex(lambda expr, limit=50: [{"subject_id": 1}]),

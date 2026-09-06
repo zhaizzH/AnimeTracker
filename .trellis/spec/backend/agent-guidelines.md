@@ -13,6 +13,70 @@
 - Agent 提示词禁止陈述工具返回中不存在的证据；`_compact` 输出必须包含全部 18 个证据字段，缺失字段使用空默认值。
 - 故障矩阵必须在测试中覆盖：Redis/Embedding/Business/Evidence 每层独立故障与组合故障，证明 fail-closed 或既定降级行为。
 
+### Scenario: Subject batch 权威边界与 Evidence 过滤顺序
+
+#### 1. Scope / Trigger
+
+- 触发：修改 Agent `RagRetrievalService`、Business `/api/client/subjects/batch` 或 Evidence DTO/VO；尤其是新增 `active`、标签、评分、年份、季度和播出状态过滤。
+- 目的：防止把不完整的 batch 响应当成 Evidence 事实，或在 Evidence 补全前错误丢弃候选。
+
+#### 2. Signatures
+
+- `POST /api/client/subjects/batch` 请求：`{ "subjectIds": [1, ...], "excludeCollected": boolean }`。
+- batch item 至少包含：`id`, `type`, `nsfw`, `active`；其中 `active` 必须由 `subject.import_status = 1` 派生。
+- `POST /api/client/evidence/batch` 返回 `EvidenceCandidateVO[]`，每项必须包含 `subjectId`, `type`, `nsfw`, `active`，以及可选的 `metaTags`, `score`, `ratingTotal`, `airDate` 等事实字段。
+- `RagRetrievalService._authoritative_result(...) -> RetrievalResult`：先校验 batch 安全边界，再批量 Evidence 回查，最后执行结构化过滤和重排。
+
+#### 3. Contracts
+
+- batch 阶段只校验 `type=2`、`nsfw=false`、`active=true` 和排除 ID；不得在该阶段读取不存在的 `metaTags`/`airStatus` 字段。
+- Evidence 响应必须覆盖候选 ID 的全集；缺项、重复非法 ID、错误类型、NSFW 或 inactive 均使该批次 `available=false`、空候选。
+- `meta_tags`、评分、评分人数、年份、季度和播出状态过滤只能使用 Evidence 字段；Evidence 缺少需要的字段时必须排除候选，不得用 Redis 详情伪造事实。
+- 所有外部 `id/subjectId` 必须拒绝布尔值、非数字、非正数和溢出转换；坏行不能抛出未处理异常进入 fallback。
+
+#### 4. Validation & Error Matrix
+
+| 条件 | 必须行为 |
+|---|---|
+| batch item 缺少 `active` 或 `active != true` | 丢弃该候选；不进入 Evidence/模型上下文 |
+| Evidence 超时、错误、部分结果或字段不安全 | `available=false`、`reason=evidence_unavailable` |
+| Evidence 过滤后为空 | `available=true`、`reason=no_results`，不扩大查询范围 |
+| ID 为布尔值、非正数或不可转换 | 丢弃该行并继续安全处理；不得 500 |
+| 无 ACTIVE release 或 Business lexical 缺 `indexVersion` | 词法/混合链 fail-closed，允许既定 Business fallback |
+
+#### 5. Good/Base/Bad Cases
+
+- Good：batch 返回 `active=true`，Evidence 返回完整 `metaTags`，Agent 再执行标签/年份过滤并附证据。
+- Base：batch 有候选但 Evidence 缺一项，整个批次不可用，不把其余候选静默送入模型。
+- Bad：因为 batch 没有 `metaTags` 就提前过滤，或使用 Redis 的 `air_status` 覆盖 Evidence；把 `subjectId=true` 转成 `1` 更是禁止行为。
+
+#### 6. Tests Required
+
+- Java：batch VO 序列化 `active`；Service 从 `import_status` 映射 active；OpenAPI 与 Controller 测试同步。
+- Python：batch `active` 安全边界、Evidence 完整性、Evidence 后结构化过滤、非法 ID fail-closed/不抛异常。
+- 运行 `pytest tests/rag tests/jobs/indexer`、`mvn -B clean test`，并对真实 shadow 报告断言 `evidenceCompleteness=1.0`。
+
+#### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+if not detail.get("metaTags"):
+    continue  # batch 没有该字段，错误地把合法候选过滤掉
+subject_id = int(row.get("subjectId"))  # True 会被转换成 1
+```
+
+#### Correct
+
+```python
+if detail.get("active") is not True:
+    continue
+safe, ok = self._enrich_evidence(candidates, token, evidence_lookup)
+if not ok:
+    return RetrievalResult(available=False, items=[], reason="evidence_unavailable")
+safe = [item for item in safe if self._matches_query_filters(item.evidence or {}, query)]
+```
+
 ## RAG 结构化实体筛选契约
 
 ### 1. Scope / Trigger
