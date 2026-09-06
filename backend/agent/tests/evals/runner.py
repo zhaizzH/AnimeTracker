@@ -39,14 +39,33 @@ class EvalConfig:
 
 
 def load_golden_cases(path: Path | str | None = None) -> list[GoldenCase]:
-    """从 JSON 文件加载 golden cases；默认路径为本目录下的 golden_cases.json。"""
+    """从 JSON 文件加载 golden cases；支持带快照元数据的 dataset envelope。"""
+    return load_golden_dataset(path)["cases"]
+
+
+def load_golden_dataset(path: Path | str | None = None) -> dict[str, Any]:
+    """加载评测数据集，并保留快照/index 绑定信息。
+
+    兼容早期仅包含数组的自定义测试文件；生产数据集使用
+    ``{"metadata": ..., "cases": [...]}``，以便 gate 工具检查追溯性。
+    """
     if path is None:
         path = Path(__file__).parent / "golden_cases.json"
     else:
         path = Path(path)
     with path.open("r", encoding="utf-8") as f:
         raw = json.load(f)
-    return [GoldenCase.model_validate(item) for item in raw]
+    if isinstance(raw, list):
+        return {"metadata": {}, "cases": [GoldenCase.model_validate(item) for item in raw]}
+    if not isinstance(raw, dict) or not isinstance(raw.get("cases"), list):
+        raise ValueError("golden dataset 必须是 case 数组或包含 cases 的对象")
+    metadata = raw.get("metadata", {})
+    if not isinstance(metadata, dict):
+        raise ValueError("golden dataset metadata 必须是对象")
+    return {
+        "metadata": metadata,
+        "cases": [GoldenCase.model_validate(item) for item in raw["cases"]],
+    }
 
 
 def evaluate_case(

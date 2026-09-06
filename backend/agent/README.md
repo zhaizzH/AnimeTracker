@@ -403,7 +403,7 @@ pytest 配置在 `pyproject.toml`（`pythonpath = ["."]`、`asyncio_mode = "auto
 
 | 目录 | 覆盖范围 |
 |------|----------|
-| `tests/evals/` | 50-case 确定性评测框架（metrics、runner、golden cases） |
+| `tests/evals/` | 120-case 可追溯评测框架（metrics、runner、快照生成器、golden cases） |
 | `tests/rag/` | 证据契约、故障矩阵、多实体 profile、结构化实体 ID/名称 allowlist、查询规划与 fail-closed |
 | `tests/jobs/importer/` | 导入漂移检测（eps/volumes、credit_type、AIRING、stale replace-set、profile hash） |
 | `tests/jobs/indexer/` | 实体加载、shadow index、search repository |

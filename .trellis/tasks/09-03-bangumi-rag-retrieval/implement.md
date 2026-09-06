@@ -170,3 +170,4 @@ npm run build
 - recent 导入已完成当前日历 113 条扫描，实体摘要/关系已写入真实库；人物、角色和声优关系数据不再是 0，但系列关系仍只有 6 条边。
 - `search_index_job` 已生成 Subject/Person/Character/Episode 任务；本轮 10 条 Embedding smoke 因 DashScope `EmbeddingUnavailable` 进入可重试失败，未新增投影或 release。
 - `search_index_release` 仍无 ACTIVE；120-case 端到端评测、五份 gate 报告和 24 小时灰度仍未勾选完成。`phase8-case-audit.md` 记录了可先生成的追溯审计/质量报告和当前阻断条件。
+- 已从真实 MySQL 快照生成恰好 120 条带 snapshot/evidence/index 追溯信息的定义集；数据集状态明确为 `DEFINITION_ONLY`，不能替代 ACTIVE release 后的真实回放门禁。详见 `phase8-golden-case-definition-report.md`。

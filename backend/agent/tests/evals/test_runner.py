@@ -9,6 +9,7 @@ from tests.evals.runner import (
     EvalConfig,
     aggregate_report,
     evaluate_case,
+    load_golden_dataset,
     load_golden_cases,
     run_eval,
 )
@@ -85,6 +86,22 @@ class TestLoadGoldenCases:
         cases = load_golden_cases(path)
         assert len(cases) == 1
         assert cases[0].id == "custom_01"
+
+    def test_production_dataset_has_120_traceable_cases(self):
+        dataset = load_golden_dataset()
+        cases = dataset["cases"]
+        metadata = dataset["metadata"]
+
+        assert len(cases) == 120
+        assert metadata.get("status") == "DEFINITION_ONLY"
+        assert metadata.get("release_active") is False
+        assert metadata.get("index_version")
+        assert metadata.get("profile_version")
+        assert all(case.trace is not None for case in cases)
+        assert {case.trace.snapshot_id for case in cases} == {metadata["snapshot_id"]}
+        assert {case.trace.index_version for case in cases} == {metadata["index_version"]}
+        assert {case.trace.profile_version for case in cases} == {metadata["profile_version"]}
+        assert len({case.trace.evidence_id for case in cases}) == 120
 
 
 class TestEvaluateCase:

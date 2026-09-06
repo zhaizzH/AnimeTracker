@@ -25,6 +25,28 @@ class GoldenExpectation(BaseModel):
     hard_filters: dict[str, Any] = Field(default_factory=dict)
 
 
+class GoldenTrace(BaseModel):
+    """绑定 golden case 到一次事实快照和可重放的 SQL 证据。
+
+    评测 case 不是事实源；它只能引用生成时的 MySQL 结果。将快照、SQL
+    模板和结果摘要写入 case，可以避免用脱离当前数据库的占位 ID 宣称
+    真实评测已完成。
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    snapshot_id: str = Field(min_length=1)
+    captured_at: str = Field(min_length=1)
+    evidence_id: str = Field(min_length=1)
+    sql_template: str = Field(min_length=1)
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    source_tables: list[str] = Field(default_factory=list)
+    result_count: int = Field(ge=0)
+    result_ids_hash: str = Field(min_length=64, max_length=64)
+    index_version: str = Field(min_length=1)
+    profile_version: str = Field(min_length=1)
+
+
 class GoldenCase(BaseModel):
     """一条确定性检索评测用例。
 
@@ -46,6 +68,7 @@ class GoldenCase(BaseModel):
     description: str
     query: dict[str, Any]
     expectation: GoldenExpectation
+    trace: GoldenTrace | None = None
 
 
 class CaseResult(BaseModel):

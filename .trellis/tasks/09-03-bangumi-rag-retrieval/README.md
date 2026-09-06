@@ -28,6 +28,7 @@
 | [MySQL 迁移报告](./phase8-mysql-migration-report.md) | 实际库迁移、21 张表和幂等性已验证 |
 | [Spring Boot 启动报告](./phase8-springboot-startup-report.md) | MyBatis alias 与健康检查已验证 |
 | [离线评测报告](./phase8-offline-evidence-report.md) | 离线指标/故障矩阵通过；不能替代真实发布 gate |
+| [Golden Case 定义集报告](./phase8-golden-case-definition-report.md) | 真实 MySQL 快照生成恰好 120 条可追溯定义；ACTIVE release 前仍不能视为评测通过 |
 | [Phase 5–7 实现报告](./phase5-7-implementation-report.md) | 双投影、词法 API、版本化 VSIM 与本地测试已完成；真实回填/gate/灰度仍待运行 |
 | [Phase 8 case 审查](./research/phase8-case-audit.md) | 真实库可追溯 case 定义与 release/Embedding 阻断边界 |
 
