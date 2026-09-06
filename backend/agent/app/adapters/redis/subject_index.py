@@ -128,6 +128,21 @@ class RedisSubjectIndex:
                 result[subject_id] = content_hash
         return result
 
+    def cardinality(self, index_version: str) -> int:
+        """Return the authoritative Vector Set member count for a version.
+
+        ``content_hashes`` is intentionally bounded because it is only sample
+        evidence.  Coverage gates must use ``VCARD`` instead of treating that
+        bounded sample as the complete index.
+        """
+        try:
+            raw = self._redis.execute_command("VCARD", self.vector_key(index_version))
+            return int(raw)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise RuntimeError("Redis Vector Set cardinality 无效") from exc
+        except Exception as exc:
+            raise RuntimeError("无法读取 Redis Vector Set cardinality") from exc
+
     def activate(self, index_version: str) -> None:
         raise RuntimeError("发布指针由 MySQL search_index_release 管理；不允许更新 Redis alias")
 

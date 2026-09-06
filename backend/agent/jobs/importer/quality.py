@@ -54,6 +54,8 @@ class QualityReport:
     embedding_contract: Mapping[str, Any] | None = None
     coverage: float | None = None
     content_hash_samples: tuple[Mapping[str, Any], ...] | None = None
+    catalog_count: int | None = None
+    vector_cardinality: int | None = None
 
     @property
     def items(self) -> tuple[QualityItem, ...]:
@@ -77,6 +79,10 @@ class QualityReport:
             payload["coverage"] = self.coverage
         if self.content_hash_samples is not None:
             payload["contentHashSamples"] = [dict(item) for item in self.content_hash_samples]
+        if self.catalog_count is not None:
+            payload["coverageCatalogCount"] = self.catalog_count
+        if self.vector_cardinality is not None:
+            payload["vectorCardinality"] = self.vector_cardinality
         return payload
 
 
@@ -168,6 +174,8 @@ def build_quality_report(
     database_digest = database_fingerprint(db)
     coverage = None
     samples = None
+    catalog_count = None
+    vector_cardinality = None
     if index_version:
         if redis_index is None:
             raise RuntimeError("带 index_version 的质量报告必须读取目标 Redis 索引")
@@ -179,10 +187,20 @@ def build_quality_report(
         if not isinstance(observed_hashes, Mapping):
             raise RuntimeError("目标 Redis content_hash 读取结果无效")
         qualified_ids = {int(subject["id"]) for subject in subjects if int(subject.get("type") or 0) == 2 and not bool(subject.get("nsfw"))}
-        indexed_ids = {subject_id for subject_id in qualified_ids if expected_hashes.get(subject_id) and observed_hashes.get(subject_id)}
-        coverage = len(indexed_ids) / len(qualified_ids) if qualified_ids else 0.0
-        samples = tuple({"subjectId": subject_id, "expected": expected_hashes.get(subject_id, ""), "observed": str(observed_hashes.get(subject_id) or "")} for subject_id in sorted(qualified_ids)[:20])
-    return QualityReport(as_of, commit, dirty, database_digest, minio_fingerprint(minio), {key: tuple(value) for key, value in grouped.items()}, index_version, embedding_contract, coverage, samples)
+        cardinality_reader = getattr(redis_index, "cardinality", None)
+        if not callable(cardinality_reader):
+            raise RuntimeError("目标 Redis 索引不支持 Vector Set cardinality 读取")
+        try:
+            vector_cardinality = cardinality_reader(index_version)
+        except Exception as error:
+            raise RuntimeError("无法读取目标 Redis Vector Set cardinality") from error
+        if isinstance(vector_cardinality, bool) or not isinstance(vector_cardinality, int) or vector_cardinality < 0:
+            raise RuntimeError("目标 Redis Vector Set cardinality 无效")
+        catalog_count = len(qualified_ids)
+        coverage = vector_cardinality / catalog_count if catalog_count else 0.0
+        sample_ids = sorted(set(expected_hashes).intersection(observed_hashes))[:20]
+        samples = tuple({"subjectId": subject_id, "expected": expected_hashes[subject_id], "observed": str(observed_hashes[subject_id])} for subject_id in sample_ids)
+    return QualityReport(as_of, commit, dirty, database_digest, minio_fingerprint(minio), {key: tuple(value) for key, value in grouped.items()}, index_version, embedding_contract, coverage, samples, catalog_count, vector_cardinality)
 
 
 def write_quality_report(report: QualityReport, path: str | Path) -> str:
