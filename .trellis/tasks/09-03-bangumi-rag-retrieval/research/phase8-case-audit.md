@@ -99,6 +99,15 @@
 - `.trellis/spec/backend/agent-guidelines.md` — recent 导入失败必须 fail-closed，保留 checkpoint；本审查没有修改该规范。
 - `.trellis/spec/backend/agent-rag-retrieval.md` — 如存在则应继续核对 EvidenceCandidate、版本一致性和降级约束；当前任务上下文未要求修改 spec。
 
+## 2026-09-06 全量索引后校正
+
+本研究记录的是最初审查时的阻断快照；以下结果覆盖其中关于 53 条定义集、队列状态和 Embedding 不可用的旧运行态描述：
+
+- `golden_cases.json` 现在恰好为 120 条，并包含 snapshot/evidence/index/profile 追溯字段；状态仍为 `DEFINITION_ONLY`。
+- `search_index_job` 已为 `COMPLETED=13,173`，`PENDING=0`、`FAILED=0`；MySQL `search_document` 与 Redis Vector Set 的四类实体数量一致。
+- DashScope 直连探针返回 HTTP 200，Embedding 阻断已解除；但 `search_index_release` 仍无 ACTIVE，真实 120-case 回放和五份 gate 报告仍不能生成通过结论。
+- 当前质量报告覆盖率为 100%，另有 1 条 `EPISODE_SHORTAGE` 与 38 条 `EPISODE_STATUS_DRIFT`，须在发布门禁前处理或形成豁免记录。
+
 ## Caveats / Not Found
 
 - `search_index_release` 当前查询结果为空；本次没有激活 release，也没有修改任何数据库、Redis、代码或 golden case。

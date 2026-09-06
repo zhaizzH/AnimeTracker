@@ -1,0 +1,26 @@
+{
+  "sample_count": 3776,
+  "bytes_per_document": 2074,
+  "projected_total_bytes": 41480000,
+  "redis_used_memory": 29259696,
+  "physical_available": 3690188800,
+  "utilization": 0.0112406172822377,
+  "allowed": true,
+  "api_calls": 378,
+  "input_characters": 343302,
+  "indexed": 3776,
+  "retried": 0,
+  "failed": 0,
+  "p50_ms": 344.0000000009604,
+  "p95_ms": 625.0,
+  "redis_used_memory_before": 21429761,
+  "redis_used_memory_after": 29259696,
+  "redis_memory_delta": 7829935,
+  "indexVersion": "v1",
+  "embeddingContract": {
+    "provider": "dashscope",
+    "model": "text-embedding-v4",
+    "dimensions": 1024,
+    "profileVersion": "mixed-entity-v1"
+  }
+}

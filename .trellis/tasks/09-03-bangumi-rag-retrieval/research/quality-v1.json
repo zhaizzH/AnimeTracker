@@ -1,0 +1,485 @@
+{
+  "commit": "3b0e0e3a834f20cff50ad81d717620a24d1317ae",
+  "contentHashSamples": [
+    {
+      "expected": "06f353c44f4ce73a6fe9400a9ebd6c2dbf3cd09930049eac3fdd481cd911e70e",
+      "observed": "06f353c44f4ce73a6fe9400a9ebd6c2dbf3cd09930049eac3fdd481cd911e70e",
+      "subjectId": 1
+    },
+    {
+      "expected": "5bba3a9629beee3610c4ff59d2f959a3037e1c99045fcc482e3a05e978428ad9",
+      "observed": "5bba3a9629beee3610c4ff59d2f959a3037e1c99045fcc482e3a05e978428ad9",
+      "subjectId": 10
+    },
+    {
+      "expected": "07446f4b0894daeda1f71d984a9723b16f1d0a84504f076ad56648104cbbf7d7",
+      "observed": "07446f4b0894daeda1f71d984a9723b16f1d0a84504f076ad56648104cbbf7d7",
+      "subjectId": 11
+    },
+    {
+      "expected": "12a00d22949fd099363955ab9ff75c9dd0dc75fe1077e12a72a7cae0c9cc93ec",
+      "observed": "12a00d22949fd099363955ab9ff75c9dd0dc75fe1077e12a72a7cae0c9cc93ec",
+      "subjectId": 12
+    },
+    {
+      "expected": "5f5effda2f9a12a39c143bae87346220b4327882572552ec94b399ce16f51a47",
+      "observed": "5f5effda2f9a12a39c143bae87346220b4327882572552ec94b399ce16f51a47",
+      "subjectId": 13
+    },
+    {
+      "expected": "1bd1b7e689808f353681c82a24f4547269a3bbd92a763f126e4e0e44d61aa441",
+      "observed": "1bd1b7e689808f353681c82a24f4547269a3bbd92a763f126e4e0e44d61aa441",
+      "subjectId": 14
+    },
+    {
+      "expected": "7ead5331d126c7d2019fb075f0a657c223a165d655acf5bd862b7ad8f8a0a50b",
+      "observed": "7ead5331d126c7d2019fb075f0a657c223a165d655acf5bd862b7ad8f8a0a50b",
+      "subjectId": 15
+    },
+    {
+      "expected": "2fdbf287fcc81a4b15306f2ac27433123b23b8d23d7ce20ff90f595d1cef64c3",
+      "observed": "2fdbf287fcc81a4b15306f2ac27433123b23b8d23d7ce20ff90f595d1cef64c3",
+      "subjectId": 16
+    },
+    {
+      "expected": "2456fc376e120ef1870f00b1e2dbe70566ef715454c1a66559fb1b35b486a5a4",
+      "observed": "2456fc376e120ef1870f00b1e2dbe70566ef715454c1a66559fb1b35b486a5a4",
+      "subjectId": 17
+    },
+    {
+      "expected": "a780f8ce58350d7295df6c639aa76c23b7b386e5010131c56d72cccff04e2a71",
+      "observed": "a780f8ce58350d7295df6c639aa76c23b7b386e5010131c56d72cccff04e2a71",
+      "subjectId": 18
+    },
+    {
+      "expected": "435f83bcd4da55337c34b22bc1f984884aa68fbb3fc0dff8f3905f6292242326",
+      "observed": "435f83bcd4da55337c34b22bc1f984884aa68fbb3fc0dff8f3905f6292242326",
+      "subjectId": 100
+    },
+    {
+      "expected": "649accd783a8d5f3a6c52ea983fa4076894b35dd9a7173da2d7655fea5a5254d",
+      "observed": "649accd783a8d5f3a6c52ea983fa4076894b35dd9a7173da2d7655fea5a5254d",
+      "subjectId": 101
+    },
+    {
+      "expected": "b00feac243e61361b244f1dac3cb4c1203563dba1d35b044ec19179712042f9e",
+      "observed": "b00feac243e61361b244f1dac3cb4c1203563dba1d35b044ec19179712042f9e",
+      "subjectId": 102
+    },
+    {
+      "expected": "12232c755ddfb90ea93ad64f8c69c9103ba0c0a8213a3e6e2832f5600b45b45b",
+      "observed": "12232c755ddfb90ea93ad64f8c69c9103ba0c0a8213a3e6e2832f5600b45b45b",
+      "subjectId": 103
+    },
+    {
+      "expected": "5722922c35e3b3e9909fea6a6f01099cf956f826c928068d4a5167e5f31ed42e",
+      "observed": "5722922c35e3b3e9909fea6a6f01099cf956f826c928068d4a5167e5f31ed42e",
+      "subjectId": 104
+    },
+    {
+      "expected": "e558198e517b306a6a3c58ccacd86401588f7f76353beb1e690247156dca4023",
+      "observed": "e558198e517b306a6a3c58ccacd86401588f7f76353beb1e690247156dca4023",
+      "subjectId": 105
+    },
+    {
+      "expected": "784a88ffdc41303eb25ff7a5a097d20b7e8646488e76fc59ac5fd061dfbbe7f0",
+      "observed": "784a88ffdc41303eb25ff7a5a097d20b7e8646488e76fc59ac5fd061dfbbe7f0",
+      "subjectId": 106
+    },
+    {
+      "expected": "a778500046036ef2605c541ba868806ee9190fe9d9f167ba502aeedea89c1007",
+      "observed": "a778500046036ef2605c541ba868806ee9190fe9d9f167ba502aeedea89c1007",
+      "subjectId": 107
+    },
+    {
+      "expected": "ec017b6d66ebb39a0a55a7b97a76cccce329ae19066408bb57f66f25dd4161ef",
+      "observed": "ec017b6d66ebb39a0a55a7b97a76cccce329ae19066408bb57f66f25dd4161ef",
+      "subjectId": 108
+    },
+    {
+      "expected": "c77828f1e83c7e30cf585d0b287a97dad07d7b0450ebe0656b0ed5480c81cfa2",
+      "observed": "c77828f1e83c7e30cf585d0b287a97dad07d7b0450ebe0656b0ed5480c81cfa2",
+      "subjectId": 109
+    }
+  ],
+  "counts": {
+    "BLANK_TAG": 0,
+    "EPISODE_SHORTAGE": 1,
+    "EPISODE_STATUS_DRIFT": 38,
+    "MISSING_COVER_OBJECT": 0,
+    "NOISY_TAG": 0,
+    "NON_ANIME": 0,
+    "NO_EPISODES": 0,
+    "NSFW": 0,
+    "SELF_RELATION": 0,
+    "SOURCE_MISSING": 0,
+    "UNREFERENCED_OBJECT": 0
+  },
+  "coverage": 1.0,
+  "coverageCatalogCount": 220,
+  "databaseFingerprint": "a7148e80c6e021608246b2ec6cbf78180ba7f07327c2714b3774d3bc6a554deb",
+  "dirty": true,
+  "embeddingContract": {
+    "dimensions": 1024,
+    "model": "text-embedding-v4",
+    "profileVersion": "mixed-entity-v1",
+    "provider": "dashscope"
+  },
+  "generatedAt": "2026-09-06T08:31:43.619593+00:00",
+  "indexVersion": "v1",
+  "items": [
+    {
+      "action": "REIMPORT",
+      "category": "EPISODE_SHORTAGE",
+      "details": {
+        "actual": 12,
+        "expected": 13
+      },
+      "target": 72
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 116
+      },
+      "target": 1662
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 117
+      },
+      "target": 1673
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 119
+      },
+      "target": 1688
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 121
+      },
+      "target": 1698
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 123
+      },
+      "target": 1707
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 138
+      },
+      "target": 1751
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 138
+      },
+      "target": 1752
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 138
+      },
+      "target": 1753
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 140
+      },
+      "target": 1782
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 140
+      },
+      "target": 1783
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 140
+      },
+      "target": 1784
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 140
+      },
+      "target": 1785
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 140
+      },
+      "target": 1786
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 153
+      },
+      "target": 1833
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 153
+      },
+      "target": 1834
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 162
+      },
+      "target": 1894
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Today",
+        "subjectId": 162
+      },
+      "target": 1895
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 163
+      },
+      "target": 1911
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 163
+      },
+      "target": 1912
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 178
+      },
+      "target": 1959
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 178
+      },
+      "target": 1960
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 181
+      },
+      "target": 2007
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 181
+      },
+      "target": 2008
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 184
+      },
+      "target": 2022
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 184
+      },
+      "target": 2023
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 184
+      },
+      "target": 2024
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 184
+      },
+      "target": 2025
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 186
+      },
+      "target": 2038
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 198
+      },
+      "target": 2091
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 201
+      },
+      "target": 2106
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 201
+      },
+      "target": 2107
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 201
+      },
+      "target": 2108
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 201
+      },
+      "target": 2109
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 201
+      },
+      "target": 2110
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 203
+      },
+      "target": 2117
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 215
+      },
+      "target": 2160
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 215
+      },
+      "target": 2161
+    },
+    {
+      "action": "REPAIR",
+      "category": "EPISODE_STATUS_DRIFT",
+      "details": {
+        "expectedStatus": "Air",
+        "subjectId": 220
+      },
+      "target": 4596
+    }
+  ],
+  "minioFingerprint": "12eab0c3e56b96736d9ce8df21584c435e0b78b01c2e043dd0ede121fa688297",
+  "vectorCardinality": 220
+}

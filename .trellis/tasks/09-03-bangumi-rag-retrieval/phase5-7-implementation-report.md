@@ -122,3 +122,10 @@ BUILD SUCCESS
 - 使用代理 `http://127.0.0.1:7897` 消费 search 队列 10 条进行 smoke；DashScope 返回 `EmbeddingUnavailable`，未新增投影，10 条任务进入带 `next_retry_at` 的可重试失败状态。未激活 release。
 - 本次 smoke 暴露错误码语义问题：Embedding 故障曾被记录为 `REDIS_UNAVAILABLE`；已修复为 `EMBEDDING_UNAVAILABLE`，并补充限流与 Redis 故障区分测试。修复前产生的历史 10 条失败记录不作为成功证据。
 - 当前 `rag_index_job` 为 `INDEXED=118/PENDING=102`，`search_index_release` 仍为空；真实 120-case 端到端评测、版本发布和灰度继续阻断。
+
+## 2026-09-06 全量 search 双投影完成（覆盖前述运行态）
+
+- 用户在清空代理变量的终端中完成 DashScope `text-embedding-v4` HTTP 200 探针，并继续消费剩余 search 队列。
+- `search_index_job` 最终为 `COMPLETED=13,173`，`PENDING=0`、`FAILED=0`；`character` 保留字导致的 1,760 条失败已通过 SQL 引用修复后重试完成。
+- v1 `search_document` 与 Redis Vector Set 数量一致：SUBJECT=220、EPISODE=1,658、PERSON=9,275、CHARACTER=2,129。
+- 质量报告覆盖率为 100%，但仍发现 1 条 `EPISODE_SHORTAGE` 和 38 条 `EPISODE_STATUS_DRIFT`；报告、120-case 真实评测、release 激活和灰度仍未完成。
