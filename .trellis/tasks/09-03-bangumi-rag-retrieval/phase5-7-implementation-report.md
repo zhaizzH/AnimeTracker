@@ -83,3 +83,8 @@ BUILD SUCCESS
 
 - 当前 Codex 进程仍带有 `HTTP_PROXY/HTTPS_PROXY/ALL_PROXY=http://127.0.0.1:9`；embedding smoke 继续失败。
 - 未启动新的回填批次，队列与 release 状态保持不变，等待在清除代理变量的同一进程中验证网络后再继续。
+
+## 2026-09-06 无代理终端 smoke 进展
+
+- 用户在无代理终端成功完成 1 条 smoke：队列更新为 `INDEXED=5`、`PENDING=66`、`RETRY=149`。
+- 当前 Codex 进程仍检测到代理变量，因此不从本会话启动全量任务；应在同一无代理终端继续消费剩余任务。

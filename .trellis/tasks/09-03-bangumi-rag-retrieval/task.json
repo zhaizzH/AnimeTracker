@@ -66,5 +66,8 @@
     ,"runtime_services_rechecked": "2026-09-06"
     ,"runtime_embedding_still_unavailable": "2026-09-06"
     ,"runtime_codex_proxy_env_still_set": "2026-09-06"
+    ,"runtime_backfill_indexed_jobs_latest": 5
+    ,"runtime_backfill_pending_jobs_latest": 66
+    ,"runtime_backfill_retry_jobs_latest": 149
   }
 }
