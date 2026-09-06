@@ -1,373 +1,5051 @@
-[
-  {
-    "id": "title_cn_01",
-    "category": "title_alias",
-    "description": "中文名精确匹配：进击的巨人",
-    "query": {"keywords": ["进击的巨人"]},
-    "expectation": {"expected_subject_ids": [1], "must_contain_all": [1]}
+{
+  "metadata": {
+    "status": "DEFINITION_ONLY",
+    "release_active": false,
+    "release_status": "BLOCKED_NO_ACTIVE_RELEASE",
+    "snapshot_id": "mysql-cb7f432eadfa885d",
+    "captured_at": "2026-09-06T06:51:35Z",
+    "database": "anime_tracker",
+    "schema_signature": "f0db3fd691cacdb0a14cbad1e5fcb01131065f0320dce89e0d033bef46add4f3",
+    "index_version": "v1",
+    "profile_version": "subject-profile-v1",
+    "case_count": 120,
+    "category_counts": {
+      "title_alias": 30,
+      "structured_filter": 35,
+      "subjective_semantic": 10,
+      "person_character": 25,
+      "series_relation": 5,
+      "negation": 10,
+      "degradation": 5
+    },
+    "generator": "tests.evals.generate_golden_cases:v1",
+    "evaluation_note": "定义集来自真实 MySQL 快照；ACTIVE release 与真实服务回放仍需单独门禁。"
   },
-  {
-    "id": "title_cn_02",
-    "category": "title_alias",
-    "description": "中文名精确匹配：咒术回战",
-    "query": {"keywords": ["咒术回战"]},
-    "expectation": {"expected_subject_ids": [2], "must_contain_all": [2]}
-  },
-  {
-    "id": "title_jp_01",
-    "category": "title_alias",
-    "description": "日文名精确匹配：進撃の巨人",
-    "query": {"keywords": ["進撃の巨人"]},
-    "expectation": {"expected_subject_ids": [1], "must_contain_all": [1]}
-  },
-  {
-    "id": "title_en_01",
-    "category": "title_alias",
-    "description": "英文名精确匹配：Attack on Titan",
-    "query": {"keywords": ["Attack on Titan"]},
-    "expectation": {"expected_subject_ids": [1], "must_contain_all": [1]}
-  },
-  {
-    "id": "title_alias_01",
-    "category": "title_alias",
-    "description": "别名匹配：巨人 → 进击的巨人",
-    "query": {"keywords": ["巨人"]},
-    "expectation": {"expected_subject_ids": [1], "must_contain_all": [1]}
-  },
-  {
-    "id": "title_alias_02",
-    "category": "title_alias",
-    "description": "别名匹配：JJK → 咒术回战",
-    "query": {"keywords": ["JJK"]},
-    "expectation": {"expected_subject_ids": [2], "must_contain_all": [2]}
-  },
-  {
-    "id": "title_fuzzy_01",
-    "category": "title_alias",
-    "description": "近似标题：鬼灭之刃 → 鬼灭之刃 火之神篇",
-    "query": {"keywords": ["鬼灭之刃"]},
-    "expectation": {"expected_subject_ids": [3], "must_contain_all": [3]}
-  },
-  {
-    "id": "title_fuzzy_02",
-    "category": "title_alias",
-    "description": "近似标题：电锯人 → Chainsaw Man",
-    "query": {"keywords": ["电锯人"]},
-    "expectation": {"expected_subject_ids": [4], "must_contain_all": [4]}
-  },
-  {
-    "id": "title_multi_01",
-    "category": "title_alias",
-    "description": "多关键词标题：Fate stay night",
-    "query": {"keywords": ["Fate", "stay", "night"]},
-    "expectation": {"expected_subject_ids": [5], "must_contain_all": [5]}
-  },
-  {
-    "id": "filter_year_01",
-    "category": "structured_filter",
-    "description": "年份过滤：2023年动画",
-    "query": {"year_from": 2023, "year_to": 2023},
-    "expectation": {"expected_subject_ids": [6, 7, 8], "must_contain_all": [6, 7, 8]}
-  },
-  {
-    "id": "filter_year_range_01",
-    "category": "structured_filter",
-    "description": "年份范围：2020-2022年高分动画",
-    "query": {"year_from": 2020, "year_to": 2022, "score_min": 8.0},
-    "expectation": {"expected_subject_ids": [9, 10, 11], "must_contain_all": [9, 10, 11]}
-  },
-  {
-    "id": "filter_quarter_01",
-    "category": "structured_filter",
-    "description": "季度过滤：2024年春季",
-    "query": {"year_from": 2024, "year_to": 2024, "quarter": "spring"},
-    "expectation": {"expected_subject_ids": [12, 13], "must_contain_all": [12, 13]}
-  },
-  {
-    "id": "filter_score_01",
-    "category": "structured_filter",
-    "description": "评分过滤：8.5分以上",
-    "query": {"score_min": 8.5},
-    "expectation": {"expected_subject_ids": [1, 2, 14, 15], "must_contain_all": [1, 2, 14, 15]}
-  },
-  {
-    "id": "filter_rating_total_01",
-    "category": "structured_filter",
-    "description": "评分人数过滤：至少5000人评分",
-    "query": {"rating_total_min": 5000},
-    "expectation": {"expected_subject_ids": [1, 2, 3, 16], "must_contain_all": [1, 2, 3, 16]}
-  },
-  {
-    "id": "filter_air_status_01",
-    "category": "structured_filter",
-    "description": "播出状态：正在播出",
-    "query": {"air_status": "AIRING"},
-    "expectation": {"expected_subject_ids": [17, 18], "must_contain_all": [17, 18]}
-  },
-  {
-    "id": "filter_air_status_02",
-    "category": "structured_filter",
-    "description": "播出状态：即将播出",
-    "query": {"air_status": "UPCOMING"},
-    "expectation": {"expected_subject_ids": [19, 20], "must_contain_all": [19, 20]}
-  },
-  {
-    "id": "filter_tag_01",
-    "category": "structured_filter",
-    "description": "标签过滤：热血",
-    "query": {"meta_tags": ["热血"]},
-    "expectation": {"expected_subject_ids": [1, 2, 21], "must_contain_all": [1, 2, 21]}
-  },
-  {
-    "id": "filter_tag_02",
-    "category": "structured_filter",
-    "description": "标签组合：恋爱+校园",
-    "query": {"meta_tags": ["恋爱", "校园"]},
-    "expectation": {"expected_subject_ids": [22, 23], "must_contain_all": [22, 23]}
-  },
-  {
-    "id": "filter_combined_01",
-    "category": "structured_filter",
-    "description": "组合过滤：2023年+评分8.0+热血",
-    "query": {"year_from": 2023, "year_to": 2023, "score_min": 8.0, "meta_tags": ["热血"]},
-    "expectation": {"expected_subject_ids": [6, 24], "must_contain_all": [6, 24]}
-  },
-  {
-    "id": "filter_combined_02",
-    "category": "structured_filter",
-    "description": "组合过滤：2022-2024年+评分7.5+正在播出",
-    "query": {"year_from": 2022, "year_to": 2024, "score_min": 7.5, "air_status": "AIRING"},
-    "expectation": {"expected_subject_ids": [17], "must_contain_all": [17]}
-  },
-  {
-    "id": "semantic_01",
-    "category": "subjective_semantic",
-    "description": "主观语义：治愈系日常",
-    "query": {"semantic_query": "治愈系日常动画"},
-    "expectation": {"expected_subject_ids": [25, 26, 27], "must_contain_all": [25, 26]}
-  },
-  {
-    "id": "semantic_02",
-    "category": "subjective_semantic",
-    "description": "主观语义：黑暗奇幻",
-    "query": {"semantic_query": "黑暗奇幻风格"},
-    "expectation": {"expected_subject_ids": [1, 28, 29], "must_contain_all": [1, 28]}
-  },
-  {
-    "id": "semantic_03",
-    "category": "subjective_semantic",
-    "description": "主观语义：机甲战斗",
-    "query": {"semantic_query": "机甲战斗机器人"},
-    "expectation": {"expected_subject_ids": [30, 31, 32], "must_contain_all": [30, 31]}
-  },
-  {
-    "id": "semantic_04",
-    "category": "subjective_semantic",
-    "description": "主观语义：青春恋爱",
-    "query": {"semantic_query": "青春恋爱故事"},
-    "expectation": {"expected_subject_ids": [22, 33, 34], "must_contain_all": [22, 33]}
-  },
-  {
-    "id": "semantic_05",
-    "category": "subjective_semantic",
-    "description": "主观语义：悬疑推理",
-    "query": {"semantic_query": "悬疑推理烧脑"},
-    "expectation": {"expected_subject_ids": [35, 36], "must_contain_all": [35, 36]}
-  },
-  {
-    "id": "person_01",
-    "category": "person_character",
-    "description": "人物：庵野秀明作品",
-    "query": {"keywords": ["庵野秀明"]},
-    "expectation": {"expected_subject_ids": [30, 37], "must_contain_all": [30, 37]}
-  },
-  {
-    "id": "person_02",
-    "category": "person_character",
-    "description": "人物：新海诚作品",
-    "query": {"keywords": ["新海诚"]},
-    "expectation": {"expected_subject_ids": [38, 39, 40], "must_contain_all": [38, 39, 40]}
-  },
-  {
-    "id": "person_03",
-    "category": "person_character",
-    "description": "人物：虚渊玄编剧",
-    "query": {"keywords": ["虚渊玄"]},
-    "expectation": {"expected_subject_ids": [41, 42], "must_contain_all": [41, 42]}
-  },
-  {
-    "id": "character_01",
-    "category": "person_character",
-    "description": "角色：初音未来",
-    "query": {"keywords": ["初音未来"]},
-    "expectation": {"expected_subject_ids": [43], "must_contain_all": [43]}
-  },
-  {
-    "id": "character_02",
-    "category": "person_character",
-    "description": "角色：艾伦·耶格尔",
-    "query": {"keywords": ["艾伦"]},
-    "expectation": {"expected_subject_ids": [1], "must_contain_all": [1]}
-  },
-  {
-    "id": "voice_actor_01",
-    "category": "person_character",
-    "description": "声优：花江夏树",
-    "query": {"keywords": ["花江夏树"]},
-    "expectation": {"expected_subject_ids": [3, 44], "must_contain_all": [3, 44]}
-  },
-  {
-    "id": "voice_actor_02",
-    "category": "person_character",
-    "description": "声优：早见沙织",
-    "query": {"keywords": ["早见沙织"]},
-    "expectation": {"expected_subject_ids": [45, 46], "must_contain_all": [45, 46]}
-  },
-  {
-    "id": "studio_01",
-    "category": "person_character",
-    "description": "制作公司：MAPPA",
-    "query": {"keywords": ["MAPPA"]},
-    "expectation": {"expected_subject_ids": [1, 2, 47], "must_contain_all": [1, 2, 47]}
-  },
-  {
-    "id": "studio_02",
-    "category": "person_character",
-    "description": "制作公司：京阿尼",
-    "query": {"keywords": ["京都动画"]},
-    "expectation": {"expected_subject_ids": [48, 49], "must_contain_all": [48, 49]}
-  },
-  {
-    "id": "relation_01",
-    "category": "series_relation",
-    "description": "系列关系：进击的巨人续作",
-    "query": {"keywords": ["进击的巨人"], "semantic_query": "进击的巨人续集"},
-    "expectation": {"expected_subject_ids": [50, 51, 52], "must_contain_all": [50, 51]}
-  },
-  {
-    "id": "relation_02",
-    "category": "series_relation",
-    "description": "系列关系：Fate系列",
-    "query": {"keywords": ["Fate"]},
-    "expectation": {"expected_subject_ids": [5, 53, 54], "must_contain_all": [5, 53]}
-  },
-  {
-    "id": "relation_03",
-    "category": "series_relation",
-    "description": "系列关系：物语系列",
-    "query": {"keywords": ["物语"]},
-    "expectation": {"expected_subject_ids": [55, 56, 57], "must_contain_all": [55, 56]}
-  },
-  {
-    "id": "negation_01",
-    "category": "negation",
-    "description": "否定条件：排除已收藏",
-    "query": {"keywords": ["热血"], "exclude_subject_ids": [1, 2]},
-    "expectation": {"expected_subject_ids": [21, 58], "must_contain_all": [21]}
-  },
-  {
-    "id": "negation_02",
-    "category": "negation",
-    "description": "否定条件：排除NSFW",
-    "query": {"semantic_query": "战斗", "exclude_subject_ids": [59, 60]},
-    "expectation": {"expected_subject_ids": [1, 3, 61], "must_contain_all": [1, 3]}
-  },
-  {
-    "id": "negation_03",
-    "category": "negation",
-    "description": "否定语义：不要恋爱",
-    "query": {"semantic_query": "战斗动画 不要恋爱", "meta_tags": ["热血"]},
-    "expectation": {"expected_subject_ids": [1, 21, 62], "must_contain_all": [1, 21]}
-  },
-  {
-    "id": "degradation_01",
-    "category": "degradation",
-    "description": "冷门条目：低收藏数作品",
-    "query": {"keywords": ["冷门"], "score_min": 7.0},
-    "expectation": {"expected_subject_ids": [63, 64], "must_contain_all": [63]}
-  },
-  {
-    "id": "degradation_02",
-    "category": "degradation",
-    "description": "无结果：不存在的标题",
-    "query": {"keywords": ["不存在的动画2026"]},
-    "expectation": {"expected_subject_ids": [], "must_contain_all": []}
-  },
-  {
-    "id": "degradation_03",
-    "category": "degradation",
-    "description": "降级：Redis不可用时回退Business",
-    "query": {"keywords": ["进击的巨人"]},
-    "expectation": {"expected_subject_ids": [1], "must_contain_all": [1], "hard_filters": {"fallback": "business"}}
-  },
-  {
-    "id": "degradation_04",
-    "category": "degradation",
-    "description": "降级：Embedding失败时仅BM25",
-    "query": {"semantic_query": "治愈日常"},
-    "expectation": {"expected_subject_ids": [25, 26], "must_contain_all": [25], "hard_filters": {"fallback": "lexical_only"}}
-  },
-  {
-    "id": "title_special_01",
-    "category": "title_alias",
-    "description": "特殊字符标题：Re:Zero",
-    "query": {"keywords": ["Re:Zero"]},
-    "expectation": {"expected_subject_ids": [65], "must_contain_all": [65]}
-  },
-  {
-    "id": "title_special_02",
-    "category": "title_alias",
-    "description": "数字标题：死亡游行 Death Parade",
-    "query": {"keywords": ["Death Parade"]},
-    "expectation": {"expected_subject_ids": [66], "must_contain_all": [66]}
-  },
-  {
-    "id": "filter_quarter_02",
-    "category": "structured_filter",
-    "description": "季度过滤：2023年秋季",
-    "query": {"year_from": 2023, "year_to": 2023, "quarter": "autumn"},
-    "expectation": {"expected_subject_ids": [67, 68], "must_contain_all": [67, 68]}
-  },
-  {
-    "id": "filter_combined_03",
-    "category": "structured_filter",
-    "description": "组合过滤：2021年+评分8.0+奇幻",
-    "query": {"year_from": 2021, "year_to": 2021, "score_min": 8.0, "meta_tags": ["奇幻"]},
-    "expectation": {"expected_subject_ids": [69], "must_contain_all": [69]}
-  },
-  {
-    "id": "semantic_06",
-    "category": "subjective_semantic",
-    "description": "主观语义：异世界转生",
-    "query": {"semantic_query": "异世界转生冒险"},
-    "expectation": {"expected_subject_ids": [70, 71, 72], "must_contain_all": [70, 71]}
-  },
-  {
-    "id": "semantic_07",
-    "category": "subjective_semantic",
-    "description": "主观语义：美食烹饪",
-    "query": {"semantic_query": "美食烹饪动画"},
-    "expectation": {"expected_subject_ids": [73, 74], "must_contain_all": [73]}
-  },
-  {
-    "id": "person_04",
-    "category": "person_character",
-    "description": "人物：渡边信一郎",
-    "query": {"keywords": ["渡边信一郎"]},
-    "expectation": {"expected_subject_ids": [75, 76], "must_contain_all": [75, 76]}
-  },
-  {
-    "id": "relation_04",
-    "category": "series_relation",
-    "description": "系列关系：高达系列",
-    "query": {"keywords": ["高达"]},
-    "expectation": {"expected_subject_ids": [77, 78, 79], "must_contain_all": [77, 78]}
-  },
-  {
-    "id": "negation_04",
-    "category": "negation",
-    "description": "否定条件：排除特定年份",
-    "query": {"keywords": ["战斗"], "year_from": 2020, "year_to": 2024, "exclude_subject_ids": [80]},
-    "expectation": {"expected_subject_ids": [1, 2, 3], "must_contain_all": [1, 2]}
-  }
-]
+  "cases": [
+    {
+      "id": "title_name_01",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "李熊猫"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          1
+        ],
+        "must_contain_all": [
+          1
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_01",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 1,
+          "term": "李熊猫"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_02",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "东大高武学院"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          2
+        ],
+        "must_contain_all": [
+          2
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_02",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 2,
+          "term": "东大高武学院"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_03",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "パンの赤ちゃん"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          3
+        ],
+        "must_contain_all": [
+          3
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_03",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 3,
+          "term": "パンの赤ちゃん"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_04",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "Dodgers x ONE PIECE | 特別アニメーション映像 2026"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          4
+        ],
+        "must_contain_all": [
+          4
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_04",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 4,
+          "term": "Dodgers x ONE PIECE | 特別アニメーション映像 2026"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_05",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "怪物大师之穿越时空的怪物"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          5
+        ],
+        "must_contain_all": [
+          5
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_05",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 5,
+          "term": "怪物大师之穿越时空的怪物"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_06",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "天は赤い河のほとり"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          6
+        ],
+        "must_contain_all": [
+          6
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_06",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 6,
+          "term": "天は赤い河のほとり"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "e7f6c011776e8db7cd330b54174fd76f7d0216b612387a5ffcfb81e6f0919683",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_07",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "片田舎のおっさん、剣聖になるⅡ"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          7
+        ],
+        "must_contain_all": [
+          7
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_07",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 7,
+          "term": "片田舎のおっさん、剣聖になるⅡ"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_08",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "天幕のジャードゥーガル"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          8
+        ],
+        "must_contain_all": [
+          8
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_08",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 8,
+          "term": "天幕のジャードゥーガル"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "2c624232cdd221771294dfbb310aca000a0df6ac8b66b696d90ef06fdefb64a3",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_09",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "転校先の清楚可憐な美少女が、昔男子と思って一緒に遊んだ幼馴染だった件"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          9
+        ],
+        "must_contain_all": [
+          9
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_09",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 9,
+          "term": "転校先の清楚可憐な美少女が、昔男子と思って一緒に遊んだ幼馴染だった件"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "19581e27de7ced00ff1ce50b2047e7a567c76b1cbaebabe5ef03f7c3017bb5b7",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_10",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "捨てられ聖女の異世界ごはん旅 隠れスキルでキャンピングカーを召喚しました"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          10
+        ],
+        "must_contain_all": [
+          10
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_10",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 10,
+          "term": "捨てられ聖女の異世界ごはん旅 隠れスキルでキャンピングカーを召喚しました"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "4a44dc15364204a80fe80e9039455cc1608281820fe2b24f1e5233ade6af1dd5",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_11",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "トミカとトム シーズン2"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          11
+        ],
+        "must_contain_all": [
+          11
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_11",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 11,
+          "term": "トミカとトム シーズン2"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "4fc82b26aecb47d2868c4efbe3581732a3e7cbcc6c2efb32062c08170a05eeb8",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_12",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "身代わり令嬢を救ったのは冷酷無慈悲な氷の王子の愛でした"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          12
+        ],
+        "must_contain_all": [
+          12
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_12",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 12,
+          "term": "身代わり令嬢を救ったのは冷酷無慈悲な氷の王子の愛でした"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "6b51d431df5d7f141cbececcf79edf3dd861c3b4069f0b11661a3eefacbba918",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_13",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "最強出涸らし皇子の暗躍帝位争い"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          13
+        ],
+        "must_contain_all": [
+          13
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_13",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 13,
+          "term": "最強出涸らし皇子の暗躍帝位争い"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "3fdba35f04dc8c462986c992bcf875546257113072a909c162f7e470e581e278",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_14",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "北斗の拳 拳王軍ザコたちの挽歌 第2クール"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          14
+        ],
+        "must_contain_all": [
+          14
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_14",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 14,
+          "term": "北斗の拳 拳王軍ザコたちの挽歌 第2クール"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "8527a891e224136950ff32ca212b45bc93f69fbb801c3b1ebedac52775f99e61",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_15",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "ONE PIECE HEROINES"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          15
+        ],
+        "must_contain_all": [
+          15
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_15",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 15,
+          "term": "ONE PIECE HEROINES"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "e629fa6598d732768f7c726b4b621285f9c3b85303900aa912017db7617d8bdb",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_16",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "SEALOOK 2nd season"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          16
+        ],
+        "must_contain_all": [
+          16
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_16",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 16,
+          "term": "SEALOOK 2nd season"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "b17ef6d19c7a5b1ee83b907c595526dcb1eb06db8227d650d5dda0a9f4ce8cd9",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_17",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "いびってこない義母と義姉"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          17
+        ],
+        "must_contain_all": [
+          17
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_17",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 17,
+          "term": "いびってこない義母と義姉"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "4523540f1504cd17100c4835e85b7eefd49911580f8efff0599a8f283be6b9e3",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_18",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "ようじょしぇんき2"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          18
+        ],
+        "must_contain_all": [
+          18
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_18",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 18,
+          "term": "ようじょしぇんき2"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "4ec9599fc203d176a301536c2e091a19bc852759b255bd6818810a42c5fed14a",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_19",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "文豪ストレイドッグス わん！２"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          19
+        ],
+        "must_contain_all": [
+          19
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_19",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 19,
+          "term": "文豪ストレイドッグス わん！２"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "9400f1b21cb527d7fa3d3eabba93557a18ebe7a2ca4e471cfe5e4c5b4ca7f767",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_name_20",
+      "category": "title_alias",
+      "description": "事实快照中的作品原名精确匹配",
+      "query": {
+        "keywords": [
+          "これ描いて死ね"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          20
+        ],
+        "must_contain_all": [
+          20
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_name_20",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 20,
+          "term": "これ描いて死ね"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "f5ca38f748a1d6eaf726b8a42fb575c3c71f1864a8143301782de13da2d9202b",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_alias_01",
+      "category": "title_alias",
+      "description": "事实快照中的 active 别名匹配",
+      "query": {
+        "keywords": [
+          "东大高武学院"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          2
+        ],
+        "must_contain_all": [
+          2
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_alias_01",
+        "sql_template": "subject.alias_exact.v1",
+        "parameters": {
+          "subject_id": 2,
+          "term": "东大高武学院"
+        },
+        "source_tables": [
+          "subject",
+          "subject_alias"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_alias_02",
+      "category": "title_alias",
+      "description": "事实快照中的 active 别名匹配",
+      "query": {
+        "keywords": [
+          "怪物大师之穿越时空的怪物"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          5
+        ],
+        "must_contain_all": [
+          5
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_alias_02",
+        "sql_template": "subject.alias_exact.v1",
+        "parameters": {
+          "subject_id": 5,
+          "term": "怪物大师之穿越时空的怪物"
+        },
+        "source_tables": [
+          "subject",
+          "subject_alias"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_alias_03",
+      "category": "title_alias",
+      "description": "事实快照中的 active 别名匹配",
+      "query": {
+        "keywords": [
+          "天是红河岸"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          6
+        ],
+        "must_contain_all": [
+          6
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_alias_03",
+        "sql_template": "subject.alias_exact.v1",
+        "parameters": {
+          "subject_id": 6,
+          "term": "天是红河岸"
+        },
+        "source_tables": [
+          "subject",
+          "subject_alias"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "e7f6c011776e8db7cd330b54174fd76f7d0216b612387a5ffcfb81e6f0919683",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_alias_04",
+      "category": "title_alias",
+      "description": "事实快照中的 active 别名匹配",
+      "query": {
+        "keywords": [
+          "乡下大叔成为剑圣 第二季"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          7
+        ],
+        "must_contain_all": [
+          7
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_alias_04",
+        "sql_template": "subject.alias_exact.v1",
+        "parameters": {
+          "subject_id": 7,
+          "term": "乡下大叔成为剑圣 第二季"
+        },
+        "source_tables": [
+          "subject",
+          "subject_alias"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_alias_05",
+      "category": "title_alias",
+      "description": "事实快照中的 active 别名匹配",
+      "query": {
+        "keywords": [
+          "穹庐下的魔女"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          8
+        ],
+        "must_contain_all": [
+          8
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_alias_05",
+        "sql_template": "subject.alias_exact.v1",
+        "parameters": {
+          "subject_id": 8,
+          "term": "穹庐下的魔女"
+        },
+        "source_tables": [
+          "subject",
+          "subject_alias"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "2c624232cdd221771294dfbb310aca000a0df6ac8b66b696d90ef06fdefb64a3",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_alias_06",
+      "category": "title_alias",
+      "description": "事实快照中的 active 别名匹配",
+      "query": {
+        "keywords": [
+          "转学后班上的清纯可爱美少女，竟是小时候玩在一起的哥们儿"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          9
+        ],
+        "must_contain_all": [
+          9
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_alias_06",
+        "sql_template": "subject.alias_exact.v1",
+        "parameters": {
+          "subject_id": 9,
+          "term": "转学后班上的清纯可爱美少女，竟是小时候玩在一起的哥们儿"
+        },
+        "source_tables": [
+          "subject",
+          "subject_alias"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "19581e27de7ced00ff1ce50b2047e7a567c76b1cbaebabe5ef03f7c3017bb5b7",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_alias_07",
+      "category": "title_alias",
+      "description": "事实快照中的 active 别名匹配",
+      "query": {
+        "keywords": [
+          "无用圣女的异世界美食之旅 凭借隐藏技能召唤露营车"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          10
+        ],
+        "must_contain_all": [
+          10
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_alias_07",
+        "sql_template": "subject.alias_exact.v1",
+        "parameters": {
+          "subject_id": 10,
+          "term": "无用圣女的异世界美食之旅 凭借隐藏技能召唤露营车"
+        },
+        "source_tables": [
+          "subject",
+          "subject_alias"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "4a44dc15364204a80fe80e9039455cc1608281820fe2b24f1e5233ade6af1dd5",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_alias_08",
+      "category": "title_alias",
+      "description": "事实快照中的 active 别名匹配",
+      "query": {
+        "keywords": [
+          "拯救替身千金的是冷酷无情冰之王子的爱"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          12
+        ],
+        "must_contain_all": [
+          12
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_alias_08",
+        "sql_template": "subject.alias_exact.v1",
+        "parameters": {
+          "subject_id": 12,
+          "term": "拯救替身千金的是冷酷无情冰之王子的爱"
+        },
+        "source_tables": [
+          "subject",
+          "subject_alias"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "6b51d431df5d7f141cbececcf79edf3dd861c3b4069f0b11661a3eefacbba918",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_alias_09",
+      "category": "title_alias",
+      "description": "事实快照中的 active 别名匹配",
+      "query": {
+        "keywords": [
+          "最强废渣皇子暗中活跃于帝位之争"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          13
+        ],
+        "must_contain_all": [
+          13
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_alias_09",
+        "sql_template": "subject.alias_exact.v1",
+        "parameters": {
+          "subject_id": 13,
+          "term": "最强废渣皇子暗中活跃于帝位之争"
+        },
+        "source_tables": [
+          "subject",
+          "subject_alias"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "3fdba35f04dc8c462986c992bcf875546257113072a909c162f7e470e581e278",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "title_alias_10",
+      "category": "title_alias",
+      "description": "事实快照中的 active 别名匹配",
+      "query": {
+        "keywords": [
+          "北斗神拳 拳王军杂兵们的挽歌 第二季"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          14
+        ],
+        "must_contain_all": [
+          14
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:title_alias_10",
+        "sql_template": "subject.alias_exact.v1",
+        "parameters": {
+          "subject_id": 14,
+          "term": "北斗神拳 拳王军杂兵们的挽歌 第二季"
+        },
+        "source_tables": [
+          "subject",
+          "subject_alias"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "8527a891e224136950ff32ca212b45bc93f69fbb801c3b1ebedac52775f99e61",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_tag_01",
+      "category": "structured_filter",
+      "description": "active 元标签过滤",
+      "query": {
+        "meta_tags": [
+          "日本"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          63,
+          8,
+          84,
+          20,
+          110,
+          67,
+          44,
+          51,
+          50,
+          49
+        ],
+        "must_contain_all": [
+          63,
+          8,
+          84
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_tag_01",
+        "sql_template": "subject.meta_tag.v1",
+        "parameters": {
+          "tag": "日本"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 117,
+        "result_ids_hash": "8a2df155c6010b335fbbdcd045c322a2aaa227a9d24d777ad42b53008cda42b3",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_tag_02",
+      "category": "structured_filter",
+      "description": "active 元标签过滤",
+      "query": {
+        "meta_tags": [
+          "TV"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          63,
+          8,
+          84,
+          20,
+          110,
+          67,
+          44,
+          51,
+          50,
+          49
+        ],
+        "must_contain_all": [
+          63,
+          8,
+          84
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_tag_02",
+        "sql_template": "subject.meta_tag.v1",
+        "parameters": {
+          "tag": "TV"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 85,
+        "result_ids_hash": "f3a59e3a7127fec0fedde3f9e674e8db37a7c4a64b2f5abcf766622e56c2be8b",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_tag_03",
+      "category": "structured_filter",
+      "description": "active 元标签过滤",
+      "query": {
+        "meta_tags": [
+          "WEB"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          32,
+          28,
+          106,
+          57,
+          42,
+          33,
+          91,
+          1,
+          39,
+          22
+        ],
+        "must_contain_all": [
+          32,
+          28,
+          106
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_tag_03",
+        "sql_template": "subject.meta_tag.v1",
+        "parameters": {
+          "tag": "WEB"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 68,
+        "result_ids_hash": "d3f23fa6adf512b895c076f021ed4037048e4362ac929d9a2d1d2309bef84d7a",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_tag_04",
+      "category": "structured_filter",
+      "description": "active 元标签过滤",
+      "query": {
+        "meta_tags": [
+          "漫画改"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          63,
+          8,
+          20,
+          110,
+          44,
+          51,
+          50,
+          36,
+          38,
+          66
+        ],
+        "must_contain_all": [
+          63,
+          8,
+          20
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_tag_04",
+        "sql_template": "subject.meta_tag.v1",
+        "parameters": {
+          "tag": "漫画改"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 56,
+        "result_ids_hash": "1d8f71c5edb2a220f635230866959e9551eb71a6c6437af447d2276221f26add",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_tag_05",
+      "category": "structured_filter",
+      "description": "active 元标签过滤",
+      "query": {
+        "meta_tags": [
+          "中国"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          32,
+          28,
+          52,
+          57,
+          42,
+          91,
+          1,
+          39,
+          80,
+          56
+        ],
+        "must_contain_all": [
+          32,
+          28,
+          52
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_tag_05",
+        "sql_template": "subject.meta_tag.v1",
+        "parameters": {
+          "tag": "中国"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 55,
+        "result_ids_hash": "585ee09df6c2e6101806e79592b987f9a046c2b05c0170dca242f841f6cb033f",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_tag_06",
+      "category": "structured_filter",
+      "description": "元标签与评分下限组合过滤",
+      "query": {
+        "meta_tags": [
+          "奇幻"
+        ],
+        "score_min": 0
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          32,
+          84,
+          67,
+          49,
+          72,
+          88,
+          48,
+          54,
+          109,
+          52
+        ],
+        "must_contain_all": [
+          32,
+          84,
+          67
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_tag_06",
+        "sql_template": "subject.meta_tag_score.v1",
+        "parameters": {
+          "tag": "奇幻",
+          "score": 0
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 38,
+        "result_ids_hash": "a68e7edde3e72d755783d4c087f0f8d6ec8acfeba9b079d3f1ce880181db4543",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_tag_07",
+      "category": "structured_filter",
+      "description": "元标签与评分下限组合过滤",
+      "query": {
+        "meta_tags": [
+          "小说改"
+        ],
+        "score_min": 0
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          84,
+          49,
+          88,
+          92,
+          28,
+          90,
+          42,
+          15,
+          101,
+          78
+        ],
+        "must_contain_all": [
+          84,
+          49,
+          88
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_tag_07",
+        "sql_template": "subject.meta_tag_score.v1",
+        "parameters": {
+          "tag": "小说改",
+          "score": 0
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 35,
+        "result_ids_hash": "5638b3bc895ae4c39426803c00265a444b601c4920a1ecaa8c9bb416c1bf9865",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_tag_08",
+      "category": "structured_filter",
+      "description": "元标签与评分下限组合过滤",
+      "query": {
+        "meta_tags": [
+          "原创"
+        ],
+        "score_min": 0
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          32,
+          67,
+          34,
+          52,
+          107,
+          57,
+          91,
+          80,
+          56,
+          79
+        ],
+        "must_contain_all": [
+          32,
+          67,
+          34
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_tag_08",
+        "sql_template": "subject.meta_tag_score.v1",
+        "parameters": {
+          "tag": "原创",
+          "score": 0
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 17,
+        "result_ids_hash": "6215e38ed653dcb3e526da46876263d8fa35e42f67d3c1c06a3331391caecb8a",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_tag_10",
+      "category": "structured_filter",
+      "description": "元标签与评分下限组合过滤",
+      "query": {
+        "meta_tags": [
+          "战斗"
+        ],
+        "score_min": 0
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          63,
+          49,
+          48,
+          109,
+          91,
+          14,
+          74,
+          7,
+          53,
+          68
+        ],
+        "must_contain_all": [
+          63,
+          49,
+          48
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_tag_10",
+        "sql_template": "subject.meta_tag_score.v1",
+        "parameters": {
+          "tag": "战斗",
+          "score": 0
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 16,
+        "result_ids_hash": "83e20ac23c0d90b419246aeb3776a91488503c5da2113aacde1766e8fd3dd2d9",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_tag_year_01",
+      "category": "structured_filter",
+      "description": "年份与元标签组合过滤",
+      "query": {
+        "year_from": 2026,
+        "year_to": 2026,
+        "meta_tags": [
+          "恋爱"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          110,
+          67,
+          44,
+          85,
+          92,
+          54,
+          41,
+          78,
+          75,
+          105
+        ],
+        "must_contain_all": [
+          110,
+          67,
+          44
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_tag_year_01",
+        "sql_template": "subject.year_meta_tag.v1",
+        "parameters": {
+          "year": 2026,
+          "tag": "恋爱"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 18,
+        "result_ids_hash": "7737930cbe94b676f1e6c033ce69d2ad1674257a6ca92711fc204803a069e98c",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_tag_year_02",
+      "category": "structured_filter",
+      "description": "年份与元标签组合过滤",
+      "query": {
+        "year_from": 2026,
+        "year_to": 2026,
+        "meta_tags": [
+          "校园"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          20,
+          110,
+          38,
+          72,
+          48,
+          54,
+          41,
+          57,
+          75,
+          105
+        ],
+        "must_contain_all": [
+          20,
+          110,
+          38
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_tag_year_02",
+        "sql_template": "subject.year_meta_tag.v1",
+        "parameters": {
+          "year": 2026,
+          "tag": "校园"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 16,
+        "result_ids_hash": "86f75f91817eb85237020fc37d2f8a12d3f5d8e687d7f2feb1cbcf10c342dcbd",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_tag_year_03",
+      "category": "structured_filter",
+      "description": "年份与元标签组合过滤",
+      "query": {
+        "year_from": 2026,
+        "year_to": 2026,
+        "meta_tags": [
+          "喜剧"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          50,
+          36,
+          54,
+          57,
+          17,
+          56,
+          62,
+          43,
+          156,
+          188
+        ],
+        "must_contain_all": [
+          50,
+          36,
+          54
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_tag_year_03",
+        "sql_template": "subject.year_meta_tag.v1",
+        "parameters": {
+          "year": 2026,
+          "tag": "喜剧"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 15,
+        "result_ids_hash": "47b1e91f0c03e2a93fa1b89c282fbe59d4fe53bf4eee119735e9cdb1b639e0a8",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_tag_year_04",
+      "category": "structured_filter",
+      "description": "年份与元标签组合过滤",
+      "query": {
+        "year_from": 2026,
+        "year_to": 2026,
+        "meta_tags": [
+          "冒险"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          84,
+          52,
+          1,
+          39,
+          205,
+          186,
+          156,
+          188,
+          144,
+          192
+        ],
+        "must_contain_all": [
+          84,
+          52,
+          1
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_tag_year_04",
+        "sql_template": "subject.year_meta_tag.v1",
+        "parameters": {
+          "year": 2026,
+          "tag": "冒险"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 13,
+        "result_ids_hash": "ee47b91828228ecb4ce72792e984e52e1b0d0b896ac1be63cf9703629ffd669e",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_tag_year_05",
+      "category": "structured_filter",
+      "description": "年份与元标签组合过滤",
+      "query": {
+        "year_from": 2026,
+        "year_to": 2026,
+        "meta_tags": [
+          "短片"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          191,
+          217,
+          126,
+          169,
+          174,
+          115,
+          159,
+          179,
+          135,
+          152
+        ],
+        "must_contain_all": [
+          191,
+          217,
+          126
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_tag_year_05",
+        "sql_template": "subject.year_meta_tag.v1",
+        "parameters": {
+          "year": 2026,
+          "tag": "短片"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 13,
+        "result_ids_hash": "b1e5f1e251df255e4460496b1de0c8d10509507074fd92be091292446f056209",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_score_01",
+      "category": "structured_filter",
+      "description": "评分下限过滤",
+      "query": {
+        "score_min": 8.0
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          63,
+          8,
+          32
+        ],
+        "must_contain_all": [
+          63,
+          8,
+          32
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_score_01",
+        "sql_template": "subject.score_min.v1",
+        "parameters": {
+          "value": 8.0
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 3,
+        "result_ids_hash": "9c27fa25354534c2f285fde783060a0cb2c4018a25e6b1734cca55f48494301e",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_score_02",
+      "category": "structured_filter",
+      "description": "评分下限过滤",
+      "query": {
+        "score_min": 7.9
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          63,
+          8,
+          32,
+          84
+        ],
+        "must_contain_all": [
+          63,
+          8,
+          32
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_score_02",
+        "sql_template": "subject.score_min.v1",
+        "parameters": {
+          "value": 7.9
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 4,
+        "result_ids_hash": "7ce95d871ef833b290850cb38a3876053fc9f2c993c49c00596fba17df27e73f",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_score_03",
+      "category": "structured_filter",
+      "description": "评分下限过滤",
+      "query": {
+        "score_min": 7.8
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          63,
+          8,
+          32,
+          84,
+          20
+        ],
+        "must_contain_all": [
+          63,
+          8,
+          32
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_score_03",
+        "sql_template": "subject.score_min.v1",
+        "parameters": {
+          "value": 7.8
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 5,
+        "result_ids_hash": "40f4993778e56ffa0ef328a4f4cad38aa8f8f815e4eb25ab2c3048c4d1c33105",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_score_04",
+      "category": "structured_filter",
+      "description": "评分下限过滤",
+      "query": {
+        "score_min": 7.7
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          63,
+          8,
+          32,
+          84,
+          20,
+          110
+        ],
+        "must_contain_all": [
+          63,
+          8,
+          32
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_score_04",
+        "sql_template": "subject.score_min.v1",
+        "parameters": {
+          "value": 7.7
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 6,
+        "result_ids_hash": "5593f85c90860e5ffd8be46dcaadca653bb697ec432db58bfbfff31cb7477fcd",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_score_05",
+      "category": "structured_filter",
+      "description": "评分下限过滤",
+      "query": {
+        "score_min": 7.6
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          63,
+          8,
+          32,
+          84,
+          20,
+          110,
+          67
+        ],
+        "must_contain_all": [
+          63,
+          8,
+          32
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_score_05",
+        "sql_template": "subject.score_min.v1",
+        "parameters": {
+          "value": 7.6
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 7,
+        "result_ids_hash": "20df55a4ed828841426a5ef0861177f18778e76a49693b9043f52099eecbc83f",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_rating_01",
+      "category": "structured_filter",
+      "description": "评分人数下限过滤",
+      "query": {
+        "rating_total_min": 11532
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          219,
+          220
+        ],
+        "must_contain_all": [
+          219,
+          220
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_rating_01",
+        "sql_template": "subject.rating_total_min.v1",
+        "parameters": {
+          "value": 11532
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 2,
+        "result_ids_hash": "4337f16494b6dcb877eb7756d0b49a5d7dba41916e592c0cbd2e80a5bfe5ab0f",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_rating_02",
+      "category": "structured_filter",
+      "description": "评分人数下限过滤",
+      "query": {
+        "rating_total_min": 3799
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          50,
+          219,
+          220
+        ],
+        "must_contain_all": [
+          50,
+          219,
+          220
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_rating_02",
+        "sql_template": "subject.rating_total_min.v1",
+        "parameters": {
+          "value": 3799
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 3,
+        "result_ids_hash": "b41efdd264b58d6b591d335dbc0491757479d453c0f5a2f3824346f2ed2d2a29",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_rating_03",
+      "category": "structured_filter",
+      "description": "评分人数下限过滤",
+      "query": {
+        "rating_total_min": 3660
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          50,
+          85,
+          219,
+          220
+        ],
+        "must_contain_all": [
+          50,
+          85,
+          219
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_rating_03",
+        "sql_template": "subject.rating_total_min.v1",
+        "parameters": {
+          "value": 3660
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 4,
+        "result_ids_hash": "8d6ea1f120f34a5d4a7931bda38e3bb135df84073a6f72f6549e3ef7f861bc9b",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_rating_04",
+      "category": "structured_filter",
+      "description": "评分人数下限过滤",
+      "query": {
+        "rating_total_min": 3627
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          84,
+          50,
+          85,
+          219,
+          220
+        ],
+        "must_contain_all": [
+          84,
+          50,
+          85
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_rating_04",
+        "sql_template": "subject.rating_total_min.v1",
+        "parameters": {
+          "value": 3627
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 5,
+        "result_ids_hash": "089b6a1f8dfb4c83faa08380e026a1b0fc952361da06a94712fec2e80bc2a5ca",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_rating_05",
+      "category": "structured_filter",
+      "description": "评分人数下限过滤",
+      "query": {
+        "rating_total_min": 2575
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          84,
+          50,
+          85,
+          111,
+          219,
+          220
+        ],
+        "must_contain_all": [
+          84,
+          50,
+          85
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_rating_05",
+        "sql_template": "subject.rating_total_min.v1",
+        "parameters": {
+          "value": 2575
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 6,
+        "result_ids_hash": "b6ef11ae12bf0c5c7ee96a77f02e73187c73865cd0426f0b4c9b633dbe5fdfb0",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_air_status_01",
+      "category": "structured_filter",
+      "description": "播出状态过滤",
+      "query": {
+        "air_status": "UPCOMING"
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          187,
+          144,
+          207,
+          133,
+          122,
+          155,
+          167,
+          168,
+          172,
+          175
+        ],
+        "must_contain_all": [
+          187,
+          144,
+          207
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_air_status_01",
+        "sql_template": "subject.air_status.v1",
+        "parameters": {
+          "status": "UPCOMING"
+        },
+        "source_tables": [
+          "subject",
+          "episode"
+        ],
+        "result_count": 15,
+        "result_ids_hash": "8ee4855b5908a1c00f743e038b0cea01b53cb0f033ec7dcfff201061b3c30a22",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_air_status_02",
+      "category": "structured_filter",
+      "description": "播出状态过滤",
+      "query": {
+        "air_status": "AIRING"
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          63,
+          8,
+          84,
+          20,
+          110,
+          67,
+          44,
+          51,
+          50,
+          49
+        ],
+        "must_contain_all": [
+          63,
+          8,
+          84
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_air_status_02",
+        "sql_template": "subject.air_status.v1",
+        "parameters": {
+          "status": "AIRING"
+        },
+        "source_tables": [
+          "subject",
+          "episode"
+        ],
+        "result_count": 149,
+        "result_ids_hash": "2669e7ca883f2c0cacd6f784300800b10722e0ffed4df6845c355616d02e9453",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_air_status_03",
+      "category": "structured_filter",
+      "description": "播出状态过滤",
+      "query": {
+        "air_status": "FINISHED"
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          32,
+          52,
+          15,
+          33,
+          22,
+          80,
+          73,
+          47,
+          104,
+          103
+        ],
+        "must_contain_all": [
+          32,
+          52,
+          15
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_air_status_03",
+        "sql_template": "subject.air_status.v1",
+        "parameters": {
+          "status": "FINISHED"
+        },
+        "source_tables": [
+          "subject",
+          "episode"
+        ],
+        "result_count": 52,
+        "result_ids_hash": "d7aeb8a623456836f2ddf30c7aadc162c90acf3efe29dfd763d693874330ffc2",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_quarter_tag_01",
+      "category": "structured_filter",
+      "description": "年份季度与元标签组合过滤",
+      "query": {
+        "year_from": 2026,
+        "year_to": 2026,
+        "quarter": "autumn",
+        "meta_tags": [
+          "美国"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          107,
+          106,
+          22,
+          73,
+          188,
+          164,
+          77,
+          93,
+          95,
+          116
+        ],
+        "must_contain_all": [
+          107,
+          106,
+          22
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_quarter_tag_01",
+        "sql_template": "subject.year_quarter_meta_tag.v1",
+        "parameters": {
+          "year": 2026,
+          "quarter": 3,
+          "tag": "美国"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 13,
+        "result_ids_hash": "71abfc540c789a13fff37feb206bed3c7403f3082b96ebc6feb7706c23fb6bda",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_quarter_tag_02",
+      "category": "structured_filter",
+      "description": "年份季度与元标签组合过滤",
+      "query": {
+        "year_from": 2026,
+        "year_to": 2026,
+        "quarter": "autumn",
+        "meta_tags": [
+          "玄幻"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          28,
+          42,
+          39,
+          56,
+          108,
+          2,
+          99,
+          59,
+          23,
+          150
+        ],
+        "must_contain_all": [
+          28,
+          42,
+          39
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_quarter_tag_02",
+        "sql_template": "subject.year_quarter_meta_tag.v1",
+        "parameters": {
+          "year": 2026,
+          "quarter": 3,
+          "tag": "玄幻"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 12,
+        "result_ids_hash": "15214b188bf604612fd86bb262363fbca557ee2f055748c9b287b0abb145a435",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_quarter_tag_03",
+      "category": "structured_filter",
+      "description": "年份季度与元标签组合过滤",
+      "query": {
+        "year_from": 2026,
+        "year_to": 2026,
+        "quarter": "autumn",
+        "meta_tags": [
+          "日常"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          20,
+          50,
+          36,
+          85,
+          90,
+          55,
+          57,
+          96,
+          119,
+          135
+        ],
+        "must_contain_all": [
+          20,
+          50,
+          36
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_quarter_tag_03",
+        "sql_template": "subject.year_quarter_meta_tag.v1",
+        "parameters": {
+          "year": 2026,
+          "quarter": 3,
+          "tag": "日常"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 10,
+        "result_ids_hash": "962466ab43dee967ea29da92a0d15739621e99aefa3ff5c3c4590ce32c9809d7",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_quarter_tag_04",
+      "category": "structured_filter",
+      "description": "年份季度与元标签组合过滤",
+      "query": {
+        "year_from": 2026,
+        "year_to": 2026,
+        "quarter": "autumn",
+        "meta_tags": [
+          "子供向"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          32,
+          52,
+          133,
+          5,
+          69,
+          77,
+          95,
+          129,
+          141
+        ],
+        "must_contain_all": [
+          32,
+          52,
+          133
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_quarter_tag_04",
+        "sql_template": "subject.year_quarter_meta_tag.v1",
+        "parameters": {
+          "year": 2026,
+          "quarter": 3,
+          "tag": "子供向"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 9,
+        "result_ids_hash": "a1cd3b03bf6a27b1d503042143d0783387c9283b9d6a3e75bcd166472a167eac",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_quarter_tag_05",
+      "category": "structured_filter",
+      "description": "年份季度与元标签组合过滤",
+      "query": {
+        "year_from": 2026,
+        "year_to": 2026,
+        "quarter": "autumn",
+        "meta_tags": [
+          "穿越"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          54,
+          101,
+          74,
+          10,
+          71,
+          25,
+          82,
+          6,
+          186
+        ],
+        "must_contain_all": [
+          54,
+          101,
+          74
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_quarter_tag_05",
+        "sql_template": "subject.year_quarter_meta_tag.v1",
+        "parameters": {
+          "year": 2026,
+          "quarter": 3,
+          "tag": "穿越"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 9,
+        "result_ids_hash": "13be7424eced756a85f7b801a3881d7aa4c31f2b443803dcc1e807c031c3ee51",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_quarter_tag_06",
+      "category": "structured_filter",
+      "description": "年份季度与元标签组合过滤",
+      "query": {
+        "year_from": 2026,
+        "year_to": 2026,
+        "quarter": "autumn",
+        "meta_tags": [
+          "韩国"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          106,
+          60,
+          212,
+          131,
+          140,
+          141,
+          167,
+          193
+        ],
+        "must_contain_all": [
+          106,
+          60,
+          212
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_quarter_tag_06",
+        "sql_template": "subject.year_quarter_meta_tag.v1",
+        "parameters": {
+          "year": 2026,
+          "quarter": 3,
+          "tag": "韩国"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 8,
+        "result_ids_hash": "b7420e32d4213dab98479795b470875c02d8361c9741d2eba7df563ced6d5a01",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_quarter_tag_07",
+      "category": "structured_filter",
+      "description": "年份季度与元标签组合过滤",
+      "query": {
+        "year_from": 2026,
+        "year_to": 2026,
+        "quarter": "autumn",
+        "meta_tags": [
+          "历史"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          8,
+          109,
+          61,
+          64,
+          6,
+          112,
+          120
+        ],
+        "must_contain_all": [
+          8,
+          109,
+          61
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_quarter_tag_07",
+        "sql_template": "subject.year_quarter_meta_tag.v1",
+        "parameters": {
+          "year": 2026,
+          "quarter": 3,
+          "tag": "历史"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 7,
+        "result_ids_hash": "cdc17907fa7bf1b2c3a573e52bdbb248cf1704fc0b45858fdc81484115686d4d",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "filter_year_01",
+      "category": "structured_filter",
+      "description": "年份过滤",
+      "query": {
+        "year_from": 2026,
+        "year_to": 2026
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          63,
+          8,
+          32,
+          84,
+          20,
+          110,
+          67,
+          44,
+          51,
+          50
+        ],
+        "must_contain_all": [
+          63,
+          8,
+          32
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:filter_year_01",
+        "sql_template": "subject.year.v1",
+        "parameters": {
+          "year": 2026
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 214,
+        "result_ids_hash": "9534e0db06d06c42c548c04a7b2f5e0cf1d8fc8275e57b19a5ca5eee8589cc75",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "semantic_tag_01",
+      "category": "subjective_semantic",
+      "description": "由 active 元标签支持的语义检索定义",
+      "query": {
+        "semantic_query": "科幻"
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          51,
+          80,
+          103,
+          203,
+          188,
+          169,
+          116
+        ],
+        "must_contain_all": [
+          51,
+          80,
+          103
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:semantic_tag_01",
+        "sql_template": "subject.semantic_tag_evidence.v1",
+        "parameters": {
+          "tag": "科幻"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 7,
+        "result_ids_hash": "c2123cb990b80799353cde01baaa350e76c0b572535da03248494f8e476bed59",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "semantic_tag_02",
+      "category": "subjective_semantic",
+      "description": "由 active 元标签支持的语义检索定义",
+      "query": {
+        "semantic_query": "MV"
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          161,
+          202,
+          118,
+          128,
+          147,
+          194
+        ],
+        "must_contain_all": [
+          161,
+          202,
+          118
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:semantic_tag_02",
+        "sql_template": "subject.semantic_tag_evidence.v1",
+        "parameters": {
+          "tag": "MV"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 6,
+        "result_ids_hash": "1c99902e23e6782e888b52174372dab1eb77a8134eed9fd24968aa3743cc226d",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "semantic_tag_03",
+      "category": "subjective_semantic",
+      "description": "由 active 元标签支持的语义检索定义",
+      "query": {
+        "semantic_query": "少年向"
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          110,
+          66,
+          53,
+          98,
+          219,
+          207
+        ],
+        "must_contain_all": [
+          110,
+          66,
+          53
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:semantic_tag_03",
+        "sql_template": "subject.semantic_tag_evidence.v1",
+        "parameters": {
+          "tag": "少年向"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 6,
+        "result_ids_hash": "6d23a304865136bf8dea875fbf6aff9cb1d9ae8648826a77148155d54798fba0",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "semantic_tag_04",
+      "category": "subjective_semantic",
+      "description": "由 active 元标签支持的语义检索定义",
+      "query": {
+        "semantic_query": "欧美"
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          106,
+          188,
+          113,
+          124,
+          175,
+          213
+        ],
+        "must_contain_all": [
+          106,
+          188,
+          113
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:semantic_tag_04",
+        "sql_template": "subject.semantic_tag_evidence.v1",
+        "parameters": {
+          "tag": "欧美"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 6,
+        "result_ids_hash": "0ba0520c02019218ecb6c50337fa032b65c20650f6ee1846434e7111d596e0c8",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "semantic_tag_05",
+      "category": "subjective_semantic",
+      "description": "由 active 元标签支持的语义检索定义",
+      "query": {
+        "semantic_query": "青年向"
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          50,
+          36,
+          85,
+          87,
+          144
+        ],
+        "must_contain_all": [
+          50,
+          36,
+          85
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:semantic_tag_05",
+        "sql_template": "subject.semantic_tag_evidence.v1",
+        "parameters": {
+          "tag": "青年向"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 5,
+        "result_ids_hash": "67e721de6f6722f1ee35cc797e10b30cedcc2f852f37f81072f8abfe3eeb02cc",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "semantic_tag_06",
+      "category": "subjective_semantic",
+      "description": "由 active 元标签支持的语义检索定义",
+      "query": {
+        "semantic_query": "CM"
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          165,
+          146,
+          160
+        ],
+        "must_contain_all": [
+          165,
+          146,
+          160
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:semantic_tag_06",
+        "sql_template": "subject.semantic_tag_evidence.v1",
+        "parameters": {
+          "tag": "CM"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 3,
+        "result_ids_hash": "ab7aa61cc8950e8a1ed489310bec27e5ca44d0188ed918de3a9b1f79d4e8bd4e",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "semantic_tag_07",
+      "category": "subjective_semantic",
+      "description": "由 active 元标签支持的语义检索定义",
+      "query": {
+        "semantic_query": "同人"
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          147,
+          114,
+          136
+        ],
+        "must_contain_all": [
+          147,
+          114,
+          136
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:semantic_tag_07",
+        "sql_template": "subject.semantic_tag_evidence.v1",
+        "parameters": {
+          "tag": "同人"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 3,
+        "result_ids_hash": "497824ea817355680f0af89a67c49302cdc2d109ddaf33771d9fbc41b3e21b80",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "semantic_tag_08",
+      "category": "subjective_semantic",
+      "description": "由 active 元标签支持的语义检索定义",
+      "query": {
+        "semantic_query": "后宫"
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          84,
+          44,
+          65
+        ],
+        "must_contain_all": [
+          84,
+          44,
+          65
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:semantic_tag_08",
+        "sql_template": "subject.semantic_tag_evidence.v1",
+        "parameters": {
+          "tag": "后宫"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 3,
+        "result_ids_hash": "ebf6e119269fe597c166b9dfa86a395e7a1da3351460065f14e2a9357ee055d1",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "semantic_tag_09",
+      "category": "subjective_semantic",
+      "description": "由 active 元标签支持的语义检索定义",
+      "query": {
+        "semantic_query": "少女向"
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          105,
+          100,
+          6
+        ],
+        "must_contain_all": [
+          105,
+          100,
+          6
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:semantic_tag_09",
+        "sql_template": "subject.semantic_tag_evidence.v1",
+        "parameters": {
+          "tag": "少女向"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 3,
+        "result_ids_hash": "adecd43ed13b730c37c63b41f19b7fff8ad26ba1fbe08617409b59001797aa17",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "semantic_tag_10",
+      "category": "subjective_semantic",
+      "description": "由 active 元标签支持的语义检索定义",
+      "query": {
+        "semantic_query": "悬疑"
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          1,
+          220,
+          181
+        ],
+        "must_contain_all": [
+          1,
+          220,
+          181
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:semantic_tag_10",
+        "sql_template": "subject.semantic_tag_evidence.v1",
+        "parameters": {
+          "tag": "悬疑"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 3,
+        "result_ids_hash": "d4684d6e389940f81c4a7772c2545f441095fedd8e1ecfb6377f95b932b9d647",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "person_01",
+      "category": "person_character",
+      "description": "Person 关系回查",
+      "query": {
+        "person_ids": [
+          1969
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          84,
+          20,
+          67,
+          51,
+          50,
+          38,
+          66,
+          54,
+          90,
+          41
+        ],
+        "must_contain_all": [
+          84,
+          20,
+          67
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:person_01",
+        "sql_template": "subject.person_credit.v1",
+        "parameters": {
+          "person_id": 1969,
+          "name": "Imagica EMS"
+        },
+        "source_tables": [
+          "subject",
+          "person",
+          "subject_person_credit"
+        ],
+        "result_count": 18,
+        "result_ids_hash": "45bae18b403196aedfb1814e0ed586eb885a56489e6766b79aa2c4d374ac2c1a",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "person_02",
+      "category": "person_character",
+      "description": "Person 关系回查",
+      "query": {
+        "person_ids": [
+          460
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          8,
+          20,
+          44,
+          38,
+          85,
+          109,
+          46,
+          78,
+          17,
+          74
+        ],
+        "must_contain_all": [
+          8,
+          20,
+          44
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:person_02",
+        "sql_template": "subject.person_credit.v1",
+        "parameters": {
+          "person_id": 460,
+          "name": "ビットグルーヴプロモーション"
+        },
+        "source_tables": [
+          "subject",
+          "person",
+          "subject_person_credit"
+        ],
+        "result_count": 15,
+        "result_ids_hash": "1791cf2e441233b996f62abbcaad784297a620144d50953d5ecf4c7292de1e33",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "person_03",
+      "category": "person_character",
+      "description": "Person 关系回查",
+      "query": {
+        "person_ids": [
+          309
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          66,
+          90,
+          41,
+          101,
+          35,
+          7,
+          30,
+          13,
+          10,
+          9
+        ],
+        "must_contain_all": [
+          66,
+          90,
+          41
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:person_03",
+        "sql_template": "subject.person_credit.v1",
+        "parameters": {
+          "person_id": 309,
+          "name": "クロックワークス"
+        },
+        "source_tables": [
+          "subject",
+          "person",
+          "subject_person_credit"
+        ],
+        "result_count": 14,
+        "result_ids_hash": "fa7d25aa99e43a6783e0a1c1ba4bff04c1d7ebd896cecf8cd08d22856bb9ee78",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "person_04",
+      "category": "person_character",
+      "description": "Person 关系回查",
+      "query": {
+        "person_ids": [
+          321
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          66,
+          90,
+          41,
+          101,
+          35,
+          7,
+          30,
+          13,
+          10,
+          9
+        ],
+        "must_contain_all": [
+          66,
+          90,
+          41
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:person_04",
+        "sql_template": "subject.person_credit.v1",
+        "parameters": {
+          "person_id": 321,
+          "name": "武智恒雄"
+        },
+        "source_tables": [
+          "subject",
+          "person",
+          "subject_person_credit"
+        ],
+        "result_count": 14,
+        "result_ids_hash": "fa7d25aa99e43a6783e0a1c1ba4bff04c1d7ebd896cecf8cd08d22856bb9ee78",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "person_05",
+      "category": "person_character",
+      "description": "Person 关系回查",
+      "query": {
+        "person_ids": [
+          1686
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          84,
+          67,
+          49,
+          38,
+          72,
+          48,
+          41,
+          19,
+          31,
+          78
+        ],
+        "must_contain_all": [
+          84,
+          67,
+          49
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:person_05",
+        "sql_template": "subject.person_credit.v1",
+        "parameters": {
+          "person_id": 1686,
+          "name": "KADOKAWA"
+        },
+        "source_tables": [
+          "subject",
+          "person",
+          "subject_person_credit"
+        ],
+        "result_count": 14,
+        "result_ids_hash": "c2a0a7e824853cfc31c1556a91c70329870870eb64eb66f0c2d72750e8d146bb",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "person_06",
+      "category": "person_character",
+      "description": "Person 关系回查",
+      "query": {
+        "person_ids": [
+          247
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          51,
+          49,
+          34,
+          36,
+          92,
+          35,
+          17,
+          7,
+          102,
+          61
+        ],
+        "must_contain_all": [
+          51,
+          49,
+          34
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:person_06",
+        "sql_template": "subject.person_credit.v1",
+        "parameters": {
+          "person_id": 247,
+          "name": "クープ"
+        },
+        "source_tables": [
+          "subject",
+          "person",
+          "subject_person_credit"
+        ],
+        "result_count": 12,
+        "result_ids_hash": "366db1ad88024038f25aa68441cd97fa039352c1cd63685b82e4ca8d2980b69c",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "person_07",
+      "category": "person_character",
+      "description": "Person 关系回查",
+      "query": {
+        "person_ids": [
+          852
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          44,
+          50,
+          109,
+          90,
+          46,
+          74,
+          102,
+          61,
+          30,
+          43
+        ],
+        "must_contain_all": [
+          44,
+          50,
+          109
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:person_07",
+        "sql_template": "subject.person_credit.v1",
+        "parameters": {
+          "person_id": 852,
+          "name": "TOKYO MX"
+        },
+        "source_tables": [
+          "subject",
+          "person",
+          "subject_person_credit"
+        ],
+        "result_count": 12,
+        "result_ids_hash": "dc1fd00a744ba3073942e23c6fb0cf945c2f9c5a7c8784ad3474bfa1ce61b837",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "person_08",
+      "category": "person_character",
+      "description": "Person 关系回查",
+      "query": {
+        "person_ids": [
+          1692
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          84,
+          67,
+          49,
+          38,
+          72,
+          48,
+          41,
+          19,
+          78,
+          68
+        ],
+        "must_contain_all": [
+          84,
+          67,
+          49
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:person_08",
+        "sql_template": "subject.person_credit.v1",
+        "parameters": {
+          "person_id": 1692,
+          "name": "工藤大丈"
+        },
+        "source_tables": [
+          "subject",
+          "person",
+          "subject_person_credit"
+        ],
+        "result_count": 12,
+        "result_ids_hash": "b1e3df1bdef80481673e32f03252bf6bca01e1e11f3e6585e0abf2848197a902",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "person_09",
+      "category": "person_character",
+      "description": "Person 关系回查",
+      "query": {
+        "person_ids": [
+          293
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          66,
+          90,
+          41,
+          101,
+          7,
+          30,
+          13,
+          10,
+          9,
+          58
+        ],
+        "must_contain_all": [
+          66,
+          90,
+          41
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:person_09",
+        "sql_template": "subject.person_credit.v1",
+        "parameters": {
+          "person_id": 293,
+          "name": "渡邉日向子"
+        },
+        "source_tables": [
+          "subject",
+          "person",
+          "subject_person_credit"
+        ],
+        "result_count": 11,
+        "result_ids_hash": "ff1d70bb14e34c17504b024a236070958e431cb03d096517ad50bbab53f67782",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "person_10",
+      "category": "person_character",
+      "description": "Person 关系回查",
+      "query": {
+        "person_ids": [
+          1321
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          49,
+          85,
+          72,
+          101,
+          31,
+          68,
+          13,
+          65,
+          25,
+          82
+        ],
+        "must_contain_all": [
+          49,
+          85,
+          72
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:person_10",
+        "sql_template": "subject.person_credit.v1",
+        "parameters": {
+          "person_id": 1321,
+          "name": "飯飼一幸"
+        },
+        "source_tables": [
+          "subject",
+          "person",
+          "subject_person_credit"
+        ],
+        "result_count": 11,
+        "result_ids_hash": "c46533bcfc519449eed64f4cc16441d13ae2907d1dc7327a9bd08cdb65b8df64",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "character_01",
+      "category": "person_character",
+      "description": "Character 关系回查",
+      "query": {
+        "character_ids": [
+          100
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          44,
+          36,
+          38,
+          66,
+          92,
+          54,
+          109,
+          90,
+          101,
+          31
+        ],
+        "must_contain_all": [
+          44,
+          36,
+          38
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:character_01",
+        "sql_template": "subject.character.v1",
+        "parameters": {
+          "character_id": 100,
+          "name": "ナレーション"
+        },
+        "source_tables": [
+          "subject",
+          "character",
+          "subject_character"
+        ],
+        "result_count": 18,
+        "result_ids_hash": "c2ae8b62b6fdeb661a87da3dfbd2c909bdd98707e5ef66625033be32aa142418",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "character_02",
+      "category": "person_character",
+      "description": "Character 关系回查",
+      "query": {
+        "character_ids": [
+          221
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          49,
+          18
+        ],
+        "must_contain_all": [
+          49,
+          18
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:character_02",
+        "sql_template": "subject.character.v1",
+        "parameters": {
+          "character_id": 221,
+          "name": "ターニャ・デグレチャフ"
+        },
+        "source_tables": [
+          "subject",
+          "character",
+          "subject_character"
+        ],
+        "result_count": 2,
+        "result_ids_hash": "a59cd2032219eadd3df2c4c640d99af77b7b0471a4467160a89722e661f4cc8e",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "character_03",
+      "category": "person_character",
+      "description": "Character 关系回查",
+      "query": {
+        "character_ids": [
+          222
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          49,
+          18
+        ],
+        "must_contain_all": [
+          49,
+          18
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:character_03",
+        "sql_template": "subject.character.v1",
+        "parameters": {
+          "character_id": 222,
+          "name": "ヴィーシャ"
+        },
+        "source_tables": [
+          "subject",
+          "character",
+          "subject_character"
+        ],
+        "result_count": 2,
+        "result_ids_hash": "a59cd2032219eadd3df2c4c640d99af77b7b0471a4467160a89722e661f4cc8e",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "character_04",
+      "category": "person_character",
+      "description": "Character 关系回查",
+      "query": {
+        "character_ids": [
+          223
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          49,
+          18
+        ],
+        "must_contain_all": [
+          49,
+          18
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:character_04",
+        "sql_template": "subject.character.v1",
+        "parameters": {
+          "character_id": 223,
+          "name": "エーリッヒ・フォン・レルゲン"
+        },
+        "source_tables": [
+          "subject",
+          "character",
+          "subject_character"
+        ],
+        "result_count": 2,
+        "result_ids_hash": "a59cd2032219eadd3df2c4c640d99af77b7b0471a4467160a89722e661f4cc8e",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "character_05",
+      "category": "person_character",
+      "description": "Character 关系回查",
+      "query": {
+        "character_ids": [
+          224
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          49,
+          18
+        ],
+        "must_contain_all": [
+          49,
+          18
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:character_05",
+        "sql_template": "subject.character.v1",
+        "parameters": {
+          "character_id": 224,
+          "name": "ハンス・フォン・ゼートゥーア"
+        },
+        "source_tables": [
+          "subject",
+          "character",
+          "subject_character"
+        ],
+        "result_count": 2,
+        "result_ids_hash": "a59cd2032219eadd3df2c4c640d99af77b7b0471a4467160a89722e661f4cc8e",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "character_06",
+      "category": "person_character",
+      "description": "Character 关系回查",
+      "query": {
+        "character_ids": [
+          225
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          49,
+          18
+        ],
+        "must_contain_all": [
+          49,
+          18
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:character_06",
+        "sql_template": "subject.character.v1",
+        "parameters": {
+          "character_id": 225,
+          "name": "クルト・フォン・ルーデルドルフ"
+        },
+        "source_tables": [
+          "subject",
+          "character",
+          "subject_character"
+        ],
+        "result_count": 2,
+        "result_ids_hash": "a59cd2032219eadd3df2c4c640d99af77b7b0471a4467160a89722e661f4cc8e",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "character_07",
+      "category": "person_character",
+      "description": "Character 关系回查",
+      "query": {
+        "character_ids": [
+          226
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          49,
+          18
+        ],
+        "must_contain_all": [
+          49,
+          18
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:character_07",
+        "sql_template": "subject.character.v1",
+        "parameters": {
+          "character_id": 226,
+          "name": "マテウス・ヨハン・ヴァイス"
+        },
+        "source_tables": [
+          "subject",
+          "character",
+          "subject_character"
+        ],
+        "result_count": 2,
+        "result_ids_hash": "a59cd2032219eadd3df2c4c640d99af77b7b0471a4467160a89722e661f4cc8e",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "character_08",
+      "category": "person_character",
+      "description": "Character 关系回查",
+      "query": {
+        "character_ids": [
+          227
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          49,
+          18
+        ],
+        "must_contain_all": [
+          49,
+          18
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:character_08",
+        "sql_template": "subject.character.v1",
+        "parameters": {
+          "character_id": 227,
+          "name": "ヴォーレン・グランツ"
+        },
+        "source_tables": [
+          "subject",
+          "character",
+          "subject_character"
+        ],
+        "result_count": 2,
+        "result_ids_hash": "a59cd2032219eadd3df2c4c640d99af77b7b0471a4467160a89722e661f4cc8e",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "actor_01",
+      "category": "person_character",
+      "description": "声优关系回查",
+      "query": {
+        "actor_ids": [
+          1274
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          34,
+          38,
+          85,
+          48,
+          109,
+          101,
+          14,
+          74,
+          68,
+          30
+        ],
+        "must_contain_all": [
+          34,
+          38,
+          85
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:actor_01",
+        "sql_template": "subject.actor.v1",
+        "parameters": {
+          "person_id": 1274,
+          "name": "高橋伸也"
+        },
+        "source_tables": [
+          "subject",
+          "character",
+          "person",
+          "character_actor"
+        ],
+        "result_count": 12,
+        "result_ids_hash": "2556ccc4bbb47a8bd3206c9efef60a028f087647ad07396bab542be6d88af29e",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "actor_02",
+      "category": "person_character",
+      "description": "声优关系回查",
+      "query": {
+        "actor_ids": [
+          2796
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          63,
+          84,
+          44,
+          49,
+          36,
+          66,
+          48,
+          31,
+          74,
+          62
+        ],
+        "must_contain_all": [
+          63,
+          84,
+          44
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:actor_02",
+        "sql_template": "subject.actor.v1",
+        "parameters": {
+          "person_id": 2796,
+          "name": "杉田智和"
+        },
+        "source_tables": [
+          "subject",
+          "character",
+          "person",
+          "character_actor"
+        ],
+        "result_count": 11,
+        "result_ids_hash": "ac44d2c2d39af30329b4427e3f6882847d3a2024334979047075d80448a59f91",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "actor_03",
+      "category": "person_character",
+      "description": "声优关系回查",
+      "query": {
+        "actor_ids": [
+          3959
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          63,
+          84,
+          51,
+          50,
+          109,
+          46,
+          98,
+          43,
+          71,
+          103
+        ],
+        "must_contain_all": [
+          63,
+          84,
+          51
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:actor_03",
+        "sql_template": "subject.actor.v1",
+        "parameters": {
+          "person_id": 3959,
+          "name": "稲田徹"
+        },
+        "source_tables": [
+          "subject",
+          "character",
+          "person",
+          "character_actor"
+        ],
+        "result_count": 10,
+        "result_ids_hash": "57c43f2809b36f3fb15a56371c33826f2a42caa537b99561e917146034a90678",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "actor_04",
+      "category": "person_character",
+      "description": "声优关系回查",
+      "query": {
+        "actor_ids": [
+          781
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          8,
+          20,
+          34,
+          72,
+          48,
+          54,
+          41,
+          46,
+          111
+        ],
+        "must_contain_all": [
+          8,
+          20,
+          34
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:actor_04",
+        "sql_template": "subject.actor.v1",
+        "parameters": {
+          "person_id": 781,
+          "name": "関根明良"
+        },
+        "source_tables": [
+          "subject",
+          "character",
+          "person",
+          "character_actor"
+        ],
+        "result_count": 9,
+        "result_ids_hash": "76c03a902c9165aeac5c980bf745ed722778cb5a6e7c1da91f90489844d8bb2a",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "actor_05",
+      "category": "person_character",
+      "description": "声优关系回查",
+      "query": {
+        "actor_ids": [
+          1283
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          84,
+          49,
+          38,
+          85,
+          54,
+          101,
+          35,
+          30,
+          12
+        ],
+        "must_contain_all": [
+          84,
+          49,
+          38
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:actor_05",
+        "sql_template": "subject.actor.v1",
+        "parameters": {
+          "person_id": 1283,
+          "name": "日笠陽子"
+        },
+        "source_tables": [
+          "subject",
+          "character",
+          "person",
+          "character_actor"
+        ],
+        "result_count": 9,
+        "result_ids_hash": "4b65684ba85a191b5a357ee2702fa9ef1515a6b74722182a2198592da3e06a33",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "actor_06",
+      "category": "person_character",
+      "description": "声优关系回查",
+      "query": {
+        "actor_ids": [
+          1641
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          20,
+          49,
+          92,
+          31,
+          18,
+          25,
+          60,
+          24,
+          103
+        ],
+        "must_contain_all": [
+          20,
+          49,
+          92
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:actor_06",
+        "sql_template": "subject.actor.v1",
+        "parameters": {
+          "person_id": 1641,
+          "name": "早見沙織"
+        },
+        "source_tables": [
+          "subject",
+          "character",
+          "person",
+          "character_actor"
+        ],
+        "result_count": 9,
+        "result_ids_hash": "5947ca23b2769c927983a9d877e7c1b622ac7fb98c8121fcbce38ca5d472a0bd",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "actor_07",
+      "category": "person_character",
+      "description": "声优关系回查",
+      "query": {
+        "actor_ids": [
+          806
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          8,
+          44,
+          48,
+          53,
+          29,
+          65,
+          24,
+          87
+        ],
+        "must_contain_all": [
+          8,
+          44,
+          48
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:actor_07",
+        "sql_template": "subject.actor.v1",
+        "parameters": {
+          "person_id": 806,
+          "name": "石田彰"
+        },
+        "source_tables": [
+          "subject",
+          "character",
+          "person",
+          "character_actor"
+        ],
+        "result_count": 8,
+        "result_ids_hash": "64eea4a8aafec98ac83b4aa5d56b67eddb124aa8b27fadd2ec04b3a91399c6a4",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "relation_01",
+      "category": "series_relation",
+      "description": "作品关系双向扩展回查",
+      "query": {
+        "relation_subject_ids": [
+          15
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          219
+        ],
+        "must_contain_all": [
+          219
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:relation_01",
+        "sql_template": "subject.relation_bidirectional.v1",
+        "parameters": {
+          "subject_id": 15,
+          "relation": "主线故事"
+        },
+        "source_tables": [
+          "subject",
+          "subject_relation"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "314f04b30f62e0056bd059354a5536fb2e302107eed143b5fa2aa0bbba07f608",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "relation_02",
+      "category": "series_relation",
+      "description": "作品关系双向扩展回查",
+      "query": {
+        "relation_subject_ids": [
+          219
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          15
+        ],
+        "must_contain_all": [
+          15
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:relation_02",
+        "sql_template": "subject.relation_bidirectional.v1",
+        "parameters": {
+          "subject_id": 219,
+          "relation": "衍生"
+        },
+        "source_tables": [
+          "subject",
+          "subject_relation"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "e629fa6598d732768f7c726b4b621285f9c3b85303900aa912017db7617d8bdb",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "relation_03",
+      "category": "series_relation",
+      "description": "作品关系双向扩展回查",
+      "query": {
+        "relation_subject_ids": [
+          32
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          52
+        ],
+        "must_contain_all": [
+          52
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:relation_03",
+        "sql_template": "subject.relation_bidirectional.v1",
+        "parameters": {
+          "subject_id": 32,
+          "relation": "主线故事"
+        },
+        "source_tables": [
+          "subject",
+          "subject_relation"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "41cfc0d1f2d127b04555b7246d84019b4d27710a3f3aff6e7764375b1e06e05d",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "relation_04",
+      "category": "series_relation",
+      "description": "作品关系双向扩展回查",
+      "query": {
+        "relation_subject_ids": [
+          52
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          32
+        ],
+        "must_contain_all": [
+          32
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:relation_04",
+        "sql_template": "subject.relation_bidirectional.v1",
+        "parameters": {
+          "subject_id": 52,
+          "relation": "衍生"
+        },
+        "source_tables": [
+          "subject",
+          "subject_relation"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "e29c9c180c6279b0b02abd6a1801c7c04082cf486ec027aa13515e4f3884bb6b",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "relation_05",
+      "category": "series_relation",
+      "description": "作品关系双向扩展回查",
+      "query": {
+        "relation_subject_ids": [
+          111
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          44
+        ],
+        "must_contain_all": [
+          44
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:relation_05",
+        "sql_template": "subject.relation_bidirectional.v1",
+        "parameters": {
+          "subject_id": 111,
+          "relation": "联动"
+        },
+        "source_tables": [
+          "subject",
+          "subject_relation"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "71ee45a3c0db9a9865f7313dd3372cf60dca6479d46261f3542eb9346e4a04d6",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "negation_tag_01",
+      "category": "negation",
+      "description": "元标签结果排除指定作品",
+      "query": {
+        "meta_tags": [
+          "百合"
+        ],
+        "exclude_subject_ids": [
+          38
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          72,
+          198
+        ],
+        "must_contain_all": [
+          72,
+          198
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:negation_tag_01",
+        "sql_template": "subject.meta_tag_exclusion.v1",
+        "parameters": {
+          "tag": "百合",
+          "excluded": 38
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 2,
+        "result_ids_hash": "f6eb7858008d10f3eef3e35ba4dbab8a946921b3cd18af0c7f2000060c73911f",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "negation_tag_02",
+      "category": "negation",
+      "description": "元标签结果排除指定作品",
+      "query": {
+        "meta_tags": [
+          "职场"
+        ],
+        "exclude_subject_ids": [
+          34
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          66,
+          53
+        ],
+        "must_contain_all": [
+          66,
+          53
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:negation_tag_02",
+        "sql_template": "subject.meta_tag_exclusion.v1",
+        "parameters": {
+          "tag": "职场",
+          "excluded": 34
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 2,
+        "result_ids_hash": "58ee27c41ba49846603b097f8303c9ca95909939046659ea0c9dda58e877be18",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "negation_tag_03",
+      "category": "negation",
+      "description": "元标签结果排除指定作品",
+      "query": {
+        "meta_tags": [
+          "萌系"
+        ],
+        "exclude_subject_ids": [
+          64
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          188,
+          119
+        ],
+        "must_contain_all": [
+          188,
+          119
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:negation_tag_03",
+        "sql_template": "subject.meta_tag_exclusion.v1",
+        "parameters": {
+          "tag": "萌系",
+          "excluded": 64
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 2,
+        "result_ids_hash": "3dd18f7bfd222d47160140fd93f1fe21ac87fab5b78deca318dcef8a2cb48b85",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "negation_tag_04",
+      "category": "negation",
+      "description": "元标签结果排除指定作品",
+      "query": {
+        "meta_tags": [
+          "运动"
+        ],
+        "exclude_subject_ids": [
+          38
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          46,
+          207
+        ],
+        "must_contain_all": [
+          46,
+          207
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:negation_tag_04",
+        "sql_template": "subject.meta_tag_exclusion.v1",
+        "parameters": {
+          "tag": "运动",
+          "excluded": 38
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 2,
+        "result_ids_hash": "dfc7a348917f8c9b451596a2a8649255c9e13b5b04879e0439905d16ab35ab57",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "negation_tag_05",
+      "category": "negation",
+      "description": "元标签结果排除指定作品",
+      "query": {
+        "meta_tags": [
+          "音乐"
+        ],
+        "exclude_subject_ids": [
+          111
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          187,
+          193
+        ],
+        "must_contain_all": [
+          187,
+          193
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:negation_tag_05",
+        "sql_template": "subject.meta_tag_exclusion.v1",
+        "parameters": {
+          "tag": "音乐",
+          "excluded": 111
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 2,
+        "result_ids_hash": "26b972c109b82f0cde2aa0d1d1939a1cb9a051337080d8563c0232b24e157206",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "negation_tag_06",
+      "category": "negation",
+      "description": "元标签结果排除指定作品",
+      "query": {
+        "meta_tags": [
+          "BL"
+        ],
+        "exclude_subject_ids": [
+          94
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          140
+        ],
+        "must_contain_all": [
+          140
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:negation_tag_06",
+        "sql_template": "subject.meta_tag_exclusion.v1",
+        "parameters": {
+          "tag": "BL",
+          "excluded": 94
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "dbae772db29058a88f9bd830e957c695347c41b6162a7eb9a9ea13def34be56b",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "negation_score_02",
+      "category": "negation",
+      "description": "评分结果排除指定作品",
+      "query": {
+        "score_min": 8.0,
+        "exclude_subject_ids": [
+          63
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          8,
+          32
+        ],
+        "must_contain_all": [
+          8,
+          32
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:negation_score_02",
+        "sql_template": "subject.score_exclusion.v1",
+        "parameters": {
+          "score": 8.0,
+          "excluded": 63
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 2,
+        "result_ids_hash": "1dd82e6427a48e9d9cd3affb0b46a19753ab015b2c882ad141e1f897941db3be",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "negation_score_03",
+      "category": "negation",
+      "description": "评分结果排除指定作品",
+      "query": {
+        "score_min": 7.9,
+        "exclude_subject_ids": [
+          63
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          8,
+          32,
+          84
+        ],
+        "must_contain_all": [
+          8,
+          32,
+          84
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:negation_score_03",
+        "sql_template": "subject.score_exclusion.v1",
+        "parameters": {
+          "score": 7.9,
+          "excluded": 63
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 3,
+        "result_ids_hash": "e6e44861f7350de576974fafa9efc620ef5ca7efeab3deaa2a97db6501130c58",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "negation_score_04",
+      "category": "negation",
+      "description": "评分结果排除指定作品",
+      "query": {
+        "score_min": 7.8,
+        "exclude_subject_ids": [
+          63
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          8,
+          32,
+          84,
+          20
+        ],
+        "must_contain_all": [
+          8,
+          32,
+          84
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:negation_score_04",
+        "sql_template": "subject.score_exclusion.v1",
+        "parameters": {
+          "score": 7.8,
+          "excluded": 63
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 4,
+        "result_ids_hash": "4095815714efe19a39026f2b76a123ba1d3fb897133252f8d62dfd0329ae0c23",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "negation_year_01",
+      "category": "negation",
+      "description": "年份结果排除指定作品",
+      "query": {
+        "year_from": 2026,
+        "year_to": 2026,
+        "exclude_subject_ids": [
+          63
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          8,
+          32,
+          84,
+          20,
+          110,
+          67,
+          44,
+          51,
+          50,
+          49
+        ],
+        "must_contain_all": [
+          8,
+          32,
+          84
+        ],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:negation_year_01",
+        "sql_template": "subject.year_exclusion.v1",
+        "parameters": {
+          "year": 2026,
+          "excluded": 63
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 213,
+        "result_ids_hash": "f18f237bc6720df7b8c505e406291f056f4193281b0ca2e3d2a68ad2b8d1ead2",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "degradation_empty_01",
+      "category": "degradation",
+      "description": "不存在标题必须返回空结果",
+      "query": {
+        "keywords": [
+          "__no_such_anime_2026__"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [],
+        "must_contain_all": [],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:degradation_empty_01",
+        "sql_template": "subject.no_match.v1",
+        "parameters": {
+          "term": "__no_such_anime_2026__"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 0,
+        "result_ids_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "degradation_empty_02",
+      "category": "degradation",
+      "description": "超出数据范围的年份必须返回空结果",
+      "query": {
+        "year_from": 2200,
+        "year_to": 2200
+      },
+      "expectation": {
+        "expected_subject_ids": [],
+        "must_contain_all": [],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:degradation_empty_02",
+        "sql_template": "subject.year_no_match.v1",
+        "parameters": {
+          "year": 2200
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 0,
+        "result_ids_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "degradation_fallback_01",
+      "category": "degradation",
+      "description": "存储故障时保留既定降级路径",
+      "query": {
+        "keywords": [
+          "李熊猫"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          1
+        ],
+        "must_contain_all": [
+          1
+        ],
+        "hard_filters": {
+          "fallback": "business"
+        }
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:degradation_fallback_01",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 1,
+          "term": "李熊猫"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "degradation_fallback_02",
+      "category": "degradation",
+      "description": "存储故障时保留既定降级路径",
+      "query": {
+        "semantic_query": "李熊猫"
+      },
+      "expectation": {
+        "expected_subject_ids": [
+          1
+        ],
+        "must_contain_all": [
+          1
+        ],
+        "hard_filters": {
+          "fallback": "lexical_only"
+        }
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:degradation_fallback_02",
+        "sql_template": "subject.title_exact.v1",
+        "parameters": {
+          "subject_id": 1,
+          "term": "李熊猫"
+        },
+        "source_tables": [
+          "subject"
+        ],
+        "result_count": 1,
+        "result_ids_hash": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    },
+    {
+      "id": "degradation_empty_03",
+      "category": "degradation",
+      "description": "严格不存在的标签必须返回空结果",
+      "query": {
+        "meta_tags": [
+          "__no_such_tag_2026__"
+        ]
+      },
+      "expectation": {
+        "expected_subject_ids": [],
+        "must_contain_all": [],
+        "hard_filters": {}
+      },
+      "trace": {
+        "snapshot_id": "mysql-cb7f432eadfa885d",
+        "captured_at": "2026-09-06T06:51:35Z",
+        "evidence_id": "mysql-cb7f432eadfa885d:degradation_empty_03",
+        "sql_template": "subject.meta_tag_no_match.v1",
+        "parameters": {
+          "tag": "__no_such_tag_2026__"
+        },
+        "source_tables": [
+          "subject",
+          "subject_meta_tag"
+        ],
+        "result_count": 0,
+        "result_ids_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "index_version": "v1",
+        "profile_version": "subject-profile-v1"
+      }
+    }
+  ]
+}
