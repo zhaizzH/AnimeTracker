@@ -73,3 +73,8 @@ BUILD SUCCESS
 - 当前 `rag_index_job`：`INDEXED=4`、`PENDING=66`、`RETRY=150`；被中断的 10 条 `RUNNING` 已恢复为 `PENDING`。
 - 150 条 RETRY 均为 `EmbeddingUnavailable`，未写入错误的投影数据；ACTIVE release 仍为 0。
 - 后续必须在确认 `DASHSCOPE_API_KEY` 的无代理 HTTPS 出网后，再重试 RETRY/PENDING，成功后才进入评测和 release 激活。
+
+## 2026-09-06 服务重启复核
+
+- 8080 Business、8090 Agent、6379 Redis、3306 MySQL 均可连接；Agent health 返回 HTTP 200 且 `llm_configured=true`。
+- DashScope embedding smoke 仍返回 `EmbeddingUnavailable`；数据库队列保持 `INDEXED=4`、`PENDING=66`、`RETRY=150`，未产生新的投影或 release。

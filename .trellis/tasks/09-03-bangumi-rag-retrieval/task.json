@@ -63,5 +63,7 @@
     ,"runtime_backfill_pending_jobs": 66
     ,"runtime_backfill_retry_jobs": 150
     ,"runtime_backfill_full_attempt_stopped": "2026-09-05"
+    ,"runtime_services_rechecked": "2026-09-06"
+    ,"runtime_embedding_still_unavailable": "2026-09-06"
   }
 }
