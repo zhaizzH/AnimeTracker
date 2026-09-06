@@ -76,5 +76,15 @@
     ,"runtime_person_count": 0
     ,"runtime_character_alias_count": 0
     ,"runtime_subject_relation_count": 6
+    ,"runtime_recent_import_completed": "2026-09-06"
+    ,"runtime_recent_import_record_id": 9
+    ,"runtime_recent_import_calendar_count": 113
+    ,"runtime_recent_import_missing_calendar_ids": 0
+    ,"runtime_recent_import_success_count": 111
+    ,"runtime_recent_import_failure_count": 0
+    ,"runtime_recent_import_skipped_count": 90
+    ,"runtime_recent_import_checkpoint_offset": 113
+    ,"runtime_recent_import_proxy": "127.0.0.1:7897"
+    ,"runtime_recent_import_error_handling_fixed": "2026-09-06"
   }
 }
