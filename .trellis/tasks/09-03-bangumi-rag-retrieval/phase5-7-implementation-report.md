@@ -99,3 +99,10 @@ BUILD SUCCESS
 
 - 无代理终端已补写 Subject 1–4；最终 `rag_index_job=INDEXED 220`、`search_document(v1)=220`、`rag:vectors:SUBJECT:v1=220`，entity ID 集合一致。
 - 当前双投影回填通过；但 Phase 8 仍缺 120-case 真实评测、延迟/容量报告和至少 20 条人工证据检查，因此保持 release 未发布。
+
+## 2026-09-06 120-case 可行性核验
+
+- 当前真实库计数：`subject=220`、`subject_alias=181`、`subject_tag=3888`、`subject_meta_tag=804`。
+- 人物/角色关系数据尚未具备：`person=0`、`character_alias=0`、`subject_person_credit=0`、`subject_character=0`、`character_actor=0`；`subject_relation` 仅 6 行（3 对双向关系）。
+- 现有 53 条 golden case 含部分与真实库不匹配的人物、角色、经典番名和系列关系样例，不能在此基础上直接补 67 条并宣称已完成真实 120-case 门禁。
+- 结论：先补齐人物/角色/关系真实导入，或将评测目标拆成“当前数据可验证子集 + 明确缺口报告”；在此之前不激活 release。

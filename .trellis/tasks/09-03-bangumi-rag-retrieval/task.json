@@ -71,5 +71,10 @@
     ,"runtime_backfill_pending_jobs_latest": 0
     ,"runtime_backfill_indexed_jobs_latest": 220
     ,"runtime_backfill_retry_jobs_latest": 0
+    ,"runtime_golden_case_120_blocked": "2026-09-06"
+    ,"runtime_entity_relation_data_incomplete": true
+    ,"runtime_person_count": 0
+    ,"runtime_character_alias_count": 0
+    ,"runtime_subject_relation_count": 6
   }
 }
