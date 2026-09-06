@@ -78,3 +78,8 @@ BUILD SUCCESS
 
 - 8080 Business、8090 Agent、6379 Redis、3306 MySQL 均可连接；Agent health 返回 HTTP 200 且 `llm_configured=true`。
 - DashScope embedding smoke 仍返回 `EmbeddingUnavailable`；数据库队列保持 `INDEXED=4`、`PENDING=66`、`RETRY=150`，未产生新的投影或 release。
+
+## 2026-09-06 Trellis 继续复核
+
+- 当前 Codex 进程仍带有 `HTTP_PROXY/HTTPS_PROXY/ALL_PROXY=http://127.0.0.1:9`；embedding smoke 继续失败。
+- 未启动新的回填批次，队列与 release 状态保持不变，等待在清除代理变量的同一进程中验证网络后再继续。

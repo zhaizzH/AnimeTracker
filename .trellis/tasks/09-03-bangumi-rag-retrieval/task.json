@@ -65,5 +65,6 @@
     ,"runtime_backfill_full_attempt_stopped": "2026-09-05"
     ,"runtime_services_rechecked": "2026-09-06"
     ,"runtime_embedding_still_unavailable": "2026-09-06"
+    ,"runtime_codex_proxy_env_still_set": "2026-09-06"
   }
 }
