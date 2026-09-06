@@ -1381,6 +1381,9 @@ paths:
                             nsfw:
                               type: "boolean"
                               description: ""
+                            active:
+                              type: "boolean"
+                              description: "是否为已导入的有效条目，供 Agent 权威回查使用。"
                           description: "批量权威回查中可返回的条目字段。"
                         default: "new ArrayList<>()"
                       missingIds:

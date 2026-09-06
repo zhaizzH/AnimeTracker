@@ -13,7 +13,7 @@
 - Phase 2：schema、前向迁移和 MySQL 8.4.9 临时库验证已完成；真实 `anime_tracker` 已按用户授权完成前向迁移并通过二次幂等验证；完整 Java 实体映射、存量备份恢复演练仍未完成。
 - Phase 3–4：导入关系、详情任务和多实体 outbox 已接通，可直接复用。
 - Phase 5–7：原 RediSearch `FT.*` 实现的 profile、任务、RRF、Evidence 与降级结构可复用；索引写入、词法召回、向量召回和版本发布需要按用户已同意的“MySQL FULLTEXT + Redis Vector Set”技术方向重新接线。
-- Phase 8：Business/Agent/MinIO health 已通过；真实库已迁移至 21 张表，Redis 8.8 已确认支持 `VADD/VSIM/VREM/VSETATTR/VGETATTR`。v1 真实双投影已完成 13,173 条 search job，DashScope 直连 Embedding 已通过；120-case 真实评测、五份 gate 报告和灰度观察仍未完成。
+- Phase 8：Business/Agent/MinIO health 已通过；真实库已迁移至 21 张表，Redis 8.8 已确认支持 `VADD/VSIM/VREM/VSETATTR/VGETATTR`。v1 真实双投影已完成 13,173 条 search job，DashScope 直连 Embedding 已通过；Business 重启后的 120-case shadow 回放为 115/120 通过（Recall@20=0.9847、MRR@10=0.8803、nDCG@10=0.8716、hard-filter=0.9667、Evidence=1.0），但报告仍是 `SHADOW_ONLY` 且存在 5 个失败 case，尚未达到发布门槛。
 - 当前文档入口：`README.md`。有效运行证据包括 `phase2-mapping-report.md`、`phase4-backfill-report.md`、`phase6-business-report.md`、`phase8-mysql-migration-report.md`、`phase8-springboot-startup-report.md` 和 `phase8-offline-evidence-report.md`；被替代的 RediSearch/阶段审查报告保存在 `history/`。
 
 ## Phase 1：建立评测基线与契约测试
@@ -142,7 +142,8 @@ uv run pytest tests/rag tests/agent tests/api -v
 ## Phase 8：端到端门禁与灰度启用
 
 - [x] 从真实 MySQL 快照生成恰好 120 条带 snapshot/evidence/index/profile 追溯字段的 golden case 定义集；定义集状态为 `DEFINITION_ONLY`。
-- [ ] 在同一 active release 上运行数据质量、双投影容量、120-case eval、延迟与至少 20 条人工证据检查，所有报告绑定同一 index/profile version。
+- [x] 在未发布的 v1 候选上完成只读 120-case shadow 回放并记录失败项；报告明确为 `SHADOW_ONLY`，不能替代 active release gate。
+- [ ] 在同一 active release 上运行数据质量、双投影容量、120-case 正式 eval、延迟与至少 20 条人工证据检查，所有报告绑定同一 index/profile version。
 - [ ] 覆盖 MySQL FULLTEXT、Redis Vector Set、版本错配、Embedding、Business、MinIO 故障矩阵，证明 fail-closed 或既定降级行为。
 - [ ] 小流量激活新 MySQL release 与 RAG，观测 24 小时；异常时回切 release 和功能开关。
 - [ ] 指标稳定后更新 README、运行手册与 `.trellis/spec/`；旧索引/旧表删除另行确认和规划。
@@ -173,4 +174,6 @@ npm run build
 - DashScope `text-embedding-v4` 在清空代理环境后返回 HTTP 200；索引报告为 `failed=0`。`search_index_release` 仍无 ACTIVE，词法 API 返回 503 是预期的 fail-closed 行为。
 - 质量报告覆盖率为 1.0（catalog=220、vectorCardinality=220），content hash 抽样一致；报告发现 1 条 `EPISODE_SHORTAGE`、38 条 `EPISODE_STATUS_DRIFT`，需要在真实 gate 前处理或明确豁免。
 - 120-case 端到端评测、五份 gate 报告和 24 小时灰度仍未勾选完成。`phase8-index-runtime-report.md` 与 `research/phase8-case-audit.md` 记录了当前证据和阻断条件。
+- 已完成同版本 v1 shadow 回放：`requiredPassed=115`、`requiredFailed=5`、`recall20=0.9847`、`mrr10=0.8803`、`ndcg10=0.8716`、`hardFilterAccuracy=0.9667`、`evidenceCompleteness=1.0`；该报告的 `status=SHADOW_ONLY`，且仍有 5 个失败 case，gate 会拒绝它。
 - 已从真实 MySQL 快照生成恰好 120 条带 snapshot/evidence/index 追溯信息的定义集；数据集状态明确为 `DEFINITION_ONLY`，不能替代 ACTIVE release 后的真实回放门禁。详见 `phase8-golden-case-definition-report.md`。
+- 已修复 Business 批量权威回查缺少 `active` 字段的问题；8080 服务已重启并重新生成 `eval-shadow-v1.json`，当前指标以修复后的运行态为准。

@@ -18,4 +18,6 @@ public class SubjectBatchItemVO {
     private LocalDate airDate;
     private Integer type;
     private Boolean nsfw;
+    /** Agent 权威回查需要的有效状态；由 subject.import_status 派生。 */
+    private Boolean active;
 }

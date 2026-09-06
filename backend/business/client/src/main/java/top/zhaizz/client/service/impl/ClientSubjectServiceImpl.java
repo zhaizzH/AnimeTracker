@@ -265,6 +265,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
         item.setAirDate(subject.getAirDate());
         item.setType(subject.getType());
         item.setNsfw(subject.getNsfw());
+        item.setActive(Integer.valueOf(1).equals(subject.getImportStatus()));
         return item;
     }
 

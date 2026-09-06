@@ -43,11 +43,14 @@ class _MockEmbeddings:
 
 
 def _mock_authority(ids, token=None, exclude_collected=False):
-    return [{"id": sid, "name": f"Subject {sid}", "type": 2, "nsfw": False} for sid in ids]
+    return [
+        {"id": sid, "name": f"Subject {sid}", "type": 2, "nsfw": False, "active": True}
+        for sid in ids
+    ]
 
 
 def _mock_business_search(query, token=None):
-    return [{"id": 1, "name": "Test", "nameCn": "测试", "type": 2, "nsfw": False}]
+    return [{"id": 1, "name": "Test", "nameCn": "测试", "type": 2, "nsfw": False, "active": True}]
 
 
 def _mock_evidence(ids, token=None):
