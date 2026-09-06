@@ -30,7 +30,7 @@
     "backend/agent/tests/jobs/importer/test_contract_drift.py",
     "backend/agent/tests/rag/test_evidence_contract.py"
   ],
-  "notes": "Phase 1-4 与 Phase 5-7 代码实现已验证。用户于 2026-09-05 批准将检索路线调整为 MySQL 8.4 ngram FULLTEXT + Redis 8 Vector Set + Python RRF；本轮已完成双投影 indexer、Business lexical API、MySQL release 指针、同版本 VSIM 查询、本地测试和本地运行库投影表迁移。全量投影回填、120-case 真实评测与 24 小时灰度仍待运行环境证据。",
+  "notes": "Phase 1-4 与 Phase 5-7 代码实现已验证。用户于 2026-09-05 批准将检索路线调整为 MySQL 8.4 ngram FULLTEXT + Redis 8 Vector Set + Python RRF；2026-09-06 已完成 v1 全量 search 双投影（13,173 条 search job，MySQL/Redis 数量一致），并通过直连 DashScope Embedding 探针。120-case 真实评测、五份 gate 报告、release 激活与 24 小时灰度仍待运行环境证据。",
   "meta": {
     "phase1_completed": "2026-09-03",
     "phase1_tests_passed": 59,
@@ -64,8 +64,8 @@
     ,"runtime_backfill_retry_jobs": 150
     ,"runtime_backfill_full_attempt_stopped": "2026-09-05"
     ,"runtime_services_rechecked": "2026-09-06"
-    ,"runtime_embedding_still_unavailable": "2026-09-06"
-    ,"runtime_codex_proxy_env_still_set": "2026-09-06"
+    ,"runtime_embedding_probe_ok": "2026-09-06"
+    ,"runtime_dashscope_proxy_env_cleared": "2026-09-06"
     ,"runtime_dual_projection_mismatch": false
     ,"runtime_missing_vector_subject_ids": []
     ,"runtime_backfill_pending_jobs_latest": 0
@@ -92,12 +92,20 @@
     ,"runtime_subject_person_credit_count_latest": 14434
     ,"runtime_subject_character_count_latest": 2160
     ,"runtime_character_actor_count_latest": 2293
-    ,"runtime_search_index_job_pending_latest": 13163
-    ,"runtime_search_index_job_failed_latest": 10
-    ,"runtime_rag_indexed_jobs_latest": 118
-    ,"runtime_rag_pending_jobs_latest": 102
+    ,"runtime_search_index_job_completed_latest": 13173
+    ,"runtime_search_index_job_pending_latest": 0
+    ,"runtime_search_index_job_failed_latest": 0
+    ,"runtime_search_document_counts_latest": {"SUBJECT": 220, "EPISODE": 1658, "PERSON": 9275, "CHARACTER": 2129}
+    ,"runtime_redis_vector_cardinality_latest": {"SUBJECT": 220, "EPISODE": 1658, "PERSON": 9275, "CHARACTER": 2129}
+    ,"runtime_rag_indexed_jobs_latest": 220
+    ,"runtime_rag_pending_jobs_latest": 0
     ,"runtime_active_release_count_latest": 0
-    ,"runtime_embedding_smoke_blocked": "2026-09-06"
+    ,"runtime_embedding_smoke_recovered": "2026-09-06"
     ,"runtime_indexer_error_codes_fixed": "2026-09-06"
+    ,"runtime_quality_report_path": ".trellis/tasks/09-03-bangumi-rag-retrieval/research/quality-v1.json"
+    ,"runtime_quality_report_sha256": "e6c69e009974810a8e62b4f8386fe37788a95459856974efa0168dbd14a5e9f3"
+    ,"runtime_quality_coverage": 1.0
+    ,"runtime_quality_episode_shortage": 1
+    ,"runtime_quality_episode_status_drift": 38
   }
 }

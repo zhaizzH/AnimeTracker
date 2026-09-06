@@ -24,5 +24,5 @@ cd backend/agent
 ## 仍未完成
 
 - 这是“真实事实快照定义集”，不是 120-case 真实检索通过报告。
-- 当前 `search_index_release` 没有 ACTIVE 版本，因此 Business lexical、同版本 VSIM、Evidence 回查和真实 Recall/MRR/nDCG 仍不能运行。
+- 当前 `search_index_release` 没有 ACTIVE 版本，因此 Business lexical、同版本 VSIM、Evidence 回查和真实 Recall/MRR/nDCG 仍不能作为发布评测运行；Evidence batch 单独接口已通过 200 smoke。
 - 本轮没有激活 release、修改数据库或写入 Redis；Phase 8 第一项仍需在 release 可用后完成五份同版本 gate 报告和至少 20 条人工证据检查。

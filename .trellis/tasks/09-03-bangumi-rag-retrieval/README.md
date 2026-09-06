@@ -7,8 +7,8 @@
 - 任务状态：`in_progress`。
 - Phase 1–4 已完成并有验证证据；Phase 5–7 的 profile、双投影 indexer、RRF、Evidence 与 fail-closed 基础已实现并通过本地测试。
 - 用户已同意把检索技术方向调整为 **MySQL 8.4 `ngram` FULLTEXT + Redis 8 Vector Set + Python RRF**。
-- MySQL lexical/Redis Vector Set 双投影、Business lexical API、同版本 Agent 查询和 MySQL release store 已实现；真实数据库回填、120-case 真实门禁和 24 小时灰度仍未完成。
-- recent 导入已补齐当前日历涉及的人物/角色摘要与关系；实体 search 队列已生成，但 DashScope Embedding 仍不可用，未激活 release。
+- MySQL lexical/Redis Vector Set 双投影、Business lexical API、同版本 Agent 查询和 MySQL release store 已实现；真实实体投影已完成，120-case 真实门禁和 24 小时灰度仍未完成。
+- recent 导入已补齐当前日历涉及的人物/角色摘要与关系；2026-09-06 直连 DashScope Embedding 成功，search index job 已全部完成，但 release 仍按 fail-closed 规则保持未激活。
 
 ## 当前权威文档
 
@@ -30,6 +30,8 @@
 | [离线评测报告](./phase8-offline-evidence-report.md) | 离线指标/故障矩阵通过；不能替代真实发布 gate |
 | [Golden Case 定义集报告](./phase8-golden-case-definition-report.md) | 真实 MySQL 快照生成恰好 120 条可追溯定义；ACTIVE release 前仍不能视为评测通过 |
 | [Phase 5–7 实现报告](./phase5-7-implementation-report.md) | 双投影、词法 API、版本化 VSIM 与本地测试已完成；真实回填/gate/灰度仍待运行 |
+| [真实索引运行报告](./phase8-index-runtime-report.md) | v1 双投影 13,173 条完成，Redis/MySQL 数量一致；发布门禁仍未满足 |
+| [实时质量报告](./research/quality-v1.json) | v1 覆盖率 100%；存在 1 条 EPISODE_SHORTAGE 与 38 条 EPISODE_STATUS_DRIFT |
 | [Phase 8 case 审查](./research/phase8-case-audit.md) | 真实库可追溯 case 定义与 release/Embedding 阻断边界 |
 
 ## 历史证据

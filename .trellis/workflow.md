@@ -6,7 +6,7 @@
 
 1. **Plan before code** — figure out what to do before you start
 2. **Specs injected, not remembered** — guidelines are injected via hook/skill, not recalled from memory
-3. **Persist everything** — research, decisions, and lessons all go to files; conversations get compacted, files don't
+3. **Persist durable knowledge** — save requirements, decisions, and reusable lessons; keep transient progress out of Git history
 4. **Incremental development** — one task at a time
 5. **Capture learnings** — after each task, review and write new knowledge back to spec
 
@@ -154,7 +154,7 @@ Phase 3: Finish  → verify, update spec, commit, and wrap up
 
 ### Request Triage
 
-- Simple conversation or small task: ask only whether this turn should create a Trellis task. If the user says no, skip Trellis for this session.
+- Simple conversation or small edit: skip task creation by default. Create a Trellis task only when the user explicitly requests tracking, the work spans sessions, or it needs multiple independently verifiable deliverables.
 - Complex task: ask whether you may create a Trellis task and enter planning. If the user says no, do not do broad inline implementation; explain, clarify scope, or suggest a smaller split.
 - User approval to create a task is not approval to start implementation. Planning still happens first.
 
@@ -177,8 +177,8 @@ Create new children with `task.py create "<title>" --slug <name> --parent <paren
 <!-- Per-turn breadcrumb: shown when there is no active task (before Phase 1) -->
 
 [workflow-state:no_task]
-No active task. First classify the current turn and ask for task-creation consent before creating any Trellis task.
-Simple conversation / small task: ask only whether this turn should create a Trellis task. If the user says no, skip Trellis for this session.
+No active task. First classify the current turn before creating any Trellis task.
+Simple conversation / small edit: skip Trellis task creation by default. Create one only when the user explicitly requests tracking, the work spans sessions, or it has multiple independently verifiable deliverables.
 Complex task: ask the user if you can create a Trellis task and enter the planning phase. If the user says no, explain, clarify scope, or suggest a smaller split.
 [/workflow-state:no_task]
 
@@ -235,9 +235,10 @@ Sub-agent dispatch protocol applies to all platforms and all sub-agents, includi
 
 [workflow-state:in_progress]
 Tools: `trellis-implement` / `trellis-research` are sub-agent types only (Task/Agent tool, NOT Skill; there is no skill by these names). `trellis-update-spec` is a skill. `trellis-check` exists as both; prefer the Agent form when verifying after code changes.
-Flow: `trellis-implement` -> `trellis-check` -> `trellis-update-spec` -> commit (Phase 3.4) -> `/trellis:finish-work`.
+Flow: `trellis-implement` -> `trellis-check` -> `trellis-update-spec` only for a durable new contract -> commit (Phase 3.4) -> `/trellis:finish-work`.
 Main-session default: dispatch implement/check sub-agents. Sub-agent self-exemption: if already running as `trellis-implement`, do NOT spawn another `trellis-implement` or `trellis-check`; if already running as `trellis-check`, do NOT spawn another `trellis-check` or `trellis-implement`. Dispatch is main session only.
 Dispatch prompt starts with `Active task: <task path from task.py current>`. Read context: jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present`.
+Commit density: commit only a completed, user-visible milestone. Never create a standalone commit for progress notes, evidence pointers, or only `.trellis/tasks/**/task.json`; keep those changes for the next code milestone or the one final bookkeeping batch.
 [/workflow-state:in_progress]
 
 <!-- Per-turn breadcrumb: shown while status='in_progress' when
@@ -246,14 +247,15 @@ Dispatch prompt starts with `Active task: <task path from task.py current>`. Rea
      instead of dispatching sub-agents. -->
 
 [workflow-state:in_progress-inline]
-Flow: `trellis-before-dev` -> edit -> `trellis-check` -> validation -> `trellis-update-spec` -> commit (Phase 3.4) -> `/trellis:finish-work`.
+Flow: `trellis-before-dev` -> edit -> `trellis-check` -> validation -> `trellis-update-spec` only for a durable new contract -> commit (Phase 3.4) -> `/trellis:finish-work`.
 Do not dispatch implement/check sub-agents in inline mode.
 Read context: `prd.md` -> `design.md if present` -> `implement.md if present`, plus relevant spec/research loaded by skills.
+Commit density: commit only a completed, user-visible milestone. Never create a standalone commit for progress notes, evidence pointers, or only `.trellis/tasks/**/task.json`; keep those changes for the next code milestone or the one final bookkeeping batch.
 [/workflow-state:in_progress-inline]
 
 ### Phase 3: Finish
 - 3.2 Debug retrospective `[on demand]`
-- 3.3 Spec update `[required · once]`
+- 3.3 Spec update `[conditional · once]`
 - 3.4 Commit changes `[required · once]`
 - 3.5 Wrap-up reminder
 
@@ -588,20 +590,27 @@ If this task involved repeated debugging (the same issue was fixed multiple time
 
 The goal is to capture debugging lessons so the same class of issue doesn't recur.
 
-#### 3.3 Spec update `[required · once]`
+#### 3.3 Spec update `[conditional · once]`
 
-Load the `trellis-update-spec` skill and review whether this task produced new knowledge worth recording:
+Load the `trellis-update-spec` skill only when this task produced durable, reusable implementation knowledge worth recording:
 - Newly discovered patterns or conventions
 - Pitfalls you hit
 - New technical decisions
 
-Update the docs under `.trellis/spec/` accordingly. Even if the conclusion is "nothing to update", walk through the judgment.
+Update the docs under `.trellis/spec/` accordingly. Runtime evidence, one-off debugging notes, status snapshots, and facts already obvious from code/tests do not qualify and should not produce a spec edit or docs-only commit.
 
 #### 3.4 Commit changes `[required · once]`
 
 **Spec-sync preamble**: before drafting commits, ask: did this task fix a bug or surface non-obvious knowledge that should land in `.trellis/spec/` so future-you (or future-AI) doesn't repeat the mistake? If yes, return to Phase 3.3 first — spec writes belong in the same task's commit batch, not as a forgotten follow-up.
 
-The AI drives a batched commit of this task's code changes so `/finish-work` can run cleanly afterwards. Goal: produce work commits FIRST, then bookkeeping (archive + journal) commits land after — never interleaved.
+The AI drives a batched commit of this task's code changes so `/finish-work` can run cleanly afterwards. Goal: keep Git history code-first and milestone-based. Trellis bookkeeping is supporting context, not an independent stream of commits.
+
+**Commit density gate**:
+
+- Enter this step only after a complete, user-visible code milestone, or once at the end of a genuinely docs-only task. A check result, status update, progress note, or evidence refresh is not a commit trigger.
+- Never create a commit whose only meaningful change is `.trellis/tasks/**/task.json`, especially its `commit` field. That field is a final task reference, not a live cursor; update it once during final wrap-up and include it in the final bookkeeping batch.
+- Batch task artifacts and relevant spec changes with the code milestone they explain. If no code milestone is ready, leave the Trellis files uncommitted instead of creating `chore(trellis)` pointer commits.
+- With `session_auto_commit: false`, archive and journal writes remain uncommitted. Combine them into at most one final bookkeeping commit after the task is complete.
 
 **Step-by-step**:
 
@@ -644,7 +653,7 @@ The AI drives a batched commit of this task's code changes so `/finish-work` can
 7. **On rejection** (user replies "不行" / "我自己来" / "manual" / any pushback on the plan): stop. Do not attempt a second plan. The user will commit by hand; you skip ahead to 3.5 once they confirm.
 
 **Rules**:
-- No `git commit --amend` anywhere — three-stage three-commit flow (work commits → archive commit → journal commit).
+- No `git commit --amend` anywhere. Prefer code milestone commits followed by at most one final bookkeeping commit.
 - Never push to remote in this step.
 - If the user wants different message wording but accepts the file grouping, edit the message and re-confirm once — but if they reject the grouping, exit to manual mode.
 - The batched plan is one prompt; do not prompt per commit.
