@@ -164,3 +164,9 @@ npm run build
 - [ ] `implement.jsonl` 与 `check.jsonl` 含真实 spec/research 条目。
 - [ ] 先实现 Phase 1，不直接修改生产数据库或启用 RAG。
 - [ ] 所有真实数据库迁移、release 激活和旧数据删除均需要独立人工确认。
+
+## 最新运行态（2026-09-06）
+
+- recent 导入已完成当前日历 113 条扫描，实体摘要/关系已写入真实库；人物、角色和声优关系数据不再是 0，但系列关系仍只有 6 条边。
+- `search_index_job` 已生成 Subject/Person/Character/Episode 任务；本轮 10 条 Embedding smoke 因 DashScope `EmbeddingUnavailable` 进入可重试失败，未新增投影或 release。
+- `search_index_release` 仍无 ACTIVE；120-case 端到端评测、五份 gate 报告和 24 小时灰度仍未勾选完成。`phase8-case-audit.md` 记录了可先生成的追溯审计/质量报告和当前阻断条件。

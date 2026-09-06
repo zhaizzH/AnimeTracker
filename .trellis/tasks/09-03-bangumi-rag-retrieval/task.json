@@ -86,5 +86,18 @@
     ,"runtime_recent_import_checkpoint_offset": 113
     ,"runtime_recent_import_proxy": "127.0.0.1:7897"
     ,"runtime_recent_import_error_handling_fixed": "2026-09-06"
+    ,"runtime_entity_relation_data_rechecked": "2026-09-06"
+    ,"runtime_person_count_latest": 9275
+    ,"runtime_character_count_latest": 2129
+    ,"runtime_subject_person_credit_count_latest": 14434
+    ,"runtime_subject_character_count_latest": 2160
+    ,"runtime_character_actor_count_latest": 2293
+    ,"runtime_search_index_job_pending_latest": 13163
+    ,"runtime_search_index_job_failed_latest": 10
+    ,"runtime_rag_indexed_jobs_latest": 118
+    ,"runtime_rag_pending_jobs_latest": 102
+    ,"runtime_active_release_count_latest": 0
+    ,"runtime_embedding_smoke_blocked": "2026-09-06"
+    ,"runtime_indexer_error_codes_fixed": "2026-09-06"
   }
 }

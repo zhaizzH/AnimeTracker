@@ -21,3 +21,10 @@ cd backend/agent
 - MinIO、Embedding provider、Redis Stack/RediSearch 和 alias 灰度未执行；因此不允许用本报告激活 RAG。
 
 结论：离线 fail-closed 行为通过，真实发布 gate 继续保持关闭。
+
+## 2026-09-06 真实库追溯性复核
+
+- recent 导入后人物/角色摘要和关系已具备，真实库可构造 120 条有 SQL 来源的 case 定义；但当前 `golden_cases.json` 仍为 53 条，且缺少 snapshot/evidence/index version 追溯字段。
+- `search_document` 与 Redis `rag:vectors:SUBJECT:v1` 均为 220，但 `search_index_release` 没有 ACTIVE 行；Business lexical API 仍按设计返回 503，不能生成可信的端到端 Recall/MRR/nDCG 或 Evidence P95 通过报告。
+- 本轮代理 smoke 的 DashScope embedding 仍为 `EmbeddingUnavailable`，因此未继续消费实体 search 队列，也未激活 MySQL release。
+- 详细字段、SQL 证据和 120 条配额见 [Phase 8 case 审查](./research/phase8-case-audit.md)。
