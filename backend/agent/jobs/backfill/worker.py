@@ -153,7 +153,7 @@ class BackfillWorker:
         source_hash = compute_source_hash(raw)
 
         existing = self._session.execute(
-            text("SELECT source_hash FROM character WHERE id=:id"),
+            text("SELECT source_hash FROM `character` WHERE id=:id"),
             {"id": job.entity_id},
         ).scalar()
         if existing == source_hash:

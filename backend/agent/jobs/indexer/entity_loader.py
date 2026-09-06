@@ -108,7 +108,7 @@ class MultiEntityLoader:
             row = self._session.execute(
                 text(
                     "SELECT id, name, character_type, summary "
-                    "FROM character WHERE id=:id AND source_active=1"
+                    "FROM `character` WHERE id=:id AND source_active=1"
                 ),
                 {"id": entity_id},
             ).mappings().first()

@@ -120,6 +120,10 @@ class TestMultiEntityLoaderCharacter:
         assert char is not None
         assert char.name == "阿尔米塔"
         assert char.voice_actors == ("早见沙织",)
+        character_queries = [sql for sql, _ in session.calls if "character_type" in sql]
+        assert len(character_queries) == 1
+        assert "FROM `character`" in character_queries[0]
+        assert "FROM character " not in character_queries[0]
 
     def test_returns_none_for_missing_character(self):
         session = _FakeSession(responses={
