@@ -57,7 +57,7 @@
             s.name,
             s.name_cn AS nameCn,
             MATCH(d.title, d.aliases, d.lexical_text)
-                AGAINST (#{query} IN NATURAL LANGUAGE MODE) AS lexicalScore
+                AGAINST (#{query} IN BOOLEAN MODE) AS lexicalScore
         FROM search_document d
         INNER JOIN search_index_release r
             ON r.index_version = d.index_version
@@ -72,7 +72,7 @@
           AND s.nsfw = 0
           AND s.import_status = 1
           AND MATCH(d.title, d.aliases, d.lexical_text)
-                AGAINST (#{query} IN NATURAL LANGUAGE MODE) &gt; 0
+                AGAINST (#{query} IN BOOLEAN MODE) &gt; 0
         <if test="tags != null and tags.size > 0">
             <foreach collection="tags" item="tag">
                 AND EXISTS (

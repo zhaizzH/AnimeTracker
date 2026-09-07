@@ -198,6 +198,9 @@ def load_gate_inputs(report_dir: str | Path, index_version: str) -> GateInputs:
         eval_failures = None
     else:
         eval_failures = tuple(str(item) for item in failures_value)
+    case_results = evaluation.get("caseResults", evaluation.get("case_results"))
+    if not isinstance(case_results, list) or required_total is None or len(case_results) != required_total:
+        errors.append("missing eval case results")
     evaluation_status = _text(evaluation, "status")
     human_check_count = _integer(human_values, "checkCount", "humanCheckCount", "human_check_count")
     if human_check_count is None:

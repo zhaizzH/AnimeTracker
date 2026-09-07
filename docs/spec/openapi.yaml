@@ -5638,6 +5638,26 @@ components:
         sourceUrl:
           type: "string"
           format: "uri"
+        score:
+          type: "number"
+          format: "double"
+          description: "Bangumi 评分"
+        rank:
+          type: "integer"
+          description: "Bangumi 排名"
+        ratingTotal:
+          type: "integer"
+          description: "评分人数"
+        collectionTotal:
+          type: "integer"
+          description: "收藏人数"
+        airDate:
+          type: "string"
+          format: "date"
+        airStatus:
+          type: "string"
+          enum: [UPCOMING, AIRING, FINISHED, UNKNOWN]
+          description: "根据作品日期与剧集状态推导的播出状态"
         sourceFetchedAt:
           type: "string"
           format: "date-time"

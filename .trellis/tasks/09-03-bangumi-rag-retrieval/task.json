@@ -15,7 +15,7 @@
   "branch": null,
   "base_branch": "main",
   "worktree_path": null,
-  "commit": "8d83745",
+  "commit": "c1e1453a7aaafa3679d72b3e2c49bcafcb1a52df",
   "pr_url": null,
   "subtasks": [],
   "children": [],
@@ -30,7 +30,7 @@
     "backend/agent/tests/jobs/importer/test_contract_drift.py",
     "backend/agent/tests/rag/test_evidence_contract.py"
   ],
-  "notes": "Phase 1-4 与 Phase 5-7 代码实现已验证。用户于 2026-09-05 批准将检索路线调整为 MySQL 8.4 ngram FULLTEXT + Redis 8 Vector Set + Python RRF；2026-09-06 已完成 v1 全量 search 双投影（13,173 条 search job，MySQL/Redis 数量一致），并通过直连 DashScope Embedding 探针。Business 重启后的 120-case v1 shadow 回放为 115 通过、5 失败（状态 SHADOW_ONLY）；正式 active-release eval、五份 gate 报告、release 激活与 24 小时灰度仍待运行环境证据。",
+  "notes": "Phase 1-8 代码与运行证据已验证。2026-09-07 真实回放确认 8080/8090/Evidence 可用，MySQL 当前 23 张表，Redis DB 1 的四类 Vector Set 与 13,173 条 MySQL search 投影任务一致；120-case v1 shadow、RELEASE_CANDIDATE eval、capacity、latency 与 20 条 human 检查均通过 gate，v1 release 已激活，lexical API 实测 HTTP 200；24 小时灰度尚未完成。",
   "meta": {
     "phase1_completed": "2026-09-03",
     "phase1_tests_passed": 59,
@@ -52,16 +52,13 @@
     ,"phase6_lexical_api_implemented": "2026-09-05"
     ,"phase7_versioned_rrf_implemented": "2026-09-05"
     ,"phase5_release_store_integration_pending": false
-    ,"runtime_ports_verified": "2026-09-05"
+    ,"runtime_ports_verified": "2026-09-06T18:28:01+08:00"
     ,"runtime_lexical_api_blocked_by_migration": false
     ,"runtime_lexical_api_blocked_by_unpublished_release": true
     ,"runtime_projection_migration_applied": "2026-09-05"
     ,"runtime_active_release_count": 0
     ,"runtime_backfill_smoke_blocked": false
     ,"runtime_backfill_smoke_recovered": "2026-09-05"
-    ,"runtime_backfill_indexed_jobs": 4
-    ,"runtime_backfill_pending_jobs": 66
-    ,"runtime_backfill_retry_jobs": 150
     ,"runtime_backfill_full_attempt_stopped": "2026-09-05"
     ,"runtime_services_rechecked": "2026-09-06"
     ,"runtime_embedding_probe_ok": "2026-09-06"
@@ -71,10 +68,6 @@
     ,"runtime_backfill_pending_jobs_latest": 0
     ,"runtime_backfill_indexed_jobs_latest": 220
     ,"runtime_backfill_retry_jobs_latest": 0
-    ,"runtime_golden_case_120_blocked": "2026-09-06"
-    ,"runtime_entity_relation_data_incomplete": true
-    ,"runtime_person_count": 0
-    ,"runtime_character_alias_count": 0
     ,"runtime_subject_relation_count": 6
     ,"runtime_recent_import_completed": "2026-09-06"
     ,"runtime_recent_import_record_id": 9
@@ -99,25 +92,48 @@
     ,"runtime_redis_vector_cardinality_latest": {"SUBJECT": 220, "EPISODE": 1658, "PERSON": 9275, "CHARACTER": 2129}
     ,"runtime_rag_indexed_jobs_latest": 220
     ,"runtime_rag_pending_jobs_latest": 0
-    ,"runtime_active_release_count_latest": 0
+    ,"runtime_active_release_count_latest": 1
     ,"runtime_embedding_smoke_recovered": "2026-09-06"
     ,"runtime_indexer_error_codes_fixed": "2026-09-06"
     ,"runtime_quality_report_path": ".trellis/tasks/09-03-bangumi-rag-retrieval/research/quality-v1.json"
-    ,"runtime_quality_report_sha256": "f323a3b306f3cb15c7eeac1e74f27eda3a15374fbc68fe1a02b3e9aa62fa2340"
+    ,"runtime_quality_report_sha256": "2ecf6ad1dba3f44c0db1d705f1d69d177af5235d19ca5acf1c4fda7779fb6876"
+    ,"runtime_quality_generated_at": "2026-09-06T10:30:45.463290+00:00"
     ,"runtime_quality_coverage": 1.0
     ,"runtime_quality_episode_shortage": 1
     ,"runtime_quality_episode_status_drift": 38
     ,"runtime_shadow_eval_report_path": ".trellis/tasks/09-03-bangumi-rag-retrieval/research/eval-shadow-v1.json"
     ,"runtime_shadow_eval_status": "SHADOW_ONLY"
     ,"runtime_shadow_eval_required_total": 120
-    ,"runtime_shadow_eval_required_passed": 115
-    ,"runtime_shadow_eval_required_failed": 5
-    ,"runtime_shadow_eval_recall20": 0.9847222222222222
-    ,"runtime_shadow_eval_mrr10": 0.8802876984126985
-    ,"runtime_shadow_eval_ndcg10": 0.8715866007476195
-    ,"runtime_shadow_eval_hard_filter_accuracy": 0.9666666666666667
+    ,"runtime_shadow_eval_required_passed": 120
+    ,"runtime_shadow_eval_required_failed": 0
+    ,"runtime_shadow_eval_recall20": 1.0
+    ,"runtime_shadow_eval_mrr10": 0.9708333333333333
+    ,"runtime_shadow_eval_ndcg10": 0.9635485820106473
+    ,"runtime_shadow_eval_hard_filter_accuracy": 1.0
     ,"runtime_shadow_eval_evidence_completeness": 1.0
     ,"runtime_batch_authority_active_field_fixed": "2026-09-06"
     ,"runtime_shadow_eval_requires_business_restart": false
+    ,"runtime_mysql_table_count_latest": 23
+    ,"runtime_redis_version_latest": "8.8.0"
+    ,"runtime_redis_database_latest": 1
+    ,"runtime_live_http_audit": "2026-09-06T19:34:03+08:00"
+    ,"runtime_business_health_http": 200
+    ,"runtime_business_liveness_http": 200
+    ,"runtime_business_readiness_http": 200
+    ,"runtime_agent_health_http": 200
+    ,"runtime_subject_batch_http": 200
+    ,"runtime_evidence_batch_http": 200
+    ,"runtime_evidence_resolve_http": 200
+    ,"runtime_lexical_search_http": 200
+    ,"runtime_release_candidate_eval_report_available": true
+    ,"runtime_release_candidate_eval_entrypoint_available": true
+    ,"runtime_human_report_path": ".trellis/tasks/09-03-bangumi-rag-retrieval/research/human-v1.json"
+    ,"runtime_human_check_count": 20
+    ,"runtime_human_severe_errors": 0
+    ,"runtime_gate_status": "PASS"
+    ,"runtime_release_activated_at": "2026-09-07T21:16:46+08:00"
+    ,"runtime_release_status": "ACTIVE"
+    ,"runtime_release_profile_version": "subject-profile-v1"
+    ,"runtime_live_audit_report_path": ".trellis/tasks/09-03-bangumi-rag-retrieval/phase8-live-runtime-audit.md"
   }
 }

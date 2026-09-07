@@ -1,6 +1,6 @@
 {
   "schemaVersion": "rag-shadow-eval-v1",
-  "status": "SHADOW_ONLY",
+  "status": "RELEASE_CANDIDATE",
   "indexVersion": "v1",
   "profileVersion": "subject-profile-v1",
   "releaseProfileVersion": "subject-profile-v1",

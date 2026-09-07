@@ -147,6 +147,7 @@ public class EvidenceServiceImpl implements EvidenceService {
                 .ratingTotal(subject.getRatingTotal())
                 .collectionTotal(subject.getCollectionTotal())
                 .airDate(subject.getAirDate())
+                .airStatus(subject.getAirStatus())
                 .summary(subject.getSummary())
                 .aliases(aliasMap.getOrDefault(id, Collections.emptyList()))
                 .metaTags(metaTagMap.getOrDefault(id, Collections.emptyList()))

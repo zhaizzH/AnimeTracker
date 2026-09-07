@@ -22,6 +22,7 @@ class SubjectMapperLexicalSqlCompatibilityTest {
                 .contains("<select id=\"selectActiveSearchIndexRelease\"")
                 .contains("<select id=\"lexicalSearch\"")
                 .contains("MATCH(d.title, d.aliases, d.lexical_text)")
+                .contains("AGAINST (#{query} IN BOOLEAN MODE)")
                 .contains("r.profile_version = d.profile_version")
                 .contains("r.status = 'ACTIVE'")
                 .contains("r.active_slot = 1")

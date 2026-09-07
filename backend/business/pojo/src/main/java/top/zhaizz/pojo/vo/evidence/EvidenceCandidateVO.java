@@ -38,6 +38,8 @@ public class EvidenceCandidateVO {
     private Integer ratingTotal;
     private Integer collectionTotal;
     private LocalDate airDate;
+    /** 基于条目日期与剧集状态推导的播出状态。 */
+    private String airStatus;
     private String summary;
 
     private List<String> aliases;

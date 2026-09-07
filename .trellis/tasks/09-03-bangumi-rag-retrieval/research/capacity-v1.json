@@ -1,0 +1,19 @@
+{
+  "sample_count": 3776,
+  "bytes_per_document": 2074,
+  "projected_total_bytes": 41480000,
+  "redis_used_memory": 28592440,
+  "physical_available": 2408091648,
+  "utilization": 0.017225258031375392,
+  "allowed": true,
+  "indexVersion": "v1",
+  "embeddingContract": {
+    "provider": "dashscope",
+    "model": "text-embedding-v4",
+    "dimensions": 1024,
+    "profileVersion": "subject-profile-v1",
+    "releaseProfileVersion": "subject-profile-v1"
+  },
+  "source": "indexer-remaining.json sample plus current Redis INFO memory",
+  "redisUsedMemoryBefore": 28592440
+}

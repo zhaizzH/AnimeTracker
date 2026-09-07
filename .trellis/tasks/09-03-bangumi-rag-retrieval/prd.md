@@ -8,8 +8,8 @@
 
 - 产品主目标已经确定为“自然语言找番与可解释推荐”，不是首版动漫百科问答或个人追番助手。
 - Bangumi v0 API 可提供作品、剧集、人物/组织、角色、声优、标签、评分、收藏聚合、图片与作品关系；完整响应可以保留为原始快照。
-- 当前 MySQL 已迁移到 21 张表并具备人物、角色、声优与关系结构，但真实数据仍以作品、剧集、标签和作品关系为主；人物/角色详情与新的搜索投影尚未完成回填。
-- 当前 Agent 已有基于 RediSearch `FT.*` 的 BM25 + KNN + RRF、结构化过滤和轻量重排代码，但本机 Redis 8.8 只提供 Vector Set，无法运行 `FT.CREATE`、`FT.SEARCH` 或 `FT.ALIASUPDATE`；该实现需要改为 MySQL 词法召回 + Redis Vector Set 语义召回。
+- 当前 MySQL 在 migration-003 后为 23 张表，人物、角色、声优与关系数据已经导入；v1 的 Subject/Episode/Person/Character MySQL 词法投影和 Redis Vector Set 已完成全量构建。
+- Agent 已完成 MySQL 词法召回 + Redis Vector Set 语义召回 + RRF + Evidence 的接线；旧 RediSearch `FT.*` 路线只保留历史证据。当前缺口位于正式 release-candidate 评测、gate 报告和灰度，而不是检索组件选型。
 - 参考项目 `C:\workspace\project\medicine-ai-system` 中 MySQL、MongoDB、Redis、Elasticsearch、RabbitMQ、MinIO、Milvus、Neo4j 分别解决不同问题，不构成必须整体采用的 RAG 套件。
 
 ## Requirements

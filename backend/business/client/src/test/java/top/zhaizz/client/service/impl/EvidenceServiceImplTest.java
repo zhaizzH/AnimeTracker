@@ -65,6 +65,7 @@ class EvidenceServiceImplTest {
         subject.setRatingTotal(5000);
         subject.setCollectionTotal(20000);
         subject.setAirDate(LocalDate.of(1998, 4, 3));
+        subject.setAirStatus("FINISHED");
         subject.setSummary("A group of bounty hunters...");
         subject.setSourceFetchedAt(sourceTime);
 
@@ -118,6 +119,7 @@ class EvidenceServiceImplTest {
         assertThat(vo.getRatingTotal()).isEqualTo(5000);
         assertThat(vo.getCollectionTotal()).isEqualTo(20000);
         assertThat(vo.getAirDate()).isEqualTo(LocalDate.of(1998, 4, 3));
+        assertThat(vo.getAirStatus()).isEqualTo("FINISHED");
         assertThat(vo.getSummary()).isEqualTo("A group of bounty hunters...");
         assertThat(vo.getSourceTime()).isEqualTo(sourceTime);
         assertThat(vo.getSourceFetchedAt()).isEqualTo(sourceTime);

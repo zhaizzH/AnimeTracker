@@ -34,13 +34,16 @@ from tests.evals.schemas import CaseResult, GoldenCase
 
 
 SHADOW_REPORT_SCHEMA = "rag-shadow-eval-v1"
+EvalStatus = Literal["SHADOW_ONLY", "RELEASE_CANDIDATE"]
+
+
 class ShadowEvalReport(BaseModel):
-    """Gate-compatible evaluation report with explicit shadow-only status."""
+    """Gate-compatible evaluation report for shadow or release candidates."""
 
     model_config = ConfigDict(extra="forbid")
 
     schemaVersion: str = SHADOW_REPORT_SCHEMA
-    status: Literal["SHADOW_ONLY"] = "SHADOW_ONLY"
+    status: EvalStatus = "SHADOW_ONLY"
     indexVersion: str = Field(min_length=1)
     profileVersion: str = Field(min_length=1)
     releaseProfileVersion: str = Field(min_length=1)
@@ -64,6 +67,14 @@ class ShadowEvalReport(BaseModel):
             raise ValueError("shadow eval 必须包含恰好 120 条 case")
         if self.requiredPassed + self.requiredFailed != self.requiredTotal:
             raise ValueError("requiredPassed 与 requiredFailed 不一致")
+        if len(self.caseResults) != self.requiredTotal:
+            raise ValueError("shadow eval caseResults 必须与 requiredTotal 一致")
+        if self.status == "RELEASE_CANDIDATE" and (
+            self.requiredPassed != self.requiredTotal
+            or self.requiredFailed != 0
+            or self.failures
+        ):
+            raise ValueError("RELEASE_CANDIDATE 必须是 120/120 且没有失败 case")
         if self.profileVersion != self.releaseProfileVersion:
             raise ValueError("projection profile 与 release profile 不一致")
         contract = self.embeddingContract
@@ -129,7 +140,7 @@ def build_shadow_sql(query: RetrievalQuery, *, index_version: str, limit: int = 
         params["query_text"] = " ".join(str(term) for term in terms)
         match_expr = (
             "MATCH(d.title, d.aliases, d.lexical_text) "
-            "AGAINST (:query_text IN NATURAL LANGUAGE MODE)"
+            "AGAINST (:query_text IN BOOLEAN MODE)"
         )
         where.append(f"{match_expr} > 0")
     if query.year_from is not None:
@@ -210,8 +221,14 @@ def run_shadow_eval(
     index_version: str,
     release_profile_version: str,
     token: str | None = None,
+    status: EvalStatus = "SHADOW_ONLY",
 ) -> ShadowEvalReport:
-    """Evaluate exactly the 120 cases without requiring an ACTIVE release."""
+    """Evaluate exactly 120 cases without requiring an ACTIVE release.
+
+    ``RELEASE_CANDIDATE`` is deliberately available only for a clean 120/120
+    result.  The caller still has to produce the remaining gate reports before
+    activating the MySQL release.
+    """
 
     _validate_version(index_version)
     dataset = load_golden_dataset(dataset_path)
@@ -280,7 +297,7 @@ def run_shadow_eval(
     total = len(results)
     report = {
         "schemaVersion": SHADOW_REPORT_SCHEMA,
-        "status": "SHADOW_ONLY",
+        "status": status,
         "indexVersion": index_version,
         "profileVersion": projection_profile,
         "releaseProfileVersion": release_profile_version,
@@ -313,6 +330,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dataset", type=Path, default=Path(__file__).parents[2] / "tests/evals/golden_cases.json")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--release-profile-version", required=True)
+    parser.add_argument(
+        "--status",
+        choices=("SHADOW_ONLY", "RELEASE_CANDIDATE"),
+        default="SHADOW_ONLY",
+        help="报告状态；RELEASE_CANDIDATE 仅在 120/120 通过时有效",
+    )
     parser.add_argument("--business-url", default=os.getenv("BUSINESS_BASE_URL", "http://127.0.0.1:8080"))
     args = parser.parse_args(argv)
     load_dotenv()
@@ -329,6 +352,7 @@ def main(argv: list[str] | None = None) -> int:
         dataset_path=args.dataset,
         index_version=args.index_version,
         release_profile_version=args.release_profile_version,
+        status=args.status,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report.model_dump(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
