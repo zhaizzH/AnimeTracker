@@ -93,3 +93,26 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 5: 完成 v1 RAG 发布门禁与激活
+<!-- trellis-session: v=2 fp=654c69f2d851b1ce -->
+
+**Date**: 2026-09-07
+**Task**: 完成 v1 RAG 发布门禁与激活
+**Branch**: `main`
+
+### Summary
+
+完成 v1 candidate 120/120 评测、容量/延迟/人工报告与 gate；激活 MySQL search_index_release v1，真实 lexical API 返回 200；Java/Python/任务校验通过。任务仍保留 in_progress，待 24 小时灰度观察，RAG_ENABLED 未修改。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f0add0d9` | feat(rag): complete v1 release gate and activation |
+| `c1e1453a` | feat(rag): 完善Bangumi混合检索门禁 |
+
+### Status
+
+[OK] **Completed**
