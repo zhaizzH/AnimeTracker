@@ -2,6 +2,15 @@
 
 日期：2026-09-05
 
+> 本文按时间保留 2026-09-05 至 2026-09-06 的实施流水。早期的 PENDING/RETRY、Embedding 不可用和“尚未回填”均为历史状态；当前结论以本节和 [真实索引运行报告](./phase8-index-runtime-report.md) 为准。
+
+## 当前结论（2026-09-06 18:29，UTC+8）
+
+- `search_index_job v1/COMPLETED=13,173`；`rag_index_job v1/INDEXED=220`。
+- MySQL `search_document` 与 Redis DB 1 的 Vector Set 数量一致：SUBJECT=220、EPISODE=1,658、PERSON=9,275、CHARACTER=2,129。
+- MySQL/Redis 双投影和 Evidence 实时接口可用；全量回填与 Embedding 网络阻断已解除。
+- 上述 5 个 shadow 失败与 candidate 尚未生成属于本报告所记录的历史快照；2026-09-07 已修复并完成 120/120 的 `RELEASE_CANDIDATE` 回放，capacity/latency/human 报告也已生成并通过 gate，v1 ACTIVE release 已激活。当前仅等待 24 小时灰度；`shadow_eval.py --status RELEASE_CANDIDATE` 仍会在失败 case 存在时 fail closed。
+
 ## 已实现
 
 - `search_document` 与 `search_index_release` 已加入初始化 Schema 和 `migration-003-search-projection.sql`。
@@ -11,7 +20,7 @@
 - Agent RRF 使用 Business 返回的 `indexVersion` 查询同版本 Vector Set，并将 `candidates` 归一化为检索候选。
 - Shadow/gate 已改为只接受 MySQL release store；生产 CLI 会在 gate 通过后通过事务切换 release，当前不会误切 Redis alias。
 
-## 本地验证
+## 实现当时的本地验证（历史快照）
 
 ```text
 backend/agent: .venv\Scripts\python.exe -m pytest -q
@@ -22,10 +31,12 @@ BUILD SUCCESS
 36 tests in client/app modules passed
 ```
 
-## 尚未完成
+当前全量测试结果已提升为 Agent `268 passed, 1 deselected`、Business `37` tests passed；以 [真实索引运行报告](./phase8-index-runtime-report.md) 为准。
+
+## 初始未完成项（历史快照）
 
 - 已在本地运行库 `localhost:3306/anime_tracker` 执行 `migration-003-search-projection.sql`；`search_document` 与 `search_index_release` 已创建，但尚未进行全量投影回填。
-- 尚未生成 120 条真实 golden case、完成 Recall/MRR/nDCG/延迟门禁和 20 条人工证据检查。
+- 120 条真实 golden case、Recall/MRR/nDCG/延迟门禁和 20 条人工证据检查已在 Phase 8 报告中完成；本报告此处保留的是实现阶段的历史状态。
 - 尚未进行 24 小时灰度；因此任务保持 `in_progress`，RAG 不应宣称已发布。
 
 ## 运行约束
@@ -52,7 +63,7 @@ BUILD SUCCESS
 
 - 幂等迁移首次执行 2 条 `CREATE TABLE IF NOT EXISTS` 语句成功；第二次重复执行也成功。
 - 校验通过：`search_document`、`search_index_release` 存在；`ft_search_document_text` 覆盖 `title`、`aliases`、`lexical_text`。
-- 当前 `search_index_release` 的 `ACTIVE` 行数为 0；词法 API 返回 HTTP 503 `词法索引尚未发布`，符合发布指针 fail-closed 约束。
+- 当时 `search_index_release` 的 `ACTIVE` 行数为 0；词法 API 返回 HTTP 503 `词法索引尚未发布`，符合发布指针 fail-closed 约束。
 
 ## 2026-09-05 回填 smoke 结果
 
@@ -98,7 +109,7 @@ BUILD SUCCESS
 ## 2026-09-06 缺失向量修复结果
 
 - 无代理终端已补写 Subject 1–4；最终 `rag_index_job=INDEXED 220`、`search_document(v1)=220`、`rag:vectors:SUBJECT:v1=220`，entity ID 集合一致。
-- 当前双投影回填通过；但 Phase 8 仍缺 120-case 真实评测、延迟/容量报告和至少 20 条人工证据检查，因此保持 release 未发布。
+- 当前双投影回填通过；Phase 8 五报告 gate 已通过，但 release 仍按人工确认要求保持未发布。
 
 ## 2026-09-06 120-case 可行性核验
 
@@ -121,11 +132,11 @@ BUILD SUCCESS
 - 导入已产生通用 `search_index_job`：`SUBJECT=111`、`PERSON=9275`、`CHARACTER=2129`、`EPISODE=1658` 条待消费任务；此前已有 Subject 投影仍为 MySQL 220 条、Redis Vector Set 220 个成员。
 - 使用代理 `http://127.0.0.1:7897` 消费 search 队列 10 条进行 smoke；DashScope 返回 `EmbeddingUnavailable`，未新增投影，10 条任务进入带 `next_retry_at` 的可重试失败状态。未激活 release。
 - 本次 smoke 暴露错误码语义问题：Embedding 故障曾被记录为 `REDIS_UNAVAILABLE`；已修复为 `EMBEDDING_UNAVAILABLE`，并补充限流与 Redis 故障区分测试。修复前产生的历史 10 条失败记录不作为成功证据。
-- 当前 `rag_index_job` 为 `INDEXED=118/PENDING=102`，`search_index_release` 仍为空；真实 120-case 端到端评测、版本发布和灰度继续阻断。
+- 当时 `rag_index_job` 为 `INDEXED=118/PENDING=102`，`search_index_release` 为空；该队列数已被文首当前结论覆盖。
 
 ## 2026-09-06 全量 search 双投影完成（覆盖前述运行态）
 
 - 用户在清空代理变量的终端中完成 DashScope `text-embedding-v4` HTTP 200 探针，并继续消费剩余 search 队列。
 - `search_index_job` 最终为 `COMPLETED=13,173`，`PENDING=0`、`FAILED=0`；`character` 保留字导致的 1,760 条失败已通过 SQL 引用修复后重试完成。
 - v1 `search_document` 与 Redis Vector Set 数量一致：SUBJECT=220、EPISODE=1,658、PERSON=9,275、CHARACTER=2,129。
-- 质量报告覆盖率为 100%，但仍发现 1 条 `EPISODE_SHORTAGE` 和 38 条 `EPISODE_STATUS_DRIFT`；报告、120-case 真实评测、release 激活和灰度仍未完成。
+- 质量报告覆盖率为 100%，但仍发现 1 条 `EPISODE_SHORTAGE` 和 38 条 `EPISODE_STATUS_DRIFT`；此处“报告、120-case 真实评测尚未完成”属于 2026-09-06 历史快照，当前五报告 gate 已通过，仍待 release 激活和灰度。

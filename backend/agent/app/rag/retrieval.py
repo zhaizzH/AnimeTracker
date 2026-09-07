@@ -287,10 +287,10 @@ class RagRetrievalService:
                 safe_items[item.subject_id] = item
         if not safe_items:
             return RetrievalResult(available=True, items=[], reason="no_results")
-        return RetrievalResult(
-            available=True,
-            items=self._rerank(list(safe_items.values()), query, preference)[:_MAX_RESULTS],
-        )
+        items = list(safe_items.values())
+        if _has_textual_intent(query):
+            items = self._rerank(items, query, preference)
+        return RetrievalResult(available=True, items=items[:_MAX_RESULTS])
 
     def _resolve_entity_subject_ids(
         self,
@@ -603,7 +603,8 @@ class RagRetrievalService:
                 for candidate in safe
                 if self._matches_query_filters(candidate.details or {}, query)
             ]
-        return RetrievalResult(available=True, items=self._rerank(safe, query, preference)[:max(0, result_limit)])
+        ranked = safe if not _has_textual_intent(query) else self._rerank(safe, query, preference)
+        return RetrievalResult(available=True, items=ranked[:max(0, result_limit)])
 
     def _business_fallback(
         self,
@@ -737,6 +738,7 @@ class RagRetrievalService:
             "collectionTotal": ev.get("collectionTotal"),
             "score": ev.get("score"),
             "airDate": ev.get("airDate"),
+            "airStatus": ev.get("airStatus") or ev.get("air_status"),
             "sourceTime": ev.get("sourceTime"),
             "sourceFetchedAt": ev.get("sourceFetchedAt") or ev.get("sourceTime"),
             "active": ev.get("active"),
@@ -875,6 +877,14 @@ class RagRetrievalService:
             exact_terms = [query.semantic_query, *query.keywords]
             if any(term and title.casefold() == term.casefold() for term in exact_terms):
                 result += 0.30
+            evidence = candidate.evidence or {}
+            raw_tags = evidence.get("metaTags") or evidence.get("meta_tags") or evidence.get("tags")
+            if query.semantic_query and isinstance(raw_tags, (list, tuple, set)):
+                semantic_text = query.semantic_query.strip().casefold()
+                if any(str(tag).strip().casefold() == semantic_text for tag in raw_tags):
+                    # Meta tags are authoritative evidence for semantic-tag
+                    # cases; keep an exact tag match in the bounded result set.
+                    result += 0.35
             return min(result, 1.0)
 
         return sorted(candidates, key=lambda item: (-score(item), item.subject_id))
@@ -969,6 +979,11 @@ def _item_quarter(item: Mapping[str, Any]) -> int | None:
     except (TypeError, ValueError):
         return None
     return ((month - 1) // 3) + 1 if 1 <= month <= 12 else None
+
+
+def _has_textual_intent(query: RetrievalQuery) -> bool:
+    """Whether ranking should be allowed to reorder a structured result set."""
+    return bool(query.semantic_query or query.keywords)
 
 
 def _infer_air_status_name(value: Any) -> str:

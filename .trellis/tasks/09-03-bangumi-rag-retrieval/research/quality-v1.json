@@ -1,5 +1,5 @@
 {
-  "commit": "e5632a31f28c32df48611df432612c24b61ec908",
+  "commit": "c1e1453a7aaafa3679d72b3e2c49bcafcb1a52df",
   "contentHashSamples": [
     {
       "expected": "06f353c44f4ce73a6fe9400a9ebd6c2dbf3cd09930049eac3fdd481cd911e70e",
@@ -118,14 +118,15 @@
   "coverage": 1.0,
   "coverageCatalogCount": 220,
   "databaseFingerprint": "a7148e80c6e021608246b2ec6cbf78180ba7f07327c2714b3774d3bc6a554deb",
-  "dirty": true,
+  "dirty": false,
   "embeddingContract": {
     "dimensions": 1024,
     "model": "text-embedding-v4",
     "profileVersion": "subject-profile-v1",
+    "releaseProfileVersion": "subject-profile-v1",
     "provider": "dashscope"
   },
-  "generatedAt": "2026-09-06T09:21:38.488135+00:00",
+  "generatedAt": "2026-09-06T10:30:45.463290+00:00",
   "indexVersion": "v1",
   "items": [
     {

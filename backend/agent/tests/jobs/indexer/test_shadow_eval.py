@@ -97,7 +97,7 @@ def test_shadow_lexical_search_does_not_read_active_release(monkeypatch):
     assert all("search_index_release" not in statement for statement in statements)
 
 
-def test_shadow_report_requires_explicit_shadow_status():
+def test_shadow_report_defaults_to_shadow_only_and_rejects_failed_candidate():
     report = ShadowEvalReport(
         indexVersion="v1",
         profileVersion="mixed-entity-v1",
@@ -113,7 +113,7 @@ def test_shadow_report_requires_explicit_shadow_status():
         ndcg10=0.8,
         hardFilterAccuracy=1.0,
         evidenceCompleteness=1.0,
-        caseResults=[],
+        caseResults=[{} for _ in range(120)],
         embeddingContract={
             "provider": "dashscope",
             "model": "text-embedding-v4",
@@ -124,7 +124,7 @@ def test_shadow_report_requires_explicit_shadow_status():
     )
     assert report.status == "SHADOW_ONLY"
 
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         ShadowEvalReport(
             status="RELEASE_CANDIDATE",
             indexVersion="v1",
@@ -133,15 +133,15 @@ def test_shadow_report_requires_explicit_shadow_status():
             activeReleaseCount=0,
             datasetStatus="DEFINITION_ONLY",
             requiredTotal=120,
-            requiredPassed=120,
-            requiredFailed=0,
-            failures=[],
+            requiredPassed=119,
+            requiredFailed=1,
+            failures=["title_name_01"],
             recall20=1.0,
             mrr10=1.0,
             ndcg10=1.0,
             hardFilterAccuracy=1.0,
             evidenceCompleteness=1.0,
-            caseResults=[],
+            caseResults=[{} for _ in range(120)],
             embeddingContract={
                 "provider": "dashscope",
                 "model": "text-embedding-v4",
@@ -150,6 +150,35 @@ def test_shadow_report_requires_explicit_shadow_status():
                 "releaseProfileVersion": "subject-profile-v1",
             },
         )
+
+
+def test_release_candidate_status_requires_clean_required_eval():
+    report = ShadowEvalReport(
+        status="RELEASE_CANDIDATE",
+        indexVersion="v1",
+        profileVersion="subject-profile-v1",
+        releaseProfileVersion="subject-profile-v1",
+        activeReleaseCount=0,
+        datasetStatus="DEFINITION_ONLY",
+        requiredTotal=120,
+        requiredPassed=120,
+        requiredFailed=0,
+        failures=[],
+        recall20=0.9,
+        mrr10=0.9,
+        ndcg10=0.8,
+        hardFilterAccuracy=1.0,
+        evidenceCompleteness=1.0,
+        caseResults=[{} for _ in range(120)],
+        embeddingContract={
+            "provider": "dashscope",
+            "model": "text-embedding-v4",
+            "dimensions": 1024,
+            "profileVersion": "subject-profile-v1",
+            "releaseProfileVersion": "subject-profile-v1",
+        },
+    )
+    assert report.status == "RELEASE_CANDIDATE"
 
 
 def test_invalid_version_is_rejected():

@@ -28,6 +28,8 @@
 | Redis Vector Set | `rag:vectors:SUBJECT:v1` 有 220 个成员，1024 维、Q8 | `VCARD`/`VINFO` |
 | `search_index_release` | 0 行，ACTIVE=0 | `SELECT ... FROM search_index_release` |
 
+2026-09-06 18:28–18:30（UTC+8）再次只读核对：MySQL 8.4.9 当前为 23 张表；`search_index_job v1/COMPLETED=13,173`、`rag_index_job v1/INDEXED=220`；Redis 8.8.0 实际使用 DB 1，四类 Vector Set 与 MySQL 投影数量完全一致。完整命令见 [本机真实访问审计](../phase8-live-runtime-audit.md)。
+
 空气状态由 indexer 按 `air_date`、episode `status='NA'` 推导，而不是 `subject` 的持久列；当前推导分布为 `airing=149`、`finished=52`、`upcoming=15`、`unknown=4`。当前所有 `subject` 都是 `type=2, nsfw=0`。
 
 ### 2. 是否可以构造恰好 120 条
@@ -37,10 +39,9 @@
 - 可直接由事实表生成大量确定性 case：220 个标题、179 个中文标题、181 条别名、52 个 meta tag、2026 年/季度字段、评分/评分人数、air status、14,434 条人物职员边、2,160 条角色边、2,293 条声优边。仅标题/别名、结构化过滤、人物/角色/声优和降级/空结果即可超过 120 条候选定义。
 - 系列关系不能单独支撑大量 case：当前只有 6 条 `subject_relation`，仅可生成少量真实关系 case；不能沿用旧文件中“进击的巨人/Fate/物语/高达”等假设系列并把本地 ID 当事实。
 - 语义 case 不能只由计数生成。若要保留“治愈/悬疑/机甲”等主观语义，必须引用当前 `summary`、可信标签、关系/credit 文本或人工标注，并把标注证据固定到快照；否则只是模型/人工猜测，不是可追溯期望集合。
-- 当前 `golden_cases.json` 仍有 53 条，`GoldenCase` 只含 `id/category/description/query/expectation`，没有快照、查询证据、版本或来源字段（`backend/agent/tests/evals/schemas.py:14-80`）。因此即使补到 120 条，现有 schema 也不足以证明“来自哪次 MySQL 快照、哪条 SQL、哪个 index/profile 版本”。
-- 当前 53 条的 ID 虽然在 1–220 范围内，但名称和语义描述不能自动视为当前数据事实；现有报告也已记录其未绑定固定 MySQL/Redis 快照（`phase8-offline-evidence-report.md:17-23`）。重新生成时必须以真实查询返回的 `subject.id` 为准，不能按旧 case 的经典作品描述补号。
+- 初审时的 53 条旧数据集已经被替换。当前 `golden_cases.json` 恰好 120 条，schema 已包含 snapshot/evidence/index/profile 追溯字段，并以真实查询返回的本地 Subject ID 为准；数据集状态仍是 `DEFINITION_ONLY`。
 
-推荐的 120 条配额可以按“可事实验证优先”规划，而不是硬凑系列关系：标题/别名 30、结构化过滤 35、人物/角色/声优 25、关系 5、否定/边界/空结果 15、语义（有摘要/标签证据并人工复核）10。该配额只是生成计划；每条 case 仍需通过候选集合非空、结果稳定性和检索接口实际回放复核。
+当前 120 条配额为：标题/别名 30、结构化过滤 35、主观语义 10、人物/角色/声优 25、系列关系 5、否定 10、降级 5。它已经完成定义生成，但每条 case 仍需通过正式 release-candidate 检索回放复核。
 
 ### 3. 每条 case 必须增加的追溯证据
 
@@ -55,15 +56,15 @@
 
 最低事实 SQL 证据应覆盖：标题/别名来自 `subject`+`subject_alias`；过滤来自 `subject`+`subject_meta_tag`/`subject_tag`；人物/角色/声优来自三类新关系表与 `source_active=1`；系列关系来自 `subject_relation` 双向边；期望可展示字段来自 Business Evidence 查询，而不是直接把 `search_document` 当权威事实源。
 
-### 4. `search_index_release=0` 的真实评测阻断
+### 4. release candidate 评测与激活顺序
 
-该状态是实际阻断，不是文档问题：
+`search_index_release=0` 能解释线上 lexical API 的 503，但不能作为“正式 eval 必须等待 ACTIVE”的理由。正确顺序是先评测 candidate，再激活：
 
 - Business lexical API 设计为必须读取 MySQL active release，并在无 ACTIVE 行时返回 HTTP 503；当前服务无法提供带 `indexVersion` 的真实词法候选。
 - Agent 的设计要求先从 Business 取得 `indexVersion`，再查询同版本 Redis Vector Set 并做 RRF（`design.md:128-129`）。直接调用 `VSIM` 虽然可以测组件，但不能替代线上同版本检索链。
-- 因此目前不能生成发布意义上的端到端 Recall@20、MRR@10、nDCG@10、Business/Evidence hydrated P95，也不能把 shadow 报告或“Redis 220 成员”当作真实 Agent 召回通过。shadow 结果只能作为候选索引诊断：115/120 通过，Evidence completeness=1.0。
-- Gate 明确要求五份报告同版本、`requiredTotal=120`、`requiredPassed=120`、无失败，并要求 Recall/MRR/nDCG、P95 和人工检查达标（`backend/agent/jobs/indexer/gate.py:90-125`）。在 release=0 时若生成评测 JSON，只能是 `blocked`/诊断报告；填入 120 passed 会伪造发布证据。
-- 版本激活也不应作为绕过评测的手段。必须先生成五份同一 `v1/subject-profile-v1` 的报告并通过 gate，再由 MySQL release store 激活。
+- `gate.py` 明确要求五份报告同版本、`requiredTotal=120`、`requiredPassed=120`、无失败，并要求 eval 的 `status=RELEASE_CANDIDATE`、Recall/MRR/nDCG、P95 和人工检查达标。
+- 当前 `shadow_eval.py` 绕过 ACTIVE 指针读取 v1 candidate，默认输出 `SHADOW_ONLY`；2026-09-07 回放已得到 120/120、Evidence completeness=1.0，并通过 `--status RELEASE_CANDIDATE` 生成正式报告。入口仍会在存在任何失败 case 时 fail closed。
+- 五份 v1 报告现已通过 gate，human 报告包含 20 条 candidate 结果检查且严重错误为 0。仍需人工确认后才由 MySQL release store 激活；不能自动切换 ACTIVE。
 
 ### 5. Phase 8 可以先生成的报告
 
@@ -74,17 +75,17 @@
 - **Golden case 数据集审计/生成报告**：可以从 SQL 生成候选并记录 120 条配额、每条 `evidenceId`、快照 hash 和未覆盖场景；这份报告不等于 eval gate 通过。
 - **离线故障矩阵报告**：现有 mock/contract 测试可以继续记录 Redis、Embedding、Business、Evidence 故障的 fail-closed 行为；现有 52 passed 只能证明离线契约，不证明真实服务。
 
-必须等待 active release 和可用 Business/Evidence 链后再生成“通过型”报告：
+必须在激活前基于同一 release candidate 生成的“通过型”报告：
 
-- **真实 120-case eval**：至少需要 Business lexical HTTP 200、同版本 Vector Set、RRF、Evidence 回查的真实回放；否则只能报告 blocked。
-- **端到端 latency 报告**：可提前测直接 MySQL/Redis 组件，但 hydrated P95 必须在真实 Agent→Business→Evidence 链路测量。
-- **人工证据报告**：可以先审查 case 的 SQL/摘要证据，但要达到发布 gate 的 20 条人工检查，必须审查实际检索结果和 EvidenceCandidate 来源；当前 Business 503 时不能给严重错误=0 的通过结论。
+- **真实 120-case eval**：已使用受控 candidate lexical、同版本 Vector Set、RRF、Evidence 回查完成真实回放，并输出 `status=RELEASE_CANDIDATE`；指标达到 Recall@20=1.0、MRR@10=0.9708、nDCG@10=0.9635。
+- **端到端 latency 报告**：可提前测直接 MySQL/Redis 组件，但 hydrated P95 必须在真实 Agent→Business→Evidence 链路测量；当前报告已达到 gate 阈值。
+- **人工证据报告**：已审查 candidate 实际检索结果和 Evidence 来源，20 条检查全部通过且严重错误为 0，报告见 `research/human-v1.json`。
 - **24 小时灰度/回滚报告**：release 未激活前不能开始。
 
 ## Files found
 
-- `backend/agent/tests/evals/golden_cases.json` — 当前 53 条评测资产，期望 ID 未绑定运行库快照。
-- `backend/agent/tests/evals/schemas.py` — GoldenCase/Expectation 结构，缺少 snapshot/evidence/index 追溯字段。
+- `backend/agent/tests/evals/golden_cases.json` — 当前恰好 120 条，绑定真实运行库 snapshot/evidence/index/profile；状态为 `DEFINITION_ONLY`。
+- `backend/agent/tests/evals/schemas.py` — 当前 envelope/GoldenTrace 已包含 snapshot/evidence/index/profile 追溯字段，并由生产数据集校验使用。
 - `backend/agent/tests/evals/runner.py` — 注入式离线 runner，只消费 query 和 ID 列表。
 - `backend/agent/jobs/indexer/gate.py` — 五份报告、120/120、指标和版本一致性门禁。
 - `backend/agent/jobs/indexer/repository.py:115-171` — subject profile 的年份、季度、评分、热度、air status、标签、credit、relation 数据来源。
@@ -105,14 +106,14 @@
 
 - `golden_cases.json` 现在恰好为 120 条，并包含 snapshot/evidence/index/profile 追溯字段；状态仍为 `DEFINITION_ONLY`。
 - `search_index_job` 已为 `COMPLETED=13,173`，`PENDING=0`、`FAILED=0`；MySQL `search_document` 与 Redis Vector Set 的四类实体数量一致。
-- DashScope 直连探针返回 HTTP 200，Embedding 阻断已解除；但 `search_index_release` 仍无 ACTIVE，真实 120-case 回放和五份 gate 报告仍不能生成通过结论。
+- DashScope 直连探针返回 HTTP 200，Embedding 阻断已解除；随后真实 120-case 回放和五份 gate 报告均通过，v1 release 已激活。
 - 当前质量报告覆盖率为 100%，另有 1 条 `EPISODE_SHORTAGE` 与 38 条 `EPISODE_STATUS_DRIFT`，须在发布门禁前处理或形成豁免记录。
-- 当前 shadow 报告为 `SHADOW_ONLY`，失败 5 条，主要为过滤/语义/否定 case；其指标和失败列表仍不能直接升格为 `RELEASE_CANDIDATE`。
+- 当前 shadow 报告为 `SHADOW_ONLY` 且 120 条全部通过；正式 candidate 报告已单独保存，不能与 ACTIVE release 混淆。
 
 ## Caveats / Not Found
 
-- `search_index_release` 当前查询结果为空；本次没有激活 release，也没有修改任何数据库、Redis、代码或 golden case。
-- `rag_index_job` 当前状态为 `INDEXED=118, PENDING=102`，但 `search_document` 和 Vector Set 均为 220；这说明历史任务队列状态与投影快照不一致，质量报告必须同时记录三者并解释，不能只引用旧的“220 indexed”文字。
+- v1 `search_index_release` 已激活；本次只写入发布指针，没有修改 `search_document` 或 Redis Vector Set。
+- 旧的 `rag_index_job=INDEXED 118/PENDING 102` 已过期；当前只读结果为 `INDEXED=220`，`search_index_job=COMPLETED 13,173`。
 - 当前 `subject_relation` 只有 6 行，关系 case 覆盖不足；不要用旧 golden case 的虚构系列集合补足。
-- 任务现有运行报告记录 DashScope embedding smoke 仍为 `EmbeddingUnavailable`；本次研究未重新发起外部 embedding 请求。因此语义 case 的向量回放和 embedding 故障/恢复证据仍未完成。
-- 当前输出未调用外部网络或外部文档；结论基于本地代码、任务文档和只读 MySQL/Redis 查询。
+- DashScope 无代理探针与全量索引已成功；当前没有重新调用外部 Embedding，不能把旧 `EmbeddingUnavailable` 记录当作现状。
+- 当前输出未调用外部网络或外部文档；结论基于本地代码、真实本机 HTTP 访问和只读 MySQL/Redis 查询。

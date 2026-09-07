@@ -1,6 +1,6 @@
 """Regression tests for release gate report safety."""
 
-from jobs.indexer.gate import GateInputs, _normalize_contract, evaluate_gate
+from jobs.indexer.gate import GateInputs, _normalize_contract, evaluate_gate, load_gate_inputs
 
 
 def _passing_inputs(**overrides):
@@ -69,3 +69,9 @@ def test_release_profile_version_overrides_entity_projection_profile():
     )
 
     assert contract["profileVersion"] == "subject-profile-v1"
+
+
+def test_missing_eval_case_results_fails_closed():
+    inputs = load_gate_inputs(__file__, "v1")
+
+    assert "missing eval case results" in inputs.report_errors

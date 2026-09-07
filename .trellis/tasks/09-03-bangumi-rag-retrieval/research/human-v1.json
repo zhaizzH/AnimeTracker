@@ -1,0 +1,221 @@
+{
+  "schemaVersion": "human-v1",
+  "indexVersion": "v1",
+  "profileVersion": "subject-profile-v1",
+  "releaseProfileVersion": "subject-profile-v1",
+  "embeddingContract": {
+    "provider": "dashscope",
+    "model": "text-embedding-v4",
+    "dimensions": 1024,
+    "profileVersion": "subject-profile-v1",
+    "releaseProfileVersion": "subject-profile-v1"
+  },
+  "reviewedAt": "2026-09-07T21:20:00+08:00",
+  "reviewer": "codex-agent",
+  "sourceReport": "eval-v1.json",
+  "reviewScope": "20 条 v1 RELEASE_CANDIDATE 结果，覆盖 7 类检索场景",
+  "checkCount": 20,
+  "severeErrors": 0,
+  "checks": [
+    {
+      "caseId": "title_name_01",
+      "category": "title_alias",
+      "expectedIds": [1],
+      "observedIds": [1],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.title_exact.v1", "sourceTables": ["subject"]},
+      "review": "原名精确匹配，命中目标且权威证据完整。",
+      "severeError": false
+    },
+    {
+      "caseId": "title_alias_01",
+      "category": "title_alias",
+      "expectedIds": [2],
+      "observedIds": [2],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.alias_exact.v1", "sourceTables": ["subject", "subject_alias"]},
+      "review": "active 别名命中目标，别名来源表可追溯。",
+      "severeError": false
+    },
+    {
+      "caseId": "title_alias_10",
+      "category": "title_alias",
+      "expectedIds": [14],
+      "observedIds": [14, 110, 49, 109, 55, 105, 65, 74, 19, 7, 53, 29, 73, 199, 218],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.alias_exact.v1", "sourceTables": ["subject", "subject_alias"]},
+      "review": "目标别名位于结果首位，包含期望命中且证据完整；其余候选不影响 must-contain 约束。",
+      "severeError": false
+    },
+    {
+      "caseId": "filter_year_01",
+      "category": "structured_filter",
+      "expectedIds": [63, 8, 32, 84, 20, 110, 67, 44, 51, 50],
+      "observedIds": [63, 8, 32, 84, 20, 110, 67, 44, 51, 50, 49, 34, 36, 38, 66],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.year.v1", "sourceTables": ["subject"]},
+      "review": "年份过滤结果包含全部期望作品，权威 subject 证据完整。",
+      "severeError": false
+    },
+    {
+      "caseId": "filter_air_status_02",
+      "category": "structured_filter",
+      "expectedIds": [63, 8, 84, 20, 110, 67, 44, 51, 50, 49],
+      "observedIds": [63, 8, 84, 20, 110, 67, 44, 51, 50, 49, 34, 36, 38, 66, 85],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.air_status.v1", "sourceTables": ["subject", "episode"]},
+      "review": "Airing 过滤包含全部期望作品，episode 来源可追溯。",
+      "severeError": false
+    },
+    {
+      "caseId": "filter_score_02",
+      "category": "structured_filter",
+      "expectedIds": [63, 8, 32, 84],
+      "observedIds": [63, 8, 32, 84],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.score_min.v1", "sourceTables": ["subject"]},
+      "review": "评分下限过滤精确命中，未出现缺少证据的结果。",
+      "severeError": false
+    },
+    {
+      "caseId": "filter_tag_01",
+      "category": "structured_filter",
+      "expectedIds": [63, 8, 84, 20, 110, 67, 44, 51, 50, 49],
+      "observedIds": [63, 8, 84, 20, 110, 67, 44, 51, 50, 49, 34, 36, 38, 66, 85],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.meta_tag.v1", "sourceTables": ["subject", "subject_meta_tag"]},
+      "review": "active 元标签过滤包含全部期望作品，标签关系证据完整。",
+      "severeError": false
+    },
+    {
+      "caseId": "semantic_tag_01",
+      "category": "subjective_semantic",
+      "expectedIds": [51, 80, 103, 203, 188, 169, 116],
+      "observedIds": [51, 203, 80, 188, 169, 103, 116, 45, 55, 70, 107, 1, 37, 191, 149],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.semantic_tag_evidence.v1", "sourceTables": ["subject", "subject_meta_tag"]},
+      "review": "语义标签结果包含全部期望作品，标签证据与候选来源一致。",
+      "severeError": false
+    },
+    {
+      "caseId": "semantic_tag_09",
+      "category": "subjective_semantic",
+      "expectedIds": [105, 100, 6],
+      "observedIds": [6, 105, 100],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.semantic_tag_evidence.v1", "sourceTables": ["subject", "subject_meta_tag"]},
+      "review": "少女向语义结果三项全部命中，排序与标签证据完整。",
+      "severeError": false
+    },
+    {
+      "caseId": "semantic_tag_10",
+      "category": "subjective_semantic",
+      "expectedIds": [1, 220, 181],
+      "observedIds": [1, 220, 181, 72, 186, 189, 199],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.semantic_tag_evidence.v1", "sourceTables": ["subject", "subject_meta_tag"]},
+      "review": "悬疑语义结果包含全部期望作品，未发现无证据候选。",
+      "severeError": false
+    },
+    {
+      "caseId": "person_01",
+      "category": "person_character",
+      "expectedIds": [84, 20, 67, 51, 50, 38, 66, 54, 90, 41],
+      "observedIds": [84, 20, 67, 51, 50, 38, 66, 54, 41, 90, 105, 45, 79, 65, 29],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.person_credit.v1", "sourceTables": ["subject", "person", "subject_person_credit"]},
+      "review": "人物关系回查包含全部期望作品，人物与 credit 来源完整。",
+      "severeError": false
+    },
+    {
+      "caseId": "character_01",
+      "category": "person_character",
+      "expectedIds": [44, 36, 38, 66, 92, 54, 109, 90, 101, 31],
+      "observedIds": [44, 36, 38, 66, 54, 92, 90, 109, 101, 31, 35, 46, 14, 62, 61],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.character.v1", "sourceTables": ["subject", "character", "subject_character"]},
+      "review": "角色关系回查包含全部期望作品，角色关系来源完整。",
+      "severeError": false
+    },
+    {
+      "caseId": "actor_01",
+      "category": "person_character",
+      "expectedIds": [34, 38, 85, 48, 109, 101, 14, 74, 68, 30],
+      "observedIds": [85, 34, 38, 48, 109, 101, 74, 14, 111, 68, 30, 6],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.actor.v1", "sourceTables": ["subject", "character", "person", "character_actor"]},
+      "review": "声优关系回查包含全部期望作品，角色与人物来源完整。",
+      "severeError": false
+    },
+    {
+      "caseId": "relation_01",
+      "category": "series_relation",
+      "expectedIds": [219],
+      "observedIds": [219],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.relation_bidirectional.v1", "sourceTables": ["subject", "subject_relation"]},
+      "review": "系列关系双向扩展精确命中，关系来源完整。",
+      "severeError": false
+    },
+    {
+      "caseId": "relation_04",
+      "category": "series_relation",
+      "expectedIds": [32],
+      "observedIds": [32],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.relation_bidirectional.v1", "sourceTables": ["subject", "subject_relation"]},
+      "review": "系列关系反向回查精确命中，关系来源完整。",
+      "severeError": false
+    },
+    {
+      "caseId": "negation_tag_01",
+      "category": "negation",
+      "expectedIds": [72, 198],
+      "observedIds": [72, 198],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.meta_tag_exclusion.v1", "sourceTables": ["subject", "subject_meta_tag"]},
+      "review": "标签排除生效，排除项未返回，剩余结果精确命中。",
+      "severeError": false
+    },
+    {
+      "caseId": "negation_score_03",
+      "category": "negation",
+      "expectedIds": [8, 32, 84],
+      "observedIds": [8, 32, 84],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.score_exclusion.v1", "sourceTables": ["subject"]},
+      "review": "评分排除生效，指定排除作品未返回。",
+      "severeError": false
+    },
+    {
+      "caseId": "negation_year_01",
+      "category": "negation",
+      "expectedIds": [8, 32, 84, 20, 110, 67, 44, 51, 50, 49],
+      "observedIds": [8, 32, 84, 20, 110, 67, 44, 51, 50, 49, 34, 36, 38, 66, 85],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.year_exclusion.v1", "sourceTables": ["subject"]},
+      "review": "年份排除生效，指定作品未返回且期望集合全部命中。",
+      "severeError": false
+    },
+    {
+      "caseId": "degradation_empty_01",
+      "category": "degradation",
+      "expectedIds": [],
+      "observedIds": [],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.no_match.v1", "sourceTables": ["subject"]},
+      "review": "不存在标题返回空结果，未出现 FULLTEXT 数字 token 误命中。",
+      "severeError": false
+    },
+    {
+      "caseId": "degradation_fallback_02",
+      "category": "degradation",
+      "expectedIds": [1],
+      "observedIds": [1],
+      "evidenceComplete": true,
+      "evidenceSource": {"sqlTemplate": "subject.title_exact.v1", "sourceTables": ["subject"]},
+      "review": "语义存储降级后保留 lexical-only 结果，来源证据完整。",
+      "severeError": false
+    }
+  ]
+}

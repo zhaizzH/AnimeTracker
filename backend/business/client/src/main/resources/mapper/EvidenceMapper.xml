@@ -19,6 +19,17 @@
             s.rating_total AS ratingTotal,
             s.collection_total AS collectionTotal,
             s.air_date AS airDate,
+            CASE
+                WHEN s.air_date IS NULL THEN 'UNKNOWN'
+                WHEN s.air_date > CURRENT_DATE THEN 'UPCOMING'
+                WHEN EXISTS (
+                    SELECT 1
+                    FROM episode e
+                    WHERE e.subject_id = s.id
+                      AND (e.status = 'NA' OR e.airdate > CURRENT_DATE)
+                ) THEN 'AIRING'
+                ELSE 'FINISHED'
+            END AS airStatus,
             s.summary,
             s.source_fetched_at AS sourceFetchedAt
         FROM subject s

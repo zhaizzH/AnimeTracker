@@ -1,10 +1,12 @@
 # 全量 Bangumi 数据与 RAG 检索闭环研究
 
+> 本文保留任务启动时的架构盘点；其中“尚未导入/尚未实现”的运行态描述属于历史。当前运行状态以任务 [README](../README.md) 和 [本机真实访问审计](../phase8-live-runtime-audit.md) 为准。
+
 核对日期：2026-09-03
 
 ## 结论
 
-首版不新增 Neo4j、Elasticsearch、Milvus、RabbitMQ 或 MongoDB。MySQL 继续作为唯一权威事实库，Redis/RediSearch 作为可重建的全文与向量索引，MinIO 保存原始响应与图片。先补齐数据模型、同步语义、索引自动化、证据返回和评测，再用指标决定是否引入新组件。
+首版不新增 Neo4j、Elasticsearch、Milvus、RabbitMQ 或 MongoDB。本文最初提出的 Redis/RediSearch 全文+向量方案已经被 2026-09-05 批准的“MySQL FULLTEXT + Redis Vector Set”实现取代：MySQL 继续作为唯一权威事实库和词法/release 来源，Redis 只保存可重建向量，MinIO 保存原始响应与图片。当前决策以 [mysql-fulltext-redis-vectorset-decision.md](./mysql-fulltext-redis-vectorset-decision.md) 为准。
 
 ## API 能力与导入差距
 

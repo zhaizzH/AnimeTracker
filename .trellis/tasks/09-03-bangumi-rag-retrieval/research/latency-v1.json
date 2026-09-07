@@ -1,0 +1,19 @@
+{
+  "indexVersion": "v1",
+  "embeddingContract": {
+    "provider": "dashscope",
+    "model": "text-embedding-v4",
+    "dimensions": 1024,
+    "profileVersion": "subject-profile-v1",
+    "releaseProfileVersion": "subject-profile-v1"
+  },
+  "latency": {
+    "sampleCount": 30,
+    "redisP95Ms": 15.363,
+    "hydratedP95Ms": 18.679,
+    "redisP50Ms": 0.68,
+    "hydratedP50Ms": 14.142,
+    "hydratedBatchSize": 15,
+    "vector": "zero-fp32-probe"
+  }
+}

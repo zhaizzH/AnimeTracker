@@ -22,6 +22,7 @@ public class EvidenceSubjectRow {
     private Integer ratingTotal;
     private Integer collectionTotal;
     private LocalDate airDate;
+    private String airStatus;
     private String summary;
     private LocalDateTime sourceFetchedAt;
 }
