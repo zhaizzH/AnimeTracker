@@ -9,7 +9,7 @@
 - `search_index_job v1/COMPLETED=13,173`；`rag_index_job v1/INDEXED=220`。
 - MySQL `search_document` 与 Redis DB 1 的 Vector Set 数量一致：SUBJECT=220、EPISODE=1,658、PERSON=9,275、CHARACTER=2,129。
 - MySQL/Redis 双投影和 Evidence 实时接口可用；全量回填与 Embedding 网络阻断已解除。
-- 上述 5 个 shadow 失败与 candidate 尚未生成属于本报告所记录的历史快照；2026-09-07 已修复并完成 120/120 的 `RELEASE_CANDIDATE` 回放，capacity/latency/human 报告也已生成并通过 gate，v1 ACTIVE release 已激活。当前仅等待 24 小时灰度；`shadow_eval.py --status RELEASE_CANDIDATE` 仍会在失败 case 存在时 fail closed。
+- 上述 5 个 shadow 失败与 candidate 尚未生成属于本报告所记录的历史快照；2026-09-07 已修复并完成 120/120 的 `RELEASE_CANDIDATE` 回放，capacity/latency/human 报告也已生成并通过 gate，v1 ACTIVE release 已激活；2026-09-09 用户确认 24 小时灰度与 release/功能开关回滚通过。`shadow_eval.py --status RELEASE_CANDIDATE` 仍会在失败 case 存在时 fail closed。
 
 ## 已实现
 
@@ -139,4 +139,4 @@ BUILD SUCCESS
 - 用户在清空代理变量的终端中完成 DashScope `text-embedding-v4` HTTP 200 探针，并继续消费剩余 search 队列。
 - `search_index_job` 最终为 `COMPLETED=13,173`，`PENDING=0`、`FAILED=0`；`character` 保留字导致的 1,760 条失败已通过 SQL 引用修复后重试完成。
 - v1 `search_document` 与 Redis Vector Set 数量一致：SUBJECT=220、EPISODE=1,658、PERSON=9,275、CHARACTER=2,129。
-- 质量报告覆盖率为 100%，但仍发现 1 条 `EPISODE_SHORTAGE` 和 38 条 `EPISODE_STATUS_DRIFT`；此处“报告、120-case 真实评测尚未完成”属于 2026-09-06 历史快照，当前五报告 gate 已通过，仍待 release 激活和灰度。
+- 质量报告覆盖率为 100%，但仍发现 1 条 `EPISODE_SHORTAGE` 和 38 条 `EPISODE_STATUS_DRIFT`；此处“报告、120-case 真实评测尚未完成”属于 2026-09-06 历史快照，当前五报告 gate、release 激活和 24 小时灰度/回滚确认均已通过。

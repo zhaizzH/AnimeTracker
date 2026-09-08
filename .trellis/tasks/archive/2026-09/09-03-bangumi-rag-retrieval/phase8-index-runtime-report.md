@@ -41,11 +41,12 @@
 
 运行 `python -m jobs.indexer.gate --index-version v1 --report-dir .../research` 已返回 `gate=PASS`：五份 v1 报告均加载成功，activation 仍显式跳过。
 
-## 仍未完成
+## 灰度完成状态（2026-09-09）
 
 - v1 `search_index_release` 已激活；词法 API 实测返回 HTTP 200，并返回 `indexVersion=v1`、`profileVersion=subject-profile-v1`。
 - 正式 eval、capacity、latency、human 已在激活前输出并绑定 v1；gate 已通过并完成 v1 激活。
 - human 报告包含 20 条 candidate 结果检查，`severeErrors=0`；v1 激活事务已写入 `search_index_release`。
-- 质量报告还有 1 条 `EPISODE_SHORTAGE` 和 38 条 `EPISODE_STATUS_DRIFT`；它们未触发当前 gate，但应作为 release 灰度期间的后续数据质量修复项。
+- 质量报告还有 1 条 `EPISODE_SHORTAGE` 和 38 条 `EPISODE_STATUS_DRIFT`；它们未触发当前 gate，作为后续数据质量修复项保留。
+- 24 小时小流量灰度观察与 release/功能开关回滚确认已由用户于 2026-09-09 确认通过，记录见 [v1 灰度确认](./research/gray-v1-confirmation.md)。
 
-结论：实体索引构建、双投影一致性、五报告发布门禁和 v1 激活已通过；灰度阶段未开始，任务仍不能标记为完成。
+结论：实体索引构建、双投影一致性、五报告发布门禁、v1 激活和 24 小时灰度/回滚确认均已通过；任务满足归档条件。旧索引、旧 Vector Set 与旧表清理不属于本任务范围。
