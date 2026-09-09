@@ -73,3 +73,11 @@ React client/admin
 - 失败消息对用户可执行，内部细节只留服务端。
 - 跨层验证至少覆盖一个成功路径与一个权限/失败路径。
 - 每次跨层变更结束前核对：本指南列出的源码路径、受影响 spec、验证命令和已知债务是否同步。
+
+## RAG 版本与发布链
+
+- 画出 `indexer → MySQL search_document → Redis Vector Set → MySQL search_index_release → Business lexical → Agent RRF → Evidence` 的真实数据流，并标出 `indexVersion/profileVersion` 在每一跳的来源。
+- 区分三个状态：索引 shadow 已构建、MySQL release 已 `ACTIVE`、Agent `RAG_ENABLED` 已开启；不能用其中一个状态代替另外两个。
+- 发布前核对 quality/capacity/eval/latency/human 五份同版本报告和 gate 阈值；发布后记录至少 24 小时灰度窗口与回滚结果。
+- 回滚必须同时检查功能开关和 MySQL release 指针，保留旧投影；Redis alias 不是发布或回滚事实。
+- 详细字段、错误矩阵、测试路径和 Wrong/Correct 示例见 [RAG 检索与版本发布契约](../backend/rag-retrieval-contract.md)。

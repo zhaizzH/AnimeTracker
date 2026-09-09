@@ -17,6 +17,7 @@
 | [目录与依赖边界](./directory-structure.md) | Java 六模块、Python 端口与适配器、代码放置规则 |
 | [Agent 编排与流式协议](./agent-guidelines.md) | LangGraph、SSE、工具权限、待确认动作 |
 | [数据与存储](./database-guidelines.md) | MySQL、MyBatis、SQLAlchemy、Redis、MinIO |
+| [RAG 检索与版本发布契约](./rag-retrieval-contract.md) | index/profile 版本、五报告 gate、灰度、回滚与 Evidence 边界 |
 | [错误处理](./error-handling.md) | Java 统一响应、Python API/工具错误语义 |
 | [日志与可观测性](./logging-guidelines.md) | `X-Request-ID`、结构化事件、隐私红线 |
 | [质量门禁](./quality-guidelines.md) | 校验命令、测试现状、审查清单 |

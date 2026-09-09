@@ -8,10 +8,12 @@
 - 每个节点只注册完成职责所需的工具；新增工具先确定最小可见节点。
 - RAG 关闭时使用显式不可用适配器与 Business fallback，不能把检索失败静默伪装为空结果。
 - RAG 索引运行前必须验证 Redis 提供 Vector Set 命令（至少 `VADD`、`VSIM`、`VREM`）；MySQL 8.4 `ngram` FULLTEXT 负责词法召回，Redis 8 Vector Set 只负责语义向量召回。没有 Vector Set 时保持 `RAG_ENABLED=false` 或走 Business fallback，不得宣称已发布 RAG。
+- 当前 v1 `subject-profile-v1` release 已在 MySQL `search_index_release` 激活并完成 24 小时灰度/回滚确认，但 `RAG_ENABLED` 默认仍为 `false`；索引可查询不等于 Agent RAG 默认开启。完整发布、灰度和回滚契约见 [RAG 检索与版本发布契约](./rag-retrieval-contract.md)。
 - 通过权威回查的候选必须经 Evidence API 补充证据字段（`_enrich_evidence`）；Evidence 失败、错误、部分或不安全响应时必须 fail-closed（`available=false`、空候选），并记录 `rag.evidence.enriched` 事件。
 - `RetrievalQuery` 的 `person_ids`、`character_ids`、`actor_ids`、`relation_subject_ids` 只能通过 Business `/api/client/evidence/resolve` 解析为活跃、非 NSFW 动画 Subject allowlist；解析失败不得访问 Redis 或返回未过滤候选。
 - Agent 提示词禁止陈述工具返回中不存在的证据；`_compact` 输出必须包含全部 18 个证据字段，缺失字段使用空默认值。
 - 故障矩阵必须在测试中覆盖：Redis/Embedding/Business/Evidence 每层独立故障与组合故障，证明 fail-closed 或既定降级行为。
+- 词法响应中的 `indexVersion` 是在线语义查询的唯一版本来源；不得使用配置默认版本或 Redis alias 猜测 active 版本。灰度异常时先关闭功能开关，再通过 MySQL release store 切回已验证 release，旧投影在回滚窗口结束前保留。
 
 ### Scenario: Subject batch 权威边界与 Evidence 过滤顺序
 
@@ -382,7 +384,7 @@ elif isinstance(error, RedisConnectionError):
 
 #### 1. Scope / Trigger
 
-- 触发：重建 RAG index version、生成容量/质量报告、切换或回滚 active alias。
+- 触发：重建 RAG index version、生成容量/质量报告、切换或回滚 MySQL active release。
 
 #### 2. Signatures
 
@@ -394,7 +396,8 @@ elif isinstance(error, RedisConnectionError):
 #### 3. Contracts
 
 - 新版本写入 `rag:vectors:{entity_kind}:{version}` shadow key 和 `search_document` 行；旧版本在回滚窗口内不得删除。
-- 只有五份同一版本报告通过 gate，`execute_switch` 才能调用 MySQL release store 激活版本；Redis 不提供 active alias。
+- 只有 `quality/capacity/eval/latency/human` 五份同一 `indexVersion/profileVersion` 报告通过 gate，`execute_switch` 才能调用 MySQL release store 激活版本；Redis 不提供 active alias。
+- gate 必须满足：正式 eval 为 `RELEASE_CANDIDATE` 且 120/120 通过，Evidence completeness=100%，Recall@20≥0.85、MRR@10≥0.90、nDCG@10≥0.75，Redis P95<250ms、hydrated P95<500ms，容量≤60%，人工检查≥20 且严重错误为 0。
 - 容量投影利用率必须不高于 60%；空样本报告必须 `allowed=false`。
 - `rollback` 只切回已验证的 MySQL release，不删除任何 Redis Vector Set 或 MySQL 投影。
 
@@ -402,16 +405,16 @@ elif isinstance(error, RedisConnectionError):
 
 | 条件 | 必须行为 |
 |---|---|
-| 报告缺失/版本不一致 | gate fail-closed，拒绝 alias 切换 |
+| 报告缺失/版本不一致 | gate fail-closed，拒绝 release 切换 |
 | Vector Set `VADD/VSIM/VREM` 不可用 | 不建向量、不激活 release，保持 RAG 关闭 |
 | 容量利用率 > 60% | 报告拒绝发布 |
-| alias 切换失败 | 返回失败结果，保留旧 alias |
+| release 切换失败 | 返回失败结果，保留旧 active release |
 | 需要回滚 | 指向已验证的旧版本，保留新索引供排查 |
 
 #### 5. Good/Base/Bad Cases
 
 - Good：先写 MySQL/Vector Set 双 shadow → 生成同版本报告 → gate → 在 MySQL 事务中激活 release → 观察后再清理旧版本。
-- Base：gate 未通过时只保留 shadow 构建结果，不影响在线旧 alias。
+- Base：gate 未通过时只保留 shadow 构建结果，不影响在线旧 release。
 - Bad：直接覆盖 active 版本、只写一侧投影、先删除旧版本，或用 `--activate` 绕过报告。
 
 #### 6. Tests Required
@@ -425,6 +428,9 @@ elif isinstance(error, RedisConnectionError):
 ```text
 Wrong: 删除旧 Vector Set 后直接把新 key 当作 active，或让 Agent 自己猜版本。
 Correct: 保留旧投影，通过 MySQL `search_index_release` 切换；词法响应携带版本，Agent 查询同版本 Vector Set，异常时回滚 release。
+```
+
+> 详细的 `RAG_ENABLED` 开关边界、灰度观察、回滚顺序和清理窗口见 [RAG 检索与版本发布契约](./rag-retrieval-contract.md)。
 
 ## Scenario: MySQL FULLTEXT 与 Vector Set 双投影
 
@@ -478,5 +484,4 @@ redis.execute_command("FT.SEARCH", "idx:rag:subject:active", query)
 ```python
 release = business.lexical_search(typed_request)
 rows = vectors.vsim(release["indexVersion"], embedding)
-```
 ```

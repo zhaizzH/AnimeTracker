@@ -23,7 +23,7 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 ## 当前测试基线
 
 - Java `app` 模块包含配置迁移回归测试：`AppConfigurationBindingTest`、`SecurityConfigAuthorizationTest`、`CookieOriginFilterTest`、`AgentConfigTest` 与 `ArchitectureBoundaryTest`。
-- Python 当前只有 `tests/jobs/importer/test_subject_metrics.py`。
+- Python 已有 importer、indexer gate、shadow eval、release store、容量报告和 RAG 故障矩阵回归用例；任务归档的 2026-09-07 证据为 Agent `268 passed, 1 deselected`、Business `37` tests。该数字是带日期的历史验证，不替代本次变更重新运行测试。
 - Java 配置迁移必须使用 `clean`，避免旧 `target/classes` 中的配置类造成重复 Bean 或假成功。
 - MyBatis `type-aliases-package` 会把实体简单类名注册为不区分大小写的别名；实体类名若与 MyBatis/JDK 内置类型冲突，必须显式使用 `@Alias` 绑定业务别名，并用 `TypeAliasRegistry.registerAliases` 回归测试扫描结果。
 - 这些用例覆盖配置绑定、授权矩阵、Cookie Origin、Agent 超时/Trace/SSE 和模块边界；不启动完整 `AppApplication`，不连接真实 MySQL、Redis、MinIO 或 Python Agent。
@@ -33,8 +33,53 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 ## 已知覆盖债务
 
 - Java 尚无认证刷新、收藏进度事务、管理写操作和完整 Controller 集成回归。
-- Python 尚无 Agent 图路由、SSE 断开、PendingAction 持久化失败、Redis 降级、importer 锁/恢复、indexer gate 和 scheduler 重叠场景的自动化覆盖。
+- Python 尚无 Agent 图路由、SSE 断开、PendingAction 持久化失败、真实 Redis/Business/Embedding 集成、灰度告警采集、importer 锁/恢复和 scheduler 重叠场景的完整自动化覆盖。
 - 当前测试基线只能证明列出的配置与指标用例通过，不能替代上述高风险路径；新改动必须按风险补测试。
+
+## Scenario: RAG 发布完成与灰度质量证据
+
+### 1. Scope / Trigger
+
+- 触发：准备激活 MySQL `search_index_release`、打开 `RAG_ENABLED`、完成 24 小时灰度或清理旧投影。
+
+### 2. Signatures
+
+- Gate 报告：`quality/capacity/eval/latency/human`，必须共享 `indexVersion/profileVersion`。
+- 灰度记录：观察起止时间、release、功能开关状态、成功/错误率、P95、Evidence completeness、告警和回滚结果。
+
+### 3. Contracts
+
+- gate PASS 后才能激活 release；release ACTIVE 不代表 `RAG_ENABLED` 默认开启。
+- 至少 24 小时灰度稳定且 release/功能开关回滚确认通过后，任务才可标记完成。
+- 回滚窗口结束前不得删除旧 `search_document`、Vector Set 或表；灰度记录不得虚构未采集的数值。
+
+### 4. Validation & Error Matrix
+
+| 条件 | 必须行为 |
+|---|---|
+| gate 未通过 | 拒绝激活，保留旧 release |
+| 灰度异常 | 关闭 RAG 开关并切回已验证 release |
+| 缺少灰度起止或回滚记录 | 任务保持未完成，不得归档 |
+| 请求清理旧投影 | 检查回滚窗口与独立确认，否则拒绝 |
+
+### 5. Good / Base / Bad Cases
+
+- Good：gate PASS → 激活 → 单独开启开关 → 观察 24 小时 → 记录回滚演练 → 再规划清理。
+- Base：release ACTIVE 但开关关闭，记录为“索引已发布、Agent RAG 未默认启用”。
+- Bad：用 gate PASS 代替灰度确认，或用人工口头结论补写不存在的 P95/错误率。
+
+### 6. Tests Required
+
+- gate 单测覆盖版本、阈值、报告缺失和 `RELEASE_CANDIDATE` 门禁。
+- release store 单测覆盖 ACTIVE 唯一性、事务切换和已验证版本 rollback。
+- 交付复核运行 `mvn -B clean test`、`uv run pytest`、gate CLI、健康检查和词法 API；把灰度/回滚结果写入运行审计。
+
+### 7. Wrong vs Correct
+
+```text
+Wrong: gate=PASS 后直接宣称 RAG 已默认启用，并删除旧投影。
+Correct: 明确区分 release ACTIVE、RAG_ENABLED 和灰度完成；异常先关闭开关、再切回 MySQL release，保留旧投影。
+```
 
 ## Scenario: 可追溯 Golden Case 评测数据集
 

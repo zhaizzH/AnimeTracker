@@ -6,6 +6,7 @@
 - Spring 配置为 `spring.sql.init.mode: never`，当前不使用 Flyway/Liquibase。
 - 表结构变更必须同步 Schema、Java Entity/Mapper、Python importer/indexer、OpenAPI 与前端共享类型。
 - Redis 与 MinIO 是辅助存储，不能替代 MySQL 中的用户、番剧和收藏权威数据。
+- RAG 发布例外：Redis Vector Set 只承担语义索引数据平面；MySQL `search_index_release` 是唯一 active release 事实。索引发布、24 小时灰度和回滚的完整代码契约见 [RAG 检索与版本发布契约](./rag-retrieval-contract.md)。
 
 ## DDL 与存量库安全门禁
 
@@ -153,8 +154,10 @@ DEALLOCATE PREPARE stmt;
 
 - importer 将标准化和持久化分开，参考 `jobs/importer/normalize.py` 与 `repository.py`。
 - 导入用 MySQL `GET_LOCK` 保证单实例，并维护 import record、进度和 PID 文件。
-- indexer 使用 `rag_index_job` 与版本化 Redis 索引；`jobs/indexer/gate.py` 缺报告时必须 fail closed。
+- indexer 同时维护两类任务：旧 `rag_index_job` 仅承担 Subject 兼容队列，新 `search_index_job` 承担 SUBJECT/EPISODE/PERSON/CHARACTER 通用双投影；迁移窗口内不得误删旧队列表。`jobs/indexer/gate.py` 缺报告时必须 fail closed。
+- 每条 `search_index_job` 必须成组绑定 `index_version`、`profile_version` 与 `content_hash`；MySQL lexical shadow 和 Redis Vector Set 任一写入失败都不得确认任务完成，tombstone 使用 `VREM`。
 - 清理先生成计划并校验确认摘要，参考 `jobs/importer/cleanup.py`。
+- RAG 旧投影清理必须等待回滚窗口结束并取得独立确认；不能以 release 激活或灰度通过替代删除确认。
 - CLI 失败路径必须释放锁、关闭会话并返回非零退出码。
 
 ## Redis 与 MinIO
