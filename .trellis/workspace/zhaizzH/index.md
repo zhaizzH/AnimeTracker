@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 5
-- **Last Active**: 2026-09-07
+- **Total Sessions**: 6
+- **Last Active**: 2026-09-09
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~118 | Active |
+| `journal-1.md` | ~141 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 6 | 2026-09-09 | 完成 Bangumi RAG 灰度与回滚确认 | `2eceefbc`, `5ee0072b` | `main` |
 | 5 | 2026-09-07 | 完成 v1 RAG 发布门禁与激活 | `f0add0d9`, `c1e1453a` | `main` |
 | 4 | 2026-09-03 | 全量完善 README.md 相关文档 | `59d5a88` | `main` |
 | 3 | 2026-08-31 | 统一 Trellis 提交信息规范 | `763f6d0` | `codex/move-business-config-to-app` |

@@ -121,3 +121,9 @@ cd backend/agent
 - `research/human-v1.json` 已记录 20 条 candidate 结果与 Evidence 来源复核，`severeErrors=0`；随后运行 gate 得到 `gate=PASS`。
 - 2026-09-07 21:16（UTC+8）创建 `v1/subject-profile-v1/BUILDING` 发布记录后，通过 gate 激活事务切换为 `ACTIVE`；查询确认 `active_slot=1`、SUBJECT 投影 220 条匹配。
 - 激活后重新访问 `POST /api/client/subjects/lexical-search`，HTTP `200` 返回 `indexVersion=v1`、`profileVersion=subject-profile-v1` 和候选列表；8080 health、8090 Agent health 均为 `200`。
+
+## 2026-09-09 灰度与回滚确认
+
+- 用户确认 v1 小流量灰度已完成 24 小时观察，结果通过。
+- 用户确认 release 与功能开关回滚路径验证通过；当前 ACTIVE release 保持 v1。
+- 未执行旧索引、旧 Vector Set 或旧表清理；清理仍需独立确认。

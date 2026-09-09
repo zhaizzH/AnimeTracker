@@ -116,3 +116,26 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 6: 完成 Bangumi RAG 灰度与回滚确认
+<!-- trellis-session: v=2 fp=d8e97cc4b93d5c84 -->
+
+**Date**: 2026-09-09
+**Task**: 完成 Bangumi RAG 灰度与回滚确认
+**Branch**: `main`
+
+### Summary
+
+用户确认 v1 24 小时灰度观察与 release/功能开关回滚通过；同步灰度证据、任务元数据和运行审计，完成 09-03-bangumi-rag-retrieval 归档。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2eceefbc` | 完成 RAG v1 发布门禁与激活 |
+| `5ee0072b` | 整理 Bangumi RAG 会话日志 |
+
+### Status
+
+[OK] **Completed**
