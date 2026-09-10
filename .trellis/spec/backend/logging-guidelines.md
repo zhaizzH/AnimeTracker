@@ -20,9 +20,13 @@
 
 - 默认单行 JSON；仅本地可用 `ANIMETRACKER_LOG=human` 切换终端格式。
 - 结构化事件统一走 `log_event`，字段必须在 `_ALLOWED_FIELDS` 白名单中。
-- session/user 只记录不可逆短哈希，不记录原值。
+- session/user 当前使用固定 salt 的 SHA-256 截断到 16 个十六进制字符，不记录原值。这是伪名化而非不可逆匿名化保证；低熵 ID 仍可枚举，禁止因此把日志视为无敏感风险。
 - RAG 事件名和字段使用独立白名单，避免动态数据污染日志协议。
 - 记录耗时、模型、工具名、路由和归一化错误类型，不记录内容正文。
+
+证据：`backend/agent/app/shared/observability.py::hash_value/log_event`。`rag.evidence.enriched` 调用中的 `expectedCount/actualCount` 未列入 `_RAG_ALLOWED_FIELDS`，因此当前会被过滤；不能在运维文档中要求从现有日志读取这些字段。
+
+Java `GlobalExceptionHandler` 的部分 warn 仍直接记录 `e.getMessage()`；白名单只约束 Python `log_event`，不自动脱敏其他 logger 或异常堆栈。后续修复应保留可定位错误类别并避免记录原始 SQL/请求敏感值。
 
 ## 隐私红线
 

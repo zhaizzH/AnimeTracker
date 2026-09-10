@@ -18,6 +18,12 @@
 - SSE 执行异常映射为安全中文提示，内部异常类型只进入结构化日志。
 - `asyncio.CancelledError` 表示客户端断开，不应记录成普通 500。
 
+## 已实现边界与待治理项（2026-09-10）
+
+- `backend/agent/app/agent/client/rag_tools.py::_items` 将不可用结果变为 `[]`，同时丢弃 `reason` 与 `personalizationNotice`；检索层能区分故障和无结果，模型工具层目前无法区分。后续需保留结构化状态并同步 Prompt/测试，不应把这种吞错行为推广成规范。
+- `backend/agent/app/adapters/business_http.py::request` 对网络异常拼接 `str(e)`，对 HTTP 错误沿用上游 message；并未保证全部错误正文脱敏。成功非对象 JSON 和非 JSON 响应也缺少完整归一化，不得声称 Gateway 已覆盖任意上游响应。
+- `backend/agent/app/chat/streaming.py` 捕获回答落库、PendingAction 持久化回调异常后继续结束；这与权威写入成功契约存在差距，须分别验证展示、持久化与可重试语义。
+
 ## 客户端可见信息
 
 - 可以返回字段校验提示、登录过期、无权限、资源不存在和可执行的业务冲突。

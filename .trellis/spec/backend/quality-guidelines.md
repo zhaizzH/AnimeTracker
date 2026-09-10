@@ -22,8 +22,13 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 
 ## 当前测试基线
 
+2026-09-10 源码审计实测：在 `backend/agent` 执行 `.\.venv\Scripts\python.exe -m pytest -q`，因 `tests/agent/test_capability_route.py` 导入不存在的 `_capability_agent` 而在收集阶段失败。后续还有对 `_is_rag_capability_question` 与 `_NON_CHINESE_THINKING_FALLBACK` 的缺失引用。必须先恢复实现/测试一致性再报告全量通过；本次仅更新规范，未修改业务代码或测试。
+
+为隔离该既有失败，额外执行 `python -m pytest -q --ignore=tests/agent/test_capability_route.py`，结果 `271 passed`。这是排除一个文件后的诊断结果，不能当成 CI 或全量门禁通过。运行环境为已有 Agent `.venv`。
+
 - Java `app` 模块包含配置迁移回归测试：`AppConfigurationBindingTest`、`SecurityConfigAuthorizationTest`、`CookieOriginFilterTest`、`AgentConfigTest` 与 `ArchitectureBoundaryTest`。
 - Python 已有 importer、indexer gate、shadow eval、release store、容量报告和 RAG 故障矩阵回归用例；任务归档的 2026-09-07 证据为 Agent `268 passed, 1 deselected`、Business `37` tests。该数字是带日期的历史验证，不替代本次变更重新运行测试。
+- Python 还有 `tests/jobs/backfill`、`tests/jobs/scheduler`、`tests/adapters`、`tests/entities`、`tests/evals` 与 `tests/agent`。Prompt 字符串断言只证明文件内容，不能证明模型始终使用中文，也不能证明进程已经刷新 Prompt。
 - Java 配置迁移必须使用 `clean`，避免旧 `target/classes` 中的配置类造成重复 Bean 或假成功。
 - MyBatis `type-aliases-package` 会把实体简单类名注册为不区分大小写的别名；实体类名若与 MyBatis/JDK 内置类型冲突，必须显式使用 `@Alias` 绑定业务别名，并用 `TypeAliasRegistry.registerAliases` 回归测试扫描结果。
 - 这些用例覆盖配置绑定、授权矩阵、Cookie Origin、Agent 超时/Trace/SSE 和模块边界；不启动完整 `AppApplication`，不连接真实 MySQL、Redis、MinIO 或 Python Agent。

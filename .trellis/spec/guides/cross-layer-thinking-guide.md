@@ -22,6 +22,8 @@ React client/admin
 
 发现冲突必须在同一变更中修正文档，并在审查记录中注明验证命令和核对日期；不能以 README 覆盖已存在的测试或源码事实。
 
+测试文件也需核对导入和可执行性：2026-09-10 的 `backend/agent/tests/agent/test_capability_route.py` 引用当前源码中不存在的符号。测试表达的期望不能当成已上线事实；旧对话中的成功结论不能覆盖当前 checkout。
+
 ## JSON API 变更
 
 1. 修改 Java DTO/VO/Controller 或 Python Pydantic schema。
@@ -81,3 +83,11 @@ React client/admin
 - 发布前核对 quality/capacity/eval/latency/human 五份同版本报告和 gate 阈值；发布后记录至少 24 小时灰度窗口与回滚结果。
 - 回滚必须同时检查功能开关和 MySQL release 指针，保留旧投影；Redis alias 不是发布或回滚事实。
 - 详细字段、错误矩阵、测试路径和 Wrong/Correct 示例见 [RAG 检索与版本发布契约](../backend/rag-retrieval-contract.md)。
+
+## Agent 回答异常的跨层核对
+
+- 按 `JWT role → graph.py 节点 → tools 注册 → Prompt 来源/缓存 → 模型 delta → SSE → shared Hook → client/admin UI` 检查，不从单条自然语言回答推断后端能力。
+- 管理员节点当前没有 rag_*，客户端有；RAG 总开关与 ACTIVE release 又分别影响执行路径。权限边界不能靠提示词绕过。
+- 中文提示词、英文 reasoning 过滤、中文处理状态是不同机制；当前源码只有提示词约束与原始 reasoning 转发。不得把固定状态文本描述成模型原始思考。
+- 季度映射须核对 Java SeasonUtil 与 Python planner/filter；当前两端映射不一致。首播日期也不能证明已经完结。
+- 详细源码与验证缺口见 [Agent 运行与提示词契约](../backend/agent-runtime-contract.md)。

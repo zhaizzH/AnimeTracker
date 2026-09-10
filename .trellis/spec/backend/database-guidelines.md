@@ -111,7 +111,7 @@ DEALLOCATE PREPARE stmt;
 
 ### 3. Contracts
 
-- 新导入关系写入 `subject_person_credit`；旧表只保留兼容读取窗口。
+- 新实体关系写入 `subject_person_credit`；当前 importer 同时调用 `_upsert_credits` 更新旧 `subject_credit`，旧表仍参与索引 Profile 读取。迁移期是兼容双写/读取，不是旧表只读。
 - `credit_type` 只能使用 `PERSON` 或 `ORGANIZATION`；Java `SubjectCredit` 与 Python `CreditType` 必须保持相同字面值。
 - 旧表读取继续使用参数化 SQL，不得因为新增关系表而删除或改写旧查询语义。
 
@@ -126,7 +126,7 @@ DEALLOCATE PREPARE stmt;
 
 ### 5. Good/Base/Bad Cases
 
-- Good：新关系使用 `subject_person_credit`，旧报表仍可读取 `subject_credit`。
+- Good：新关系使用 `subject_person_credit`，并保留 `jobs/importer/repository.py::_upsert_credits` 的旧表同步，旧查询与 Profile 构建仍可读取 `subject_credit`。
 - Base：仅需要旧数据展示时，通过参数化 SQL 读取旧表。
 - Bad：把 `subject_credit.credit_type` 的 `ORGANIZATION` 写成新关系的 `relation=MAIN`。
 
@@ -147,7 +147,7 @@ DEALLOCATE PREPARE stmt;
 #### Correct
 
 ```text
-新事实写 subject_person_credit；旧 subject_credit 保留只读兼容契约，待独立迁移任务确认后再移除。
+新关系写 subject_person_credit；当前 importer 继续更新 subject_credit 并供旧查询/Profile 读取，待独立迁移验证后再停写或移除。
 ```
 
 ## Python 离线任务

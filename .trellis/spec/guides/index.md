@@ -8,6 +8,7 @@
 |---|---|
 | [跨层契约检查](./cross-layer-thinking-guide.md) | API、认证、SSE、数据库字段或 Agent 写协议变化 |
 | [代码复用检查](./code-reuse-thinking-guide.md) | 新增类型、常量、API、组件、Gateway 或转换逻辑 |
+| [Agent 运行与提示词契约](../backend/agent-runtime-contract.md) | 角色工具、Prompt 生效、日期与中英文思考的跨层排障 |
 
 ## Trellis 发现边界
 
