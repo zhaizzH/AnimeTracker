@@ -139,3 +139,38 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 7: 完成源码规范审计与归档
+<!-- trellis-session: v=2 fp=b03b26b72cf6e189 -->
+
+**Date**: 2026-09-10
+**Task**: 完成源码规范审计与归档
+**Branch**: `main`
+
+### Summary
+
+审计全部规范，更新14份并新增Agent运行契约；用户验收并提交，任务已归档。
+
+### Main Changes
+
+- 记录角色工具边界、Prompt缓存、RAG与SSE已知限制
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4f02607c` | docs(spec): 按当前源码更新项目开发规范 |
+
+### Testing
+
+- [OK] 文档19份、链接30个、显式源码引用26个，检查通过
+- [OK] 完整Python测试存在既有收集失败；隔离该文件后271 passed，不代表全量通过
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 后续代码任务处理能力测试与实现不一致问题

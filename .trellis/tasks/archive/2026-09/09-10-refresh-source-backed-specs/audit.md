@@ -23,6 +23,8 @@
 
 ## 验证
 
+归档后复跑入口：`python .trellis/tasks/archive/2026-09/09-10-refresh-source-backed-specs/validate_specs.py`。脚本按 `.trellis/spec` 定位仓库根，兼容归档后的目录深度。以下保留归档前实际执行记录。
+
 - `python .trellis/tasks/09-10-refresh-source-backed-specs/validate_specs.py`：19 份 spec，30 个本地 Markdown 链接，26 个显式仓库根路径引用，0 错误；检查各层 index 覆盖全部主题。
 - `git diff --check`：通过。CRLF 转换提示不影响内容校验。
 - Agent `.venv` 完整 `python -m pytest -q`：收集失败，test_capability_route.py 导入缺失的 _capability_agent。

@@ -2,7 +2,7 @@
 import re
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = next(parent for parent in Path(__file__).resolve().parents if (parent / '.trellis/spec').is_dir())
 SPEC = ROOT / ".trellis/spec"
 errors = []
 links = 0
