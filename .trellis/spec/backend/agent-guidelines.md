@@ -5,13 +5,14 @@
 - `backend/agent/main.py` 是组合根，创建 store、配置仓库、Business Gateway、RAG 用例和 LangGraph。
 - 领域节点只依赖 `AgentDependencies` 或端口，不读取环境变量、不创建基础设施客户端。
 - `app/agent/graph.py` 先按角色分流；普通用户只允许 `search_agent / discover_agent / recommend_agent`。
+- `ADMIN` 直接进入 `admin_agent`，其当前工具集不含 RAG；角色工具、Prompt 缓存、语言与日期的完整现状见 [Agent 运行与提示词契约](./agent-runtime-contract.md)。
 - 每个节点只注册完成职责所需的工具；新增工具先确定最小可见节点。
 - RAG 关闭时使用显式不可用适配器与 Business fallback，不能把检索失败静默伪装为空结果。
 - RAG 索引运行前必须验证 Redis 提供 Vector Set 命令（至少 `VADD`、`VSIM`、`VREM`）；MySQL 8.4 `ngram` FULLTEXT 负责词法召回，Redis 8 Vector Set 只负责语义向量召回。没有 Vector Set 时保持 `RAG_ENABLED=false` 或走 Business fallback，不得宣称已发布 RAG。
-- 当前 v1 `subject-profile-v1` release 已在 MySQL `search_index_release` 激活并完成 24 小时灰度/回滚确认，但 `RAG_ENABLED` 默认仍为 `false`；索引可查询不等于 Agent RAG 默认开启。完整发布、灰度和回滚契约见 [RAG 检索与版本发布契约](./rag-retrieval-contract.md)。
+- 2026-09-09 历史记录确认 v1 `subject-profile-v1` release 激活及 24 小时灰度/回滚，但本次源码审计不证明当前运行数据库状态；`RAG_ENABLED` 代码默认仍为 `false`。完整发布、灰度和回滚契约见 [RAG 检索与版本发布契约](./rag-retrieval-contract.md)。
 - 通过权威回查的候选必须经 Evidence API 补充证据字段（`_enrich_evidence`）；Evidence 失败、错误、部分或不安全响应时必须 fail-closed（`available=false`、空候选），并记录 `rag.evidence.enriched` 事件。
 - `RetrievalQuery` 的 `person_ids`、`character_ids`、`actor_ids`、`relation_subject_ids` 只能通过 Business `/api/client/evidence/resolve` 解析为活跃、非 NSFW 动画 Subject allowlist；解析失败不得访问 Redis 或返回未过滤候选。
-- Agent 提示词禁止陈述工具返回中不存在的证据；`_compact` 输出必须包含全部 18 个证据字段，缺失字段使用空默认值。
+- Agent 提示词禁止陈述工具返回中不存在的证据；`app/rag/use_case.py::_compact` 当前输出 19 个键，包含来源、匹配事实和检索解释。字段清单以该函数与 `tests/rag/test_evidence_contract.py` 核对，缺项按字段使用空列表、空字符串或 None；不能用旧字段数量代替契约检查。
 - 故障矩阵必须在测试中覆盖：Redis/Embedding/Business/Evidence 每层独立故障与组合故障，证明 fail-closed 或既定降级行为。
 - 词法响应中的 `indexVersion` 是在线语义查询的唯一版本来源；不得使用配置默认版本或 Redis alias 猜测 active 版本。灰度异常时先关闭功能开关，再通过 MySQL release store 切回已验证 release，旧投影在回滚窗口结束前保留。
 
@@ -32,7 +33,7 @@
 #### 3. Contracts
 
 - batch 阶段只校验 `type=2`、`nsfw=false`、`active=true` 和排除 ID；不得在该阶段读取不存在的 `metaTags`/`airStatus` 字段。
-- Evidence 响应必须覆盖候选 ID 的全集；缺项、重复非法 ID、错误类型、NSFW 或 inactive 均使该批次 `available=false`、空候选。
+- Evidence 响应必须覆盖候选 ID 的全集；当前实现拒绝缺项、额外 ID、非法 ID、错误类型、NSFW 或 inactive。重复的合法 ID 当前被 `by_id` 覆盖，尚未显式拒绝；唯一性应作为待补校验，不能宣称已经受保护。
 - `meta_tags`、评分、评分人数、年份、季度和播出状态过滤只能使用 Evidence 字段；Evidence 缺少需要的字段时必须排除候选，不得用 Redis 详情伪造事实。
 - 所有外部 `id/subjectId` 必须拒绝布尔值、非数字、非正数和溢出转换；坏行不能抛出未处理异常进入 fallback。
 
@@ -98,8 +99,8 @@ safe = [item for item in safe if self._matches_query_filters(item.evidence or {}
 - Business 只返回 `type=2`、`nsfw=false`、`active=true` 的证据候选；Agent 仅提取 `subjectId`。
 - 多种实体过滤取交集；allowlist 同时约束 Redis 召回和 Business fallback，再执行 Subject 权威回查与 Evidence 回查。
 - 实体 ID 不得拼接进 Vector Set `FILTER` 或 SQL 字符串。
-- 名称解析由 Business typed resolver 负责；Vector Set 只保存向量属性，名称命中后必须先按类型调用 Business `/resolve`，不得把向量属性直接输出给模型。`RELATION_SUBJECT` 映射到 SUBJECT shadow 文档后仍调用关系扩展查询。
-- 未指定 `entity_kind` 时，PERSON 与 CHARACTER 的名称候选在名称约束内取并集；与显式 ID/关系字段仍取交集。查询声优关系时必须显式传 `entity_kind=ACTOR`；ACTOR 使用 PERSON shadow 文档，但必须保留 `ACTOR` 的关系解析语义。
+- 目标边界：名称应先解析为本地实体 ID，再通过 Business `/resolve` 做关系扩展。当前 `main.py` 在开关两种分支都注入 `entity_name_lookup=None`，`_lookup_entity_name` 遇到名称立即返回 `entity_resolution_unavailable`；只有显式实体 ID 的 `/resolve` 链已接线。不得把注释中的 Business 名称解析方案描述为已实现。旧 `RedisEntityNameLookup` 未接入在线组合根。
+- 注入名称适配器的测试路径中，PERSON 与 CHARACTER 的名称候选可在名称约束内取并集；与显式 ID/关系字段仍取交集。查询声优关系时必须保留 ACTOR 语义。当前线上装配没有名称适配器，不能把这些单测路径视为已接通。
 
 ### 4. Validation & Error Matrix
 

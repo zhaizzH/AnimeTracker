@@ -28,6 +28,7 @@
 - 普通 JSON 响应由 shared HTTP 拦截器解包；SSE 使用 fetch 流，不能混用。
 - shared API 以命名空间导出，避免 `list/remove/schedule` 等同名冲突。
 - client 与 admin 不互相导入源码，共享能力进入 `@animetracker/shared`。
+- Agent 工具能力由后端角色路由决定，不能从前端页面或“思考过程”文本推断 RAG 已启用；联调时阅读 [Agent 运行与提示词契约](../backend/agent-runtime-contract.md)。
 
 ## 质量检查
 

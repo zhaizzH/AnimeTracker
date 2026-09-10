@@ -37,7 +37,15 @@
 - `streamSse` 的请求必须是 POST JSON，携带可选 Bearer 和 `AbortSignal`；响应应为 `text/event-stream`，帧以空行结束，最后一个无换行帧也必须被处理。
 - 事件联合至少包含 `answer`、`thinking`、`function_call`、`status` 与 `end`；`function_call.state` 使用 `start|end|error`，工具状态必须从 running 进入 done/error，不得永久停在 running。
 - `is_end=true` 或明确 end 事件后停止写入；Abort、网络断开和解析失败必须分别保留可重试的用户语义。
-- 当前实现只按单个换行切分、未校验 Content-Type、未 flush 尾帧，且 `useAgentChat` 忽略 status 与 function_call error；这些是已知债务，新增 SSE 改动必须补 parser、状态机、断开和鉴权失败测试。
+- 当前 `packages/shared/src/sse.ts` 只按单个换行切分、未校验 Content-Type、未 flush 尾帧。`useAgentChat` 未单独处理 status 与 function_call error；含 `content.text` 的其他事件还可能落入正文拼接分支。`is_end` 仅跳过当前事件，没有锁住后续帧。这些是已知债务，新增 SSE 改动必须补 parser、状态机、断开和鉴权失败测试。
+
+### thinking 展示的现状
+
+- `packages/shared/src/hooks/useAgentChat.ts` 按收到的 `content.text` 直接累加 thinking；没有翻译、空格修复或中文校验。
+- client 的 `src/components/AgentChat.tsx` 与 admin 的 `src/pages/AgentChat.tsx` 分别渲染折叠区，不能只验证一端。
+- 历史加载只恢复 role/content，不恢复 thinking；刷新后思考区域消失不是翻译成功或服务停止思考的证据。
+- 排查连续英文单词先检查后端 chunk 的 `strip()`，不要先在前端插空格。完整链路见 [Agent 运行与提示词契约](../backend/agent-runtime-contract.md)。
+- SSE 的 401/403 当前会进入通用中断分支，没有 Axios 自动刷新，也未区分主动 Abort 与故障；“刷新一次/停止重试”是后续应实现的契约。
 
 ### 服务端写入缓存矩阵
 

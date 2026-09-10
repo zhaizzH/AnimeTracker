@@ -15,7 +15,7 @@ backend/
     ├── app/api/              # HTTP/SSE 边界
     ├── app/agent|chat|rag/   # 用例、状态、端口与领域逻辑
     ├── app/adapters/         # HTTP、Redis、MySQL、LLM、提示词、子进程实现
-    └── jobs/                 # importer / indexer / scheduler
+    └── jobs/                 # importer / indexer / backfill / scheduler
 ```
 
 证据：`backend/business/pom.xml`、`backend/agent/main.py`、`backend/agent/app/agent/dependencies.py`。
@@ -121,7 +121,7 @@ AgentService agentService(RestTemplate restTemplate, ObjectMapper mapper, AgentP
 - `app/api` 只负责协议、依赖注入与序列化，业务流程进入 `app/chat`、`app/agent`、`app/rag`。
 - 领域层通过 `Protocol` 或 `AgentDependencies` 访问外部能力。
 - Redis、HTTP、LLM、MySQL 和子进程实现只放 `app/adapters`，由 `main.py` lifespan 组装。
-- importer/indexer/scheduler 属于 `jobs`，不要塞进 FastAPI 路由。
+- importer/indexer/backfill/scheduler 属于 `jobs`，不要塞进 FastAPI 路由；`jobs/backfill/worker.py` 负责实体详情回填，不能遗漏该任务层。
 - 新 Agent 工具按最小权限放到 client/admin 对应节点，不创建全局万能工具集。
 
 ## 禁止做法

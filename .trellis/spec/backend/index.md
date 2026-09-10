@@ -16,6 +16,7 @@
 |---|---|
 | [目录与依赖边界](./directory-structure.md) | Java 六模块、Python 端口与适配器、代码放置规则 |
 | [Agent 编排与流式协议](./agent-guidelines.md) | LangGraph、SSE、工具权限、待确认动作 |
+| [Agent 运行与提示词契约](./agent-runtime-contract.md) | 角色工具矩阵、Prompt 快照、中文输出、日期与当前测试缺口 |
 | [数据与存储](./database-guidelines.md) | MySQL、MyBatis、SQLAlchemy、Redis、MinIO |
 | [RAG 检索与版本发布契约](./rag-retrieval-contract.md) | index/profile 版本、五报告 gate、灰度、回滚与 Evidence 边界 |
 | [错误处理](./error-handling.md) | Java 统一响应、Python API/工具错误语义 |
@@ -42,4 +43,4 @@ cd ../agent
 uv run pytest
 ```
 
-CI 当前执行 Java `mvn -B test`、Python `uv run pytest` 和前端 typecheck；`clean test` 与前端 build 属于相应变更的提交前/交付前验证。Java `app` 模块已有配置迁移回归测试；Python 当前仅有导入指标测试。测试命令通过不等于业务覆盖充分，新功能应补最小回归用例。
+CI 当前执行 Java `mvn -B test`、Python `uv run pytest` 和前端 typecheck；`clean test` 与前端 build 属于相应变更的提交前/交付前验证。Python 已包含 importer/indexer/backfill/scheduler、RAG、适配器、eval 和 Agent Prompt 测试。2026-09-10 完整 pytest 因能力路由测试引用缺失符号而收集失败，详见 [质量门禁](./quality-guidelines.md)；不得沿用历史通过数。
