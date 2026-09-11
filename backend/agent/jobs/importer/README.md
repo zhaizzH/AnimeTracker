@@ -1,6 +1,6 @@
 # 番剧数据导入器（Bangumi Importer）
 
-> **一句话定位**：从 [Bangumi（bgm.tv）](https://bgm.tv) 拉取番剧元数据、封面与剧集，清洗后写入业务数据库 `anime_tracker` 的命令行工具。
+> **一句话定位**：从 [Bangumi（bgm.tv）](https://bgm.tv) 拉取番剧元数据、封面、剧集、人物与角色数据，清洗后写入业务数据库 `anime_tracker`，并登记检索索引任务的命令行工具。
 
 > 上级文档：[AI Agent 总览](../../README.md) · [后端总览](../../../README.md) · [项目总览](../../../../README.md)
 
@@ -9,6 +9,7 @@
 - **首次建库**：用 `full` 或按季度 `season` 批量导入历史番剧条目。
 - **日常增量**：用 `recent` 抓取当前在播条目，或用 `since` 补齐指定日期之后开播的条目。
 - **抽样验证**：用 `sample` 按年代分层抽样，快速验证导入链路与数据质量。
+- **增量补齐实体**：导入时同步写入人物/角色实体与关系，供检索与页面展示使用。
 - **数据体检**：用 `quality.py` 生成只读质量报告，必要时用 `cleanup.py` 按报告执行修复。
 
 - **语言**：Python 3.10 及以上
@@ -20,9 +21,9 @@
 | 组件 | 说明 |
 |------|------|
 | Python 3.10+ 与 uv | 与 Agent 共用同一虚拟环境，依赖由 `backend/agent/uv.lock` 锁定 |
-| MySQL 8 | 目标库 `anime_tracker`，表结构由 [`docs/database/db-schema.sql`](../../../../docs/database/db-schema.sql) 创建 |
+| MySQL 8 | 目标库 `anime_tracker`，表结构由 [`docs/database/db-schema.sql`](../../../../docs/database/db-schema.sql) 创建（存量库需先执行 `migration-002` 与 `migration-003`） |
 | MinIO | 封面与原始快照存储；**未配置时封面回退为 Bangumi 原始 URL** |
-| Redis（可选） | 写入时会登记 RAG 索引任务，供 `jobs/indexer` 消费；Redis 不可用时索引登记失败 |
+| Redis（可选） | 本工具不直接写 Redis，仅通过 MySQL 任务表登记索引任务；Redis 由 `jobs/indexer` 消费 |
 | 网络 | 需可访问 `https://api.bgm.tv`；如有代理请配置 `HTTPS_PROXY` |
 
 ## 架构定位
@@ -32,17 +33,19 @@
 ## 工作原理
 
 1. 按模式拉取一批 Bangumi `subject_id`（`type=2`，即动画）。
-2. 对每个条目：获取详情、制作人员、角色（含声优）与剧集，过滤 NSFW 与非动画条目，下载封面转存 MinIO（替换 URL）、保存原始 JSON 快照到私有桶，解析别名、标签、元标签与全部制作人员职责，最后在一个事务中 upsert 实体和关系。
+2. 对每个条目：获取详情、主创、角色（含声优）与剧集，过滤 NSFW 与非动画条目，下载封面转存 MinIO（替换 URL）、保存原始 JSON 快照到私有桶，解析别名、标签、元标签与全部制作人员职责。
 3. 解析关联条目：只保留 `type=2` 且非 NSFW 的动画关系，由仓储层按本地自然键写入已存在的关联目标。
-4. 并发模型：**网络请求并行、数据库写入串行**（`_db_lock` 全局锁），并对任务按线程数交错重排（`_stagger`）降低同区段锁竞争；遇到死锁自动重试最多 4 次并指数退避。
-5. 每次运行写入一条 `import_record` 记录，标注模式、数量与状态；后台线程每 3 秒把已处理数刷到 `subject_count`。
-6. 单实例保护：通过 MySQL `GET_LOCK` 加锁，并在 `jobs/importer/importer.pid` 写入 PID 文件，供 Agent 跨 worker 重启识别仍存活的导入子进程。
+4. 实体与关系写入：由 `repository.py` 的 `write_bundle` 在同一事务内提交番剧域、人物/角色域与关系表，并为 SUBJECT / EPISODE / PERSON / CHARACTER 四类实体登记索引任务。
+5. 并发模型：**网络请求并行、数据库写入串行**（`_db_lock` 全局锁），并对任务按线程数交错重排（`_stagger`）降低同区段锁竞争；遇到死锁自动重试最多 4 次并指数退避。
+6. 每次运行写入一条 `import_record` 记录，标注模式、数量与状态；后台线程每 3 秒把已处理数刷到 `subject_count`。
+7. 单实例保护：通过 MySQL `GET_LOCK` 加锁，并在 `jobs/importer/importer.pid` 写入 PID 文件，供 Agent 跨 worker 重启识别仍存活的导入子进程。
 
 ## 快速开始
 
 ```bash
 cd backend/agent                 # 必须在 agent 根目录执行（依赖 app.* 包路径）
 cp .env.example .env             # 与 Agent 共用，填写 DB_* / MINIO_* / BANGUMI_*
+                                 # 注意删除模板中已废弃的 RAG_INDEX_ALIAS 行
 uv sync --dev
 
 # 导入 2026 年夏季番，5 并发
@@ -73,7 +76,7 @@ uv run python -m jobs.importer.main --mode season --key 2026-summer --workers 5
 | `--resume` | 断点续传：跳过已导入条目，并从 `import_record` 加载上次 checkpoint 继续 |
 | `--workers N` | 并发线程数，默认 `10`，上限 `10` |
 | `--limit N` | `full` / `sample` 模式的最大条目数；`full` 默认不限，`sample` 默认 `500` |
-| `--dry-run` | 仅扫描不写库，**当前只支持 `full` 模式**；不创建 `import_record`，不写 MySQL / MinIO / Redis |
+| `--dry-run` | 仅扫描不写库，**当前只支持 `full` 模式**；不创建 `import_record`，不写 MySQL / MinIO |
 
 ### 核心用法示例
 
@@ -117,13 +120,24 @@ uv run python -m jobs.importer.main --mode sample --limit 100
 | `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | `minioadmin` | MinIO 凭据 |
 | `MINIO_BUCKET` | `anime-tracker` | 公开封面桶 |
 | `MINIO_RAW_BUCKET` | `anime-tracker-private` | 原始 Bangumi 快照私有桶，**必须与 `MINIO_BUCKET` 不同**（Agent 启动时校验） |
-| `RAG_INDEX_VERSION` | `v1` | 写入时登记 RAG 索引任务的版本标识 |
+| `RAG_INDEX_VERSION` | `v1` | 登记索引任务与写入检索投影时使用的版本标识 |
 
+> ⚠️ `.env.example` 中仍保留已被 `app/config.py` 移除的 `RAG_INDEX_ALIAS`。由于 `Settings` 使用 `extra="forbid"`，若要让 Agent 同时启动，需删除该行（对本工具本身无影响，但两者共用同一个 `.env`）。
+>
 > 若未配置 MinIO，封面将回退为 Bangumi 原始 URL，原始快照不落盘。
 
 ## 写入的表
 
-`subject`、`episode`、`subject_tag`、`subject_relation`、`subject_alias`、`subject_meta_tag`、`subject_credit`、`person`、`character`、`subject_person_credit`、`subject_character`、`character_actor`、`entity_detail_job`、`import_record` 由 `repository.py` 的 `write_bundle` 在同一事务内提交；`rag_index_job` 用于登记待索引条目（由 `jobs/indexer` 消费）。
+由 `repository.py` 的 `write_bundle` 在同一事务内提交：
+
+| 分组 | 表 |
+|------|-----|
+| 番剧域 | `subject`、`episode`、`subject_alias`、`subject_meta_tag`、`subject_tag`、`subject_credit`、`subject_relation` |
+| 实体域 | `person`、`character`、`person_alias`、`character_alias` |
+| 关系域 | `subject_person_credit`、`subject_character`、`character_actor` |
+| 任务域 | `import_record`（批次记录）、`entity_detail_job`（人物/角色详情回填任务）、`search_index_job`（四类实体的索引任务） |
+
+`search_index_job` 由本工具登记、由 [`jobs/indexer`](../indexer/) 消费；索引器再写入 `search_document`（MySQL 词法投影）与 Redis Vector Set，并把激活版本记录到 `search_index_release`。`entity_detail_job` 由 [`jobs/backfill`](../backfill/) 消费。
 
 表结构定义见 [`docs/database/db-schema.sql`](../../../../docs/database/db-schema.sql)。
 
@@ -134,8 +148,8 @@ jobs/importer/
 ├── main.py        # CLI 入口：参数解析、模式分发、并发编排、进度与 import_record
 ├── client.py      # Bangumi API 客户端（429 退避 + 指数重试 + 可选请求间隔）
 ├── db.py          # SQLAlchemy 引擎、upsert 逻辑、导入锁与 import_record 读写
-├── normalize.py   # 原始 JSON → 规范化结构（别名、标签、元标签、制作人员、放送星期）
-├── repository.py  # 仓储层：单条目事务提交、checkpoint 读写、RAG 索引任务登记
+├── normalize.py   # 原始 JSON → 规范化结构（别名、标签、元标签、主创、放送星期）
+├── repository.py  # 仓储层：单条目事务提交、checkpoint 读写、索引/回填任务登记
 ├── storage.py     # MinIO 边界：封面转存与原始快照写入
 ├── quality.py     # 只读数据质量报告生成器（独立 CLI）
 ├── cleanup.py     # 按已确认报告执行的最小修复器（独立 CLI）
@@ -158,6 +172,8 @@ uv run python -m jobs.importer.cleanup --plan ./quality-report.json --confirm-sh
 ```
 
 `--index-version` 传入时会额外校验 Redis 向量索引的一致性。`cleanup` 未传 `--confirm-sha256` 时直接以退出码 `2` 拒绝执行；报告与计划不匹配时同样拒绝，避免误删。
+
+> 生成的 `quality` 报告可被索引发布门禁 [`jobs/indexer/gate.py`](../indexer/) 消费——门禁要求 `quality` / `capacity` / `eval` / `latency` / `human` 五份报告齐全才允许激活新索引版本。
 
 ## 常见问题
 
@@ -185,16 +201,24 @@ A：检查 `MINIO_*` 配置与桶是否存在。未配置时是预期行为—�
 **Q：`subject_count` 显示的数字和最终条目数不一致？**
 A：`subject_count` 由后台线程每 3 秒刷新，是过程值；导入结束会写入最终值。以结束日志的「共 N 个条目」为准。
 
+**Q：导入完成后检索不到新数据？**
+A：导入只登记索引任务（`search_index_job`），并不直接构建检索投影。需要再运行 `jobs/indexer` 消费任务，并通过 `jobs/indexer.gate` 激活版本后，检索结果才会更新。
+
+**Q：人物/角色只有名字没有简介？**
+A：导入阶段写入的是摘要字段，详情由 [`jobs/backfill`](../backfill/) 渐进回填。运行 `uv run python -m jobs.backfill.main --batch-size 5` 补齐。
+
 ## 与相邻模块的关联
 
 - **Agent**（[`../../README.md`](../../README.md)）：管理端触发的导入由 Agent 的 `POST /api/admin/agent/import/run` 以子进程方式启动本工具（见 `app/adapters/subprocess/import_job.py`），共用环境与 `.env`。
-- **索引器**（[`../indexer/`](../indexer/)）：本工具在 `rag_index_job` 登记待索引条目，索引器消费该表构建向量索引。
+- **索引器**（[`../indexer/`](../indexer/)）：本工具登记 `search_index_job`，索引器消费后写入 MySQL 词法投影与 Redis Vector Set；`quality.py` 的报告供其发布门禁消费。
+- **回填器**（[`../backfill/`](../backfill/)）：消费本工具登记的 `entity_detail_job`，补齐 Person / Character 详情。
 - **调度器**（[`../scheduler/`](../scheduler/)）：按 Asia/Shanghai 时间定时以 `recent` / `since` / `full` 模式启动本工具。
 - **business**：导入结果经 `subject` 等表对外提供查询；管理端「导入记录」页读取 `import_record`。
 - **后端总览**：[`../../../README.md`](../../../README.md) · **项目总览**：[`../../../../README.md`](../../../../README.md)
 
 ## 待补充
 
-1. **本地运行产物未纳入版本控制**：`import.log` 与 `importer.pid` 是运行期产物，当前存在于工作区。建议确认是否应加入 `.gitignore`（仓库根 `.gitignore` 已忽略 `*.log`，但 `importer.pid` 未见对应规则）。
-2. **质量报告与容量门禁的判读阈值**：`quality.py` 生成的报告可被 `jobs/indexer/gate.py` 消费，但各项指标（覆盖率、NSFW 计数、内容哈希一致性）的合格线随数据规模变化，尚无文档化建议值。
+1. **运行期产物未纳入 `.gitignore`**：`import.log` 已被 `*.log` 规则忽略，但 `importer.pid`（本目录）与 `indexer-remaining.json`（`backend/agent/` 根）未被忽略，建议补充规则。
+2. **质量报告与容量门禁的判读阈值**：`quality.py` 生成的报告可被 `jobs/indexer/gate.py` 消费，但各项指标（覆盖率、NSFW 计数、内容哈希一致性）的合格线随数据规模变化，尚无文档化建议值，代码中也未固化基准。
 3. **Bangumi 限流的具体额度**：代码中按 429 响应动态退避，`BANGUMI_ACCESS_TOKEN` 能提升额度但具体配额取决于 Bangumi 平台策略，无法从代码推断。
+4. **实体导入的覆盖边界**：导入会写入人物/角色实体与关系，但哪些字段属于「摘要」、哪些依赖 `backfill` 补齐，在 `normalize.py` 与 `repository.py` 中分散体现，缺少集中说明；若需精确文档化建议由维护者补充字段清单。

@@ -1,6 +1,6 @@
 # AnimeTracker Agent
 
-> **一句话定位**：基于 FastAPI + LangGraph 构建的 AI 对话 Agent（v3.0.0），面向番剧场景提供搜索、发现、推荐三类对话能力，通过受控工具调用后端业务 API 获取实时数据，经 SSE 流式输出，并对写操作强制「预览 → 确认 → 执行」。
+> **一句话定位**：基于 FastAPI + LangGraph 构建的 AI 对话 Agent（v3.0.0），面向番剧场景提供搜索、发现、推荐三类对话能力，通过受控工具调用后端业务 API 获取实时数据与证据，经 SSE 流式输出，并对写操作强制「预览 → 确认 → 执行」。
 
 > 上级文档：[后端总览](../README.md) · [项目总览](../../README.md)
 
@@ -9,13 +9,13 @@
 - 为 AnimeTracker 用户端提供自然语言番剧搜索、内容发现与个性化推荐。
 - 为管理端提供独立的 Agent 对话（可触发最近新番导入）。
 - 承载托管提示词与运行时模型配置的管理接口（Redis 优先、本地文件回退）。
-- 运行离线任务：Bangumi 数据导入、RAG 向量索引构建、定时调度（见 `jobs/`）。
+- 运行离线任务：Bangumi 数据导入、人物/角色渐进回填、双投影索引构建与发布门禁、定时调度（见 `jobs/`）。
 
 不适合直接暴露给公网：本服务假定由 business 的代理层转发，自身只做本地 JWT 验签。
 
 - **默认端口**：`8090`（Swagger 文档：`/docs`）
 - **LLM**：DeepSeek 官方直连或 DashScope 百炼 Qwen，由 `LLM_PROVIDER` 显式指定
-- **存储**：Redis（会话 / 消息、托管提示词、运行时模型配置、待确认动作、RAG 索引）
+- **存储**：Redis（会话 / 消息、托管提示词、运行时模型配置、待确认动作、Vector Set）+ MySQL（导入记录、索引任务、发布存储）
 
 ## 前置依赖
 
@@ -23,11 +23,11 @@
 |------|------|------|
 | Python | 3.10 及以上 | `pyproject.toml` 声明 `requires-python = ">=3.10"` |
 | uv | 最新版 | 依赖由 `uv.lock` 锁定，CI 使用 `astral-sh/setup-uv@v5` |
-| Redis | 5+ 协议兼容 | 必需；不可用时服务仍启动，但会话功能不可用 |
-| MySQL | 8 | 仅 `jobs/importer`、`jobs/indexer` 需要 |
+| Redis | 5+ 协议兼容；RAG 需 **8** | 必需；基础会话在 Redis 5+ 可用，RAG 语义召回依赖 Redis 8 **Vector Set**（`VADD` / `VSIM` / `VREM` / `VEMB`） |
+| MySQL | 8.0 以上；RAG 需 **8.4** | `jobs/` 任务与索引发布使用；词法召回依赖 `ngram` FULLTEXT |
 | MinIO | 任意近期版本 | 仅 `jobs/importer` 转存封面与原始快照需要 |
-| Spring Boot business | :8080 | 工具回查目标；不启动时所有业务工具调用失败 |
-| LLM API Key | — | `DEEPSEEK_API_KEY` 或 `DASHSCOPE_API_KEY` 至少一个 |
+| Spring Boot business | :8080 | 工具回查与检索契约目标；不启动时所有业务工具调用失败 |
+| LLM API Key | — | `DEEPSEEK_API_KEY` 或 `DASHSCOPE_API_KEY` 至少一个；启用 RAG 还需 `DASHSCOPE_API_KEY` 用于嵌入 |
 
 ## 架构定位
 
@@ -36,12 +36,13 @@
 ```
 前端 (5173) ──/api/client/agent/*──► business :8080 (agent 代理层) ──HTTP 转发──► 本服务 :8090
                                                                           │
-                                                                          └─工具调用─► business API（获取番剧实时数据）
+                                                                          └─工具调用─► business API（番剧数据 / 词法检索 / Evidence）
 ```
 
 - 前端不直接访问 `8090`；所有 Agent 流量经 Vite 代理统一走 `8080` 的 `/api` 前缀。
 - 本服务通过 `BACKEND_BASE_URL`（默认 `http://localhost:8080`）回查业务 API。
 - 本服务与 business 共享 `JWT_SECRET`，在本地验签，不回调业务后端。
+- **检索版本以 business 为准**：词法召回响应中的 `indexVersion` 决定本服务查询哪个 Vector Set 版本；激活指针存放在 MySQL `search_index_release`，Redis alias 机制已废弃。
 
 ## 架构：单张 StateGraph
 
@@ -82,14 +83,21 @@ backend/agent/
 ├── pyproject.toml           # 依赖与 pytest 配置（uv 管理）
 ├── uv.lock
 ├── .env.example             # 配置模板（Agent 与 jobs 共用）
-├── tests/                   # pytest 测试（当前覆盖 jobs/importer 的指标计算）
 ├── resources/prompt/        # 本地托管提示词（Redis 未命中时的回退）
 │   ├── client/              # gateway / search / discover / recommend
 │   └── admin/               # admin_agent
+├── tests/                   # pytest 测试与确定性评测框架
+│   ├── adapters/            # Business HTTP 网关、Redis 实体名称解析
+│   ├── agent/               # 能力路由、提示词契约
+│   ├── entities/            # 旧 subject_credit 映射兼容
+│   ├── evals/               # 评测框架：metrics / runner / schemas / golden cases
+│   ├── jobs/                # importer / indexer / backfill / scheduler 任务测试
+│   └── rag/                 # 证据契约、故障矩阵、多实体 profile、查询规划
 ├── jobs/                    # 离线任务（与 Agent 共用 venv 与 .env）
 │   ├── importer/            # Bangumi 数据导入 CLI
-│   ├── indexer/             # RAG 向量索引构建
-│   └── scheduler/           # 定时导入调度（Asia/Shanghai）
+│   ├── backfill/            # Person / Character 详情渐进回填
+│   ├── indexer/             # 双投影索引构建、shadow 评测、发布门禁
+│   └── scheduler/           # 定时调度（Asia/Shanghai）
 └── app/
     ├── config.py            # pydantic-settings 配置 + resolve_llm_provider
     ├── api/                 # HTTP 层
@@ -118,6 +126,7 @@ backend/agent/
     │           ├── __init__.py          # build_action_tools 显式组合
     │           ├── collection_progress.py # 追番进度预览/执行/取消
     │           └── wishlist.py          # 加入想看预览/执行/取消
+    ├── entities/            # 实体域模型与枚举（EntityKind：SUBJECT / EPISODE / PERSON / CHARACTER）
     ├── chat/                # 会话服务（端口在 ports.py）
     │   ├── service.py       # ChatService：编排 store + graph + 流式引擎
     │   ├── streaming.py     # 流式引擎 → SSE 事件流
@@ -125,18 +134,21 @@ backend/agent/
     │   ├── event_sink.py / pending_events.py
     │   ├── pending_action.py# PendingAction 强类型可辨识联合
     │   ├── models.py / user.py
-    ├── rag/                 # 检索增强（默认关闭）
-    │   ├── use_case.py / retrieval.py / profile.py / user_profile.py
-    │   └── ports.py / schemas.py
+    ├── rag/                 # 检索增强
+    │   ├── retrieval.py     # RagRetrievalService：词法 + 语义召回与 RRF 融合
+    │   ├── query_planner.py # 中文条件 → 受控 RetrievalQuery 字段（非通用 NLP）
+    │   ├── multi_profile.py # SUBJECT/EPISODE/PERSON/CHARACTER 向量文本构建与版本规则
+    │   ├── profile.py / user_profile.py
+    │   ├── use_case.py / ports.py / schemas.py
     ├── admin/               # 配置与导入应用服务
     │   ├── config_service.py / import_service.py / ports.py
     ├── adapters/            # 端口实现（外部依赖唯一出口）
     │   ├── business_http.py # HttpBusinessGateway：回查 business API
     │   ├── llm/             # agent_factory（LLM 工厂）/ embeddings（DashScope 嵌入）
-    │   ├── mysql/           # import_records（SQLAlchemy 引擎与导入记录）
+    │   ├── mysql/           # import_records（引擎与导入记录）/ release_store（发布存储）
     │   ├── prompts/         # file_prompt（本地提示词文件）
     │   ├── redis/           # chat_store / prompt_repository / model_config_repository
-    │   │                    # / subject_index / user_preference
+    │   │                    # / subject_index / vector_set / entity_name_lookup / user_preference
     │   └── subprocess/      # import_job（以子进程启动导入器）
     └── shared/observability.py  # 结构化日志与 trace 中间件
 ```
@@ -213,12 +225,31 @@ backend/agent/
 - **只读收藏工具**：`collections.py` 提供 `get_my_collections` / `get_my_collection` / `get_my_stats` / `get_my_watch_profile`。
 - **business 原子保护**：`POST /api/client/collections/{subjectId}/wishlist` 仅在不存在收藏时插入（type=1），已存在任意收藏状态返回 `ALREADY_COLLECTED`，不依赖 Python 检查与写入时间差。
 
-## RAG 检索（默认关闭）
+## RAG 检索
 
-`app/rag/` 提供语义检索与证据回答能力，通过 `RAG_ENABLED` 开关控制：
+`app/rag/` 提供混合检索与证据回答能力，通过 `RAG_ENABLED` 开关控制（默认 `false`）。
 
-- 关闭时（默认）：检索降级为直接调用 business 的 `/api/client/subjects/search` 与 `/api/client/subjects`（按 `collectionTotal` 降序取候选），嵌入与索引对象替换为抛错的占位实现。
-- 开启时：MySQL 8.4 `ngram` FULLTEXT 提供词法召回，Redis 8 Vector Set（`rag:vectors:{entity_kind}:{indexVersion}`）提供语义召回，使用 DashScope `text-embedding-v4`（1024 维）并经 Python RRF 融合；Business 词法响应返回 `indexVersion`，Agent 只查询同版本 Vector Set，再批量回查 Business 权威数据和 Evidence API。没有 Vector Set 时保持 RAG 关闭并降级到 Business 搜索。
+### 双投影检索链路
+
+```
+用户问题
+  └─► query_planner：把明确的中文条件收敛到受控 RetrievalQuery 字段
+        （年份、季度、播出状态、评分区间、评分人数；无法确定的内容保留为原始语义查询）
+        ├─ 词法召回：POST /api/client/subjects/lexical-search
+        │     └─ MySQL 8.4 ngram FULLTEXT 投影（search_document），响应携带 indexVersion
+        ├─ 语义召回：VSIM rag:vectors:{ENTITY_KIND}:{indexVersion}
+        │     └─ Redis 8 Vector Set，嵌入由 DashScope text-embedding-v4（1024 维）生成
+        └─ reciprocal_rank_fusion：Python RRF 融合两路候选（k=60，平分保留最早出现顺序）
+              └─ 权威回查 POST /api/client/subjects/batch（可用性判定在此，不信任向量库）
+                    └─ 证据补充 POST /api/client/evidence/batch
+```
+
+关键约束：
+
+- 词法召回的 `indexVersion` 与语义召回的 Vector Set 版本必须**同版本**，由 business 的释放指针决定。
+- Redis alias 机制已废弃，`app/config.py` 中不再有 `rag_index_alias`；激活版本唯一存放在 MySQL `search_index_release`。
+- 关闭时（默认）：`rag_*` 工具降级为直接调用 business 的 `/api/client/subjects/search` 与 `/api/client/subjects`，嵌入与索引对象替换为抛错的占位实现。
+- Redis 不支持 Vector Set 命令时，`ensure_version` 抛错并**保持 RAG 关闭**（fail-closed），不会静默降级为「部分可用」。
 
 ### 证据链（Evidence Enrichment）
 
@@ -242,14 +273,14 @@ Agent 提示词已更新为只可依据工具返回的证据字段陈述事实�
 | 故障场景 | 降级行为 |
 |----------|----------|
 | Redis 不可用 | 回退 Business 搜索，继续权威回查 + Evidence |
-| Embedding 不可用 | 仅使用 BM25 词法搜索 |
+| Embedding 不可用 | 仅使用词法搜索 |
 | Business 权威回查不可用 | fail-closed，返回 `available=False` |
 | Evidence API 不可用 | 候选保持原样返回（无证据字段但不崩溃） |
 | Redis + Business 同时不可用 | fail-closed，返回 `available=False` |
 
 结构化事件 `rag.evidence.enriched` 记录 Evidence 回查结果（成功/失败/候选数）。
 
-索引由 [`jobs/indexer/`](jobs/indexer/) 构建，数据在 `resources` 之外，存放于 Redis。
+索引由 [`jobs/indexer/`](jobs/indexer/) 构建：向量写入 Redis Vector Set，词法投影写入 MySQL `search_document`，激活版本记录在 `search_index_release`。
 
 ## 托管提示词（Redis + 本地回退）
 
@@ -276,7 +307,7 @@ Agent 提示词已更新为只可依据工具返回的证据字段陈述事实�
 | `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | DeepSeek OpenAI 兼容端点 |
 | `DEEPSEEK_MODEL` | `deepseek-v4-flash` | DeepSeek 领域 Agent 模型 |
 | `DEEPSEEK_MODEL_ROUTE` | `deepseek-v4-flash` | DeepSeek gateway 路由模型 |
-| `DASHSCOPE_API_KEY` | 空 | 百炼 API Key |
+| `DASHSCOPE_API_KEY` | 空 | 百炼 API Key（启用 RAG 嵌入时必需） |
 | `DASHSCOPE_MODEL` | `qwen3.7-plus` | 百炼领域 Agent 模型 |
 | `DASHSCOPE_MODEL_ROUTE` | `qwen3.7-plus` | 百炼 gateway 路由模型 |
 
@@ -295,10 +326,12 @@ Agent 提示词已更新为只可依据工具返回的证据字段陈述事实�
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `RAG_ENABLED` | `false` | 总开关；关闭时检索降级为 business 直接搜索 |
-| `RAG_REDIS_URL` | 空 | 索引专用 Redis；留空则复用 `REDIS_URL` |
-| `RAG_INDEX_VERSION` | `v1` | indexer 构建版本；在线查询版本以 Business `search_index_release` 返回值为准 |
+| `RAG_REDIS_URL` | 空 | 索引专用 Redis（需 Redis 8）；留空则复用 `REDIS_URL` |
+| `RAG_INDEX_VERSION` | `v1` | indexer 构建与卡片向量读取使用的版本；在线查询版本以 Business 响应 `indexVersion` 为准 |
 | `RAG_EMBEDDING_MODEL` | `text-embedding-v4` | 嵌入模型（当前仅支持该值） |
 | `RAG_EMBEDDING_DIM` | `1024` | 向量维度（当前仅支持该值） |
+
+> ⚠️ **`.env.example` 仍包含已移除的 `RAG_INDEX_ALIAS`**。该配置已从 `app/config.py` 删除（Redis alias 不再是激活指针），但模板文件尚未同步。由于 `extra="forbid"`，**照抄模板会导致启动失败**，请手动删除该行。模板中关于「RediSearch / Redis Stack」的注释也已过期，实际依赖为 Redis 8 Vector Set。
 
 ### 数据导入（`jobs/` 使用）
 
@@ -322,9 +355,13 @@ Agent 提示词已更新为只可依据工具返回的证据字段陈述事实�
 
 | 任务 | 入口 | 说明 |
 |------|------|------|
-| importer | `python -m jobs.importer.main` | 从 Bangumi 导入番剧数据，见 [`jobs/importer/README.md`](jobs/importer/README.md) |
-| indexer | `python -m jobs.indexer.main` | 为已导入条目构建 RAG 向量索引，需开启 DashScope 嵌入 |
-| scheduler | `python -m jobs.scheduler.main` | 常驻进程，按 Asia/Shanghai 时间触发导入：每日 03:00 `recent`、每周日 04:00 近一年 `since`、每季度首月 05:00 `full` |
+| importer | `python -m jobs.importer.main` | 从 Bangumi 导入番剧、人物与角色数据，见 [`jobs/importer/README.md`](jobs/importer/README.md) |
+| backfill | `python -m jobs.backfill.main` | Person / Character 详情渐进回填，支持 `--batch-size` / `--pause` / `--resume` / `--report` |
+| indexer | `python -m jobs.indexer.main` | 双投影索引构建；`--index-version`（必填）、`--queue both\|legacy\|search`、`--limit`、`--report` |
+| gate | `python -m jobs.indexer.gate` | fail-closed 发布门禁；`--index-version`、`--report-dir`（必填）、`--activate` |
+| scheduler | `python -m jobs.scheduler.main` | 常驻进程，按 Asia/Shanghai 时间调度：每日 02:00 indexer、每日 03:00 `recent` 导入、每周日 04:00 近一年 `since`、每季度首月 05:00 `full`、每日 06:00 backfill |
+
+发布门禁要求 `--report-dir` 下同时存在五份报告（`quality` / `capacity` / `eval` / `latency` / `human`）且契约一致，任一项缺失或版本不匹配即拒绝激活，不会默认放行。
 
 管理端触发的导入请求由 business 转发到本服务的 `POST /api/admin/agent/import/run`，Agent 以子进程方式启动 `jobs/importer/main.py`，通过 MySQL 锁与 PID 文件保证单实例，并会清理僵尸导入记录。
 
@@ -333,6 +370,7 @@ Agent 提示词已更新为只可依据工具返回的证据字段陈述事实�
 ```bash
 cd backend/agent
 cp .env.example .env          # 填写 LLM_PROVIDER、对应 API Key、REDIS_URL、JWT_SECRET
+                              # 并删除模板中已废弃的 RAG_INDEX_ALIAS 行
 uv sync --dev                 # 安装依赖（含 dev 组：pytest / pytest-asyncio / respx）
 uv run uvicorn main:app --reload --port 8090
 ```
@@ -372,6 +410,19 @@ curl -X POST http://localhost:8090/api/client/agent/sessions/<session-id> \
   -H "Authorization: Bearer <access-token>"
 ```
 
+### 离线任务
+
+```bash
+# 构建 v1 双投影索引（每批至多 10 条）
+uv run python -m jobs.indexer.main --index-version v1 --queue both --limit 10 --report ./reports
+
+# 门禁校验并激活
+uv run python -m jobs.indexer.gate --index-version v1 --report-dir ./reports --activate
+
+# 回填人物/角色详情
+uv run python -m jobs.backfill.main --batch-size 5 --report-json
+```
+
 ### 接口清单
 
 | 方法与路径 | 鉴权 | 说明 |
@@ -399,17 +450,19 @@ curl -X POST http://localhost:8090/api/client/agent/sessions/<session-id> \
 uv run pytest
 ```
 
-pytest 配置在 `pyproject.toml`（`pythonpath = ["."]`、`asyncio_mode = "auto"`、`test.globals = true`）。当前 225 条测试覆盖：
+pytest 配置在 `pyproject.toml`（`pythonpath = ["."]`、`asyncio_mode = "auto"`）。截至本次文档核对共 268 个 `def test_` 用例，覆盖：
 
 | 目录 | 覆盖范围 |
 |------|----------|
-| `tests/evals/` | 120-case 可追溯评测框架（metrics、runner、快照生成器、golden cases） |
-| `tests/rag/` | 证据契约、故障矩阵、多实体 profile、结构化实体 ID/名称 allowlist、查询规划与 fail-closed |
-| `tests/jobs/importer/` | 导入漂移检测（eps/volumes、credit_type、AIRING、stale replace-set、profile hash） |
-| `tests/jobs/indexer/` | 实体加载、shadow index、search repository |
+| `tests/evals/` | 可追溯评测框架（metrics、runner、schemas、golden case 生成器） |
+| `tests/rag/` | 证据契约、故障矩阵、多实体 profile、结构化实体 ID/名称 allowlist、查询规划、词法契约与 fail-closed |
+| `tests/jobs/importer/` | 导入漂移检测（eps/volumes、credit_type、AIRING、stale replace-set、profile hash）与关系摘要、搜索 outbox |
+| `tests/jobs/indexer/` | 实体加载、shadow 索引与评测、发布存储、gate 门禁、search repository、多实体主流程与报告 |
 | `tests/jobs/backfill/` | 详情回填 repository 与 worker |
-| `tests/jobs/scheduler/` | 定时调度（import/indexer/backfill） |
+| `tests/jobs/scheduler/` | 定时调度 |
 | `tests/adapters/` | Business HTTP 网关（batch_evidence、evidence/resolve）与 Redis 实体名称解析 |
+| `tests/agent/` | 能力路由与客户端提示词契约 |
+| `tests/entities/` | 旧 `subject_credit` 映射兼容 |
 
 ## 常见问题
 
@@ -420,7 +473,7 @@ A：`resolve_llm_provider` 在 `lifespan` 阶段就会校验。设置 `LLM_PROVI
 A：`LLM_PROVIDER` 只接受 `deepseek` 或 `dashscope`，且必须配套该供应商的 Key。
 
 **Q：启动报 `Extra inputs are not permitted`？**
-A：`Settings` 使用 `extra="forbid"`，`.env` 中存在未在 `app/config.py` 声明的变量。以 `.env.example` 为模板核对。
+A：`Settings` 使用 `extra="forbid"`，`.env` 中存在未在 `app/config.py` 声明的变量。**最常见的原因是照抄了 `.env.example` 中已废弃的 `RAG_INDEX_ALIAS`**（该配置已从代码移除），删除该行即可。
 
 **Q：启动报 `MINIO_RAW_BUCKET must differ from MINIO_BUCKET`？**
 A：原始快照桶与公开封面桶必须不同名，为 `MINIO_RAW_BUCKET` 另起一个桶名。
@@ -428,11 +481,20 @@ A：原始快照桶与公开封面桶必须不同名，为 `MINIO_RAW_BUCKET` �
 **Q：日志出现 `Redis 连接失败,启动继续`？**
 A：非致命告警。服务继续启动，但会话、历史、托管提示词与待确认动作全部不可用。修复 `REDIS_URL` 后重启。
 
+**Q：日志出现 `Redis 未启用 Vector Set`？**
+A：Redis 版本低于 8 或未启用 Vector Set 能力。此时 `ensure_version` 抛错并**保持 RAG 关闭**（fail-closed），检索降级为 Business 普通搜索。升级 Redis 到 8 后重试。
+
 **Q：对话返回 404「会话不存在或无权限」？**
 A：`/stream` 要求 `sessionId` 已存在且属于当前用户（服务端会拉取用户会话列表做归属校验）。先调用 `POST /sessions` 创建。
 
 **Q：模型一直走不到 RAG 检索？**
-A：`RAG_ENABLED` 默认为 `false`，此时 `rag_*` 工具降级为 business 直接搜索，嵌入与索引对象是抛错占位。需要先构建索引（见 `jobs/indexer`）再开启开关。
+A：需要同时满足：`RAG_ENABLED=true`、Redis 8 支持 Vector Set、且 business 的 `search_index_release` 中存在已激活版本。缺少任一项都会降级为 Business 直接搜索。
+
+**Q：索引构建完成但 `gate` 一直 FAIL？**
+A：门禁为 fail-closed，要求 `--report-dir` 下五份报告（`quality` / `capacity` / `eval` / `latency` / `human`）齐全且契约一致。查看输出中的 `reason=` 行定位缺失项，不会被默认放行。
+
+**Q：`jobs/indexer --queue` 该选哪个？**
+A：`legacy` 消费旧 `rag_index_job`，`search` 消费新 `search_index_job`（双投影），`both` 同时消费（默认，用于过渡期）。新数据以 `search` 为准。
 
 **Q：改了提示词但没生效？**
 A：托管提示词优先读 Redis 且启动时已加载为进程内快照。在管理端更新后需确认快照已同步，必要时重启服务。
@@ -442,8 +504,18 @@ A：这是既有设计，删除会话使用 POST 而非 DELETE。
 
 ## 与相邻模块的关联
 
-- **business**（[`../business/README.md`](../business/README.md)）：本服务的调用方（代理转发）与被调方（工具回查）。两者必须共享 `JWT_SECRET`。
+- **business**（[`../business/README.md`](../business/README.md)）：本服务的调用方（代理转发）与被调方（业务工具回查、词法检索、Evidence）。两者必须共享 `JWT_SECRET`，且检索版本以 business 的释放指针为准。
 - **导入器**（[`jobs/importer/README.md`](jobs/importer/README.md)）：由本服务以子进程方式启动，共用环境与 `.env`。
-- **索引器**（`jobs/indexer/`）：为 RAG 提供向量数据，依赖 DashScope 嵌入与 `rag_index_job` 表。
+- **索引器**（`jobs/indexer/`）：构建 MySQL 词法投影与 Redis Vector Set 双投影，并通过 `gate` 控制激活；索引任务来自 importer 登记的 `search_index_job`。
+- **回填器**（`jobs/backfill/`）：补齐 Person / Character 摘要与详情，为检索提供更完整的实体文本。
+- **调度器**（`jobs/scheduler/`）：按 Asia/Shanghai 时间编排上述四类任务。
 - **提示词**：本地 Markdown 位于 `resources/prompt/`，线上托管版本存于 Redis。
 - **后端总览**：[`../README.md`](../README.md) · **项目总览**：[`../../README.md`](../../README.md)
+
+## 待补充
+
+1. **`.env.example` 与代码不一致**：模板保留了已被移除的 `RAG_INDEX_ALIAS`，且注释仍描述 RediSearch / Redis Stack（实际已改为 Redis 8 Vector Set）。这属于配置模板问题而非文档问题，未在本次任务中修改，但会直接导致新用户启动失败，建议尽快同步。
+2. **门禁阈值未文档化**：`quality` / `capacity` / `eval` / `latency` / `human` 五份报告的合格线由 `jobs/indexer/gate.py` 解释，但其数值随数据规模与嵌入额度变化，代码与文档中均无建议基准。
+3. **评测框架的使用入口**：`tests/evals/` 提供 metrics / runner / golden case 生成器，`generate_golden_cases.py` 有 `--output` 参数，但评测的整体执行方式（是否仅经 pytest 驱动、是否有独立 CLI）在代码中未见统一入口，待确认。
+4. **旧索引链路退役计划**：`rag_index_job`（旧）与 `search_index_job` + `search_document`（新）并存，`--queue` 默认 `both`；何时收窄为 `search` 并下线旧表未在代码中标注。
+5. **运行期产物未纳入 `.gitignore`**：`jobs/importer/importer.pid` 与 `indexer-remaining.json` 为任务运行时生成，当前未被忽略规则覆盖。
