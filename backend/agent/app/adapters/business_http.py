@@ -27,7 +27,7 @@ class HttpBusinessGateway(BusinessGateway):
         params: dict | None = None,
         token: str | None = None,
         json_body: dict | None = None,
-    ) -> dict | list:
+    ) -> dict | list | None:
         headers = _build_headers(token)
         try:
             resp = httpx.request(
@@ -57,9 +57,17 @@ class HttpBusinessGateway(BusinessGateway):
             }
         except httpx.RequestError as e:
             return {"error": True, "message": f"后端服务不可用: {str(e)}"}
-        return body.get("data", body)
+        if isinstance(body, dict):
+            # Java success responses use a {code,message,data} envelope.  A
+            # successful endpoint may omit data when its result is null; do
+            # not leak the envelope to domain callers in that case.
+            if "data" in body:
+                return body["data"]
+            if "code" in body and "message" in body:
+                return None
+        return body
 
-    def batch_subjects(self, subject_ids: list[int], *, token: str | None, exclude_collected: bool) -> dict | list:
+    def batch_subjects(self, subject_ids: list[int], *, token: str | None, exclude_collected: bool) -> dict | list | None:
         return self.request(
             "POST",
             "/api/client/subjects/batch",
@@ -67,7 +75,7 @@ class HttpBusinessGateway(BusinessGateway):
             json_body={"subjectIds": subject_ids, "excludeCollected": exclude_collected},
         )
 
-    def search_subjects(self, query: str, *, token: str | None, size: int = 15) -> dict | list:
+    def search_subjects(self, query: str, *, token: str | None, size: int = 15) -> dict | list | None:
         return self.request(
             "GET",
             "/api/client/subjects/search",
@@ -75,7 +83,7 @@ class HttpBusinessGateway(BusinessGateway):
             token=token,
         )
 
-    def batch_evidence(self, subject_ids: list[int], *, token: str | None) -> dict | list:
+    def batch_evidence(self, subject_ids: list[int], *, token: str | None) -> dict | list | None:
         return self.request(
             "POST",
             "/api/client/evidence/batch",
@@ -83,7 +91,7 @@ class HttpBusinessGateway(BusinessGateway):
             json_body={"subjectIds": subject_ids},
         )
 
-    def lexical_search(self, query: dict, *, token: str | None) -> dict | list:
+    def lexical_search(self, query: dict, *, token: str | None) -> dict | list | None:
         """Call the versioned MySQL FULLTEXT retrieval contract.
 
         Business returns ``{"indexVersion": "...", "candidates": [...]}``;
@@ -102,7 +110,7 @@ class HttpBusinessGateway(BusinessGateway):
         entity_ids: list[int],
         *,
         token: str | None,
-    ) -> dict | list:
+    ) -> dict | list | None:
         """通过 Business 的受限实体关系查询解析安全 Subject 候选。"""
         return self.request(
             "POST",

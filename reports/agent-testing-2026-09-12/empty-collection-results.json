@@ -1,0 +1,21 @@
+{
+  "business_response": {
+    "code": 200,
+    "message": "success"
+  },
+  "collection_state": {
+    "collected": true,
+    "type": null
+  },
+  "preview": {
+    "pendingItems": [],
+    "skippedItems": [
+      {
+        "subjectId": 84,
+        "subjectName": "fixture",
+        "existingType": null
+      }
+    ]
+  },
+  "pending_created": false
+}

@@ -18,7 +18,7 @@
 | 实体名称 | `entity_name_lookup=None`，有名称即 `entity_resolution_unavailable` | 名称参数和 Prompt 已存在不等于在线名称解析可用；显式 ID 的 Business `/resolve` 已接线 |
 | 查询版本 | lexical 响应 indexVersion 决定 Subject VSIM key | Python 未独立校验响应 profileVersion；MySQL JOIN 和发布 gate 承担对应版本约束 |
 | 收藏画像向量 | `_subject_vector_lookup` 使用配置 `rag_index_version` | 仍可能与 active release 不同，不能把主检索的同版本保证扩大到画像链 |
-| 工具错误 | use case 返回 available/reason/personalizationNotice；工具 `_items` 只返回列表 | 不可用与无结果都可能成为 []，模型目前不能可靠报告降级原因 |
+| 工具错误 | use case 返回 available/reason/personalizationNotice；工具 `_items` 保留 `{available:false,reason,items:[]}` | 模型可区分不可用和正常无结果，但仍需真实回放验证回答是否正确解释 |
 | Evidence 重复 ID | 字典按 subjectId 覆盖，随后比较 ID 集合与安全字段 | 尚未拒绝重复合法 ID，应补唯一性校验 |
 
 RRF 按两路排名计算 `Σ 1/(60+rank)`，每路上限 50，权威回查后最终至多 15 条；当前重排为 `retrieval.py::_rerank` 中的规则分数，没有独立 reranker 模型。查询 Embedding 失败时可继续词法召回，版本获取/索引异常进入 Business fallback；正常空召回不一定触发 fallback。
@@ -27,7 +27,7 @@ RRF 按两路排名计算 `Σ 1/(60+rank)`，每路上限 50，权威回查后�
 
 - Business `backend/business/client/src/main/java/top/zhaizz/client/util/SeasonUtil.java` 使用冬季=1–3 月、春季=4–6 月、夏季=7–9 月、秋季=10–12 月。
 - Python `app/rag/query_planner.py`、`app/rag/retrieval.py`、`app/adapters/redis/subject_index.py` 当前把 spring/summer/autumn/winter 映射为 1/2/3/4。跨层季度条件存在偏差，修复时需一起检查 indexer 数字季度与历史索引，不能单改 Prompt。
-- `use_case.py::_infer_air_status` 仅以首播日期推断：未来 UPCOMING、其余 FINISHED、无法解析 UNKNOWN，不产生 AIRING。不得依据该输出声称作品已完结或仍在播；需要权威播出状态或更完整证据。
+- `use_case.py::_infer_air_status` 优先采用 Evidence/详情中的显式 `airStatus`；只有未来首播日期可推断为 UPCOMING，过去日期在缺少权威状态时为 UNKNOWN，不产生 AIRING。不得依据单个首播日期声称作品已完结或仍在播。
 
 ### 配置和 CLI
 

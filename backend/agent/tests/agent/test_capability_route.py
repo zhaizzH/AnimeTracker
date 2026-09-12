@@ -1,23 +1,14 @@
 from types import SimpleNamespace
 
-from app.agent.graph import _capability_agent, _is_rag_capability_question, _route_from_entry
-from app.agent.runtime import _NON_CHINESE_THINKING_FALLBACK, agent_stream
+from app.agent.client.gateway import (
+    _is_explicit_confirmation,
+    _is_explicit_recommendation_request,
+)
+from app.agent.graph import _route_from_entry
+from app.agent.runtime import agent_stream
 
 
-def test_rag_capability_question_uses_deterministic_route() -> None:
-    state = {"current_question": "你有 RAG 功能吗？"}
-
-    assert _is_rag_capability_question(state["current_question"])
-    assert _route_from_entry(state) == "capability_agent"
-    assert "具备 RAG 工具能力" in _capability_agent(state)["result"]
-
-
-def test_rag_implementation_question_still_uses_normal_router() -> None:
-    assert not _is_rag_capability_question("RAG 功能是怎么实现的？")
-    assert _route_from_entry({"current_question": "RAG 功能是怎么实现的？"}) == "gateway_router"
-
-
-def test_admin_capability_question_stays_in_admin_agent() -> None:
+def test_admin_entry_routes_to_admin_agent() -> None:
     state = {
         "current_question": "你支持 RAG 吗？",
         "user": SimpleNamespace(role="ADMIN"),
@@ -26,13 +17,42 @@ def test_admin_capability_question_stays_in_admin_agent() -> None:
     assert _route_from_entry(state) == "admin_agent"
 
 
-def test_english_reasoning_is_not_exposed_to_sse() -> None:
+def test_user_entry_routes_to_gateway_router() -> None:
+    state = {
+        "current_question": "搜索科幻动画",
+        "user": SimpleNamespace(role="USER"),
+    }
+
+    assert _route_from_entry(state) == "gateway_router"
+
+
+def test_explicit_recommendation_request_is_detectable() -> None:
+    assert _is_explicit_recommendation_request("搜索评分高的动画，然后加入想看")
+    assert not _is_explicit_recommendation_request("搜索评分高的动画")
+    assert not _is_explicit_recommendation_request("不要加入想看")
+
+
+def test_confirmation_phrase_is_checked_before_negation_markers() -> None:
+    assert _is_explicit_confirmation("没问题")
+    assert _is_explicit_confirmation("确认？")
+    assert not _is_explicit_confirmation("不要执行")
+
+
+def test_reasoning_chunks_keep_word_boundaries() -> None:
     class FakeAgent:
         async def astream(self, _payload, stream_mode):
             assert stream_mode == ["messages", "values"]
             yield (
                 "messages",
-                (SimpleNamespace(content="", reasoning_content="I should inspect the tools."), {"langgraph_node": "model"}),
+                (SimpleNamespace(content="", reasoning_content="I "), {"langgraph_node": "model"}),
+            )
+            yield (
+                "messages",
+                (SimpleNamespace(content="", reasoning_content="will "), {"langgraph_node": "model"}),
+            )
+            yield (
+                "messages",
+                (SimpleNamespace(content="", reasoning_content="search"), {"langgraph_node": "model"}),
             )
             yield (
                 "messages",
@@ -47,6 +67,6 @@ def test_english_reasoning_is_not_exposed_to_sse() -> None:
         on_thinking_delta=visible_thinking.append,
     )
 
-    assert visible_thinking == [_NON_CHINESE_THINKING_FALLBACK]
-    assert result["streamed_thinking"] == _NON_CHINESE_THINKING_FALLBACK
+    assert visible_thinking == ["I ", "will ", "search"]
+    assert result["streamed_thinking"] == "I will search"
     assert result["streamed_text"] == "中文答案"

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ClientLayout } from '../layouts/ClientLayout';
 import Agent from '../pages/Agent';
+import { AgentChatProvider, AgentConversation } from '../components/AgentChat';
 import { useAgentChat } from '@shared';
 
 const chat = {
@@ -54,7 +55,12 @@ const realGetComputedStyle = window.getComputedStyle;
 beforeAll(() => {
   vi.spyOn(window, 'getComputedStyle').mockImplementation((element) => realGetComputedStyle(element));
 });
-beforeEach(() => vi.mocked(useAgentChat).mockClear());
+beforeEach(() => {
+  chat.streaming = false;
+  chat.stop.mockClear();
+  vi.mocked(useAgentChat).mockClear();
+  vi.mocked(useAgentChat).mockImplementation(() => chat);
+});
 afterEach(() => {
   cleanup();
   authState.user = { ...authState.user, id: 1, username: 'tester' };
@@ -140,5 +146,16 @@ describe('全局 AI 助手浮窗', () => {
     renderApp('/agent/');
     expect(screen.queryByRole('button', { name: '打开 AI 助手' })).toBeNull();
     await waitFor(() => expect(vi.mocked(useAgentChat).mock.calls.some(([, options]) => options?.enabled === true)).toBe(true));
+  });
+
+  it('流式期间显示停止按钮并调用 stop', async () => {
+    const user = userEvent.setup();
+    vi.mocked(useAgentChat).mockImplementation(() => ({ ...chat, streaming: true }));
+    render(<AgentChatProvider><AgentConversation /></AgentChatProvider>);
+
+    const stopButton = await screen.findByRole('button', { name: /停\s*止/ });
+    await user.click(stopButton);
+
+    expect(chat.stop).toHaveBeenCalledTimes(1);
   });
 });

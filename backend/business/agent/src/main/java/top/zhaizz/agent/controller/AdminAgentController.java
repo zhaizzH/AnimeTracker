@@ -14,6 +14,7 @@ import static top.zhaizz.common.constant.AgentApiPaths.*;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.UncheckedIOException;
 import java.util.Map;
 
 /**
@@ -83,14 +84,23 @@ public class AdminAgentController {
      */
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public void stream(@RequestHeader("Authorization") String auth, @RequestBody Map<String, Object> body, HttpServletResponse response) throws IOException {
-        response.setContentType(MediaType.TEXT_EVENT_STREAM_VALUE);
-        response.setCharacterEncoding("UTF-8");
-        PrintWriter writer = response.getWriter();
+        final PrintWriter[] writerRef = new PrintWriter[1];
         agentService.stream(ADMIN_CHAT_STREAM, HttpMethod.POST, auth, body, line -> {
-            writer.write(line + "\n");
-            writer.flush();
+            try {
+                if (writerRef[0] == null) {
+                    response.setContentType(MediaType.TEXT_EVENT_STREAM_VALUE);
+                    response.setCharacterEncoding("UTF-8");
+                    writerRef[0] = response.getWriter();
+                }
+                writerRef[0].write(line + "\n");
+                writerRef[0].flush();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         });
-        writer.close();
+        if (writerRef[0] != null) {
+            writerRef[0].close();
+        }
     }
 
     /**

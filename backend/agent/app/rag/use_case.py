@@ -47,7 +47,10 @@ class RetrieveSubjectsUseCase:
         evidence = candidate.evidence if isinstance(candidate.evidence, Mapping) else {}
         title = str(details.get("nameCn") or details.get("name") or candidate.title)
         air_date = evidence.get("airDate") or details.get("airDate")
-        air_status = _infer_air_status(air_date)
+        air_status = _infer_air_status(
+            air_date,
+            evidence.get("airStatus") or details.get("airStatus"),
+        )
         source_time = evidence.get("sourceFetchedAt") or evidence.get("sourceTime")
         source_fetched_at = _parse_datetime(source_time)
         source_refs = _source_refs(candidate, evidence)
@@ -66,6 +69,7 @@ class RetrieveSubjectsUseCase:
             "score": evidence.get("score") or details.get("score"),
             "ratingTotal": evidence.get("ratingTotal") if evidence.get("ratingTotal") is not None else details.get("ratingTotal"),
             "collectionTotal": evidence.get("collectionTotal") if evidence.get("collectionTotal") is not None else details.get("collectionTotal"),
+            "airDate": air_date,
             "airStatus": air_status,
             "sourceFetchedAt": source_fetched_at.isoformat() if source_fetched_at else None,
             "retrievalScore": candidate.retrieval_score,
@@ -74,15 +78,18 @@ class RetrieveSubjectsUseCase:
         }
 
 
-def _infer_air_status(air_date: Any) -> str:
-    """根据播出日期推断播出状态。"""
+def _infer_air_status(air_date: Any, explicit_status: Any = None) -> str:
+    """输出可信播出状态；单个首播日期不足以证明已完结。"""
+    normalized = str(explicit_status or "").upper()
+    if normalized in {"UPCOMING", "AIRING", "FINISHED"}:
+        return normalized
     parsed = _parse_date(air_date)
     if parsed is None:
         return "UNKNOWN"
     today = datetime.today().date()
     if parsed > today:
         return "UPCOMING"
-    return "FINISHED"
+    return "UNKNOWN"
 
 
 def _parse_date(value: Any):

@@ -15,6 +15,7 @@ from app.rag.use_case import RetrieveSubjectsUseCase
 StrictEntityIds = Annotated[list[Annotated[StrictInt, Field(gt=0)]], Field(max_length=50)]
 EntityName = SafeTerm
 EntityKind = Literal["PERSON", "CHARACTER", "ACTOR", "RELATION_SUBJECT"]
+RagToolResult = list[dict[str, Any]] | dict[str, Any]
 
 
 def _anonymous_user() -> UserInfo:
@@ -33,7 +34,7 @@ def build_rag_tools(use_case: RetrieveSubjectsUseCase) -> list[Any]:
         entity_name: EntityName | None = None,
         entity_kind: EntityKind | None = None,
         user: Annotated[UserInfo | None, InjectedState("user")] = None,
-    ) -> list[dict[str, Any]]:
+    ) -> RagToolResult:
         """按番名、别名、自然语言语义和可选人物/角色/声优/关联条目检索。实体名称会先解析为本地 ID。"""
         try:
             keyword = [semantic_query] if len(semantic_query.strip()) <= 48 else []
@@ -69,7 +70,7 @@ def build_rag_tools(use_case: RetrieveSubjectsUseCase) -> list[Any]:
         entity_name: EntityName | None = None,
         entity_kind: EntityKind | None = None,
         user: Annotated[UserInfo | None, InjectedState("user")] = None,
-    ) -> list[dict[str, Any]]:
+    ) -> RagToolResult:
         """优先按年份、季度、评分、标签和播出状态发现符合条件的目录番剧。"""
         try:
             query = RetrievalQuery(
@@ -96,7 +97,13 @@ def build_rag_tools(use_case: RetrieveSubjectsUseCase) -> list[Any]:
     @tool_call_status(display_name="RAG 个性化推荐")
     def rag_recommend_subjects(
         semantic_query: str = "热门动画",
+        year_from: int | None = None,
+        year_to: int | None = None,
+        quarter: Literal["spring", "summer", "autumn", "winter"] | None = None,
+        score_min: float | None = None,
+        rating_total_min: int | None = None,
         meta_tags: list[str] | None = None,
+        air_status: Literal["UPCOMING", "AIRING", "FINISHED"] | None = None,
         person_ids: StrictEntityIds | None = None,
         character_ids: StrictEntityIds | None = None,
         actor_ids: StrictEntityIds | None = None,
@@ -104,12 +111,18 @@ def build_rag_tools(use_case: RetrieveSubjectsUseCase) -> list[Any]:
         entity_name: EntityName | None = None,
         entity_kind: EntityKind | None = None,
         user: Annotated[UserInfo | None, InjectedState("user")] = None,
-    ) -> list[dict[str, Any]]:
+    ) -> RagToolResult:
         """基于当前问题和已登录用户的收藏画像推荐未收藏的目录番剧。"""
         try:
             query = RetrievalQuery(
                 semantic_query=semantic_query or "热门动画",
+                year_from=year_from,
+                year_to=year_to,
+                quarter=quarter,
+                score_min=score_min,
+                rating_total_min=rating_total_min,
                 meta_tags=meta_tags or [],
+                air_status=air_status,
                 person_ids=person_ids or [],
                 character_ids=character_ids or [],
                 actor_ids=actor_ids or [],
@@ -124,8 +137,12 @@ def build_rag_tools(use_case: RetrieveSubjectsUseCase) -> list[Any]:
     return [rag_search_subjects, rag_discover_subjects, rag_recommend_subjects]
 
 
-def _items(result: dict) -> list[dict[str, Any]]:
+def _items(result: dict) -> RagToolResult:
     if not result.get("available"):
-        return []
+        return {
+            "available": False,
+            "reason": str(result.get("reason") or "rag_unavailable"),
+            "items": [],
+        }
     items = result.get("items", [])
     return items if isinstance(items, list) else []

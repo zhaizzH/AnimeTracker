@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import logging
 import time
 from collections.abc import AsyncIterator
@@ -93,6 +94,7 @@ async def stream_agent_events(config: StreamConfig) -> AsyncIterator[AgentEvent]
     first_answer_at: float | None = None
     success = False
     error_type: str | None = None
+    persistence_failed = False
 
     async def produce():
         nonlocal latest_state
@@ -142,23 +144,42 @@ async def stream_agent_events(config: StreamConfig) -> AsyncIterator[AgentEvent]
             if text:
                 if first_answer_at is None:
                     first_answer_at = time.perf_counter()
+                aggregated_answer.append(text)
                 yield AgentEvent(type=AgentEventType.ANSWER, text=text)
 
         if config.on_answer_completed is not None:
             try:
-                await config.on_answer_completed("".join(aggregated_answer), used_tools)
+                callback_result = config.on_answer_completed("".join(aggregated_answer), used_tools)
+                if inspect.isawaitable(callback_result):
+                    await callback_result
             except Exception:
-                pass  # 落库失败不阻塞流结束
+                persistence_failed = True
+                logger.exception("Agent 答案持久化失败")
+                yield AgentEvent(
+                    type=AgentEventType.STATUS,
+                    state="error",
+                    message="回答保存失败，请稍后重试",
+                    meta={"persistence": "answer", "success": False},
+                )
 
         if config.on_pending_action is not None:
             try:
                 event = get_pending_action_event()
                 if event is not None:
-                    await config.on_pending_action(event)
+                    callback_result = config.on_pending_action(event)
+                    if inspect.isawaitable(callback_result):
+                        await callback_result
             except Exception:
-                pass  # 待确认动作持久化失败不阻塞流结束
+                persistence_failed = True
+                logger.exception("Agent 待确认动作持久化失败")
+                yield AgentEvent(
+                    type=AgentEventType.STATUS,
+                    state="error",
+                    message="待确认动作保存失败，请重试",
+                    meta={"persistence": "pending_action", "success": False},
+                )
+        success = not has_error and not persistence_failed
         yield AgentEvent(type=AgentEventType.END)
-        success = not has_error
     except asyncio.CancelledError:
         error_type = "CLIENT_DISCONNECTED"
         success = False

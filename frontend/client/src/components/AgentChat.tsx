@@ -54,7 +54,7 @@ function ThinkingCollapse({ text, streaming }: { text: string; streaming: boolea
 
 export function AgentConversation() {
   const { activate, chat } = useClientAgentChat();
-  const { messages, activeId, health, streaming, ready, send } = chat;
+  const { messages, activeId, health, streaming, ready, send, stop } = chat;
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -101,7 +101,14 @@ export function AgentConversation() {
           onChange={(event) => setInput(event.target.value)}
           onPressEnter={submit}
         />
-        <Button type="primary" loading={streaming} disabled={!ready || !activeId} onClick={submit}>发送</Button>
+        <Button
+          type="primary"
+          danger={streaming}
+          disabled={!ready || !activeId}
+          onClick={streaming ? stop : submit}
+        >
+          {streaming ? '停止' : '发送'}
+        </Button>
       </Space.Compact>
     </section>
   );

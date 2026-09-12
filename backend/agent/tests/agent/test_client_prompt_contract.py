@@ -25,3 +25,10 @@ def test_domain_prompts_report_registered_rag_capability() -> None:
         assert tool_name in content
         assert "不得回答“没有 RAG”" in content
         assert "不要猜测或声称当前功能开关状态" in content
+
+
+def test_recommend_prompt_preserves_structured_constraints() -> None:
+    content = (PROMPT_DIR / "recommend_agent_prompt.md").read_text(encoding="utf-8")
+
+    assert "年份、季度、最低评分、最低评分人数或播出状态" in content
+    assert "不得在重试或改写语义查询时丢失这些条件" in content

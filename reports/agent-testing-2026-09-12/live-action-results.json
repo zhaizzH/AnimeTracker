@@ -1,0 +1,348 @@
+{
+  "role": "USER",
+  "checks": [
+    {
+      "path": "/api/client/agent/health",
+      "status": 200,
+      "body": {
+        "code": 200,
+        "message": "success",
+        "data": {
+          "status": "ok",
+          "llm_configured": true
+        }
+      }
+    },
+    {
+      "path": "/api/admin/agent/chat/sessions",
+      "status": 403,
+      "body": {
+        "code": 403,
+        "message": "无权限"
+      }
+    },
+    {
+      "path": "/api/client/agent/sessions/43ea2fd7-3efa-41d2-8922-b0124c287677/history",
+      "status": 404,
+      "body": {
+        "code": 404,
+        "message": "资源不存在"
+      }
+    }
+  ],
+  "cases": [
+    {
+      "name": "preview",
+      "prompt": "请推荐《无职转生 第三季》（站内ID 84），并调用预览加入想看工具，等待确认，禁止执行写入。",
+      "session_id": "2994b8a4-986a-4b73-9241-cb1d63bf1da0",
+      "tools": [
+        {
+          "node": "tool:rag_recommend_subjects",
+          "state": "start",
+          "message": "正在调用 RAG 个性化推荐",
+          "name": "RAG 个性化推荐",
+          "arguments": "{\"semantic_query\": \"无职转生 第三季 异世界 转生 魔法 冒险\", \"relation_subject_ids\": [84], \"entity_name\": \"无职转生 第三季\", \"entity_kind\": \"RELATION_SUBJECT\"}"
+        },
+        {
+          "node": "tool:get_my_collections",
+          "state": "start",
+          "message": "正在调用 查看我的追番列表",
+          "name": "查看我的追番列表",
+          "arguments": "{\"type\": 0, \"page\": 1, \"size\": 20}"
+        },
+        {
+          "node": "tool:rag_recommend_subjects",
+          "state": "end",
+          "message": "RAG 个性化推荐 调用成功",
+          "result": "success",
+          "name": "RAG 个性化推荐"
+        },
+        {
+          "node": "tool:get_my_collections",
+          "state": "end",
+          "message": "查看我的追番列表 调用成功",
+          "result": "success",
+          "name": "查看我的追番列表"
+        },
+        {
+          "node": "tool:rag_recommend_subjects",
+          "state": "start",
+          "message": "正在调用 RAG 个性化推荐",
+          "name": "RAG 个性化推荐",
+          "arguments": "{\"semantic_query\": \"无职转生 异世界转生 魔法 冒险 奇幻 成长\", \"meta_tags\": [\"异世界\", \"奇幻\", \"冒险\"]}"
+        },
+        {
+          "node": "tool:get_my_watch_profile",
+          "state": "start",
+          "message": "正在调用 获取我的观看画像",
+          "name": "获取我的观看画像",
+          "arguments": "{\"cap\": 50}"
+        },
+        {
+          "node": "tool:get_my_watch_profile",
+          "state": "end",
+          "message": "获取我的观看画像 调用成功",
+          "result": "success",
+          "name": "获取我的观看画像"
+        },
+        {
+          "node": "tool:rag_recommend_subjects",
+          "state": "end",
+          "message": "RAG 个性化推荐 调用成功",
+          "result": "success",
+          "name": "RAG 个性化推荐"
+        },
+        {
+          "node": "tool:preview_add_to_wishlist",
+          "state": "start",
+          "message": "正在调用 预览加入想看",
+          "name": "预览加入想看",
+          "arguments": "{\"subjects\": [{\"subjectId\": 84, \"subjectName\": \"无职转生 第三季\"}]}"
+        },
+        {
+          "node": "tool:preview_add_to_wishlist",
+          "state": "end",
+          "message": "预览加入想看 调用成功",
+          "result": "success",
+          "name": "预览加入想看"
+        }
+      ],
+      "events": [
+        {
+          "content": {
+            "node": "tool:rag_recommend_subjects",
+            "state": "start",
+            "message": "正在调用 RAG 个性化推荐",
+            "name": "RAG 个性化推荐",
+            "arguments": "{\"semantic_query\": \"无职转生 第三季 异世界 转生 魔法 冒险\", \"relation_subject_ids\": [84], \"entity_name\": \"无职转生 第三季\", \"entity_kind\": \"RELATION_SUBJECT\"}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194298886
+        },
+        {
+          "content": {
+            "node": "tool:get_my_collections",
+            "state": "start",
+            "message": "正在调用 查看我的追番列表",
+            "name": "查看我的追番列表",
+            "arguments": "{\"type\": 0, \"page\": 1, \"size\": 20}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194298890
+        },
+        {
+          "content": {
+            "node": "tool:rag_recommend_subjects",
+            "state": "end",
+            "message": "RAG 个性化推荐 调用成功",
+            "result": "success",
+            "name": "RAG 个性化推荐"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194299169
+        },
+        {
+          "content": {
+            "node": "tool:get_my_collections",
+            "state": "end",
+            "message": "查看我的追番列表 调用成功",
+            "result": "success",
+            "name": "查看我的追番列表"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194299172
+        },
+        {
+          "content": {
+            "node": "tool:rag_recommend_subjects",
+            "state": "start",
+            "message": "正在调用 RAG 个性化推荐",
+            "name": "RAG 个性化推荐",
+            "arguments": "{\"semantic_query\": \"无职转生 异世界转生 魔法 冒险 奇幻 成长\", \"meta_tags\": [\"异世界\", \"奇幻\", \"冒险\"]}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194303123
+        },
+        {
+          "content": {
+            "node": "tool:get_my_watch_profile",
+            "state": "start",
+            "message": "正在调用 获取我的观看画像",
+            "name": "获取我的观看画像",
+            "arguments": "{\"cap\": 50}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194303124
+        },
+        {
+          "content": {
+            "node": "tool:get_my_watch_profile",
+            "state": "end",
+            "message": "获取我的观看画像 调用成功",
+            "result": "success",
+            "name": "获取我的观看画像"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194303383
+        },
+        {
+          "content": {
+            "node": "tool:rag_recommend_subjects",
+            "state": "end",
+            "message": "RAG 个性化推荐 调用成功",
+            "result": "success",
+            "name": "RAG 个性化推荐"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194306340
+        },
+        {
+          "content": {
+            "node": "tool:preview_add_to_wishlist",
+            "state": "start",
+            "message": "正在调用 预览加入想看",
+            "name": "预览加入想看",
+            "arguments": "{\"subjects\": [{\"subjectId\": 84, \"subjectName\": \"无职转生 第三季\"}]}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194310334
+        },
+        {
+          "content": {
+            "node": "tool:preview_add_to_wishlist",
+            "state": "end",
+            "message": "预览加入想看 调用成功",
+            "result": "success",
+            "name": "预览加入想看"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194310574
+        }
+      ],
+      "status": 200,
+      "content_type": "text/event-stream;charset=UTF-8",
+      "cache_control": "no-cache, no-store, max-age=0, must-revalidate",
+      "first_answer_seconds": 5.3,
+      "ended": true,
+      "answer": "我先按《无职转生 第三季》做关联检索，同时看一下你的收藏情况。第一次关联检索没有命中，我换个方式再试一次。结果如实汇报，两条都没有拿到可用数据：\n\n**推荐候选：空**\n- 以《无职转生 第三季》（ID 84）做关联检索（RELATION_SUBJECT），返回 0 条候选\n- 改用「异世界 / 转生 / 魔法 / 冒险」标签的语义检索，同样返回 0 条候选\n\n因此这次没有带 subjectId 和证据字段的番剧可以推荐给你，我不会编造条目来凑数。\n\n**加入想看预览：生成了，但待确认项为空**\n- 待确认（pendingItems）：空\n- 跳过（skippedItems）：《无职转生 第三季》ID 84 —— 工具返回 `existingType: null`\n\n也就是说，该番没有进入待确认队列，当前没有可执行的写入内容，我也不会执行任何写入。\n\n你的收藏画像现状（供参考）：想看 1 部、在看 1 部、搁置 1 部、抛弃 1 部、看过 2 部。等检索服务能返回候选时，我再基于证据给你出 3-5 部推荐。",
+      "thinking_chunks": 218,
+      "history": [
+        {
+          "role": "user",
+          "content": "请推荐《无职转生 第三季》（站内ID 84），并调用预览加入想看工具，等待确认，禁止执行写入。",
+          "created_at": "2026-09-12T14:24:52.841757"
+        },
+        {
+          "role": "assistant",
+          "content": "我先按《无职转生 第三季》做关联检索，同时看一下你的收藏情况。第一次关联检索没有命中，我换个方式再试一次。结果如实汇报，两条都没有拿到可用数据：\n\n**推荐候选：空**\n- 以《无职转生 第三季》（ID 84）做关联检索（RELATION_SUBJECT），返回 0 条候选\n- 改用「异世界 / 转生 / 魔法 / 冒险」标签的语义检索，同样返回 0 条候选\n\n因此这次没有带 subjectId 和证据字段的番剧可以推荐给你，我不会编造条目来凑数。\n\n**加入想看预览：生成了，但待确认项为空**\n- 待确认（pendingItems）：空\n- 跳过（skippedItems）：《无职转生 第三季》ID 84 —— 工具返回 `existingType: null`\n\n也就是说，该番没有进入待确认队列，当前没有可执行的写入内容，我也不会执行任何写入。\n\n你的收藏画像现状（供参考）：想看 1 部、在看 1 部、搁置 1 部、抛弃 1 部、看过 2 部。等检索服务能返回候选时，我再基于证据给你出 3-5 部推荐。",
+          "tool_calls": [
+            "RAG 个性化推荐",
+            "查看我的追番列表",
+            "获取我的观看画像",
+            "预览加入想看"
+          ],
+          "created_at": "2026-09-12T14:25:16.437654"
+        }
+      ],
+      "history_matches": true,
+      "seconds": 23.62
+    },
+    {
+      "name": "cancel",
+      "prompt": "取消，不要加入想看。",
+      "session_id": "2994b8a4-986a-4b73-9241-cb1d63bf1da0",
+      "tools": [
+        {
+          "node": "tool:cancel_add_to_wishlist",
+          "state": "start",
+          "message": "正在调用 取消加入想看",
+          "name": "取消加入想看",
+          "arguments": "{}"
+        },
+        {
+          "node": "tool:cancel_add_to_wishlist",
+          "state": "end",
+          "message": "取消加入想看 调用成功",
+          "result": "success",
+          "name": "取消加入想看"
+        }
+      ],
+      "events": [
+        {
+          "content": {
+            "node": "tool:cancel_add_to_wishlist",
+            "state": "start",
+            "message": "正在调用 取消加入想看",
+            "name": "取消加入想看",
+            "arguments": "{}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194322142
+        },
+        {
+          "content": {
+            "node": "tool:cancel_add_to_wishlist",
+            "state": "end",
+            "message": "取消加入想看 调用成功",
+            "result": "success",
+            "name": "取消加入想看"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194322143
+        }
+      ],
+      "status": 200,
+      "content_type": "text/event-stream;charset=UTF-8",
+      "cache_control": "no-cache, no-store, max-age=0, must-revalidate",
+      "first_answer_seconds": 7.61,
+      "ended": true,
+      "answer": "已取消加入想看的待确认动作，本地待确认状态已清理，后端没有任何写入。之前那次预览本身也没有产生待确认条目，所以你的收藏列表保持原样。",
+      "thinking_chunks": 16,
+      "history": [
+        {
+          "role": "user",
+          "content": "请推荐《无职转生 第三季》（站内ID 84），并调用预览加入想看工具，等待确认，禁止执行写入。",
+          "created_at": "2026-09-12T14:24:52.841757"
+        },
+        {
+          "role": "assistant",
+          "content": "我先按《无职转生 第三季》做关联检索，同时看一下你的收藏情况。第一次关联检索没有命中，我换个方式再试一次。结果如实汇报，两条都没有拿到可用数据：\n\n**推荐候选：空**\n- 以《无职转生 第三季》（ID 84）做关联检索（RELATION_SUBJECT），返回 0 条候选\n- 改用「异世界 / 转生 / 魔法 / 冒险」标签的语义检索，同样返回 0 条候选\n\n因此这次没有带 subjectId 和证据字段的番剧可以推荐给你，我不会编造条目来凑数。\n\n**加入想看预览：生成了，但待确认项为空**\n- 待确认（pendingItems）：空\n- 跳过（skippedItems）：《无职转生 第三季》ID 84 —— 工具返回 `existingType: null`\n\n也就是说，该番没有进入待确认队列，当前没有可执行的写入内容，我也不会执行任何写入。\n\n你的收藏画像现状（供参考）：想看 1 部、在看 1 部、搁置 1 部、抛弃 1 部、看过 2 部。等检索服务能返回候选时，我再基于证据给你出 3-5 部推荐。",
+          "tool_calls": [
+            "RAG 个性化推荐",
+            "查看我的追番列表",
+            "获取我的观看画像",
+            "预览加入想看"
+          ],
+          "created_at": "2026-09-12T14:25:16.437654"
+        },
+        {
+          "role": "user",
+          "content": "取消，不要加入想看。",
+          "created_at": "2026-09-12T14:25:16.476099"
+        },
+        {
+          "role": "assistant",
+          "content": "已取消加入想看的待确认动作，本地待确认状态已清理，后端没有任何写入。之前那次预览本身也没有产生待确认条目，所以你的收藏列表保持原样。",
+          "tool_calls": [
+            "取消加入想看"
+          ],
+          "created_at": "2026-09-12T14:25:24.261351"
+        }
+      ],
+      "history_matches": true,
+      "seconds": 7.83
+    }
+  ]
+}

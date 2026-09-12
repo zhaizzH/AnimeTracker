@@ -12,7 +12,7 @@ use_case._compact 现在输出完整的证据字段，包括：
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from typing import Any, Mapping, Sequence
 
@@ -60,7 +60,15 @@ class TestEvidenceCandidateOutput:
 
     def test_compact_has_air_status(self):
         compact = RetrieveSubjectsUseCase._compact(_evidence_candidate())
-        assert compact["airStatus"] in {"UPCOMING", "AIRING", "FINISHED", "UNKNOWN"}
+        # A first-air date alone cannot prove that a series has finished.
+        assert compact["airStatus"] == "UNKNOWN"
+        assert compact["airDate"] == "2024-01-01"
+
+    def test_compact_preserves_explicit_air_status(self):
+        candidate = _evidence_candidate()
+        candidate = replace(candidate, evidence={**candidate.evidence, "airStatus": "FINISHED"})
+        compact = RetrieveSubjectsUseCase._compact(candidate)
+        assert compact["airStatus"] == "FINISHED"
 
     def test_compact_has_source_fetched_at(self):
         compact = RetrieveSubjectsUseCase._compact(_evidence_candidate())
@@ -85,6 +93,7 @@ class TestEvidenceCandidateOutput:
         assert compact["matchedTags"] == []
         assert compact["matchedCredits"] == []
         assert compact["sourceRefs"] == ["https://bgm.tv/subject/2"]
+        assert compact["airStatus"] == "UNKNOWN"
 
 
 class TestBusinessVerificationRequired:

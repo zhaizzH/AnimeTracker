@@ -47,12 +47,19 @@ def _normalize_history_messages(history_messages: list[Any] | str | None) -> lis
 
 def _extract_reasoning_content_from_chunk(chunk: Any) -> str:
     parts: list[str] = []
+    seen: set[str] = set()
     for raw in (
         getattr(chunk, "reasoning_content", None),
         (getattr(chunk, "additional_kwargs", None) or {}).get("reasoning_content"),
     ):
-        if isinstance(raw, str) and raw.strip() and raw.strip() not in parts:
-            parts.append(raw.strip())
+        if not isinstance(raw, str):
+            continue
+        normalized = raw.strip()
+        if normalized and normalized not in seen:
+            # Preserve chunk boundaries and intentional spaces.  Only blank
+            # chunks and exact duplicate payloads are discarded.
+            parts.append(raw)
+            seen.add(normalized)
     return "".join(parts)
 
 

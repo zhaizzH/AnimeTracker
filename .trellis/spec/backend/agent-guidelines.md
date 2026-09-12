@@ -12,7 +12,7 @@
 - 2026-09-09 历史记录确认 v1 `subject-profile-v1` release 激活及 24 小时灰度/回滚，但本次源码审计不证明当前运行数据库状态；`RAG_ENABLED` 代码默认仍为 `false`。完整发布、灰度和回滚契约见 [RAG 检索与版本发布契约](./rag-retrieval-contract.md)。
 - 通过权威回查的候选必须经 Evidence API 补充证据字段（`_enrich_evidence`）；Evidence 失败、错误、部分或不安全响应时必须 fail-closed（`available=false`、空候选），并记录 `rag.evidence.enriched` 事件。
 - `RetrievalQuery` 的 `person_ids`、`character_ids`、`actor_ids`、`relation_subject_ids` 只能通过 Business `/api/client/evidence/resolve` 解析为活跃、非 NSFW 动画 Subject allowlist；解析失败不得访问 Redis 或返回未过滤候选。
-- Agent 提示词禁止陈述工具返回中不存在的证据；`app/rag/use_case.py::_compact` 当前输出 19 个键，包含来源、匹配事实和检索解释。字段清单以该函数与 `tests/rag/test_evidence_contract.py` 核对，缺项按字段使用空列表、空字符串或 None；不能用旧字段数量代替契约检查。
+- Agent 提示词禁止陈述工具返回中不存在的证据；`app/rag/use_case.py::_compact` 当前输出 20 个键，包含 `airDate`、播出状态、来源、匹配事实和检索解释。字段清单以该函数与 `tests/rag/test_evidence_contract.py` 核对，缺项按字段使用空列表、空字符串或 None；不能用旧字段数量代替契约检查。
 - 故障矩阵必须在测试中覆盖：Redis/Embedding/Business/Evidence 每层独立故障与组合故障，证明 fail-closed 或既定降级行为。
 - 词法响应中的 `indexVersion` 是在线语义查询的唯一版本来源；不得使用配置默认版本或 Redis alias 猜测 active 版本。灰度异常时先关闭功能开关，再通过 MySQL release store 切回已验证 release，旧投影在回滚窗口结束前保留。
 
@@ -169,7 +169,7 @@ allowed = resolve_evidence(match.entity_kind, ids, token=token)
 
 ### 待确认动作持久化失败矩阵
 
-`streaming.py` 当前会捕获 `on_pending_action` 异常并继续发送结束事件；这是已知安全债务，不得被新代码复制。任何新增或修改必须满足以下契约：
+`streaming.py` 会记录并报告 `on_pending_action` 异常，然后继续发送结束事件；调用方必须依据 `status` 错误事件执行重试提示，不能把动作宣告为已持久化。任何新增或修改必须满足以下契约：
 
 | 条件 | 必须行为 |
 |---|---|

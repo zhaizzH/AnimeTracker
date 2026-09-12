@@ -1,6 +1,6 @@
 # Agent 角色、提示词与流式输出契约
 
-源码核对：2026-09-10。适用于能力自述、中文输出、日期工具、Prompt 热更新及聊天 SSE 排障。
+源码核对：2026-09-12。适用于能力自述、中文输出、日期工具、Prompt 热更新及聊天 SSE 排障。
 
 ## 角色与工具是能力判断的依据
 
@@ -33,9 +33,9 @@
 
 当前链路：`agent_factory.py` 捕获供应商 reasoning → `runtime.py::_extract_reasoning_content_from_chunk` → `run.py` 回调 → `app/chat/event_sink.py` → `app/chat/streaming.py` → 前端。
 
-已知限制：
+当前行为与限制：
 
-- `runtime.py` 对每个 reasoning chunk 调用 `strip()` 后拼接，英文分词块的首尾空格会丢失，可能出现连续单词；不能据此断定模型原始输出没有空格。
+- `runtime.py` 保留非空 reasoning chunk 的原始首尾空格，只丢弃空块和规范化后完全重复的 payload；不能据此断定模型原始输出一定为中文。
 - 没有英文检测、中文翻译或中文状态替换；不得宣称 SSE 保证只输出中文。
 - `agent_stream` 一旦收到正文就置 `is_answering=true`，后续 reasoning 不再输出；多个模型轮次的正文会串接，可能同时包含工具前说明和最终回答。
 - `ChatService` 保存回答与工具名；前端加载历史仅恢复 role/content，不恢复 thinking。
@@ -52,6 +52,5 @@
 ## 验证与当前测试缺口
 
 - `tests/agent/test_client_prompt_contract.py` 仅验证三个本地 Prompt 包含指定文字；不验证管理员、Redis 覆盖、模型遵循程度或 SSE 展示。
-- `tests/agent/test_capability_route.py` 引用了当前缺失的 `_capability_agent`、`_is_rag_capability_question`、`_NON_CHINESE_THINKING_FALLBACK`，完整 pytest 在收集阶段失败。该文件不能作为功能已实现的证据。
-- 后续修复需覆盖角色路由、Prompt 缓存更新、reasoning 空格保留、跨工具轮次事件、日期先后依赖及真实模型回放；mock/静态测试和真实模型行为必须分别报告。
-- SSE 兜底最终回答目前未加入 `aggregated_answer`，可能显示成功但保存为空；回调异常还会被捕获。新增确定性节点必须同时验证展示与历史保存，见 `app/chat/streaming.py::stream_agent_events`。
+- `tests/agent/test_capability_route.py` 当前按 entry/gateway/runtime 契约验证角色路由、显式动作、确认词和 reasoning 空格；Prompt 字符串测试仍不代表模型一定遵循指令。
+- `stream_agent_events` 的兜底文本与正常增量共用聚合缓冲区；答案或待确认动作持久化失败会记录异常并发出 `status` 错误事件，随后安全发送 `end`。真实 Redis/Business 故障与模型回放仍需单独验证。
