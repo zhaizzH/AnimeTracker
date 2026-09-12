@@ -22,9 +22,9 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 
 ## 当前测试基线
 
-2026-09-10 源码审计实测：在 `backend/agent` 执行 `.\.venv\Scripts\python.exe -m pytest -q`，因 `tests/agent/test_capability_route.py` 导入不存在的 `_capability_agent` 而在收集阶段失败。后续还有对 `_is_rag_capability_question` 与 `_NON_CHINESE_THINKING_FALLBACK` 的缺失引用。必须先恢复实现/测试一致性再报告全量通过；本次仅更新规范，未修改业务代码或测试。
+2026-09-10 的历史审计曾因 `tests/agent/test_capability_route.py` 导入缺失符号而收集失败；该测试已按当前 graph/runtime 契约重写。
 
-为隔离该既有失败，额外执行 `python -m pytest -q --ignore=tests/agent/test_capability_route.py`，结果 `271 passed`。这是排除一个文件后的诊断结果，不能当成 CI 或全量门禁通过。运行环境为已有 Agent `.venv`。
+2026-09-12 最终复核在 `backend/agent` 执行 `\.venv\Scripts\python.exe -m pytest`，结果为 284 passed；运行环境为已有 Agent `.venv`。此前 271 passed 是排除失效测试文件后的历史诊断数，不替代本次结果。
 
 - Java `app` 模块包含配置迁移回归测试：`AppConfigurationBindingTest`、`SecurityConfigAuthorizationTest`、`CookieOriginFilterTest`、`AgentConfigTest` 与 `ArchitectureBoundaryTest`。
 - Python 已有 importer、indexer gate、shadow eval、release store、容量报告和 RAG 故障矩阵回归用例；任务归档的 2026-09-07 证据为 Agent `268 passed, 1 deselected`、Business `37` tests。该数字是带日期的历史验证，不替代本次变更重新运行测试。
@@ -37,8 +37,8 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 
 ## 已知覆盖债务
 
-- Java 尚无认证刷新、收藏进度事务、管理写操作和完整 Controller 集成回归。
-- Python 尚无 Agent 图路由、SSE 断开、PendingAction 持久化失败、真实 Redis/Business/Embedding 集成、灰度告警采集、importer 锁/恢复和 scheduler 重叠场景的完整自动化覆盖。
+- Java 尚无认证刷新、收藏进度事务、管理写操作和完整 Controller 集成回归；本任务新增的两个 SSE 控制器单测不替代真实代理集成。
+- Python 已有 Agent 图路由、SSE 持久化失败单测，但尚无 SSE 断开、真实 Redis/Business/Embedding 集成、灰度告警采集、importer 锁/恢复和 scheduler 重叠场景的完整自动化覆盖。
 - 当前测试基线只能证明列出的配置与指标用例通过，不能替代上述高风险路径；新改动必须按风险补测试。
 
 ## Scenario: RAG 发布完成与灰度质量证据

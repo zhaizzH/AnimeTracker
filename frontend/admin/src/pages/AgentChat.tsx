@@ -29,7 +29,7 @@ export default function AgentChat() {
     streamBody: adminAgentApi.chatStreamBody,
     streamUrl: '/api/admin/agent/chat/stream',
   };
-  const { messages, sessions, activeId, streaming, send, select, create, remove } = useAgentChat(api);
+  const { messages, sessions, activeId, streaming, send, stop, select, create, remove } = useAgentChat(api);
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -67,7 +67,14 @@ export default function AgentChat() {
         </div>
         <Space.Compact style={{ width: '100%' }}>
           <Input placeholder="输入消息…" value={input} onChange={(e) => setInput(e.target.value)} onPressEnter={submit} disabled={streaming} />
-          <Button type="primary" disabled={streaming || !input.trim()} onClick={submit}>发送</Button>
+          <Button
+            type="primary"
+            danger={streaming}
+            disabled={!streaming && !input.trim()}
+            onClick={streaming ? stop : submit}
+          >
+            {streaming ? '停止' : '发送'}
+          </Button>
         </Space.Compact>
       </Content>
     </Layout>

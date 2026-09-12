@@ -1,0 +1,79 @@
+[
+  {
+    "suite": "securitytest.SecurityConfigAuthorizationTest",
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "top.zhaizz.app.architecture.ArchitectureBoundaryTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "top.zhaizz.app.config.AgentConfigTest",
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "top.zhaizz.app.config.AppConfigurationBindingTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "top.zhaizz.app.config.MyBatisEntityAliasTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "top.zhaizz.app.security.CookieOriginFilterTest",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "top.zhaizz.client.controller.EvidenceControllerTest",
+    "tests": 9,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "top.zhaizz.client.mapper.EvidenceMapperSqlCompatibilityTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "top.zhaizz.client.mapper.SubjectMapperLexicalSqlCompatibilityTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "top.zhaizz.client.service.impl.ClientSubjectServiceLexicalTest",
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  {
+    "suite": "top.zhaizz.client.service.impl.EvidenceServiceImplTest",
+    "tests": 10,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  }
+]

@@ -1,0 +1,1049 @@
+{
+  "role": "USER",
+  "checks": [
+    {
+      "path": "/api/client/agent/health",
+      "status": 200,
+      "body": {
+        "code": 200,
+        "message": "success",
+        "data": {
+          "status": "ok",
+          "llm_configured": true
+        }
+      }
+    },
+    {
+      "path": "/api/admin/agent/chat/sessions",
+      "status": 403,
+      "body": {
+        "code": 403,
+        "message": "无权限"
+      }
+    },
+    {
+      "path": "/api/client/agent/sessions/06bee514-e6fe-4abf-a30e-fa4501ad609c/history",
+      "status": 404,
+      "body": {
+        "code": 404,
+        "message": "资源不存在"
+      }
+    }
+  ],
+  "cases": [
+    {
+      "name": "search",
+      "prompt": "帮我搜索《无职转生 第三季》，给出站内条目和评分，只依据查询结果。",
+      "session_id": "2969c38a-01ad-4379-8c72-ef4d5d54a135",
+      "tools": [
+        {
+          "node": "tool:rag_search_subjects",
+          "state": "start",
+          "message": "正在调用 RAG 搜索番剧",
+          "name": "RAG 搜索番剧",
+          "arguments": "{\"semantic_query\": \"无职转生 第三季\"}"
+        },
+        {
+          "node": "tool:rag_search_subjects",
+          "state": "end",
+          "message": "RAG 搜索番剧 调用成功",
+          "result": "success",
+          "name": "RAG 搜索番剧"
+        }
+      ],
+      "events": [
+        {
+          "content": {
+            "node": "tool:rag_search_subjects",
+            "state": "start",
+            "message": "正在调用 RAG 搜索番剧",
+            "name": "RAG 搜索番剧",
+            "arguments": "{\"semantic_query\": \"无职转生 第三季\"}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789193979819
+        },
+        {
+          "content": {
+            "node": "tool:rag_search_subjects",
+            "state": "end",
+            "message": "RAG 搜索番剧 调用成功",
+            "result": "success",
+            "name": "RAG 搜索番剧"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789193982230
+        }
+      ],
+      "status": 200,
+      "content_type": "text/event-stream;charset=UTF-8",
+      "cache_control": "no-cache, no-store, max-age=0, must-revalidate",
+      "first_answer_seconds": 10.3,
+      "ended": true,
+      "answer": "已按站内目录检索，最匹配的条目如下：\n\n**《无职转生 第三季 ～到了异世界就拿出真本事～》**\n- 站内条目 ID：84\n- 原名：無職転生Ⅲ ～異世界行ったら本気だす～\n- 评分：7.9（评分人数 3709）\n- 收藏人数：1351\n- 放送状态：已完结（FINISHED）\n- 标签：TV、冒险、后宫、奇幻、小说改、日本\n- 简介摘要（官方）：讲述 34 岁童贞无职家里蹲男被赶出家门后遭卡车撞死，转生到剑与魔法的异世界成为婴儿，作为少年鲁迪乌斯发誓要认真活一世的剧情开头部分。\n- 主创/制作（据返回中标注为主创的名单）：原作 理不尽な孫の手，制作公司 スタジオバインド，另有渋谷亮介、谷内直人、高山淳史、漆原虹平标注为 MAIN\n- 主要角色（标注为 MAIN）：ルーデウス・グレイラット、シルフィエット・グレイラット、エリス・グレイラット、ロキシー・ミグルディア・グレイラット\n- 来源引用：bangumi.tv/subject/501963\n\n同一次检索还返回了三部仅因「第三季」字面相近而命中的条目，与你要找的作品无关，供参考：\n- 《碧蓝之海 第三季》（ID 36，评分 7.1，评分人数 1298）\n- 《超超超超超喜欢你的100个女朋友 第三季》（ID 44，评分 7.5，评分人数 1142）\n- 《时光代理人 第三季 Part 1》（ID 181，无评分，评分人数 33）\n\n因此真正符合「无职转生 第三季」的候选只有上述 ID 84 这一条，其余不是同一部作品，未作凑数。",
+      "thinking_chunks": 391,
+      "history": [
+        {
+          "role": "user",
+          "content": "帮我搜索《无职转生 第三季》，给出站内条目和评分，只依据查询结果。",
+          "created_at": "2026-09-12T14:19:36.494894"
+        },
+        {
+          "role": "assistant",
+          "content": "已按站内目录检索，最匹配的条目如下：\n\n**《无职转生 第三季 ～到了异世界就拿出真本事～》**\n- 站内条目 ID：84\n- 原名：無職転生Ⅲ ～異世界行ったら本気だす～\n- 评分：7.9（评分人数 3709）\n- 收藏人数：1351\n- 放送状态：已完结（FINISHED）\n- 标签：TV、冒险、后宫、奇幻、小说改、日本\n- 简介摘要（官方）：讲述 34 岁童贞无职家里蹲男被赶出家门后遭卡车撞死，转生到剑与魔法的异世界成为婴儿，作为少年鲁迪乌斯发誓要认真活一世的剧情开头部分。\n- 主创/制作（据返回中标注为主创的名单）：原作 理不尽な孫の手，制作公司 スタジオバインド，另有渋谷亮介、谷内直人、高山淳史、漆原虹平标注为 MAIN\n- 主要角色（标注为 MAIN）：ルーデウス・グレイラット、シルフィエット・グレイラット、エリス・グレイラット、ロキシー・ミグルディア・グレイラット\n- 来源引用：bangumi.tv/subject/501963\n\n同一次检索还返回了三部仅因「第三季」字面相近而命中的条目，与你要找的作品无关，供参考：\n- 《碧蓝之海 第三季》（ID 36，评分 7.1，评分人数 1298）\n- 《超超超超超喜欢你的100个女朋友 第三季》（ID 44，评分 7.5，评分人数 1142）\n- 《时光代理人 第三季 Part 1》（ID 181，无评分，评分人数 33）\n\n因此真正符合「无职转生 第三季」的候选只有上述 ID 84 这一条，其余不是同一部作品，未作凑数。",
+          "tool_calls": [
+            "RAG 搜索番剧"
+          ],
+          "created_at": "2026-09-12T14:19:48.483879"
+        }
+      ],
+      "history_matches": true,
+      "seconds": 12.02
+    },
+    {
+      "name": "search_followup",
+      "prompt": "它一共有多少集？请查询后回答，不要猜测。",
+      "session_id": "2969c38a-01ad-4379-8c72-ef4d5d54a135",
+      "tools": [
+        {
+          "node": "tool:get_episodes",
+          "state": "start",
+          "message": "正在调用 查看剧集列表",
+          "name": "查看剧集列表",
+          "arguments": "{\"subject_id\": 84}"
+        },
+        {
+          "node": "tool:get_episodes",
+          "state": "end",
+          "message": "查看剧集列表 调用成功",
+          "result": "success",
+          "name": "查看剧集列表"
+        }
+      ],
+      "events": [
+        {
+          "content": {
+            "node": "tool:get_episodes",
+            "state": "start",
+            "message": "正在调用 查看剧集列表",
+            "name": "查看剧集列表",
+            "arguments": "{\"subject_id\": 84}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789193992582
+        },
+        {
+          "content": {
+            "node": "tool:get_episodes",
+            "state": "end",
+            "message": "查看剧集列表 调用成功",
+            "result": "success",
+            "name": "查看剧集列表"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789193992839
+        }
+      ],
+      "status": 200,
+      "content_type": "text/event-stream;charset=UTF-8",
+      "cache_control": "no-cache, no-store, max-age=0, must-revalidate",
+      "first_answer_seconds": 7.73,
+      "ended": true,
+      "answer": "已查询该条目的剧集列表（subject_id 84），结果如下：\n\n站内共收录 **14 集**，每集时长均为 23 分 40 秒，首播日期从 2026-07-04 起按周排列至 2026-09-27。\n\n已公开标题的剧集：\n1. 燃烧吧，狂犬（2026-07-04，状态 Air）\n2. 咆哮吧，狂犬（2026-07-04，Air）\n3. 回归熟悉的日常（2026-07-12，Air）\n4. 水王级魔术师（2026-07-19，Air）\n5. 庆祝（2026-07-26，Air）\n6. 再度面临修罗场？（2026-08-02，Air）\n7. 第四阶段（2026-08-09，Air）\n8. 空中要塞（2026-08-16，Air）\n9. 恸哭（2026-08-23，Air）\n10. 晋见不死魔王（2026-08-30，Air）\n11. 转折点4（2026-09-06，Air）\n12. 结束与开始（2026-09-13，状态 NA，无简介）\n\n另外第 13 集（2026-09-20）和第 14 集（2026-09-27）在站内尚无标题、无简介，状态为 NA。\n\n需要说明的是，前一次查询的条目详情显示该番状态为「已完结」，而剧集列表中存在标题与简介为空、状态为 NA 的条目，这两处信息口径不一致。以上数字仅来自剧集接口返回的条目数，未作任何推测或补写。",
+      "thinking_chunks": 141,
+      "history": [
+        {
+          "role": "user",
+          "content": "帮我搜索《无职转生 第三季》，给出站内条目和评分，只依据查询结果。",
+          "created_at": "2026-09-12T14:19:36.494894"
+        },
+        {
+          "role": "assistant",
+          "content": "已按站内目录检索，最匹配的条目如下：\n\n**《无职转生 第三季 ～到了异世界就拿出真本事～》**\n- 站内条目 ID：84\n- 原名：無職転生Ⅲ ～異世界行ったら本気だす～\n- 评分：7.9（评分人数 3709）\n- 收藏人数：1351\n- 放送状态：已完结（FINISHED）\n- 标签：TV、冒险、后宫、奇幻、小说改、日本\n- 简介摘要（官方）：讲述 34 岁童贞无职家里蹲男被赶出家门后遭卡车撞死，转生到剑与魔法的异世界成为婴儿，作为少年鲁迪乌斯发誓要认真活一世的剧情开头部分。\n- 主创/制作（据返回中标注为主创的名单）：原作 理不尽な孫の手，制作公司 スタジオバインド，另有渋谷亮介、谷内直人、高山淳史、漆原虹平标注为 MAIN\n- 主要角色（标注为 MAIN）：ルーデウス・グレイラット、シルフィエット・グレイラット、エリス・グレイラット、ロキシー・ミグルディア・グレイラット\n- 来源引用：bangumi.tv/subject/501963\n\n同一次检索还返回了三部仅因「第三季」字面相近而命中的条目，与你要找的作品无关，供参考：\n- 《碧蓝之海 第三季》（ID 36，评分 7.1，评分人数 1298）\n- 《超超超超超喜欢你的100个女朋友 第三季》（ID 44，评分 7.5，评分人数 1142）\n- 《时光代理人 第三季 Part 1》（ID 181，无评分，评分人数 33）\n\n因此真正符合「无职转生 第三季」的候选只有上述 ID 84 这一条，其余不是同一部作品，未作凑数。",
+          "tool_calls": [
+            "RAG 搜索番剧"
+          ],
+          "created_at": "2026-09-12T14:19:48.483879"
+        },
+        {
+          "role": "user",
+          "content": "它一共有多少集？请查询后回答，不要猜测。",
+          "created_at": "2026-09-12T14:19:48.533984"
+        },
+        {
+          "role": "assistant",
+          "content": "已查询该条目的剧集列表（subject_id 84），结果如下：\n\n站内共收录 **14 集**，每集时长均为 23 分 40 秒，首播日期从 2026-07-04 起按周排列至 2026-09-27。\n\n已公开标题的剧集：\n1. 燃烧吧，狂犬（2026-07-04，状态 Air）\n2. 咆哮吧，狂犬（2026-07-04，Air）\n3. 回归熟悉的日常（2026-07-12，Air）\n4. 水王级魔术师（2026-07-19，Air）\n5. 庆祝（2026-07-26，Air）\n6. 再度面临修罗场？（2026-08-02，Air）\n7. 第四阶段（2026-08-09，Air）\n8. 空中要塞（2026-08-16，Air）\n9. 恸哭（2026-08-23，Air）\n10. 晋见不死魔王（2026-08-30，Air）\n11. 转折点4（2026-09-06，Air）\n12. 结束与开始（2026-09-13，状态 NA，无简介）\n\n另外第 13 集（2026-09-20）和第 14 集（2026-09-27）在站内尚无标题、无简介，状态为 NA。\n\n需要说明的是，前一次查询的条目详情显示该番状态为「已完结」，而剧集列表中存在标题与简介为空、状态为 NA 的条目，这两处信息口径不一致。以上数字仅来自剧集接口返回的条目数，未作任何推测或补写。",
+          "tool_calls": [
+            "查看剧集列表"
+          ],
+          "created_at": "2026-09-12T14:19:57.311009"
+        }
+      ],
+      "history_matches": true,
+      "seconds": 8.83
+    },
+    {
+      "name": "discover",
+      "prompt": "今天是几月几日、星期几？今天有哪些番剧更新？请先查询当前时间，再查询日程。",
+      "session_id": "559579c1-5c56-48d7-8c46-adcf11a91cb3",
+      "tools": [
+        {
+          "node": "tool:get_current_time",
+          "state": "start",
+          "message": "正在调用 获取当前时间",
+          "name": "获取当前时间",
+          "arguments": "{}"
+        },
+        {
+          "node": "tool:get_current_time",
+          "state": "end",
+          "message": "获取当前时间 调用成功",
+          "result": "success",
+          "name": "获取当前时间"
+        },
+        {
+          "node": "tool:get_schedule",
+          "state": "start",
+          "message": "正在调用 查询每周追番日程",
+          "name": "查询每周追番日程",
+          "arguments": "{\"weekday\": 6, \"year\": 2026, \"quarter\": \"summer\"}"
+        },
+        {
+          "node": "tool:get_schedule",
+          "state": "end",
+          "message": "查询每周追番日程 调用成功",
+          "result": "success",
+          "name": "查询每周追番日程"
+        }
+      ],
+      "events": [
+        {
+          "content": {
+            "node": "tool:get_current_time",
+            "state": "start",
+            "message": "正在调用 获取当前时间",
+            "name": "获取当前时间",
+            "arguments": "{}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194002044
+        },
+        {
+          "content": {
+            "node": "tool:get_current_time",
+            "state": "end",
+            "message": "获取当前时间 调用成功",
+            "result": "success",
+            "name": "获取当前时间"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194002046
+        },
+        {
+          "content": {
+            "node": "tool:get_schedule",
+            "state": "start",
+            "message": "正在调用 查询每周追番日程",
+            "name": "查询每周追番日程",
+            "arguments": "{\"weekday\": 6, \"year\": 2026, \"quarter\": \"summer\"}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194005535
+        },
+        {
+          "content": {
+            "node": "tool:get_schedule",
+            "state": "end",
+            "message": "查询每周追番日程 调用成功",
+            "result": "success",
+            "name": "查询每周追番日程"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194005781
+        }
+      ],
+      "status": 200,
+      "content_type": "text/event-stream;charset=UTF-8",
+      "cache_control": "no-cache, no-store, max-age=0, must-revalidate",
+      "first_answer_seconds": 3.92,
+      "ended": true,
+      "answer": "我先查询当前时间。## 当前时间\n\n**2026 年 9 月 12 日（星期六）**，北京时间 14:20。\n\n## 今天（周六档）更新的番剧\n\n日程库中归入周六档的共 **41 部**。以下按评分排序，重点几部：\n\n| subjectId | 番剧 | 评分 | 话数 | 开播日 | 收藏数 |\n|---|---|---|---|---|---|\n| 63 | 死神 千年血战篇-祸进谭- | 8.2 | 10 | 2026-07-25 | 185 |\n| 8 | 穹庐下的魔女 | 8.0 | 12 | 2026-07-04 | 420 |\n| 32 | 喜羊羊与灰太狼之破界山海诀番外篇 | 8.0 | 3 | 2026-07-25 | 10 |\n| 84 | 无职转生 第三季 ～到了异世界就拿出真本事～ | 7.9 | 14 | 2026-07-04 | 1351 |\n| 34 | Grow Up Show ～向日葵马戏团～ | 7.2 | 13 | 2026-07-04 | 246 |\n\n其余周六档番剧（同一日程表内）：\n\n| subjectId | 番剧 | 评分 |\n|---|---|---|\n| 54 | 花织即使是转生也想打架 | 6.8 |\n| 90 | 猫与龙 | 6.8 |\n| 106 | 神通安昂：最后的气宗 | 6.6 |\n| 42 | 炼气十万年特别篇 阳极天下 | 6.3 |\n| 39 | 择日飞升 | 6.0 |\n| 75 | 才女的侍从 | 5.9 |\n| 53 | 魔法光源股份有限公司 第二季 | 5.8 |\n| 47 | 花仙子之魔法香对论 | 5.6 |\n| 79 | 魔法少女奈叶 EXCEEDS Gun Blaze Vengeance | 5.6 |\n| 98 | 暗黑灯火 | 5.5 |\n| 100 | 说了不打算爱我的公爵继承人，不知为何对我宠爱有加 | 5.5 |\n| 64 | 如果历史是一群喵 大明皇朝篇 | 4.8 |\n| 108 | 妖神记 第十季 | 4.3 |\n| 24 | 鬼的新娘 | 3.9 |\n| 87 | 岩元前辈的推荐 | 3.6 |\n| 3 | パンの赤ちゃん | 3.5 |\n| 21 | 「斩-ZAN-」试播片 | 3.4 |\n\n暂无评分的 19 部（多为短篇、MV、剧场版或新条目）：113 火柴人 VS 几何冲刺、114【绝区零】唱片争夺战！、118 おしりぷり音頭 MV、123 怪兽8号 鸣海的日常、131 Between Us、139 コンティニュー - NEE、147 ROSE. MV【Zenless Zone Zero】、150 完美世界剧场版 九劫焚天、154 ごーすと・みーつ・ぎゃる！、156 八仙！、161「Astral lamp」MV、168 อโยธยาเอยาวดี、169⚡一?飞⚡?⚡虫?天⚡、183 看家、190 松健动画、192 大唐妖探、202 Re,bloom*【Original Anime MV】、205 缎带英雄、216 THE LENTICULARS /b。\n\n补充说明：上述列表是周六档期的全部条目，其中少数条目的开播日尚未到（如第 168 部标注为 2026-09-26），今天实际不会有更新。",
+      "thinking_chunks": 43,
+      "history": [
+        {
+          "role": "user",
+          "content": "今天是几月几日、星期几？今天有哪些番剧更新？请先查询当前时间，再查询日程。",
+          "created_at": "2026-09-12T14:19:57.373206"
+        },
+        {
+          "role": "assistant",
+          "content": "我先查询当前时间。## 当前时间\n\n**2026 年 9 月 12 日（星期六）**，北京时间 14:20。\n\n## 今天（周六档）更新的番剧\n\n日程库中归入周六档的共 **41 部**。以下按评分排序，重点几部：\n\n| subjectId | 番剧 | 评分 | 话数 | 开播日 | 收藏数 |\n|---|---|---|---|---|---|\n| 63 | 死神 千年血战篇-祸进谭- | 8.2 | 10 | 2026-07-25 | 185 |\n| 8 | 穹庐下的魔女 | 8.0 | 12 | 2026-07-04 | 420 |\n| 32 | 喜羊羊与灰太狼之破界山海诀番外篇 | 8.0 | 3 | 2026-07-25 | 10 |\n| 84 | 无职转生 第三季 ～到了异世界就拿出真本事～ | 7.9 | 14 | 2026-07-04 | 1351 |\n| 34 | Grow Up Show ～向日葵马戏团～ | 7.2 | 13 | 2026-07-04 | 246 |\n\n其余周六档番剧（同一日程表内）：\n\n| subjectId | 番剧 | 评分 |\n|---|---|---|\n| 54 | 花织即使是转生也想打架 | 6.8 |\n| 90 | 猫与龙 | 6.8 |\n| 106 | 神通安昂：最后的气宗 | 6.6 |\n| 42 | 炼气十万年特别篇 阳极天下 | 6.3 |\n| 39 | 择日飞升 | 6.0 |\n| 75 | 才女的侍从 | 5.9 |\n| 53 | 魔法光源股份有限公司 第二季 | 5.8 |\n| 47 | 花仙子之魔法香对论 | 5.6 |\n| 79 | 魔法少女奈叶 EXCEEDS Gun Blaze Vengeance | 5.6 |\n| 98 | 暗黑灯火 | 5.5 |\n| 100 | 说了不打算爱我的公爵继承人，不知为何对我宠爱有加 | 5.5 |\n| 64 | 如果历史是一群喵 大明皇朝篇 | 4.8 |\n| 108 | 妖神记 第十季 | 4.3 |\n| 24 | 鬼的新娘 | 3.9 |\n| 87 | 岩元前辈的推荐 | 3.6 |\n| 3 | パンの赤ちゃん | 3.5 |\n| 21 | 「斩-ZAN-」试播片 | 3.4 |\n\n暂无评分的 19 部（多为短篇、MV、剧场版或新条目）：113 火柴人 VS 几何冲刺、114【绝区零】唱片争夺战！、118 おしりぷり音頭 MV、123 怪兽8号 鸣海的日常、131 Between Us、139 コンティニュー - NEE、147 ROSE. MV【Zenless Zone Zero】、150 完美世界剧场版 九劫焚天、154 ごーすと・みーつ・ぎゃる！、156 八仙！、161「Astral lamp」MV、168 อโยธยาเอยาวดี、169⚡一?飞⚡?⚡虫?天⚡、183 看家、190 松健动画、192 大唐妖探、202 Re,bloom*【Original Anime MV】、205 缎带英雄、216 THE LENTICULARS /b。\n\n补充说明：上述列表是周六档期的全部条目，其中少数条目的开播日尚未到（如第 168 部标注为 2026-09-26），今天实际不会有更新。",
+          "tool_calls": [
+            "获取当前时间",
+            "查询每周追番日程"
+          ],
+          "created_at": "2026-09-12T14:20:16.800980"
+        }
+      ],
+      "history_matches": true,
+      "seconds": 19.47
+    },
+    {
+      "name": "recommend",
+      "prompt": "推荐3部2026年的高评分动画，给出站内条目和推荐依据，不要修改我的收藏。",
+      "session_id": "e416660a-5c98-49c8-ab73-3d562a7a1557",
+      "tools": [
+        {
+          "node": "tool:get_current_time",
+          "state": "start",
+          "message": "正在调用 获取当前时间",
+          "name": "获取当前时间",
+          "arguments": "{}"
+        },
+        {
+          "node": "tool:rag_recommend_subjects",
+          "state": "start",
+          "message": "正在调用 RAG 个性化推荐",
+          "name": "RAG 个性化推荐",
+          "arguments": "{\"semantic_query\": \"2026年高评分动画\", \"meta_tags\": [\"2026\"]}"
+        },
+        {
+          "node": "tool:get_current_time",
+          "state": "end",
+          "message": "获取当前时间 调用成功",
+          "result": "success",
+          "name": "获取当前时间"
+        },
+        {
+          "node": "tool:rag_recommend_subjects",
+          "state": "end",
+          "message": "RAG 个性化推荐 调用成功",
+          "result": "success",
+          "name": "RAG 个性化推荐"
+        },
+        {
+          "node": "tool:rag_recommend_subjects",
+          "state": "start",
+          "message": "正在调用 RAG 个性化推荐",
+          "name": "RAG 个性化推荐",
+          "arguments": "{\"semantic_query\": \"2026年新番 高评分 口碑好\"}"
+        },
+        {
+          "node": "tool:rag_recommend_subjects",
+          "state": "end",
+          "message": "RAG 个性化推荐 调用成功",
+          "result": "success",
+          "name": "RAG 个性化推荐"
+        },
+        {
+          "node": "tool:rag_recommend_subjects",
+          "state": "start",
+          "message": "正在调用 RAG 个性化推荐",
+          "name": "RAG 个性化推荐",
+          "arguments": "{\"semantic_query\": \"高评分热门动画\"}"
+        },
+        {
+          "node": "tool:rag_recommend_subjects",
+          "state": "end",
+          "message": "RAG 个性化推荐 调用成功",
+          "result": "success",
+          "name": "RAG 个性化推荐"
+        },
+        {
+          "node": "tool:rag_recommend_subjects",
+          "state": "start",
+          "message": "正在调用 RAG 个性化推荐",
+          "name": "RAG 个性化推荐",
+          "arguments": "{\"semantic_query\": \"动画\"}"
+        },
+        {
+          "node": "tool:rag_recommend_subjects",
+          "state": "end",
+          "message": "RAG 个性化推荐 调用成功",
+          "result": "success",
+          "name": "RAG 个性化推荐"
+        }
+      ],
+      "events": [
+        {
+          "content": {
+            "node": "tool:get_current_time",
+            "state": "start",
+            "message": "正在调用 获取当前时间",
+            "name": "获取当前时间",
+            "arguments": "{}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194022283
+        },
+        {
+          "content": {
+            "node": "tool:rag_recommend_subjects",
+            "state": "start",
+            "message": "正在调用 RAG 个性化推荐",
+            "name": "RAG 个性化推荐",
+            "arguments": "{\"semantic_query\": \"2026年高评分动画\", \"meta_tags\": [\"2026\"]}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194022284
+        },
+        {
+          "content": {
+            "node": "tool:get_current_time",
+            "state": "end",
+            "message": "获取当前时间 调用成功",
+            "result": "success",
+            "name": "获取当前时间"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194022285
+        },
+        {
+          "content": {
+            "node": "tool:rag_recommend_subjects",
+            "state": "end",
+            "message": "RAG 个性化推荐 调用成功",
+            "result": "success",
+            "name": "RAG 个性化推荐"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194023928
+        },
+        {
+          "content": {
+            "node": "tool:rag_recommend_subjects",
+            "state": "start",
+            "message": "正在调用 RAG 个性化推荐",
+            "name": "RAG 个性化推荐",
+            "arguments": "{\"semantic_query\": \"2026年新番 高评分 口碑好\"}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194026010
+        },
+        {
+          "content": {
+            "node": "tool:rag_recommend_subjects",
+            "state": "end",
+            "message": "RAG 个性化推荐 调用成功",
+            "result": "success",
+            "name": "RAG 个性化推荐"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194027596
+        },
+        {
+          "content": {
+            "node": "tool:rag_recommend_subjects",
+            "state": "start",
+            "message": "正在调用 RAG 个性化推荐",
+            "name": "RAG 个性化推荐",
+            "arguments": "{\"semantic_query\": \"高评分热门动画\"}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194029614
+        },
+        {
+          "content": {
+            "node": "tool:rag_recommend_subjects",
+            "state": "end",
+            "message": "RAG 个性化推荐 调用成功",
+            "result": "success",
+            "name": "RAG 个性化推荐"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194031102
+        },
+        {
+          "content": {
+            "node": "tool:rag_recommend_subjects",
+            "state": "start",
+            "message": "正在调用 RAG 个性化推荐",
+            "name": "RAG 个性化推荐",
+            "arguments": "{\"semantic_query\": \"动画\"}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194034296
+        },
+        {
+          "content": {
+            "node": "tool:rag_recommend_subjects",
+            "state": "end",
+            "message": "RAG 个性化推荐 调用成功",
+            "result": "success",
+            "name": "RAG 个性化推荐"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194036520
+        }
+      ],
+      "status": 200,
+      "content_type": "text/event-stream;charset=UTF-8",
+      "cache_control": "no-cache, no-store, max-age=0, must-revalidate",
+      "first_answer_seconds": 8.81,
+      "ended": true,
+      "answer": "带年份标签的检索为空，我换个方式再查一次。按你的要求只做推荐，不触碰收藏（全程没有调用任何写入操作）。\n\n说明一点：检索返回的条目里没有首播年份字段，我无法逐条核实「2026 年播出」，所以下面按目录检索结果中的**站内评分**排序，给出评分最高的 3 部（均为已完结条目）：\n\n**1. 碧蓝之海 第三季（subjectId 36）**\n- 站内评分 7.1，评分人数 1298，收藏数 482——本次结果里评分与样本量综合最好的一部\n- 标签：TV / 喜剧 / 日常 / 漫画改 / 青年向\n- 依据摘要：剧情舞台转到帕劳「碧蓝一夏」，围绕伊织与潜水社成员的青春闹剧展开\n\n**2. 猫与龙（subjectId 90）**\n- 站内评分 6.8，评分人数 644\n- 标签：TV / 奇幻 / 小说改 / 日常\n- 依据摘要：森林深处被母猫养大的龙被猫群当作「有点特别的猫」，主线是它守护猫群、被人类奉为「猫龙」的温情日常\n\n**3. 《灵能百分百》动画10周年纪念特别映像（subjectId 33）**\n- 站内评分 6.2，但评分人数仅 80，样本明显偏小，参考价值不如前两部\n- 标签：WEB；制作方为 BONES / ボンズフィルム，主要STAFF含监督立川譲、原作 ONE\n- 依据摘要：为纪念动画播出 10 周年制作的特别映像\n\n如果你更看重「评分人数够多才可信」，第 3 部可以换成：《『你们先走我断后』，于是10年后我成为了传说》（subjectId 68，评分 5.6 / 423 人）或《THE WORLD IS DANCING 世界在起舞》（subjectId 61，评分 5.4 / 657 人，历史题材、漫画改）。",
+      "thinking_chunks": 95,
+      "history": [
+        {
+          "role": "user",
+          "content": "推荐3部2026年的高评分动画，给出站内条目和推荐依据，不要修改我的收藏。",
+          "created_at": "2026-09-12T14:20:16.864159"
+        },
+        {
+          "role": "assistant",
+          "content": "带年份标签的检索为空，我换个方式再查一次。按你的要求只做推荐，不触碰收藏（全程没有调用任何写入操作）。\n\n说明一点：检索返回的条目里没有首播年份字段，我无法逐条核实「2026 年播出」，所以下面按目录检索结果中的**站内评分**排序，给出评分最高的 3 部（均为已完结条目）：\n\n**1. 碧蓝之海 第三季（subjectId 36）**\n- 站内评分 7.1，评分人数 1298，收藏数 482——本次结果里评分与样本量综合最好的一部\n- 标签：TV / 喜剧 / 日常 / 漫画改 / 青年向\n- 依据摘要：剧情舞台转到帕劳「碧蓝一夏」，围绕伊织与潜水社成员的青春闹剧展开\n\n**2. 猫与龙（subjectId 90）**\n- 站内评分 6.8，评分人数 644\n- 标签：TV / 奇幻 / 小说改 / 日常\n- 依据摘要：森林深处被母猫养大的龙被猫群当作「有点特别的猫」，主线是它守护猫群、被人类奉为「猫龙」的温情日常\n\n**3. 《灵能百分百》动画10周年纪念特别映像（subjectId 33）**\n- 站内评分 6.2，但评分人数仅 80，样本明显偏小，参考价值不如前两部\n- 标签：WEB；制作方为 BONES / ボンズフィルム，主要STAFF含监督立川譲、原作 ONE\n- 依据摘要：为纪念动画播出 10 周年制作的特别映像\n\n如果你更看重「评分人数够多才可信」，第 3 部可以换成：《『你们先走我断后』，于是10年后我成为了传说》（subjectId 68，评分 5.6 / 423 人）或《THE WORLD IS DANCING 世界在起舞》（subjectId 61，评分 5.4 / 657 人，历史题材、漫画改）。",
+          "tool_calls": [
+            "获取当前时间",
+            "RAG 个性化推荐"
+          ],
+          "created_at": "2026-09-12T14:20:46.729774"
+        }
+      ],
+      "history_matches": true,
+      "seconds": 29.92
+    },
+    {
+      "name": "capability",
+      "prompt": "你支持RAG检索吗？请准确说明你当前能调用的检索工具与限制。",
+      "session_id": "595d1c58-599d-4dfb-b080-821f3d21db4c",
+      "tools": [],
+      "events": [],
+      "status": 200,
+      "content_type": "text/event-stream;charset=UTF-8",
+      "cache_control": "no-cache, no-store, max-age=0, must-revalidate",
+      "first_answer_seconds": 4.58,
+      "ended": true,
+      "answer": "支持的。我当前的检索能力说明如下：\n\n**RAG 检索工具（已注册可用）**\n- `rag_search_subjects`：这是核心的 RAG 检索工具。它支持按番名、别名、自然语言语义描述来检索，也可以配合人物、角色、声优或关联作品名称来筛选。返回的是带完整证据字段的权威候选，例如简介摘录（summaryExcerpt）、命中的标签（matchedTags）、命中的主创（matchedCredits）、命中的角色（matchedCharacters）、相似度得分（score）、评分人数（ratingTotal）等。\n\n**辅助查询工具**\n- `get_subject_detail`：查看某部番剧的简介、评分、标签等详情。\n- `get_episodes`：查看某部番剧的剧集列表。\n\n**限制，需要如实说明几点**\n1. 我只依据工具返回的证据字段陈述事实。如果某项信息（比如评分、主创、标签）工具没有返回，我不会补充或编造。\n2. 按人物、角色、声优或关联作品筛选时，我会传入名称与明确的实体类型（PERSON、CHARACTER、ACTOR、RELATION_SUBJECT），由工具把名称解析为本地 ID；我不会自行编造实体 ID。如果无法确认类型，我会只传名称，让工具返回受控的同名候选。\n3. 检索结果最终给出的候选会带有效 subjectId；如果候选数量不足，我会如实说明，不会补写或编造条目。\n4. 后端状态方面：RAG 后端不可用时，系统可能降级到 Business 搜索。这表示某次检索走了降级路径，并不代表我不具备 RAG 能力。我无法猜测或声称当前功能开关的具体状态。\n5. 如果工具返回错误，我会直接告知你服务暂时不可用，而不是硬答。",
+      "thinking_chunks": 154,
+      "history": [
+        {
+          "role": "user",
+          "content": "你支持RAG检索吗？请准确说明你当前能调用的检索工具与限制。",
+          "created_at": "2026-09-12T14:20:46.776145"
+        },
+        {
+          "role": "assistant",
+          "content": "支持的。我当前的检索能力说明如下：\n\n**RAG 检索工具（已注册可用）**\n- `rag_search_subjects`：这是核心的 RAG 检索工具。它支持按番名、别名、自然语言语义描述来检索，也可以配合人物、角色、声优或关联作品名称来筛选。返回的是带完整证据字段的权威候选，例如简介摘录（summaryExcerpt）、命中的标签（matchedTags）、命中的主创（matchedCredits）、命中的角色（matchedCharacters）、相似度得分（score）、评分人数（ratingTotal）等。\n\n**辅助查询工具**\n- `get_subject_detail`：查看某部番剧的简介、评分、标签等详情。\n- `get_episodes`：查看某部番剧的剧集列表。\n\n**限制，需要如实说明几点**\n1. 我只依据工具返回的证据字段陈述事实。如果某项信息（比如评分、主创、标签）工具没有返回，我不会补充或编造。\n2. 按人物、角色、声优或关联作品筛选时，我会传入名称与明确的实体类型（PERSON、CHARACTER、ACTOR、RELATION_SUBJECT），由工具把名称解析为本地 ID；我不会自行编造实体 ID。如果无法确认类型，我会只传名称，让工具返回受控的同名候选。\n3. 检索结果最终给出的候选会带有效 subjectId；如果候选数量不足，我会如实说明，不会补写或编造条目。\n4. 后端状态方面：RAG 后端不可用时，系统可能降级到 Business 搜索。这表示某次检索走了降级路径，并不代表我不具备 RAG 能力。我无法猜测或声称当前功能开关的具体状态。\n5. 如果工具返回错误，我会直接告知你服务暂时不可用，而不是硬答。",
+          "created_at": "2026-09-12T14:20:52.868712"
+        }
+      ],
+      "history_matches": true,
+      "seconds": 6.12
+    },
+    {
+      "name": "entity",
+      "prompt": "帮我找宫崎骏参与制作的动画，必须依据本站的主创关系数据；查不到就明确说明。",
+      "session_id": "c84d0436-8e56-4874-b903-5008f6e103a5",
+      "tools": [
+        {
+          "node": "tool:rag_search_subjects",
+          "state": "start",
+          "message": "正在调用 RAG 搜索番剧",
+          "name": "RAG 搜索番剧",
+          "arguments": "{\"semantic_query\": \"宫崎骏 参与制作 动画 主创\", \"entity_name\": \"宫崎骏\", \"entity_kind\": \"PERSON\"}"
+        },
+        {
+          "node": "tool:rag_search_subjects",
+          "state": "end",
+          "message": "RAG 搜索番剧 调用成功",
+          "result": "success",
+          "name": "RAG 搜索番剧"
+        },
+        {
+          "node": "tool:rag_search_subjects",
+          "state": "start",
+          "message": "正在调用 RAG 搜索番剧",
+          "name": "RAG 搜索番剧",
+          "arguments": "{\"entity_name\": \"宫崎骏\", \"semantic_query\": \"宫崎骏 导演 编剧 动画电影\"}"
+        },
+        {
+          "node": "tool:rag_search_subjects",
+          "state": "start",
+          "message": "正在调用 RAG 搜索番剧",
+          "name": "RAG 搜索番剧",
+          "arguments": "{\"semantic_query\": \"宫崎骏 吉卜力 导演 作品\"}"
+        },
+        {
+          "node": "tool:rag_search_subjects",
+          "state": "end",
+          "message": "RAG 搜索番剧 调用成功",
+          "result": "success",
+          "name": "RAG 搜索番剧"
+        },
+        {
+          "node": "tool:rag_search_subjects",
+          "state": "end",
+          "message": "RAG 搜索番剧 调用成功",
+          "result": "success",
+          "name": "RAG 搜索番剧"
+        },
+        {
+          "node": "tool:rag_search_subjects",
+          "state": "start",
+          "message": "正在调用 RAG 搜索番剧",
+          "name": "RAG 搜索番剧",
+          "arguments": "{\"entity_name\": \"宮崎駿\", \"entity_kind\": \"PERSON\", \"semantic_query\": \"宮崎駿 監督作品 ジブリ\"}"
+        },
+        {
+          "node": "tool:rag_search_subjects",
+          "state": "start",
+          "message": "正在调用 RAG 搜索番剧",
+          "name": "RAG 搜索番剧",
+          "arguments": "{\"semantic_query\": \"千与千寻 龙猫 天空之城 吉卜力 宫崎骏导演\"}"
+        },
+        {
+          "node": "tool:rag_search_subjects",
+          "state": "end",
+          "message": "RAG 搜索番剧 调用成功",
+          "result": "success",
+          "name": "RAG 搜索番剧"
+        },
+        {
+          "node": "tool:rag_search_subjects",
+          "state": "end",
+          "message": "RAG 搜索番剧 调用成功",
+          "result": "success",
+          "name": "RAG 搜索番剧"
+        },
+        {
+          "node": "tool:get_subject_detail",
+          "state": "start",
+          "message": "正在调用 查看番剧详情",
+          "name": "查看番剧详情",
+          "arguments": "{\"subject_id\": 157}"
+        },
+        {
+          "node": "tool:get_subject_detail",
+          "state": "end",
+          "message": "查看番剧详情 调用成功",
+          "result": "success",
+          "name": "查看番剧详情"
+        }
+      ],
+      "events": [
+        {
+          "content": {
+            "node": "tool:rag_search_subjects",
+            "state": "start",
+            "message": "正在调用 RAG 搜索番剧",
+            "name": "RAG 搜索番剧",
+            "arguments": "{\"semantic_query\": \"宫崎骏 参与制作 动画 主创\", \"entity_name\": \"宫崎骏\", \"entity_kind\": \"PERSON\"}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194056900
+        },
+        {
+          "content": {
+            "node": "tool:rag_search_subjects",
+            "state": "end",
+            "message": "RAG 搜索番剧 调用成功",
+            "result": "success",
+            "name": "RAG 搜索番剧"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194056915
+        },
+        {
+          "content": {
+            "node": "tool:rag_search_subjects",
+            "state": "start",
+            "message": "正在调用 RAG 搜索番剧",
+            "name": "RAG 搜索番剧",
+            "arguments": "{\"entity_name\": \"宫崎骏\", \"semantic_query\": \"宫崎骏 导演 编剧 动画电影\"}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194060584
+        },
+        {
+          "content": {
+            "node": "tool:rag_search_subjects",
+            "state": "start",
+            "message": "正在调用 RAG 搜索番剧",
+            "name": "RAG 搜索番剧",
+            "arguments": "{\"semantic_query\": \"宫崎骏 吉卜力 导演 作品\"}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194060584
+        },
+        {
+          "content": {
+            "node": "tool:rag_search_subjects",
+            "state": "end",
+            "message": "RAG 搜索番剧 调用成功",
+            "result": "success",
+            "name": "RAG 搜索番剧"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194060591
+        },
+        {
+          "content": {
+            "node": "tool:rag_search_subjects",
+            "state": "end",
+            "message": "RAG 搜索番剧 调用成功",
+            "result": "success",
+            "name": "RAG 搜索番剧"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194062479
+        },
+        {
+          "content": {
+            "node": "tool:rag_search_subjects",
+            "state": "start",
+            "message": "正在调用 RAG 搜索番剧",
+            "name": "RAG 搜索番剧",
+            "arguments": "{\"entity_name\": \"宮崎駿\", \"entity_kind\": \"PERSON\", \"semantic_query\": \"宮崎駿 監督作品 ジブリ\"}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194067075
+        },
+        {
+          "content": {
+            "node": "tool:rag_search_subjects",
+            "state": "start",
+            "message": "正在调用 RAG 搜索番剧",
+            "name": "RAG 搜索番剧",
+            "arguments": "{\"semantic_query\": \"千与千寻 龙猫 天空之城 吉卜力 宫崎骏导演\"}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194067080
+        },
+        {
+          "content": {
+            "node": "tool:rag_search_subjects",
+            "state": "end",
+            "message": "RAG 搜索番剧 调用成功",
+            "result": "success",
+            "name": "RAG 搜索番剧"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194067081
+        },
+        {
+          "content": {
+            "node": "tool:rag_search_subjects",
+            "state": "end",
+            "message": "RAG 搜索番剧 调用成功",
+            "result": "success",
+            "name": "RAG 搜索番剧"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194069619
+        },
+        {
+          "content": {
+            "node": "tool:get_subject_detail",
+            "state": "start",
+            "message": "正在调用 查看番剧详情",
+            "name": "查看番剧详情",
+            "arguments": "{\"subject_id\": 157}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194073176
+        },
+        {
+          "content": {
+            "node": "tool:get_subject_detail",
+            "state": "end",
+            "message": "查看番剧详情 调用成功",
+            "result": "success",
+            "name": "查看番剧详情"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194073373
+        }
+      ],
+      "status": 200,
+      "content_type": "text/event-stream;charset=UTF-8",
+      "cache_control": "no-cache, no-store, max-age=0, must-revalidate",
+      "first_answer_seconds": 24.25,
+      "ended": true,
+      "answer": "我按你的要求查了本站的主创关系数据，结论是：**查不到宫崎骏参与制作的动画记录。**\n\n检索过程与依据：\n- 以「宫崎骏」作为人物实体（entity_kind=PERSON）检索主创关系，返回 0 条；\n- 换成日文写法「宮崎駿」同样作为 PERSON 实体检索，也返回 0 条；\n- 用「宫崎骏 吉卜力 导演」「千与千寻 龙猫 天空之城」等语义检索，返回结果的 matchedCredits（主创）字段中没有任何一条包含「宫崎骏」，命中的只是无关条目或恰好同姓的其他staff（例如「宮崎誠」「宮崎輝」「宮崎佑介」「宮崎康子」等，均为不同人）。\n\n唯一与「宫崎」+吉卜力沾边的条目是《魔女之谷的夜晚》（subjectId 157），但它与本问题并不相符，需要明确区分：\n- 剧名：魔女之谷的夜晚（魔女の谷の夜），2026 年 7 月 8 日公开的吉卜力公园限定短篇动画；\n- 类型标签：剧场版、动画短片、吉卜力、短片；\n- 该条目的主创标签只有「宮崎吾朗」，简介也写明是**宫崎吾朗**与山下明彦共同执导；该条目的 matchedCredits 字段为空，主创关系数据里没有任何「宫崎骏」的记录；\n- 站内评分数据不足（ratingTotal 为 2），无可展示评分。\n\n因此，无法给出 3-5 部由宫崎骏参与制作的候选——本站主创关系数据中确实没有他的条目，我不会补写或编造作品。若需要，我可以改为按上面提到的共演/同社相关线索（例如宫崎吾朗、吉卜力标签的作品）来检索。",
+      "thinking_chunks": 661,
+      "history": [
+        {
+          "role": "user",
+          "content": "帮我找宫崎骏参与制作的动画，必须依据本站的主创关系数据；查不到就明确说明。",
+          "created_at": "2026-09-12T14:20:52.925609"
+        },
+        {
+          "role": "assistant",
+          "content": "我按你的要求查了本站的主创关系数据，结论是：**查不到宫崎骏参与制作的动画记录。**\n\n检索过程与依据：\n- 以「宫崎骏」作为人物实体（entity_kind=PERSON）检索主创关系，返回 0 条；\n- 换成日文写法「宮崎駿」同样作为 PERSON 实体检索，也返回 0 条；\n- 用「宫崎骏 吉卜力 导演」「千与千寻 龙猫 天空之城」等语义检索，返回结果的 matchedCredits（主创）字段中没有任何一条包含「宫崎骏」，命中的只是无关条目或恰好同姓的其他staff（例如「宮崎誠」「宮崎輝」「宮崎佑介」「宮崎康子」等，均为不同人）。\n\n唯一与「宫崎」+吉卜力沾边的条目是《魔女之谷的夜晚》（subjectId 157），但它与本问题并不相符，需要明确区分：\n- 剧名：魔女之谷的夜晚（魔女の谷の夜），2026 年 7 月 8 日公开的吉卜力公园限定短篇动画；\n- 类型标签：剧场版、动画短片、吉卜力、短片；\n- 该条目的主创标签只有「宮崎吾朗」，简介也写明是**宫崎吾朗**与山下明彦共同执导；该条目的 matchedCredits 字段为空，主创关系数据里没有任何「宫崎骏」的记录；\n- 站内评分数据不足（ratingTotal 为 2），无可展示评分。\n\n因此，无法给出 3-5 部由宫崎骏参与制作的候选——本站主创关系数据中确实没有他的条目，我不会补写或编造作品。若需要，我可以改为按上面提到的共演/同社相关线索（例如宫崎吾朗、吉卜力标签的作品）来检索。",
+          "tool_calls": [
+            "RAG 搜索番剧",
+            "查看番剧详情"
+          ],
+          "created_at": "2026-09-12T14:21:19.127824"
+        }
+      ],
+      "history_matches": true,
+      "seconds": 26.25
+    },
+    {
+      "name": "preview",
+      "prompt": "请先搜索《无职转生 第三季》，然后预览加入想看，等待我确认，暂时不要执行。",
+      "session_id": "9ce97da9-a6ed-4bb7-aba0-98e012cf94b4",
+      "tools": [
+        {
+          "node": "tool:rag_search_subjects",
+          "state": "start",
+          "message": "正在调用 RAG 搜索番剧",
+          "name": "RAG 搜索番剧",
+          "arguments": "{\"semantic_query\": \"无职转生 第三季\"}"
+        },
+        {
+          "node": "tool:rag_search_subjects",
+          "state": "end",
+          "message": "RAG 搜索番剧 调用成功",
+          "result": "success",
+          "name": "RAG 搜索番剧"
+        },
+        {
+          "node": "tool:get_subject_detail",
+          "state": "start",
+          "message": "正在调用 查看番剧详情",
+          "name": "查看番剧详情",
+          "arguments": "{\"subject_id\": 84}"
+        },
+        {
+          "node": "tool:get_my_collection",
+          "state": "start",
+          "message": "正在调用 查看我的单部追番",
+          "name": "查看我的单部追番",
+          "arguments": "{\"subject_id\": 84}"
+        },
+        {
+          "node": "tool:get_my_collection",
+          "state": "end",
+          "message": "查看我的单部追番 调用成功",
+          "result": "success",
+          "name": "查看我的单部追番"
+        },
+        {
+          "node": "tool:get_subject_detail",
+          "state": "end",
+          "message": "查看番剧详情 调用成功",
+          "result": "success",
+          "name": "查看番剧详情"
+        }
+      ],
+      "events": [
+        {
+          "content": {
+            "node": "tool:rag_search_subjects",
+            "state": "start",
+            "message": "正在调用 RAG 搜索番剧",
+            "name": "RAG 搜索番剧",
+            "arguments": "{\"semantic_query\": \"无职转生 第三季\"}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194084046
+        },
+        {
+          "content": {
+            "node": "tool:rag_search_subjects",
+            "state": "end",
+            "message": "RAG 搜索番剧 调用成功",
+            "result": "success",
+            "name": "RAG 搜索番剧"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194085885
+        },
+        {
+          "content": {
+            "node": "tool:get_subject_detail",
+            "state": "start",
+            "message": "正在调用 查看番剧详情",
+            "name": "查看番剧详情",
+            "arguments": "{\"subject_id\": 84}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194089652
+        },
+        {
+          "content": {
+            "node": "tool:get_my_collection",
+            "state": "start",
+            "message": "正在调用 查看我的单部追番",
+            "name": "查看我的单部追番",
+            "arguments": "{\"subject_id\": 84}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194089652
+        },
+        {
+          "content": {
+            "node": "tool:get_my_collection",
+            "state": "end",
+            "message": "查看我的单部追番 调用成功",
+            "result": "success",
+            "name": "查看我的单部追番"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194089937
+        },
+        {
+          "content": {
+            "node": "tool:get_subject_detail",
+            "state": "end",
+            "message": "查看番剧详情 调用成功",
+            "result": "success",
+            "name": "查看番剧详情"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194089937
+        }
+      ],
+      "status": 200,
+      "content_type": "text/event-stream;charset=UTF-8",
+      "cache_control": "no-cache, no-store, max-age=0, must-revalidate",
+      "first_answer_seconds": 4.89,
+      "ended": true,
+      "answer": "我先搜索一下《无职转生 第三季》。我先获取该条目的详细信息，并查看你当前的收藏状态，以便做「加入想看」的预览。已搜索完成，下面是「加入想看」的预览，**尚未执行任何写入操作**。\n\n检索结果中的精确匹配条目：\n\n**《无职转生 第三季 ～到了异世界就拿出真本事～》**\n- subjectId：84\n- 原名：無職転生Ⅲ ～異世界行ったら本気だす～\n- 评分：7.9（评分人数 3709，排名 310）\n- 集数：14 集；首播日期 2026-07-04，播出状态为已完结（每周六）\n- 制作：Studio Bind（MAIN）；系列构成/脚本含 理不尽な孫の手、谷内直人、高山淳史、漆原虹平、渋谷亮介\n- 主要角色：鲁迪乌斯·格雷拉特、希露菲艾特·格雷拉特、艾莉丝·格雷拉特、洛琪希·米格路迪亚·格雷拉特 等\n- 主要标签：TV、异世界、奇幻、后宫、冒险、战斗、小说改、轻小说改、续作、2026年7月、StudioBind\n- 简介要点：34 岁无职家里蹲男性转生到剑与魔法的异世界成为婴儿，以少年鲁迪乌斯的身份决心「这次要认真活」，开启人生重来的奇幻冒险故事。\n\n收藏状态检查：你对该条目目前**没有收藏记录**，因此「加入想看」不会覆盖已有状态。\n\n预览结论：拟将 subjectId 84 以收藏类型「想看」加入你的收藏。\n\n需要说明的一点：我当前可用的工具只有检索与查询类能力（检索、番剧详情、剧集列表、收藏查询与统计），**没有可执行写入收藏的工具**，因此确认后我也无法真正写入，只能由你在 AnimeTracker 应用中手动添加。\n\n检索中同时出现的其他条目（仅作区分，避免误选）：《碧蓝之海 第三季》（subjectId 36）、《超超超超超喜欢你的100个女朋友 第三季》（subjectId 44）、《时光代理人 第三季 Part 1》（subjectId 181）。\n\n请确认目标是否为 subjectId 84 这一条；如需改选其他条目，告诉我即可。",
+      "thinking_chunks": 63,
+      "history": [
+        {
+          "role": "user",
+          "content": "请先搜索《无职转生 第三季》，然后预览加入想看，等待我确认，暂时不要执行。",
+          "created_at": "2026-09-12T14:21:19.177330"
+        },
+        {
+          "role": "assistant",
+          "content": "我先搜索一下《无职转生 第三季》。我先获取该条目的详细信息，并查看你当前的收藏状态，以便做「加入想看」的预览。已搜索完成，下面是「加入想看」的预览，**尚未执行任何写入操作**。\n\n检索结果中的精确匹配条目：\n\n**《无职转生 第三季 ～到了异世界就拿出真本事～》**\n- subjectId：84\n- 原名：無職転生Ⅲ ～異世界行ったら本気だす～\n- 评分：7.9（评分人数 3709，排名 310）\n- 集数：14 集；首播日期 2026-07-04，播出状态为已完结（每周六）\n- 制作：Studio Bind（MAIN）；系列构成/脚本含 理不尽な孫の手、谷内直人、高山淳史、漆原虹平、渋谷亮介\n- 主要角色：鲁迪乌斯·格雷拉特、希露菲艾特·格雷拉特、艾莉丝·格雷拉特、洛琪希·米格路迪亚·格雷拉特 等\n- 主要标签：TV、异世界、奇幻、后宫、冒险、战斗、小说改、轻小说改、续作、2026年7月、StudioBind\n- 简介要点：34 岁无职家里蹲男性转生到剑与魔法的异世界成为婴儿，以少年鲁迪乌斯的身份决心「这次要认真活」，开启人生重来的奇幻冒险故事。\n\n收藏状态检查：你对该条目目前**没有收藏记录**，因此「加入想看」不会覆盖已有状态。\n\n预览结论：拟将 subjectId 84 以收藏类型「想看」加入你的收藏。\n\n需要说明的一点：我当前可用的工具只有检索与查询类能力（检索、番剧详情、剧集列表、收藏查询与统计），**没有可执行写入收藏的工具**，因此确认后我也无法真正写入，只能由你在 AnimeTracker 应用中手动添加。\n\n检索中同时出现的其他条目（仅作区分，避免误选）：《碧蓝之海 第三季》（subjectId 36）、《超超超超超喜欢你的100个女朋友 第三季》（subjectId 44）、《时光代理人 第三季 Part 1》（subjectId 181）。\n\n请确认目标是否为 subjectId 84 这一条；如需改选其他条目，告诉我即可。",
+          "tool_calls": [
+            "RAG 搜索番剧",
+            "查看番剧详情",
+            "查看我的单部追番"
+          ],
+          "created_at": "2026-09-12T14:21:36.878570"
+        }
+      ],
+      "history_matches": true,
+      "seconds": 17.73
+    },
+    {
+      "name": "cancel",
+      "prompt": "取消刚才的加入想看操作，不要修改收藏。",
+      "session_id": "9ce97da9-a6ed-4bb7-aba0-98e012cf94b4",
+      "tools": [
+        {
+          "node": "tool:get_my_collection",
+          "state": "start",
+          "message": "正在调用 查看我的单部追番",
+          "name": "查看我的单部追番",
+          "arguments": "{\"subject_id\": 84}"
+        },
+        {
+          "node": "tool:get_my_collection",
+          "state": "end",
+          "message": "查看我的单部追番 调用成功",
+          "result": "success",
+          "name": "查看我的单部追番"
+        }
+      ],
+      "events": [
+        {
+          "content": {
+            "node": "tool:get_my_collection",
+            "state": "start",
+            "message": "正在调用 查看我的单部追番",
+            "name": "查看我的单部追番",
+            "arguments": "{\"subject_id\": 84}"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194102719
+        },
+        {
+          "content": {
+            "node": "tool:get_my_collection",
+            "state": "end",
+            "message": "查看我的单部追番 调用成功",
+            "result": "success",
+            "name": "查看我的单部追番"
+          },
+          "type": "function_call",
+          "is_end": false,
+          "timestamp": 1789194102966
+        }
+      ],
+      "status": 200,
+      "content_type": "text/event-stream;charset=UTF-8",
+      "cache_control": "no-cache, no-store, max-age=0, must-revalidate",
+      "first_answer_seconds": 8.23,
+      "ended": true,
+      "answer": "已取消。\n\n说明如下：\n\n- 之前的操作只是**预览**，我没有执行任何写入，因此没有产生需要回滚的改动。\n- 我刚复查了 subjectId 84（《无职转生 第三季 ～到了异世界就拿出真本事～》）的收藏状态，返回为空，即**仍无收藏记录**，你的收藏列表保持原样。\n\n此外，我的现有工具里本来也只有检索与查询类能力，没有写入收藏的工具，所以不会有误改的风险。需要重新搜索或查看其他番剧信息时告诉我即可。",
+      "thinking_chunks": 145,
+      "history": [
+        {
+          "role": "user",
+          "content": "请先搜索《无职转生 第三季》，然后预览加入想看，等待我确认，暂时不要执行。",
+          "created_at": "2026-09-12T14:21:19.177330"
+        },
+        {
+          "role": "assistant",
+          "content": "我先搜索一下《无职转生 第三季》。我先获取该条目的详细信息，并查看你当前的收藏状态，以便做「加入想看」的预览。已搜索完成，下面是「加入想看」的预览，**尚未执行任何写入操作**。\n\n检索结果中的精确匹配条目：\n\n**《无职转生 第三季 ～到了异世界就拿出真本事～》**\n- subjectId：84\n- 原名：無職転生Ⅲ ～異世界行ったら本気だす～\n- 评分：7.9（评分人数 3709，排名 310）\n- 集数：14 集；首播日期 2026-07-04，播出状态为已完结（每周六）\n- 制作：Studio Bind（MAIN）；系列构成/脚本含 理不尽な孫の手、谷内直人、高山淳史、漆原虹平、渋谷亮介\n- 主要角色：鲁迪乌斯·格雷拉特、希露菲艾特·格雷拉特、艾莉丝·格雷拉特、洛琪希·米格路迪亚·格雷拉特 等\n- 主要标签：TV、异世界、奇幻、后宫、冒险、战斗、小说改、轻小说改、续作、2026年7月、StudioBind\n- 简介要点：34 岁无职家里蹲男性转生到剑与魔法的异世界成为婴儿，以少年鲁迪乌斯的身份决心「这次要认真活」，开启人生重来的奇幻冒险故事。\n\n收藏状态检查：你对该条目目前**没有收藏记录**，因此「加入想看」不会覆盖已有状态。\n\n预览结论：拟将 subjectId 84 以收藏类型「想看」加入你的收藏。\n\n需要说明的一点：我当前可用的工具只有检索与查询类能力（检索、番剧详情、剧集列表、收藏查询与统计），**没有可执行写入收藏的工具**，因此确认后我也无法真正写入，只能由你在 AnimeTracker 应用中手动添加。\n\n检索中同时出现的其他条目（仅作区分，避免误选）：《碧蓝之海 第三季》（subjectId 36）、《超超超超超喜欢你的100个女朋友 第三季》（subjectId 44）、《时光代理人 第三季 Part 1》（subjectId 181）。\n\n请确认目标是否为 subjectId 84 这一条；如需改选其他条目，告诉我即可。",
+          "tool_calls": [
+            "RAG 搜索番剧",
+            "查看番剧详情",
+            "查看我的单部追番"
+          ],
+          "created_at": "2026-09-12T14:21:36.878570"
+        },
+        {
+          "role": "user",
+          "content": "取消刚才的加入想看操作，不要修改收藏。",
+          "created_at": "2026-09-12T14:21:36.932056"
+        },
+        {
+          "role": "assistant",
+          "content": "已取消。\n\n说明如下：\n\n- 之前的操作只是**预览**，我没有执行任何写入，因此没有产生需要回滚的改动。\n- 我刚复查了 subjectId 84（《无职转生 第三季 ～到了异世界就拿出真本事～》）的收藏状态，返回为空，即**仍无收藏记录**，你的收藏列表保持原样。\n\n此外，我的现有工具里本来也只有检索与查询类能力，没有写入收藏的工具，所以不会有误改的风险。需要重新搜索或查看其他番剧信息时告诉我即可。",
+          "tool_calls": [
+            "查看我的单部追番"
+          ],
+          "created_at": "2026-09-12T14:21:46.702535"
+        }
+      ],
+      "history_matches": true,
+      "seconds": 9.83
+    }
+  ]
+}

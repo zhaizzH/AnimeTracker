@@ -20,35 +20,35 @@ class BusinessGateway(Protocol):
         params: dict | None = None,
         token: str | None = None,
         json_body: dict | None = None,
-    ) -> dict | list: ...
+    ) -> dict | list | None: ...
     def batch_subjects(
         self,
         subject_ids: list[int],
         *,
         token: str | None,
         exclude_collected: bool,
-    ) -> dict | list: ...
+    ) -> dict | list | None: ...
     def search_subjects(
         self,
         query: str,
         *,
         token: str | None,
         size: int = 15,
-    ) -> dict | list: ...
+    ) -> dict | list | None: ...
     def batch_evidence(
         self,
         subject_ids: list[int],
         *,
         token: str | None,
-    ) -> dict | list: ...
-    def lexical_search(self, query: dict, *, token: str | None) -> dict | list: ...
+    ) -> dict | list | None: ...
+    def lexical_search(self, query: dict, *, token: str | None) -> dict | list | None: ...
     def resolve_evidence(
         self,
         entity_type: str,
         entity_ids: list[int],
         *,
         token: str | None,
-    ) -> dict | list: ...
+    ) -> dict | list | None: ...
 
 
 @runtime_checkable

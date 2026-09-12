@@ -26,7 +26,10 @@ def _check_collection_state(subject_id: int, user: UserInfo, business: BusinessG
         if data.get("code") == 404:
             return {"collected": False, "type": None}
         return {"error": True, "data": data}
-    return {"collected": data is not None, "type": (data or {}).get("type")}
+    # The normalized adapter returns None for an empty successful envelope.
+    # Only an actual collection object means the subject is already collected.
+    collected = isinstance(data, dict)
+    return {"collected": collected, "type": data.get("type") if collected else None}
 
 
 def _pending_action_from_items(items: list[dict], user: UserInfo) -> WishlistPendingAction:

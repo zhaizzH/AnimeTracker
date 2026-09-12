@@ -21,16 +21,46 @@ _CONFIRMATION_PHRASES = {
     "确认", "确定", "是", "是的", "好", "好的", "可以", "行",
     "执行", "按这个更新", "确认更新", "确认执行", "没问题",
 }
-_NEGATION_MARKERS = ("不", "没", "取消", "算了", "不要", "等等", "别", "否", "？", "?")
+_NEGATION_MARKERS = ("不", "取消", "算了", "不要", "等等", "别", "否")
+
+_EXPLICIT_RECOMMENDATION_PHRASES = (
+    "加入想看",
+    "加到想看",
+    "添加到想看",
+    "加入愿望单",
+    "添加到愿望单",
+    "帮我收藏",
+    "添加收藏",
+    "收藏这些",
+)
 
 
 def _is_explicit_confirmation(text: str) -> bool:
     t = text.strip().rstrip("。.!！?？").strip()
     if not t:
         return False
+    # Match complete affirmative phrases before checking substring negations;
+    # otherwise “没问题” is rejected because it contains “没”.
+    if t in _CONFIRMATION_PHRASES:
+        return True
     if any(m in t for m in _NEGATION_MARKERS):
         return False
-    return t in _CONFIRMATION_PHRASES
+    return False
+
+
+def _is_explicit_recommendation_request(text: str) -> bool:
+    normalized = " ".join((text or "").split())
+    if not normalized:
+        return False
+    for phrase in _EXPLICIT_RECOMMENDATION_PHRASES:
+        start = normalized.find(phrase)
+        if start < 0:
+            continue
+        prefix = normalized[max(0, start - 4):start]
+        if any(prefix.endswith(marker) for marker in ("不要", "别", "取消", "不想", "不")):
+            continue
+        return True
+    return False
 
 
 def _resolve_forced_pending_route(state: AgentState) -> dict[str, str] | None:
@@ -83,6 +113,8 @@ def build_gateway_router(dependencies: AgentDependencies):
         forced = _resolve_forced_pending_route(state)
         if forced is not None:
             return forced
+        if _is_explicit_recommendation_request(state.get("current_question") or ""):
+            return {"routing": {"route_target": "recommend_agent"}}
         llm = dependencies.llm_factory.create(slot=AgentChatModelSlot.CLIENT_ROUTE)
         model_name = llm_model_name(llm)
         agent = create_agent(

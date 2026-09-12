@@ -34,6 +34,17 @@ class TestBatchEvidence:
 
         assert result == [{"subjectId": 1, "name": "Test"}]
 
+    def test_missing_data_in_success_envelope_returns_none(self):
+        gw = HttpBusinessGateway("http://localhost:8080")
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"code": 200, "message": "success"}
+        mock_resp.raise_for_status = MagicMock()
+
+        with patch("httpx.request", return_value=mock_resp):
+            result = gw.request("GET", "/api/client/collections/84", token=None)
+
+        assert result is None
+
     def test_handles_timeout(self):
         import httpx
         gw = HttpBusinessGateway("http://localhost:8080")
