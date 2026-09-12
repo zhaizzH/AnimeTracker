@@ -174,3 +174,25 @@
 ### Next Steps
 
 - 后续代码任务处理能力测试与实现不一致问题
+
+
+## Session 8: 修复 Agent 运行时与测试报告问题
+<!-- trellis-session: v=2 fp=307bccde3749ed18 -->
+
+**Date**: 2026-09-12
+**Task**: 修复 Agent 运行时与测试报告问题
+**Branch**: `main`
+
+### Summary
+
+完成 Agent 报告 F01-F07、F09-F12 修复，新增 Python/Java/前端回归测试与报告；Python 284 passed，Maven clean test、前端 typecheck/Vitest/build 通过。F08 实体名称解析等待 Business 权威接口。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f8c915b3` | fix: 修复 Agent 运行时与测试报告问题 |
+
+### Status
+
+[OK] **Completed**
