@@ -4,16 +4,15 @@
 
 ## 指南
 
-| 文档 | 适用场景 |
+| 主题 | 内容 |
 |---|---|
-| [跨层契约检查](./cross-layer-thinking-guide.md) | API、认证、SSE、数据库字段或 Agent 写协议变化 |
-| [代码复用检查](./code-reuse-thinking-guide.md) | 新增类型、常量、API、组件、Gateway 或转换逻辑 |
-| [Agent 运行与提示词契约](../backend/agent-runtime-contract.md) | 角色工具、Prompt 生效、日期与中英文思考的跨层排障 |
+| [跨层契约与代码复用](./cross-layer-thinking-guide.md) | 端到端契约、事实核对、复用所有者与重复检查 |
+| [Agent 编排与运行](../backend/agent-guidelines.md) | 角色工具、Prompt 生效、日期与流式输出排障 |
 
 ## Trellis 发现边界
 
 - 当前项目处于 single-repo 模式，实际 spec layer 只有 backend/frontend；packages 配置仍未启用。
-- shared guides 不一定会被自动注入任务上下文；涉及跨层、数据库、OpenAPI、认证或文档事实时，必须手动先读本索引和 [跨层契约检查](./cross-layer-thinking-guide.md)。
+- shared guides 不一定会被自动注入任务上下文；涉及跨层、数据库、OpenAPI、认证或文档事实时，必须手动先读本索引和 [跨层契约检查](./cross-layer-thinking-guide.md#跨层契约检查指南)。
 - 当前没有单独的 docs spec layer；README、OpenAPI、Schema 文档变更按跨层契约处理，并以源码、测试和配置事实为准。
 
 ## 开发前检查
@@ -35,3 +34,17 @@
 - 契约：核对 `docs/spec/openapi.yaml`、Java/Python 实现和 shared 类型；OpenAPI 当前未被 CI 自动校验。
 - 数据：核对 `docs/database/db-schema.sql` 与所有映射；非空库禁止直接执行初始化 Schema。
 - 文档级校验：确认本目录链接、源码证据路径和命令仍存在；易腐的测试数量、路由数量和表数量必须附验证命令/核对日期。
+
+## 合并后的写入路由
+
+本索引是当前指南路径的事实来源。旧技能、历史任务或示例若要求读取/更新 `code-reuse-thinking-guide.md`，应定位到 [代码复用检查指南](./cross-layer-thinking-guide.md#代码复用检查指南) 并在该章节更新，不重新创建旧文件，也不复制出第二份规则。跨层契约继续在同文件的对应章节维护。
+
+其他层同样按各自 index 的“合并前路径对照”解析旧路径；重新启用归档任务时同步其上下文清单。旧技能模板中的路径不代表对应文档仍应独立存在。
+
+## 合并前路径对照
+
+供历史任务和记录定位；归档引用保留原貌，重新启用旧任务时更新其上下文路径。
+
+| 原文件 | 当前主题 |
+|---|---|
+| `code-reuse-thinking-guide.md` | [cross-layer-thinking-guide.md](./cross-layer-thinking-guide.md#代码复用检查指南) |

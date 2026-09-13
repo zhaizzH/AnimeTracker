@@ -162,10 +162,10 @@ DEALLOCATE PREPARE stmt;
 
 ## Redis 与 MinIO
 
-- Business Redis 键集中在 `common/constant/RedisKeys.java`。
+- Business Redis 键按职责归属：认证键在 `auth/constant/AuthRedisKeys.java`，限流键在 `infrastructure/ratelimit/RateLimitKeys.java`，账户业务键在 `client/constant/ClientRedisKeys.java`，收藏进度键在 `client/constant/CollectionRedisKeys.java`。
 - Agent Redis 适配器位于 `app/adapters/redis`，承载聊天、待确认动作、托管配置与可选 RAG。
 - 待确认动作当前 TTL 为 600 秒，修改时同步提示、存储和执行语义。
-- Business 对象存储走 `ImageStorageGateway`；实现位于 `app/infrastructure/storage/minio`。
+- Business 对象存储走 `ImageStorageGateway`；实现位于 `infrastructure/storage/minio`。
 - importer 的公开封面桶与私有原始桶必须使用不同名称。
 
 ## Scenario: RAG 词法投影与发布指针

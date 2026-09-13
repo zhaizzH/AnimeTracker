@@ -1,6 +1,6 @@
 # 后端开发规范
 
-适用范围：`backend/business`（Java 21 / Spring Boot 3.2）与 `backend/agent`（Python 3.10+ / FastAPI / LangGraph）。本目录记录当前仓库已经采用的边界和约定，不是通用框架教程。
+适用范围：`backend/business`（Java 21 / Spring Boot 3.2）与 `backend/agent`（Python 3.10+ / FastAPI / LangGraph）。本目录记录当前仓库已经采用的边界和约定；各主题章节同时记录设计约束与当前实现状态，实现状态以当前代码、测试和任务记录为准。
 
 ## 开发前检查
 
@@ -14,14 +14,12 @@
 
 | 主题 | 内容 |
 |---|---|
-| [目录与依赖边界](./directory-structure.md) | Java 六模块、Python 端口与适配器、代码放置规则 |
-| [Agent 编排与流式协议](./agent-guidelines.md) | LangGraph、SSE、工具权限、待确认动作 |
-| [Agent 运行与提示词契约](./agent-runtime-contract.md) | 角色工具矩阵、Prompt 快照、中文输出、日期与当前测试缺口 |
-| [数据与存储](./database-guidelines.md) | MySQL、MyBatis、SQLAlchemy、Redis、MinIO |
-| [RAG 检索与版本发布契约](./rag-retrieval-contract.md) | index/profile 版本、五报告 gate、灰度、回滚与 Evidence 边界 |
-| [错误处理](./error-handling.md) | Java 统一响应、Python API/工具错误语义 |
-| [日志与可观测性](./logging-guidelines.md) | `X-Request-ID`、结构化事件、隐私红线 |
-| [质量门禁](./quality-guidelines.md) | 校验命令、测试现状、审查清单 |
+| [架构与模块边界](./directory-structure.md) | 目标九模块、现有实现对照、Auth/Infrastructure/Java Agent 设计、pojo/Converter 与迁移验收 |
+| [Agent 编排与运行](./agent-guidelines.md) | 角色工具、Prompt、运行契约、SSE 与编排 |
+| [数据与存储](./database-guidelines.md) | MySQL、MyBatis、SQLAlchemy、Redis、Schema 与存储约束 |
+| [RAG 检索与版本发布](./rag-retrieval-contract.md) | 检索、发布 gate、灰度、回滚与 Evidence 边界 |
+| [错误、日志与可观测性](./error-handling.md) | 异常适配、统一响应、操作日志模块、追踪与隐私 |
+| [质量与 Javadoc](./quality-guidelines.md) | 测试门禁、审查、Java 声明全覆盖、注释位置、建议篇幅与 pojo 字段契约 |
 
 ## 不可破坏的系统约束
 
@@ -43,4 +41,17 @@ cd ../agent
 uv run pytest
 ```
 
-CI 当前执行 Java `mvn -B test`、Python `uv run pytest` 和前端 typecheck；`clean test` 与前端 build 属于相应变更的提交前/交付前验证。Python 已包含 importer/indexer/backfill/scheduler、RAG、适配器、eval 和 Agent Prompt 测试。2026-09-10 完整 pytest 因能力路由测试引用缺失符号而收集失败，详见 [质量门禁](./quality-guidelines.md)；不得沿用历史通过数。
+CI 当前执行 Java `mvn -B test`、Python `uv run pytest` 和前端 typecheck；`clean test` 与前端 build 属于相应变更的提交前/交付前验证。Python 已包含 importer/indexer/backfill/scheduler、RAG、适配器、eval 和 Agent Prompt 测试。2026-09-10 的能力路由测试收集失败是历史记录，2026-09-12 既有记录说明已重写；本次已重跑 Business reactor clean test，详见 [质量门禁](./quality-guidelines.md#后端质量门禁)；不得沿用历史通过数。
+
+## 合并前路径对照
+
+供历史任务和记录定位；归档引用保留原貌，重新启用旧任务时更新其上下文路径。
+
+| 原文件 | 当前主题 |
+|---|---|
+| `auth-module-design.md` | [directory-structure.md](./directory-structure.md#business-auth-模块目标设计) |
+| `infrastructure-module-design.md` | [directory-structure.md](./directory-structure.md#business-infrastructure-模块目标设计) |
+| `business-agent-module-design.md` | [directory-structure.md](./directory-structure.md#business-java-agent-模块目标设计) |
+| `agent-runtime-contract.md` | [agent-guidelines.md](./agent-guidelines.md#agent-角色提示词与流式输出契约) |
+| `logging-guidelines.md` | [error-handling.md](./error-handling.md#日志与可观测性规范) |
+| `java-javadoc-guidelines.md` | [quality-guidelines.md](./quality-guidelines.md#java-后端-javadoc-规范) |
