@@ -24,7 +24,7 @@ CI 当前未强制 Vitest 和 build；不要在 spec 中把它们描述为已启
 - admin 的首个测试位于 `src/guards.test.tsx`，覆盖 `RequireAdmin` 的未登录跳转、非管理员拒绝和管理员放行。
 - Vitest 使用 jsdom；浏览器能力 shim 位于 `client/src/test/matchMedia.ts`。
 - 新增关键 guard、mutation、SSE 或管理写操作时补最小测试，不以现有稀疏覆盖为标准。
-- thinking 的语言、空格与历史恢复需跨 shared Hook、client/admin 展示和 Python runtime 核对；现有 UI/Prompt 静态测试不能证明真实模型遵循语言指令。源码核对见 [Agent 运行与提示词契约](../backend/agent-runtime-contract.md)。
+- thinking 的语言、空格与历史恢复需跨 shared Hook、client/admin 展示和 Python runtime 核对；现有 UI/Prompt 静态测试不能证明真实模型遵循语言指令。源码核对见 [Agent 运行与提示词契约](../backend/agent-guidelines.md#agent-角色提示词与流式输出契约)。
 
 ## 构建与运行时事实
 

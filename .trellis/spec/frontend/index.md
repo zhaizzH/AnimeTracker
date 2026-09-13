@@ -15,10 +15,8 @@
 | 主题 | 内容 |
 |---|---|
 | [目录结构](./directory-structure.md) | npm workspaces 与代码归属 |
-| [组件规范](./component-guidelines.md) | 页面、共享组件、样式与可访问性 |
-| [Hook 规范](./hook-guidelines.md) | Query、mutation、SSE 与副作用 |
-| [状态管理](./state-management.md) | TanStack Query、Zustand、本地与 URL 状态 |
-| [类型安全](./type-safety.md) | shared 类型、边界收窄与跨层同步 |
+| [组件与类型](./component-guidelines.md) | 组件职责、样式、可访问性、类型所有权与 HTTP 类型边界 |
+| [Hook 与状态](./hook-guidelines.md) | Query、mutation、SSE、认证、Zustand 与 URL 状态 |
 | [质量门禁](./quality-guidelines.md) | typecheck、Vitest、构建与审查 |
 
 ## 关键约束
@@ -28,7 +26,7 @@
 - 普通 JSON 响应由 shared HTTP 拦截器解包；SSE 使用 fetch 流，不能混用。
 - shared API 以命名空间导出，避免 `list/remove/schedule` 等同名冲突。
 - client 与 admin 不互相导入源码，共享能力进入 `@animetracker/shared`。
-- Agent 工具能力由后端角色路由决定，不能从前端页面或“思考过程”文本推断 RAG 已启用；联调时阅读 [Agent 运行与提示词契约](../backend/agent-runtime-contract.md)。
+- Agent 工具能力由后端角色路由决定，不能从前端页面或“思考过程”文本推断 RAG 已启用；联调时阅读 [Agent 运行与提示词契约](../backend/agent-guidelines.md#agent-角色提示词与流式输出契约)。
 
 ## 质量检查
 
@@ -40,3 +38,12 @@ npm run build
 ```
 
 质量门禁按变更范围执行：CI 当前强制 `npm run typecheck`；提交前运行受影响 workspace 的 `npm test`；路由、依赖、构建配置或交付型变更再运行 `npm run build`。详见 [质量门禁](./quality-guidelines.md)。
+
+## 合并前路径对照
+
+供历史任务和记录定位；归档引用保留原貌，重新启用旧任务时更新其上下文路径。
+
+| 原文件 | 当前主题 |
+|---|---|
+| `type-safety.md` | [component-guidelines.md](./component-guidelines.md#类型安全规范) |
+| `state-management.md` | [hook-guidelines.md](./hook-guidelines.md#状态管理规范) |
