@@ -23,8 +23,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EvidenceController {
 
+    /** 证据查询服务。 */
     private final EvidenceService evidenceService;
 
+    /**
+     * 回查条目的安全证据与来源信息。
+     * @param request 待回查的条目 ID
+     * @return 统一成功响应，其数据为：满足动画、安全与有效条件的证据，不存在的条目被省略
+     */
     @PostMapping("/batch")
     public Result<List<EvidenceCandidateVO>> batchEvidence(
             @Valid @RequestBody EvidenceBatchRequestDTO request) {
@@ -34,6 +40,8 @@ public class EvidenceController {
     /**
      * 将人物、角色、声优关系或条目 ID 批量解析为最小安全证据候选。
      * 旧 /batch 只接受 subjectIds，本接口不改变其请求契约。
+     * @param request 实体类型及 ID 列表
+     * @return 统一成功响应，其数据为：实体关联到的安全动画条目证据
      */
     @PostMapping("/resolve")
     public Result<List<EvidenceCandidateVO>> resolveEvidence(

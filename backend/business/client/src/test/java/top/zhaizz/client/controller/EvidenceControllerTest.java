@@ -25,12 +25,17 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/** 用户端证据控制器校验与响应测试。 */
 class EvidenceControllerTest {
 
+    /** 独立 MVC 测试入口。 */
     private MockMvc mvc;
+    /** 被测证据聚合服务。 */
     private EvidenceService evidenceService;
+    /** 测试请求 JSON 序列化器。 */
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /** 为每个用例创建隔离的控制器与模拟依赖。 */
     @BeforeEach
     void setUp() {
         evidenceService = mock(EvidenceService.class);
@@ -38,6 +43,7 @@ class EvidenceControllerTest {
         mvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
+/** 验证批量证据请求返回候选数据。 */
     @Test
     void batchEvidenceReturnsCandidates() throws Exception {
         EvidenceCandidateVO vo = EvidenceCandidateVO.builder()
@@ -68,6 +74,7 @@ class EvidenceControllerTest {
                 .andExpect(jsonPath("$.data[0].metaTags[0]").value("SF"));
     }
 
+/** 验证批量证据请求对未知条目标识返回空结果。 */
     @Test
     void batchEvidenceReturnsEmptyForMissingIds() throws Exception {
         when(evidenceService.batchEvidence(anyList())).thenReturn(Collections.emptyList());
@@ -80,6 +87,7 @@ class EvidenceControllerTest {
                 .andExpect(jsonPath("$.data").isEmpty());
     }
 
+/** 验证批量证据请求在非法输入下返回校验错误。 */
     @Test
     void batchEvidenceRejectsEmptyIds() throws Exception {
         mvc.perform(post("/api/client/evidence/batch")
@@ -88,6 +96,7 @@ class EvidenceControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+/** 验证批量证据请求在非法输入下返回校验错误。 */
     @Test
     void batchEvidenceRejectsTooManyIds() throws Exception {
         List<Long> ids = new java.util.ArrayList<>();
@@ -99,6 +108,7 @@ class EvidenceControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+/** 验证批量证据请求在非法输入下返回校验错误。 */
     @Test
     void batchEvidenceRejectsNullIds() throws Exception {
         mvc.perform(post("/api/client/evidence/batch")
@@ -107,6 +117,7 @@ class EvidenceControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+/** 验证人物证据解析只返回安全且有效的候选。 */
     @Test
     void resolveEvidenceReturnsSafeCandidateForPerson() throws Exception {
         EvidenceCandidateVO vo = EvidenceCandidateVO.builder()
@@ -134,6 +145,7 @@ class EvidenceControllerTest {
                 .andExpect(jsonPath("$.data[0].sourceUrl").value("https://bgm.tv/subject/101"));
     }
 
+/** 验证未知实体类型返回空候选列表。 */
     @Test
     void resolveEvidenceReturnsEmptyForUnknownEntity() throws Exception {
         when(evidenceService.resolveEvidence(any(EvidenceEntityBatchRequestDTO.class)))
@@ -147,6 +159,7 @@ class EvidenceControllerTest {
                 .andExpect(jsonPath("$.data").isEmpty());
     }
 
+/** 验证证据解析拒绝非法标识或缺失实体类型。 */
     @Test
     void resolveEvidenceRejectsInvalidIdsAndMissingType() throws Exception {
         mvc.perform(post("/api/client/evidence/resolve")
@@ -160,6 +173,7 @@ class EvidenceControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+/** 验证证据解析拒绝非法标识或缺失实体类型。 */
     @Test
     void resolveEvidenceRejectsMoreThanFiftyIds() throws Exception {
         List<Long> ids = java.util.stream.LongStream.rangeClosed(1, 51).boxed().toList();

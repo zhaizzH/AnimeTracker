@@ -7,12 +7,15 @@ import java.time.Clock;
 import java.time.ZoneId;
 
 /**
- * 收藏进度业务时间源配置（时区固定 Asia/Shanghai）
+ * 收藏进度业务时间源配置（时区固定 Asia/Shanghai）。
  */
 @Configuration
 public class CollectionProgressConfig {
 
-    /** 收藏进度计算统一时钟 */
+    /**
+     * 收藏进度计算统一时钟。
+     * @return 收藏进度计算统一时钟
+     */
     @Bean
     public Clock collectionProgressClock() {
         return Clock.system(ZoneId.of("Asia/Shanghai"));

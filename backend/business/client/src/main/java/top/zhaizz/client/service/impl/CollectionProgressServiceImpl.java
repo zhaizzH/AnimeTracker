@@ -7,6 +7,7 @@ import top.zhaizz.client.model.ProgressPreviewStatus;
 import top.zhaizz.client.service.CollectionProgressCalculator;
 import top.zhaizz.client.service.CollectionProgressItemExecutor;
 import top.zhaizz.client.service.CollectionProgressService;
+import top.zhaizz.client.converter.CollectionProgressConverter;
 import top.zhaizz.client.store.ProgressPreviewStore;
 import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.exception.BizException;
@@ -28,19 +29,25 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 收藏进度预览服务实现
+ * 收藏进度预览服务实现。
  */
 @Service
 @RequiredArgsConstructor
 public class CollectionProgressServiceImpl implements CollectionProgressService {
 
+    /** 收藏进度预览快照的有效期。 */
     private static final Duration PREVIEW_TTL = Duration.ofMinutes(10);
 
+    /** 收藏进度计算器。 */
     private final CollectionProgressCalculator calculator;
+    /** 收藏进度快照存储。 */
     private final ProgressPreviewStore store;
+    /** 单条收藏进度执行器。 */
     private final CollectionProgressItemExecutor itemExecutor;
+    /** 用于计算时间的时钟，便于测试。 */
     private final Clock clock;
 
+    /** {@inheritDoc} */
     @Override
     public CollectionProgressPreviewVO createPreview(Long userId) {
         LocalDate today = LocalDate.now(clock);
@@ -65,9 +72,10 @@ public class CollectionProgressServiceImpl implements CollectionProgressService 
                 .build();
         store.save(snapshot, PREVIEW_TTL);
 
-        return toPreviewVO(CollectionProgressState.PENDING, previewId, items, weekStart, cutoffDate, expiresAt);
+        return CollectionProgressConverter.toPreviewVO(CollectionProgressState.PENDING, previewId, items, weekStart, cutoffDate, expiresAt);
     }
 
+    /** {@inheritDoc} */
     @Override
     public CollectionProgressExecutionVO executePreview(Long userId, String previewId) {
         ProgressPreviewSnapshot snapshot = store.find(userId, previewId)
@@ -84,6 +92,14 @@ public class CollectionProgressServiceImpl implements CollectionProgressService 
         }
     }
 
+    /**
+     * 在持有执行锁时重新校验并推进收藏，完成快照允许幂等重放。
+     * @param userId 快照所属用户 ID
+     * @param previewId 已获取执行锁的预览标识
+     * @param snapshot 保存的预览快照
+     * @return 预览变化提示、逐项执行结果或首次结果的幂等重放
+     * @throws BizException 非待执行状态或已过期时为 CONFLICT
+     */
     private CollectionProgressExecutionVO executeLocked(Long userId, String previewId,
                                                        ProgressPreviewSnapshot snapshot) {
         // 幂等重放：已完成的预览直接返回首次执行结果
@@ -120,7 +136,7 @@ public class CollectionProgressServiceImpl implements CollectionProgressService 
             return CollectionProgressExecutionVO.builder()
                     .state(CollectionProgressState.PREVIEW_CHANGED)
                     .replayed(false)
-                    .preview(toPreviewVO(CollectionProgressState.PREVIEW_CHANGED, newPreviewId,
+                    .preview(CollectionProgressConverter.toPreviewVO(CollectionProgressState.PREVIEW_CHANGED, newPreviewId,
                             recalculated, snapshot.getWeekStart(), snapshot.getCutoffDate(), newExpiresAt))
                     .build();
         }
@@ -137,9 +153,9 @@ public class CollectionProgressServiceImpl implements CollectionProgressService 
                 itemExecutor.update(userId, item);
                 succeeded.add(item);
             } catch (BizException e) {
-                skipped.add(toFailure(item, e.getMessage()));
+                skipped.add(CollectionProgressConverter.toFailure(item, e.getMessage()));
             } catch (RuntimeException e) {
-                failed.add(toFailure(item, e.getMessage()));
+                failed.add(CollectionProgressConverter.toFailure(item, e.getMessage()));
             }
         }
 
@@ -168,11 +184,22 @@ public class CollectionProgressServiceImpl implements CollectionProgressService 
         return result;
     }
 
-    /** 规范化三元组 (subjectId, currentEpStatus, targetEpStatus) 按 subjectId 确定性排序后比较 */
+    /**
+     * 忽略顺序比较条目标识、当前进度和目标进度，不比较展示名称。
+     * @param original 原始预览条目列表
+     * @param recalculated 重新计算的条目列表
+     * @return 三元组规范化排序后相同为 {@code true}
+     */
     private boolean sameItems(List<CollectionProgressItemVO> original, List<CollectionProgressItemVO> recalculated) {
         return normalize(original).equals(normalize(recalculated));
     }
 
+    /**
+     * 按稳定字段顺序提取进度条目，用于比较重算前后的内容是否一致。
+     *
+     * @param items 进度条目集合
+     * @return 可比较的字段列表；输入为空时返回空列表
+     */
     private List<List<Object>> normalize(List<CollectionProgressItemVO> items) {
         return items.stream()
                 .sorted(Comparator.comparing(CollectionProgressItemVO::getSubjectId,
@@ -181,28 +208,4 @@ public class CollectionProgressServiceImpl implements CollectionProgressService 
                 .toList();
     }
 
-    private CollectionProgressFailureVO toFailure(CollectionProgressItemVO item, String reason) {
-        return CollectionProgressFailureVO.builder()
-                .subjectId(item.getSubjectId())
-                .subjectName(item.getSubjectName())
-                .currentEpStatus(item.getCurrentEpStatus())
-                .targetEpStatus(item.getTargetEpStatus())
-                .reason(reason)
-                .build();
-    }
-
-    /** 构造预览返回体（createPreview 与确认时 PREVIEW_CHANGED 共用） */
-    private CollectionProgressPreviewVO toPreviewVO(CollectionProgressState state, String previewId,
-                                                    List<CollectionProgressItemVO> items,
-                                                    LocalDate weekStart, LocalDate cutoffDate,
-                                                    OffsetDateTime expiresAt) {
-        return CollectionProgressPreviewVO.builder()
-                .previewId(previewId)
-                .state(state)
-                .expiresAt(expiresAt)
-                .weekStart(weekStart)
-                .cutoffDate(cutoffDate)
-                .items(items)
-                .build();
-    }
 }

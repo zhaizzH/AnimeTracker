@@ -6,7 +6,7 @@ import top.zhaizz.client.converter.SubjectConverter;
 import top.zhaizz.client.mapper.SubjectMapper;
 import top.zhaizz.client.mapper.SubjectTagMapper;
 import top.zhaizz.client.service.TagService;
-import top.zhaizz.common.converter.SubjectVoConverter;
+import top.zhaizz.client.converter.SubjectVoConverter;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.entity.Subject;
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
@@ -17,15 +17,18 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * 标签服务实现
+ * 标签服务实现。
  */
 @Service
 @RequiredArgsConstructor
 public class TagServiceImpl implements TagService {
 
+    /** 条目标签关系 Mapper。 */
     private final SubjectTagMapper subjectTagMapper;
+    /** 条目数据 Mapper。 */
     private final SubjectMapper subjectMapper;
 
+    /** {@inheritDoc} */
     @Override
     public List<TagVO> listTags() {
         return subjectTagMapper.selectTagCountList().stream()
@@ -33,6 +36,7 @@ public class TagServiceImpl implements TagService {
                 .collect(Collectors.toList());
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageResult<SubjectListVO> listSubjectsByTag(String tagName, int page, int size) {
         List<Long> subjectIds = subjectMapper.findSubjectIdsByTag(tagName);

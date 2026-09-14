@@ -31,15 +31,18 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * 收藏服务实现
+ * 收藏服务实现。
  */
 @Service
 @RequiredArgsConstructor
 public class CollectionServiceImpl implements CollectionService {
 
+    /** 收藏数据 Mapper。 */
     private final CollectionMapper collectionMapper;
+    /** 条目数据 Mapper。 */
     private final SubjectMapper subjectMapper;
 
+    /** {@inheritDoc} */
     @Override
     public PageResult<UserCollectionVO> listCollections(Long userId, CollectionQueryDTO request) {
         Page<UserCollectionSubjectVO> mpPage = collectionMapper.selectCollectionPage(
@@ -53,6 +56,7 @@ public class CollectionServiceImpl implements CollectionService {
         );
     }
 
+    /** {@inheritDoc} */
     @Override
     public Map<Integer, Long> listCounts(Long userId) {
         QueryWrapper<UserCollection> qw = new QueryWrapper<>();
@@ -65,14 +69,16 @@ public class CollectionServiceImpl implements CollectionService {
         return counts;
     }
 
+    /** {@inheritDoc} */
     @Override
     public UserCollectionVO getCollection(Long userId, Long subjectId) {
         UserCollection collection = findCollection(userId, subjectId);
         if (collection == null) return null;
 
-        return toSimpleVO(collection);
+        return CollectionConverter.toSimpleVO(collection);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public WishlistAddResultVO addToWishlistIfAbsent(Long userId, Long subjectId) {
@@ -101,6 +107,7 @@ public class CollectionServiceImpl implements CollectionService {
         return WishlistAddResultVO.added();
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void saveOrUpdate(Long userId, Long subjectId, CollectionUpdateDTO request) {
@@ -140,6 +147,7 @@ public class CollectionServiceImpl implements CollectionService {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public void deleteCollection(Long userId, Long subjectId) {
         int affected = collectionMapper.delete(
@@ -151,6 +159,7 @@ public class CollectionServiceImpl implements CollectionService {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public void updateEpStatus(Long userId, Long subjectId, Integer epStatus) {
         UserCollection collection = collectionMapper.selectOne(
@@ -165,6 +174,7 @@ public class CollectionServiceImpl implements CollectionService {
         collectionMapper.updateById(collection);
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageResult<UserCollectionVO> listSchedule(Long userId, ScheduleQueryDTO request) {
         int year = request.getYear() != null ? request.getYear() : SeasonUtil.getCurrentYear();
@@ -182,16 +192,14 @@ public class CollectionServiceImpl implements CollectionService {
         );
     }
 
-    private UserCollectionVO toSimpleVO(UserCollection entity) {
-        UserCollectionVO vo = new UserCollectionVO();
-        vo.setId(entity.getId());
-        vo.setSubjectId(entity.getSubjectId());
-        vo.setType(entity.getType());
-        vo.setRate(entity.getRate());
-        vo.setEpStatus(entity.getEpStatus());
-        return vo;
-    }
 
+    /**
+     * 查询用户与条目对应的收藏记录。
+     *
+     * @param userId 用户 ID
+     * @param subjectId 条目 ID
+     * @return 收藏记录；不存在时返回 {@code null}
+     */
     private UserCollection findCollection(Long userId, Long subjectId) {
         return collectionMapper.selectOne(
                 new LambdaQueryWrapper<UserCollection>()
