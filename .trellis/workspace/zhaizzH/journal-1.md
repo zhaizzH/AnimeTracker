@@ -218,3 +218,26 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 10: 提交 Business 规范任务代码
+<!-- trellis-session: v=2 fp=3286b109f374e659 -->
+
+**Date**: 2026-09-14
+**Task**: 提交 Business 规范任务代码
+**Branch**: `codex/business-spec-implementation`
+
+### Summary
+
+完成 Business 分层、Javadoc、架构门禁与专项测试修复；95 个 Java 测试和 JDK 文档检查通过，任务已归档。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9a732b22` | fix(business): 完成规范复核缺陷修复与文档校验 |
+| `937bdcff` | chore(trellis): 归档规范复核修复并记录验证 |
+
+### Status
+
+[OK] **Completed**
