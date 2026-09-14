@@ -13,9 +13,14 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LexicalSearchCandidateVO {
+    /** 关联条目标识。 */
     private Long subjectId;
+    /** 来源数据的原始名称。 */
     private String name;
+    /** 条目的中文名称。 */
     private String nameCn;
+    /** 词法检索相关性得分。 */
     private BigDecimal lexicalScore;
+    /** 候选结果排序名次。 */
     private Integer rank;
 }
