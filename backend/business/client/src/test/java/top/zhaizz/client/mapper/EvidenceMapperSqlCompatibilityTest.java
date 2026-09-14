@@ -8,8 +8,10 @@ import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/** 证据 Mapper SQL 兼容性测试。 */
 class EvidenceMapperSqlCompatibilityTest {
 
+/** 验证实体展开 SQL 在 MySQL 8.4 上可按评分排序。 */
     @Test
     void entityExpansionQueriesCanOrderByScoreOnMysql84() throws IOException {
         String xml;
@@ -31,6 +33,12 @@ class EvidenceMapperSqlCompatibilityTest {
                 .isEqualTo(3);
     }
 
+    /**
+     * 统计 SQL 片段非重叠出现次数。
+     * @param text 待检查的 Mapper XML
+     * @param needle 非空 SQL 片段
+     * @return 片段匹配次数
+     */
     private static int countOccurrences(String text, String needle) {
         int count = 0;
         int offset = 0;

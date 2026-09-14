@@ -17,7 +17,7 @@ import top.zhaizz.client.mapper.SubjectTagMapper;
 import top.zhaizz.client.service.ClientSubjectService;
 import top.zhaizz.client.util.SeasonUtil;
 import top.zhaizz.common.constant.ErrorType;
-import top.zhaizz.common.converter.SubjectVoConverter;
+import top.zhaizz.client.converter.SubjectVoConverter;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.pojo.dto.subject.ScheduleQueryDTO;
@@ -28,7 +28,7 @@ import top.zhaizz.pojo.dto.subject.LexicalSearchRequestDTO;
 import top.zhaizz.pojo.entity.Subject;
 import top.zhaizz.pojo.entity.SubjectRelation;
 import top.zhaizz.pojo.entity.SubjectTag;
-import top.zhaizz.pojo.vo.subject.SubjectBatchItemVO;
+
 import top.zhaizz.pojo.vo.subject.SubjectBatchResultVO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 import top.zhaizz.pojo.vo.subject.SubjectListVO;
@@ -47,14 +47,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 番剧查询服务实现
+ * 番剧查询服务实现。
  */
 @Service
 @RequiredArgsConstructor
 public class ClientSubjectServiceImpl implements ClientSubjectService {
 
     /**
-     * 排序参数到列/字段的白名单
+     * 排序参数到列/字段的白名单。
      */
     private static final Map<String, SFunction<Subject, ?>> SORT_FIELDS = Map.of(
             "id", Subject::getId,
@@ -62,16 +62,22 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
             "air_date", Subject::getAirDate,
             "rank", Subject::getRank,
             "collection_total", Subject::getCollectionTotal);
+    /** 条目数据 Mapper。 */
     private final SubjectMapper subjectMapper;
+    /** 条目标签关系 Mapper。 */
     private final SubjectTagMapper subjectTagMapper;
+    /** 条目关联关系 Mapper。 */
     private final SubjectRelationMapper subjectRelationMapper;
+    /** 收藏数据 Mapper。 */
     private final CollectionMapper collectionMapper;
 
+    /** {@inheritDoc} */
     @Override
     public List<Integer> listYears() {
         return subjectMapper.selectYears();
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageResult<SubjectListVO> listSubjects(SubjectListQueryDTO request) {
         LambdaQueryWrapper<Subject> wrapper = new LambdaQueryWrapper<Subject>()
@@ -89,6 +95,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
         );
     }
 
+    /** {@inheritDoc} */
     @Override
     public SubjectDetailVO getSubjectDetail(Long id) {
         Subject subject = subjectMapper.selectById(id);
@@ -122,6 +129,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
         return detailVO;
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageResult<SubjectListVO> searchSubjects(SubjectSearchQueryDTO request) {
         String keyword = (request.getQ() != null && !request.getQ().trim().isEmpty()) ? request.getQ().trim() : null;
@@ -143,6 +151,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
         );
     }
 
+    /** {@inheritDoc} */
     @Override
     public LexicalSearchResultVO lexicalSearch(LexicalSearchRequestDTO request) {
         SearchIndexReleaseRow release;
@@ -182,6 +191,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
                 .build();
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageResult<SubjectListVO> listBySeason(SeasonQueryDTO request) {
         LocalDate[] range = SeasonUtil.getSeasonRange(request.getYear(), request.getQuarter());
@@ -201,6 +211,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
         );
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageResult<SubjectListVO> listSchedule(ScheduleQueryDTO request) {
         int year = request.getYear() != null ? request.getYear() : SeasonUtil.getCurrentYear();
@@ -228,6 +239,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
         );
     }
 
+    /** {@inheritDoc} */
     @Override
     public SubjectBatchResultVO batch(List<Long> subjectIds, boolean excludeCollected, Long userId) {
         List<Long> uniqueIds = new ArrayList<>(new LinkedHashSet<>(subjectIds));
@@ -247,36 +259,39 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
             } else if (collectedIds.contains(id)) {
                 result.getCollectedIds().add(id);
             } else {
-                result.getItems().add(toBatchItemVO(subject));
+                result.getItems().add(SubjectConverter.toBatchItemVO(subject));
             }
         }
         return result;
     }
 
-    private SubjectBatchItemVO toBatchItemVO(Subject subject) {
-        SubjectBatchItemVO item = new SubjectBatchItemVO();
-        item.setId(subject.getId());
-        item.setName(subject.getName());
-        item.setNameCn(subject.getNameCn());
-        item.setImage(subject.getImage());
-        item.setScore(subject.getScore());
-        item.setRatingTotal(subject.getRatingTotal());
-        item.setCollectionTotal(subject.getCollectionTotal());
-        item.setAirDate(subject.getAirDate());
-        item.setType(subject.getType());
-        item.setNsfw(subject.getNsfw());
-        item.setActive(Integer.valueOf(1).equals(subject.getImportStatus()));
-        return item;
-    }
 
+    /**
+     * 将受控排序字段转换为 MyBatis-Plus 的实体字段引用。
+     *
+     * @param sort 请求的排序字段
+     * @return 允许的实体字段引用；不支持的字段返回默认评分字段
+     */
     private SFunction<Subject, ?> buildSortField(String sort) {
         return SORT_FIELDS.getOrDefault(sort, Subject::getScore);
     }
 
+    /**
+     * 将受控排序字段转换为 SQL 白名单中的列名。
+     *
+     * @param sort 请求的排序字段
+     * @return 安全的 SQL 列名
+     */
     private String buildSortFieldRaw(String sort) {
         return "s." + (SORT_FIELDS.containsKey(sort) ? sort : "score");
     }
 
+    /**
+     * 将排序方向限制为 SQL 白名单中的升序或降序。
+     *
+     * @param order 请求的排序方向
+     * @return {@code asc} 或 {@code desc}
+     */
     private String buildOrderRaw(String order) {
         return "asc".equalsIgnoreCase(order) ? "asc" : "desc";
     }

@@ -14,7 +14,7 @@ import top.zhaizz.pojo.vo.tag.TagVO;
 import java.util.List;
 
 /**
- * 标签控制器
+ * 标签控制器。
  */
 @RestController
 @RequestMapping("/api/client/tags")
@@ -22,10 +22,12 @@ import java.util.List;
 @Validated
 public class TagController {
 
+    /** 标签查询服务。 */
     private final TagService tagService;
 
     /**
-     * 获取标签列表
+     * 获取标签列表。
+     * @return 统一成功响应，其数据为：按使用次数降序排列的标签
      */
     @GetMapping
     public Result<List<TagVO>> listTags() {
@@ -33,7 +35,11 @@ public class TagController {
     }
 
     /**
-     * 获取标签下的番剧列表
+     * 获取标签下的番剧列表。
+     * @param tag 标签名称
+     * @param page 分页页码，从 1 开始
+     * @param size 每页记录数
+     * @return 统一成功响应，其数据为：匹配标签的条目分页
      */
     @GetMapping("/{tag}/subjects")
     public Result<PageResult<SubjectListVO>> listSubjectsByTag(

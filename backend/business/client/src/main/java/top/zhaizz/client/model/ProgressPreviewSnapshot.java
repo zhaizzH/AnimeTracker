@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 收藏进度预览 Redis 快照（内部存储，永不直接作为 HTTP 返回）
+ * 收藏进度预览 Redis 快照（内部存储，永不直接作为 HTTP 返回）。
  */
 @Data
 @Builder
@@ -21,14 +21,23 @@ import java.util.List;
 @AllArgsConstructor
 public class ProgressPreviewSnapshot {
 
+    /** 预览ID。 */
     private String previewId;                           // 预览ID
+    /** 用户ID。 */
     private Long userId;                                // 用户ID
+    /** 快照状态。 */
     private ProgressPreviewStatus status;               // 快照状态
+    /** 本周周一。 */
     private LocalDate weekStart;                        // 本周周一
+    /** 截止日期（昨日）。 */
     private LocalDate cutoffDate;                       // 截止日期（昨日）
+    /** 待处理条目集合。 */
     @Builder.Default
     private List<CollectionProgressItemVO> items = new ArrayList<>();
+    /** 创建时间。 */
     private OffsetDateTime createdAt;                   // 创建时间
+    /** 过期时间。 */
     private OffsetDateTime expiresAt;                   // 过期时间
+    /** 执行结果（COMPLETED 后用于幂等重放）。 */
     private CollectionProgressExecutionVO executionResult; // 执行结果（COMPLETED 后用于幂等重放）
 }

@@ -4,14 +4,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.zhaizz.client.gateway.EmailGateway;
+import top.zhaizz.infrastructure.email.EmailGateway;
 import top.zhaizz.client.mapper.UserMapper;
 import top.zhaizz.client.service.VerificationService;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.constant.ErrorType;
-import top.zhaizz.common.ratelimit.RateLimiter;
-import top.zhaizz.common.constant.RedisKeys;
-import top.zhaizz.common.util.RedisUtil;
+import top.zhaizz.infrastructure.ratelimit.RateLimiter;
+import top.zhaizz.client.constant.ClientRedisKeys;
+import top.zhaizz.infrastructure.redis.RedisUtil;
 import top.zhaizz.pojo.entity.User;
 
 import java.security.SecureRandom;
@@ -19,23 +19,36 @@ import java.time.LocalDateTime;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 邮箱验证服务实现
+ * 邮箱验证服务实现。
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class VerificationServiceImpl implements VerificationService {
 
+    /** Redis 访问工具。 */
     private final RedisUtil redisUtil;
+    /** 用户数据 Mapper。 */
     private final UserMapper userMapper;
+    /** 邮件发送网关。 */
     private final EmailGateway emailGateway;
+    /** 限流器。 */
     private final RateLimiter rateLimiter;
 
+    /** 验证码有效期（分钟）。 */
     private static final long CODE_TTL_MINUTES = 5;
+    /** 验证码长度。 */
     private static final int CODE_LENGTH = 6;
     // 字符集刻意剔除易混淆的 0/O/1/l/I，降低人工输入错误率
+    /** 验证码允许使用的字符集合。 */
     private static final String ALPHANUMERIC = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    /** 生成验证码的随机源。 */
     private static final SecureRandom RANDOM = new SecureRandom();
+    /**
+     * 生成六位数字邮箱验证码。
+     *
+     * @return 六位数字字符串
+     */
     private String generateCode() {
         StringBuilder code = new StringBuilder(CODE_LENGTH);
         for (int i = 0; i < CODE_LENGTH; i++) {
@@ -44,24 +57,26 @@ public class VerificationServiceImpl implements VerificationService {
         return code.toString();
     }
 
+    /** {@inheritDoc} */
     @Override
     public void sendVerificationCode(String email) {
         // 生成6位字母数字验证码（字符集见 ALPHANUMERIC 常量）
         String code = generateCode();
 
         // 2. 存入 Redis（5分钟 TTL）
-        redisUtil.set(RedisKeys.EMAIL + email, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
+        redisUtil.set(ClientRedisKeys.EMAIL + email, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
 
         try {
             emailGateway.send(email, "[AnimeTracker] 邮箱验证码",
                     "你的验证码是：" + code + "\n\n此验证码5分钟内有效，请勿泄露给他人。");
         } catch (Exception e) {
-            redisUtil.del(RedisKeys.EMAIL + email);
+            redisUtil.del(ClientRedisKeys.EMAIL + email);
             log.error("验证码邮件发送失败", e);
             throw new BizException(ErrorType.INTERNAL_ERROR, "验证码发送失败，请稍后重试");
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public void verifyEmail(String email, String code) {
         String bucket = "verify:email:" + email;
@@ -69,7 +84,7 @@ public class VerificationServiceImpl implements VerificationService {
             throw new BizException(ErrorType.TOO_MANY_REQUESTS, "尝试次数过多，请 5 分钟后再试");
         }
         // 1. 从 Redis 获取存储的验证码
-        String storedCode = redisUtil.get(RedisKeys.EMAIL + email);
+        String storedCode = redisUtil.get(ClientRedisKeys.EMAIL + email);
 
         if (storedCode == null) {
             throw new BizException(ErrorType.VERIFICATION_FAILED, "验证码已过期，请重新发送");
@@ -81,7 +96,7 @@ public class VerificationServiceImpl implements VerificationService {
         rateLimiter.reset(bucket);
 
         // 2. 校验通过，删除 Redis key
-        redisUtil.del(RedisKeys.EMAIL + email);
+        redisUtil.del(ClientRedisKeys.EMAIL + email);
 
         // 3. 更新用户 email_verified 状态
         User user = userMapper.selectOne(
@@ -96,6 +111,7 @@ public class VerificationServiceImpl implements VerificationService {
         userMapper.updateById(user);
     }
 
+    /** {@inheritDoc} */
     @Override
     public void sendEmailChangeCode(Long userId, String newEmail) {
         newEmail = newEmail.toLowerCase();
@@ -109,18 +125,19 @@ public class VerificationServiceImpl implements VerificationService {
         String code = generateCode();
 
         // 3. 存入 Redis（不同 key 前缀）
-        redisUtil.set(RedisKeys.EMAIL_CHANGE + userId + ":" + newEmail, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
+        redisUtil.set(ClientRedisKeys.EMAIL_CHANGE + userId + ":" + newEmail, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
 
         try {
             emailGateway.send(newEmail, "[AnimeTracker] 邮箱修改验证码",
                     "你正在修改邮箱绑定，验证码是：" + code + "\n\n此验证码5分钟内有效，请勿泄露给他人。");
         } catch (Exception e) {
-            redisUtil.del(RedisKeys.EMAIL_CHANGE + userId + ":" + newEmail);
+            redisUtil.del(ClientRedisKeys.EMAIL_CHANGE + userId + ":" + newEmail);
             log.error("验证码邮件发送失败", e);
             throw new BizException(ErrorType.INTERNAL_ERROR, "验证码发送失败，请稍后重试");
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void verifyEmailChangeCode(Long userId, String newEmail, String code) {
@@ -132,7 +149,7 @@ public class VerificationServiceImpl implements VerificationService {
         }
 
         // 1. 从 Redis 获取存储的验证码
-        String storedCode = redisUtil.get(RedisKeys.EMAIL_CHANGE + userId + ":" + newEmail);
+        String storedCode = redisUtil.get(ClientRedisKeys.EMAIL_CHANGE + userId + ":" + newEmail);
         if (storedCode == null) {
             throw new BizException(ErrorType.VERIFICATION_FAILED, "验证码已过期，请重新发送");
         }
@@ -147,7 +164,7 @@ public class VerificationServiceImpl implements VerificationService {
         }
 
         // 3. 校验通过，删除 Redis key
-        redisUtil.del(RedisKeys.EMAIL_CHANGE + userId + ":" + newEmail);
+        redisUtil.del(ClientRedisKeys.EMAIL_CHANGE + userId + ":" + newEmail);
 
         // 4. 查询当前用户，获取旧邮箱
         User user = userMapper.selectById(userId);
@@ -174,28 +191,30 @@ public class VerificationServiceImpl implements VerificationService {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public void sendPasswordResetCode(String email) {
         String code = generateCode();
-        redisUtil.set(RedisKeys.PASSWORD_RESET + email, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
+        redisUtil.set(ClientRedisKeys.PASSWORD_RESET + email, code, CODE_TTL_MINUTES, TimeUnit.MINUTES);
 
         try {
             emailGateway.send(email, "[AnimeTracker] 密码重置验证码",
                     "你的密码重置验证码是：" + code + "\n\n此验证码5分钟内有效，请勿泄露给他人。");
         } catch (Exception e) {
-            redisUtil.del(RedisKeys.PASSWORD_RESET + email);
+            redisUtil.del(ClientRedisKeys.PASSWORD_RESET + email);
             log.error("验证码邮件发送失败", e);
             throw new BizException(ErrorType.INTERNAL_ERROR, "验证码发送失败，请稍后重试");
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public void verifyPasswordResetCode(String email, String code) {
         String bucket = "verify:reset:" + email;
         if (!rateLimiter.allowOrCount(bucket, 5, 300)) { // 防爆破：同一邮箱 5 分钟最多尝试 5 次
             throw new BizException(ErrorType.TOO_MANY_REQUESTS, "尝试次数过多，请 5 分钟后再试");
         }
-        String storedCode = redisUtil.get(RedisKeys.PASSWORD_RESET + email);
+        String storedCode = redisUtil.get(ClientRedisKeys.PASSWORD_RESET + email);
 
         if (storedCode == null) {
             throw new BizException(ErrorType.VERIFICATION_FAILED, "验证码已过期，请重新发送");

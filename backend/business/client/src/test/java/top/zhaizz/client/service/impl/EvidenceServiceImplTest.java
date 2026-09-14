@@ -21,25 +21,31 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
+/** 证据服务聚合、去重和安全筛选测试。 */
 @ExtendWith(MockitoExtension.class)
 class EvidenceServiceImplTest {
 
+    /** 模拟证据查询结果。 */
     @Mock
     private EvidenceMapper evidenceMapper;
 
+    /** 被测证据聚合服务。 */
     @InjectMocks
     private EvidenceServiceImpl evidenceService;
 
+/** 空批量输入返回空结果。 */
     @Test
     void batchEvidenceReturnsEmptyForNullInput() {
         assertThat(evidenceService.batchEvidence(null)).isEmpty();
     }
 
+/** 空 ID 集合返回空结果。 */
     @Test
     void batchEvidenceReturnsEmptyForEmptyInput() {
         assertThat(evidenceService.batchEvidence(Collections.emptyList())).isEmpty();
     }
 
+/** 查询不到条目时返回空候选。 */
     @Test
     void batchEvidenceReturnsEmptyWhenNoSubjectsFound() {
         when(evidenceMapper.selectSubjectBasics(anyList())).thenReturn(Collections.emptyList());
@@ -47,6 +53,7 @@ class EvidenceServiceImplTest {
         assertThat(evidenceService.batchEvidence(List.of(999L))).isEmpty();
     }
 
+/** 聚合条目、别名、标签及主创关系为完整候选。 */
     @Test
     void batchEvidenceAssemblesFullCandidate() {
         LocalDateTime sourceTime = LocalDateTime.of(2026, 8, 1, 12, 0);
@@ -143,6 +150,7 @@ class EvidenceServiceImplTest {
         assertThat(vo.getRelations().get(0).getRelation()).isEqualTo("side_story");
     }
 
+/** 验证多条目证据聚合保持完整。 */
     @Test
     void batchEvidenceHandlesMultipleSubjects() {
         EvidenceSubjectRow s1 = new EvidenceSubjectRow();
@@ -178,6 +186,7 @@ class EvidenceServiceImplTest {
         assertThat(result.get(0).getRelations()).isNull();
     }
 
+/** 验证重复条目标识只查询并返回一次。 */
     @Test
     void batchEvidenceDeduplicatesInputIds() {
         EvidenceSubjectRow s1 = new EvidenceSubjectRow();
@@ -196,6 +205,7 @@ class EvidenceServiceImplTest {
         verify(evidenceMapper).selectSubjectBasics(List.of(1L));
     }
 
+/** 验证人物解析只展开有效且安全的条目。 */
     @Test
     void resolveEvidenceByPersonExpandsOnlyActiveSafeSubjects() {
         EvidenceSubjectRow subject = new EvidenceSubjectRow();
@@ -225,6 +235,7 @@ class EvidenceServiceImplTest {
         verify(evidenceMapper).selectSubjectBasics(List.of(11L));
     }
 
+/** 验证角色与声优解析使用各自的查询路径。 */
     @Test
     void resolveEvidenceByCharacterAndActorUseDedicatedQueries() {
         when(evidenceMapper.selectSubjectIdsByCharacterIds(List.of(8L))).thenReturn(Collections.emptyList());
@@ -252,6 +263,7 @@ class EvidenceServiceImplTest {
         verify(evidenceMapper).selectSubjectIdsByActorIds(List.of(9L));
     }
 
+/** 验证关联条目解析使用双向关系查询。 */
     @Test
     void resolveEvidenceByRelatedSubjectsUsesBidirectionalRelationQuery() {
         EvidenceSubjectRow subject = new EvidenceSubjectRow();
@@ -276,6 +288,7 @@ class EvidenceServiceImplTest {
         verify(evidenceMapper).selectRelatedSubjectIds(List.of(10L));
     }
 
+/** 验证空请求返回空结果且超量请求被拒绝。 */
     @Test
     void resolveEvidenceReturnsEmptyForNullRequestAndRejectsTooManyIds() {
         assertThat(evidenceService.resolveEvidence(null)).isEmpty();

@@ -14,7 +14,7 @@ import top.zhaizz.pojo.vo.collection.CollectionProgressItemVO;
 import java.time.LocalDateTime;
 
 /**
- * 收藏进度单项独立事务执行器
+ * 收藏进度单项独立事务执行器。
  * <p>
  * 独立 @Service 避免同类内部调用绕过 Spring 代理，确保每部番剧 REQUIRES_NEW 独立事务、允许部分成功。
  */
@@ -22,10 +22,13 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class CollectionProgressItemExecutor {
 
+    /** 收藏数据 Mapper。 */
     private final CollectionMapper collectionMapper;
 
     /**
-     * 单项进度更新：SQL 再次约束 userId/subjectId/type=3/原进度，确认后并发修改不被覆盖
+     * 单项进度更新：SQL 再次约束 userId/subjectId/type=3/原进度，确认后并发修改不被覆盖。
+     * @param userId 所属用户 ID，由调用方确认访问权限
+     * @param item 待处理的收藏进度条目
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void update(Long userId, CollectionProgressItemVO item) {
