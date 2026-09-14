@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 8
-- **Last Active**: 2026-09-12
+- **Total Sessions**: 9
+- **Last Active**: 2026-09-14
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~198 | Active |
+| `journal-1.md` | ~220 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 9 | 2026-09-14 | 完成 Business 规范复核修复 | `9a732b22` | `codex/business-spec-implementation` |
 | 8 | 2026-09-12 | 修复 Agent 运行时与测试报告问题 | `f8c915b3` | `main` |
 | 7 | 2026-09-10 | 完成源码规范审计与归档 | `4f02607c` | `main` |
 | 6 | 2026-09-09 | 完成 Bangumi RAG 灰度与回滚确认 | `2eceefbc`, `5ee0072b` | `main` |
