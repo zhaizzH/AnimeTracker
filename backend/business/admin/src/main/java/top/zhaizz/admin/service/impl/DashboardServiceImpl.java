@@ -18,19 +18,22 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 运营看板服务实现
+ * 运营看板服务实现。
  */
 @Service
 @RequiredArgsConstructor
 public class DashboardServiceImpl implements DashboardService {
 
+    /** 仪表盘统计 Mapper。 */
     private final DashboardMapper dashboardMapper;
 
+    /** {@inheritDoc} */
     @Override
     public DashboardOverviewVO overview() {
         return dashboardMapper.overview();
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<TrendPointVO> trends(int days) {
         int d = Math.min(Math.max(days, 1), 90);
@@ -51,10 +54,17 @@ public class DashboardServiceImpl implements DashboardService {
         return list;
     }
 
+    /**
+     * 将每日统计行整理为日期到数量的映射。
+     *
+     * @param rows 按日期聚合的统计行
+     * @return 日期到数量的映射
+     */
     private Map<LocalDate, Long> dailyMap(List<DailyCountVO> rows) {
         return rows.stream().collect(Collectors.toMap(DailyCountVO::getStatDate, DailyCountVO::getCnt, (a, b) -> a));
     }
 
+    /** {@inheritDoc} */
     @Override
     public CollectionStatsVO collectionStats() {
         CollectionStatsVO vo = new CollectionStatsVO();
@@ -63,6 +73,7 @@ public class DashboardServiceImpl implements DashboardService {
         return vo;
     }
 
+    /** {@inheritDoc} */
     @Override
     public SubjectStatsVO subjectStats() {
         SubjectStatsVO vo = new SubjectStatsVO();
@@ -73,6 +84,7 @@ public class DashboardServiceImpl implements DashboardService {
         return vo;
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<HotSubjectVO> hot(int limit) {
         return dashboardMapper.hotSubjects(Math.min(Math.max(limit, 1), 50));

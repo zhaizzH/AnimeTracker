@@ -9,14 +9,18 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 操作日志转换器
+ * 操作日志转换器。
  */
 public class LogConverter {
+    /** 禁止实例化无状态日志转换器。 */
     private LogConverter() {
     }
 
     /**
-     * OperationLogEntity 实体转操作日志 VO
+     * 按原字段映射生成管理端日志对象，不修改实体。
+     * @param e 日志实体，不可为空
+     * @return 新的展示对象，可空字段原样保留
+     * @throws NullPointerException 实体为空时抛出
      */
     public static OperationLogVO toVO(OperationLog e) {
         OperationLogVO vo = new OperationLogVO();
@@ -38,7 +42,14 @@ public class LogConverter {
     }
 
     /**
-     * 组装日志分页 VO（纯转换，stats 由调用方先聚合好传入）
+     * 组装日志分页响应，保留输入记录顺序，统计由调用方提供。
+     * @param records 当前页实体列表，不可为空且不能包含空元素
+     * @param total 全量匹配记录数
+     * @param page 当前页码，从 1 开始
+     * @param size 每页条数
+     * @param stats 聚合结果，原样引用，不在转换器查询数据库
+     * @return 新的分页对象；空记录列表转换为空内容列表
+     * @throws NullPointerException 记录列表或其中元素为空时抛出
      */
     public static LogVO toLogVO(List<OperationLog> records, long total, int page, int size,
                                 OperationLogStatsVO stats) {

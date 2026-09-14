@@ -4,8 +4,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.admin.service.ImportService;
-import top.zhaizz.common.constant.OperationLogConstants;
-import top.zhaizz.common.log.OperationLog;
+import top.zhaizz.log.constant.OperationLogConstants;
+import top.zhaizz.log.annotation.OperationLog;
 import top.zhaizz.common.result.PageResult;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.pojo.dto.imprt.ImportRecordQueryDTO;
@@ -14,20 +14,22 @@ import top.zhaizz.pojo.vo.imprt.ImportRecordVO;
 import top.zhaizz.pojo.vo.imprt.ImportStatusVO;
 
 /**
- * 番剧导入控制器
+ * 番剧导入控制器。
  */
 @RestController
 @RequestMapping("/api/admin/import")
 @RequiredArgsConstructor
 public class ImportController {
 
+    /** 导入业务服务。 */
     private final ImportService importService;
 
     /**
-     * 运行番剧导入，供管理后台手动触发数据同步
+     * 运行番剧导入，供管理后台手动触发数据同步。
      *
      * @param authorization 调用方 JWT（透传给 agent 做 ADMIN 校验）
      * @param request       导入参数（mode/key/since/workers，query 串绑定）
+     * @return 无数据的统一成功响应
      */
     @OperationLog(action = OperationLogConstants.ACTION_IMPORT_RUN, module = OperationLogConstants.MODULE_IMPORT)
     @PostMapping("/run")
@@ -38,7 +40,8 @@ public class ImportController {
     }
 
     /**
-     * 获取番剧导入状态，供管理后台导入进度轮询触发
+     * 获取番剧导入状态，供管理后台导入进度轮询触发。
+     * @return 统一成功响应，其数据为：导入计数与最近 10 条记录；无完成记录时最近完成时间为空
      */
     @GetMapping("/status")
     public Result<ImportStatusVO> getImportStatus() {
@@ -46,7 +49,9 @@ public class ImportController {
     }
 
     /**
-     * 分页查询导入记录，供管理后台导入历史表格展示全部记录
+     * 分页查询导入记录，供管理后台导入历史表格展示全部记录。
+     * @param request 导入状态筛选与分页条件
+     * @return 统一成功响应，其数据为：按启动时间降序排列的导入记录分页
      */
     @GetMapping("/records")
     public Result<PageResult<ImportRecordVO>> getImportRecords(@Valid ImportRecordQueryDTO request) {

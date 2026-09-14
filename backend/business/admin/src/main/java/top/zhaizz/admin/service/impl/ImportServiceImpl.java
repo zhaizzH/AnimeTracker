@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import top.zhaizz.admin.constant.ImportConstants;
 import top.zhaizz.admin.converter.SubjectConverter;
-import top.zhaizz.admin.gateway.ImportAgentGateway;
+import top.zhaizz.agent.gateway.ImportAgentGateway;
 import top.zhaizz.admin.mapper.ImportRecordMapper;
 import top.zhaizz.admin.service.ImportService;
 import top.zhaizz.common.constant.ErrorType;
@@ -28,15 +28,19 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 public class ImportServiceImpl implements ImportService {
+    /** Python Agent 导入通信网关。 */
     private final ImportAgentGateway importAgentGateway;
+    /** 导入记录 Mapper。 */
     private final ImportRecordMapper importRecordMapper;
 
+    /** {@inheritDoc} */
     @Override
     public void runImport(String authorization, ImportRunDTO request) {
         validate(request.getMode(), request.getKey(), request.getSince());
         importAgentGateway.runImport(authorization, request);
     }
 
+    /** {@inheritDoc} */
     @Override
     public ImportStatusVO getImportStatus() {
         // 当前导入日志数量 = import_record 全量记录数（回归: 2026-08-11 误显示条目总数）
@@ -61,6 +65,7 @@ public class ImportServiceImpl implements ImportService {
         return vo;
     }
 
+    /** {@inheritDoc} */
     @Override
     public PageResult<ImportRecordVO> getImportRecords(ImportRecordQueryDTO request) {
         LambdaQueryWrapper<ImportRecord> qw = new LambdaQueryWrapper<ImportRecord>()
@@ -74,6 +79,14 @@ public class ImportServiceImpl implements ImportService {
                 (int) p.getSize());
     }
 
+    /**
+     * 校验导入模式及其附加参数的组合约束。
+     *
+     * @param mode 导入模式
+     * @param key 季度键，season 模式使用
+     * @param since 起始日期，since 模式使用
+     * @throws BizException 参数组合不符合导入契约时抛出请求错误
+     */
     private void validate(String mode, String key, String since) {
         if (mode == null || !ImportConstants.MODES.contains(mode)) {
             throw new BizException(ErrorType.BAD_REQUEST, "mode 必须是 full / season / recent / since");

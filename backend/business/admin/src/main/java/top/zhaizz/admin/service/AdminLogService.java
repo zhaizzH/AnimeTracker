@@ -4,12 +4,14 @@ import top.zhaizz.pojo.dto.log.LogQueryDTO;
 import top.zhaizz.pojo.vo.log.LogVO;
 
 /**
- * 日志查询服务
+ * 日志查询服务。
  */
 public interface AdminLogService {
 
     /**
-     * 分页查询操作/登录日志并返回当前筛选条件的全量聚合统计，支持按动作、模块、用户名、用户、状态与时间范围筛选
+     * 分页查询操作/登录日志并返回当前筛选条件的全量聚合统计，支持按动作、模块、用户名、用户、状态与时间范围筛选。
+     * @param request 日志筛选与分页条件
+     * @return 匹配的日志分页及全量聚合统计
      */
     LogVO listLogs(LogQueryDTO request);
 }
