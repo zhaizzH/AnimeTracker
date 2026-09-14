@@ -1,123 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-3.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
-    <parent>
-        <groupId>top.zhaizz</groupId>
-        <artifactId>business</artifactId>
-        <version>2.0.0</version>
-        <relativePath>../pom.xml</relativePath>
-    </parent>
-
-    <artifactId>animetracker-app</artifactId>
-    <packaging>jar</packaging>
-    <name>AnimeTracker App</name>
-    <description>AnimeTracker Spring Boot应用程序入口点</description>
-
+    <parent><groupId>top.zhaizz</groupId><artifactId>business</artifactId><version>2.0.0</version><relativePath>../pom.xml</relativePath></parent>
+    <artifactId>animetracker-app</artifactId><packaging>jar</packaging><name>AnimeTracker App</name><description>AnimeTracker Spring Boot应用程序入口点</description>
     <dependencies>
-        <!-- 应用组合根直接声明其 Web/Security 运行时能力 -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>top.zhaizz</groupId>
-            <artifactId>animetracker-common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.resend</groupId>
-            <artifactId>resend-java</artifactId>
-        </dependency>
-
-        <!-- 聚合业务模块 -->
-        <dependency>
-            <groupId>top.zhaizz</groupId>
-            <artifactId>animetracker-admin</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>top.zhaizz</groupId>
-            <artifactId>animetracker-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>top.zhaizz</groupId>
-            <artifactId>animetracker-agent</artifactId>
-        </dependency>
-
-        <!-- MySQL 驱动 -->
-        <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!-- Actuator 健康检查（仅 health + info） -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
-        </dependency>
-
-        <!-- 结构化单行 JSON 日志 -->
-        <dependency>
-            <groupId>net.logstash.logback</groupId>
-            <artifactId>logstash-logback-encoder</artifactId>
-            <version>7.4</version>
-        </dependency>
-
-        <!-- Lombok -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-        </dependency>
-
-        <!-- mybatis-plus 依赖 -->
-        <dependency>
-            <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
-        </dependency>
-
-        <!-- Test -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.tngtech.archunit</groupId>
-            <artifactId>archunit-junit5</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>test</scope>
-        </dependency>
+        <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>
+        <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-security</artifactId></dependency>
+        <dependency><groupId>top.zhaizz</groupId><artifactId>animetracker-common</artifactId></dependency>
+        <dependency><groupId>top.zhaizz</groupId><artifactId>animetracker-pojo</artifactId></dependency>
+        <dependency><groupId>top.zhaizz</groupId><artifactId>animetracker-infrastructure</artifactId></dependency>
+        <dependency><groupId>top.zhaizz</groupId><artifactId>animetracker-auth</artifactId></dependency>
+        <dependency><groupId>top.zhaizz</groupId><artifactId>animetracker-log</artifactId></dependency>
+        <dependency><groupId>top.zhaizz</groupId><artifactId>animetracker-admin</artifactId></dependency>
+        <dependency><groupId>top.zhaizz</groupId><artifactId>animetracker-client</artifactId></dependency>
+        <dependency><groupId>top.zhaizz</groupId><artifactId>animetracker-agent</artifactId></dependency>
+        <dependency><groupId>com.mysql</groupId><artifactId>mysql-connector-j</artifactId><scope>runtime</scope></dependency>
+        <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId></dependency>
+        <dependency><groupId>net.logstash.logback</groupId><artifactId>logstash-logback-encoder</artifactId><version>7.4</version></dependency>
+        <dependency><groupId>org.projectlombok</groupId><artifactId>lombok</artifactId></dependency>
+        <dependency><groupId>com.baomidou</groupId><artifactId>mybatis-plus-spring-boot3-starter</artifactId></dependency>
+        <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
+        <dependency><groupId>com.tngtech.archunit</groupId><artifactId>archunit-junit5</artifactId><scope>test</scope></dependency>
+        <dependency><groupId>org.springframework.security</groupId><artifactId>spring-security-test</artifactId><scope>test</scope></dependency>
+        <dependency><groupId>com.h2database</groupId><artifactId>h2</artifactId><scope>test</scope></dependency>
     </dependencies>
-
     <build>
         <finalName>app</finalName>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <mainClass>top.zhaizz.app.AppApplication</mainClass>
-                </configuration>
-            </plugin>
-        </plugins>
+        <plugins><plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId><configuration><mainClass>top.zhaizz.app.AppApplication</mainClass></configuration></plugin></plugins>
     </build>
 </project>
