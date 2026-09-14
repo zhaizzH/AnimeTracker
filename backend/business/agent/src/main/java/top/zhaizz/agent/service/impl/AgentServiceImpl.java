@@ -15,7 +15,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import top.zhaizz.agent.service.AgentService;
 import top.zhaizz.common.constant.ErrorType;
-import top.zhaizz.common.constant.TraceConstants;
+import top.zhaizz.agent.constant.TraceConstants;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.common.result.Result;
 
@@ -33,12 +33,24 @@ import java.util.function.Consumer;
 @Slf4j
 public class AgentServiceImpl implements AgentService {
 
+    /** 用于普通 Agent 请求的 HTTP 客户端。 */
     private final RestTemplate restTemplate;
+    /** 用于序列化和反序列化 JSON。 */
     private final ObjectMapper objectMapper;
+    /** Agent 服务的基础 URL。 */
     private final String baseUrl;
+    /** 连接 Agent 的超时时长，单位毫秒。 */
     private final long connectTimeout;
+    /** 用于 SSE 请求的 HTTP 客户端。 */
     private volatile RestTemplate streamRestTemplate;
 
+    /**
+     * 创建 Agent HTTP 代理服务。
+     * @param restTemplate 普通请求客户端
+     * @param objectMapper 请求响应序列化器
+     * @param baseUrl Agent 服务地址
+     * @param connectTimeout 连接超时，单位毫秒
+     */
     public AgentServiceImpl(RestTemplate restTemplate, ObjectMapper objectMapper,
                             String baseUrl, long connectTimeout) {
         this.restTemplate = restTemplate;
@@ -47,18 +59,27 @@ public class AgentServiceImpl implements AgentService {
         this.connectTimeout = connectTimeout;
     }
 
+    /** {@inheritDoc} */
     @Override
     public Result<?> exchange(String path, HttpMethod method, String authorization, Object body) {
         ResponseEntity<String> response = forward(path, method, authorization, toJsonOrNull(body));
         return wrapResult(response.getBody());
     }
 
+    /** {@inheritDoc} */
     @Override
     public void stream(String path, HttpMethod method, String authorization, Object body,
                        Consumer<String> lineConsumer) {
         forwardStream(path, method, authorization, toJsonOrNull(body), lineConsumer);
     }
 
+    /**
+     * 将请求对象序列化为 JSON；空对象保持为空，序列化失败时抛出统一业务异常。
+     *
+     * @param value 待序列化的请求对象，允许为 {@code null}
+     * @return JSON 文本；输入为空时返回 {@code null}
+     * @throws BizException 对象无法序列化时抛出内部错误
+     */
     private String toJsonOrNull(Object value) {
         if (value == null) {
             return null;
@@ -71,11 +92,21 @@ public class AgentServiceImpl implements AgentService {
         }
     }
 
+    /**
+     * 拼接 Python Agent 的基础地址与相对路径。
+     *
+     * @param path Agent API 相对路径
+     * @return 可供 HTTP 客户端调用的完整地址
+     */
     private String agentUrl(String path) {
         return baseUrl + path;
     }
 
-    /** SSE 流式转发专用：不设读超时，思考模型响应可能远超普通接口的 30s 读超时。 */
+    /**
+     * SSE 流式转发专用：不设读超时，思考模型响应可能远超普通接口的 30s 读超时。
+     *
+     * @return 延迟初始化并在线程间共享的 SSE 客户端，读取无超时限制
+     */
     private RestTemplate getStreamRestTemplate() {
         if (streamRestTemplate == null) {
             synchronized (this) {
@@ -90,6 +121,16 @@ public class AgentServiceImpl implements AgentService {
         return streamRestTemplate;
     }
 
+    /**
+     * 转发普通 HTTP 请求并将上游 HTTP/网络错误归类为业务异常。
+     *
+     * @param path Agent API 相对路径
+     * @param method HTTP 方法
+     * @param authorization 原始 Authorization 请求头，可为空
+     * @param body JSON 请求体，可为空
+     * @return 上游响应实体
+     * @throws BizException 上游返回错误状态或 Agent 不可用时抛出
+     */
     private ResponseEntity<String> forward(String path, HttpMethod method,
                                            String authorization, String body) {
         String url = agentUrl(path);
@@ -115,6 +156,16 @@ public class AgentServiceImpl implements AgentService {
         }
     }
 
+    /**
+     * 以无读超时的客户端转发 SSE，并逐行交给调用方消费。
+     *
+     * @param path Agent SSE 相对路径
+     * @param method HTTP 方法
+     * @param authorization 原始 Authorization 请求头，可为空
+     * @param body JSON 请求体，可为空
+     * @param lineConsumer 每个上游响应行的消费器
+     * @throws BizException 上游返回错误状态或 Agent 不可用时抛出
+     */
     private void forwardStream(String path, HttpMethod method, String authorization, String body,
                                Consumer<String> lineConsumer) {
         String url = agentUrl(path);
@@ -157,6 +208,12 @@ public class AgentServiceImpl implements AgentService {
         }
     }
 
+    /**
+     * 将 Python Agent 的客户端错误状态映射为 Business 错误类型。
+     *
+     * @param status 上游 HTTP 状态码
+     * @return 对应的统一错误类型，未识别状态映射为 {@link ErrorType#BAD_REQUEST}
+     */
     private ErrorType mapUpstream4xx(int status) {
         return switch (status) {
             case 401 -> ErrorType.UNAUTHORIZED;
@@ -167,7 +224,16 @@ public class AgentServiceImpl implements AgentService {
         };
     }
 
+    /**
+     * 将 Agent 的 JSON 响应包装成统一成功结果，无法解析时保留原始正文。
+     *
+     * @param agentBody Agent 响应正文
+     * @return 包含列表、对象或原始字符串的成功结果；空白或 null 正文返回无数据成功结果
+     */
     private Result<?> wrapResult(String agentBody) {
+        if (agentBody == null || agentBody.isBlank()) {
+            return Result.success();
+        }
         try {
             if (agentBody.trim().startsWith("[")) {
                 List<?> list = objectMapper.readValue(agentBody, List.class);
