@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "九模块职责、依赖、类型归属与迁移契约"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "错误、日志与身份依赖契约"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "质量门禁与统一 Javadoc 约定"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "持久化与类型契约"}
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "HTTP/SSE与Agent行为保留"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "跨层兼容与复用边界"}

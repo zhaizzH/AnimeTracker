@@ -1,0 +1,548 @@
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\constant\ImportConstants.java:9 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminDashboardController.java:36 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminDashboardController.java:44 @param expected=[days] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminDashboardController.java:44 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminDashboardController.java:53 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminDashboardController.java:61 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminDashboardController.java:69 @param expected=[limit] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminDashboardController.java:69 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminFileController.java:29 @param expected=[file] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminFileController.java:29 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminLogController.java:29 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminLogController.java:29 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminSubjectController.java:30 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminSubjectController.java:30 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminSubjectController.java:39 @param expected=[id, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminSubjectController.java:39 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminSubjectController.java:50 @param expected=[id] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminSubjectController.java:50 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminUserController.java:33 @param expected=[page, size] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminUserController.java:33 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminUserController.java:43 @param expected=[id, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminUserController.java:43 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminUserController.java:51 @param expected=[id, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\AdminUserController.java:51 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\ImportController.java:33 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\ImportController.java:44 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\ImportController.java:52 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\controller\ImportController.java:52 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\SubjectConverter.java:16 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\SubjectConverter.java:21 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\SubjectConverter.java:21 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\SubjectConverter.java:38 @param expected=[subject, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\SubjectConverter.java:51 @param expected=[entity] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\SubjectConverter.java:51 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\SubjectConverter.java:67 @param expected=[entities] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\SubjectConverter.java:67 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\SubjectVoConverter.java:13 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\SubjectVoConverter.java:16 @param expected=[entity, tags] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\SubjectVoConverter.java:16 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\SubjectVoConverter.java:41 @param expected=[entity] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\SubjectVoConverter.java:41 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\SubjectVoConverter.java:51 @param expected=[tags] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\SubjectVoConverter.java:51 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\UserConverter.java:10 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\UserConverter.java:15 @param expected=[entity] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\converter\UserConverter.java:15 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\mapper\DashboardMapper.java:24 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\mapper\DashboardMapper.java:29 @param expected=[since] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\mapper\DashboardMapper.java:29 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\mapper\DashboardMapper.java:34 @param expected=[since] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\mapper\DashboardMapper.java:34 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\mapper\DashboardMapper.java:39 @param expected=[since] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\mapper\DashboardMapper.java:39 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\mapper\DashboardMapper.java:44 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\mapper\DashboardMapper.java:49 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\mapper\DashboardMapper.java:54 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\mapper\DashboardMapper.java:59 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\mapper\DashboardMapper.java:64 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\mapper\DashboardMapper.java:69 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\mapper\DashboardMapper.java:74 @param expected=[limit] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\mapper\DashboardMapper.java:74 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\AdminLogService.java:14 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\AdminLogService.java:14 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\AdminSubjectService.java:14 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\AdminSubjectService.java:14 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\AdminSubjectService.java:18 @param expected=[id, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\AdminSubjectService.java:18 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\AdminSubjectService.java:22 @param expected=[id] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\AdminUserService.java:13 @param expected=[page, size] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\AdminUserService.java:13 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\AdminUserService.java:17 @param expected=[userId, role] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\AdminUserService.java:17 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\DashboardService.java:19 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\DashboardService.java:24 @param expected=[days] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\DashboardService.java:24 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\DashboardService.java:29 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\DashboardService.java:34 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\DashboardService.java:39 @param expected=[limit] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\DashboardService.java:39 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\AdminSubjectServiceImpl.java:37 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\AdminSubjectServiceImpl.java:37 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\AdminSubjectServiceImpl.java:60 @param expected=[id, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\AdminSubjectServiceImpl.java:60 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\AdminSubjectServiceImpl.java:76 @param expected=[id] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\AdminUserServiceImpl.java:39 @param expected=[page, size] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\AdminUserServiceImpl.java:39 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\AdminUserServiceImpl.java:56 @param expected=[userId, role] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\AdminUserServiceImpl.java:56 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\AdminUserServiceImpl.java:72 @param expected=[userId, enabled] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\AdminUserServiceImpl.java:72 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\DashboardServiceImpl.java:31 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\DashboardServiceImpl.java:37 @param expected=[days] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\DashboardServiceImpl.java:37 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\DashboardServiceImpl.java:68 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\DashboardServiceImpl.java:77 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\DashboardServiceImpl.java:88 @param expected=[limit] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\DashboardServiceImpl.java:88 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\ImportServiceImpl.java:37 @param expected=[authorization, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\ImportServiceImpl.java:44 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\ImportServiceImpl.java:69 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\impl\ImportServiceImpl.java:69 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\ImportService.java:25 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\admin\src\main\java\top\zhaizz\admin\service\ImportService.java:32 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\constant\AgentApiPaths.java:5 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\constant\TraceConstants.java:13 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:34 @param expected=[auth] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:34 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:42 @param expected=[key, auth] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:42 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:50 @param expected=[key, body, auth] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:50 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:60 @param expected=[key, auth] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:60 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:69 @param expected=[auth] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:69 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:77 @param expected=[body, auth] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:77 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:86 @param expected=[auth, body, response] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:110 @param expected=[auth] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:110 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:118 @param expected=[auth, body] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:118 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:126 @param expected=[sessionId, auth] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:126 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:134 @param expected=[sessionId, auth] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\AdminAgentController.java:134 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\ClientAgentController.java:32 @param expected=[auth] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\ClientAgentController.java:32 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\ClientAgentController.java:40 @param expected=[auth, body, response] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\ClientAgentController.java:69 @param expected=[auth] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\ClientAgentController.java:69 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\ClientAgentController.java:77 @param expected=[auth, body] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\ClientAgentController.java:77 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\ClientAgentController.java:85 @param expected=[sessionId, auth] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\ClientAgentController.java:85 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\ClientAgentController.java:93 @param expected=[sessionId, auth] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\controller\ClientAgentController.java:93 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\service\impl\AgentServiceImpl.java:63 @param expected=[path, method, authorization, body] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\service\impl\AgentServiceImpl.java:63 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\service\impl\AgentServiceImpl.java:70 @param expected=[path, method, authorization, body, lineConsumer] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\agent\src\main\java\top\zhaizz\agent\service\impl\AgentServiceImpl.java:106 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\agent\src\test\java\top\zhaizz\agent\controller\AdminAgentControllerTest.java:20 mechanical summary
+C:\workspace\project\AnimeTracker\backend\business\agent\src\test\java\top\zhaizz\agent\controller\ClientAgentControllerTest.java:23 mechanical summary
+C:\workspace\project\AnimeTracker\backend\business\agent\src\test\java\top\zhaizz\agent\controller\ClientAgentControllerTest.java:38 mechanical summary
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\AppApplication.java:19 @param expected=[args] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\config\AgentConfig.java:27 @param expected=[builder, agentProperties] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\config\AgentConfig.java:27 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\config\AgentConfig.java:38 @param expected=[restTemplate, agentProperties, objectMapper] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\config\AgentConfig.java:38 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\config\AgentConfig.java:46 @param expected=[restTemplate, agentProperties] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\config\AgentConfig.java:46 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\config\AgentConfig.java:52 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\config\CorsConfig.java:22 @param expected=[corsProperties] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\config\CorsConfig.java:22 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\config\CorsConfig.java:36 @param expected=[corsProperties] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\config\CorsConfig.java:36 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\config\MyBatisPlusConfig.java:18 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\config\SecurityConfig.java:46 @param expected=[http] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\config\SecurityConfig.java:46 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\config\SecurityConfig.java:82 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\config\SecurityConfig.java:90 @param expected=[response, errorType] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\filter\RequestIdFilter.java:30 @param expected=[request, response, chain] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:42 @param expected=[e] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:42 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:52 @param expected=[e] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:52 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:62 @param expected=[e] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:62 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:72 @param expected=[e] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:72 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:90 @param expected=[e] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:90 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:104 @param expected=[e] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:104 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:114 @param expected=[e] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:114 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:124 @param expected=[e] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:124 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:134 @param expected=[e] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:134 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:144 @param expected=[e] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:144 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:154 @param expected=[e] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:154 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:163 @param expected=[e] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\app\src\main\java\top\zhaizz\app\web\GlobalExceptionHandler.java:163 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\securitytest\SecurityConfigAuthorizationTest.java:31 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\securitytest\SecurityConfigAuthorizationTest.java:38 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\securitytest\SecurityConfigAuthorizationTest.java:41 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\securitytest\SecurityConfigAuthorizationTest.java:44 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\securitytest\SecurityConfigAuthorizationTest.java:48 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\securitytest\SecurityConfigAuthorizationTest.java:50 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\securitytest\SecurityConfigAuthorizationTest.java:55 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\securitytest\SecurityConfigAuthorizationTest.java:62 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\securitytest\SecurityConfigAuthorizationTest.java:64 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\securitytest\SecurityConfigAuthorizationTest.java:69 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\securitytest\SecurityConfigAuthorizationTest.java:74 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\securitytest\SecurityConfigAuthorizationTest.java:79 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\securitytest\SecurityConfigAuthorizationTest.java:84 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\securitytest\SecurityConfigAuthorizationTest.java:89 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\securitytest\SecurityConfigAuthorizationTest.java:94 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\top\zhaizz\app\architecture\ArchitectureBoundaryTest.java:12 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\top\zhaizz\app\architecture\ArchitectureBoundaryTest.java:16 mechanical summary
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\top\zhaizz\app\architecture\ArchitectureBoundaryTest.java:27 mechanical summary
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\top\zhaizz\app\architecture\ArchitectureBoundaryTest.java:38 mechanical summary
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\top\zhaizz\app\architecture\ArchitectureBoundaryTest.java:61 mechanical summary
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\top\zhaizz\app\config\AgentConfigTest.java:31 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\top\zhaizz\app\config\AppConfigurationBindingTest.java:20 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\top\zhaizz\app\security\CookieOriginFilterTest.java:18 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\top\zhaizz\app\security\CookieOriginFilterTest.java:19 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\top\zhaizz\app\security\CookieOriginFilterTest.java:20 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\top\zhaizz\app\security\CookieOriginFilterTest.java:22 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\app\src\test\java\top\zhaizz\app\security\CookieOriginFilterTest.java:68 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\config\CollectionProgressConfig.java:16 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\constant\ClientRedisKeys.java:5 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\constant\CollectionRedisKeys.java:5 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\AuthController.java:32 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\AuthController.java:32 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\AuthController.java:41 @param expected=[request, response] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\AuthController.java:41 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\AuthController.java:48 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\AuthController.java:48 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\AuthController.java:56 @param expected=[request, response] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\AuthController.java:56 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\AuthController.java:63 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\AuthController.java:63 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\AuthController.java:71 @param expected=[request, response] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\AuthController.java:71 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\AuthController.java:80 @param expected=[refreshToken, response] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\AuthController.java:80 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\AuthController.java:94 @param expected=[request, response, refreshToken] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\AuthController.java:94 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\ClientFileController.java:29 @param expected=[file] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\ClientFileController.java:29 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionController.java:33 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionController.java:33 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionController.java:42 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionController.java:51 @param expected=[subjectId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionController.java:51 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionController.java:60 @param expected=[subjectId, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionController.java:60 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionController.java:72 @param expected=[subjectId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionController.java:72 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionController.java:81 @param expected=[subjectId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionController.java:81 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionController.java:91 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionController.java:91 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionController.java:100 @param expected=[subjectId, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionController.java:100 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionProgressController.java:26 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionProgressController.java:33 @param expected=[previewId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\CollectionProgressController.java:33 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\EvidenceController.java:30 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\EvidenceController.java:30 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\EvidenceController.java:40 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\EvidenceController.java:40 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\SubjectController.java:41 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\SubjectController.java:41 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\SubjectController.java:49 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\SubjectController.java:49 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\SubjectController.java:58 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\SubjectController.java:58 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\SubjectController.java:67 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\SubjectController.java:67 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\SubjectController.java:75 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\SubjectController.java:75 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\SubjectController.java:83 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\SubjectController.java:83 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\SubjectController.java:92 @param expected=[id] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\SubjectController.java:92 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\SubjectController.java:100 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\SubjectController.java:108 @param expected=[id] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\SubjectController.java:108 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\TagController.java:31 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\TagController.java:39 @param expected=[tag, page, size] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\TagController.java:39 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\UserController.java:38 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\UserController.java:47 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\UserController.java:47 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\UserController.java:56 @param expected=[request, response] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\UserController.java:56 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\UserController.java:68 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\UserController.java:68 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\UserController.java:78 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\controller\UserController.java:78 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\CollectionConverter.java:14 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\CollectionConverter.java:17 @param expected=[vo] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\CollectionConverter.java:17 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\CollectionConverter.java:42 @param expected=[list] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\CollectionConverter.java:42 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\CollectionProgressConverter.java:14 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\CollectionProgressConverter.java:18 @param expected=[item, reason] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\CollectionProgressConverter.java:18 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\CollectionProgressConverter.java:26 @param expected=[state, previewId, items, weekStart, cutoffDate, expiresAt] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\CollectionProgressConverter.java:26 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\EvidenceConverter.java:15 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectConverter.java:17 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectConverter.java:20 @param expected=[entity] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectConverter.java:20 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectConverter.java:38 @param expected=[entity] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectConverter.java:38 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectConverter.java:55 @param expected=[airdate] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectConverter.java:55 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectConverter.java:64 @param expected=[episodes] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectConverter.java:64 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectConverter.java:70 @param expected=[relation, relatedSubject] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectConverter.java:70 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectVoConverter.java:13 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectVoConverter.java:16 @param expected=[entity, tags] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectVoConverter.java:16 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectVoConverter.java:41 @param expected=[entity] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectVoConverter.java:41 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectVoConverter.java:51 @param expected=[tags] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\SubjectVoConverter.java:51 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\UserConverter.java:11 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\UserConverter.java:14 @param expected=[entity] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\UserConverter.java:14 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\converter\UserConverter.java:29 @param expected=[user, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\CollectionMapper.java:17 @param expected=[userId, weekStart, cutoffDate] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\CollectionMapper.java:17 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\CollectionMapper.java:24 @param expected=[page, userId, type] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\CollectionMapper.java:24 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\CollectionMapper.java:31 @param expected=[page, userId, startDate, endDate, weekday] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\CollectionMapper.java:31 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\CollectionMapper.java:40 @param expected=[userId, subjectIds] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\CollectionMapper.java:40 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\EvidenceMapper.java:68 @param expected=[personIds] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\EvidenceMapper.java:68 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\EvidenceMapper.java:71 @param expected=[characterIds] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\EvidenceMapper.java:71 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\EvidenceMapper.java:74 @param expected=[actorIds] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\EvidenceMapper.java:74 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\EvidenceMapper.java:77 @param expected=[subjectIds] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\EvidenceMapper.java:77 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\SubjectMapper.java:19 @param expected=[page, keyword, tagList, scoreMin, scoreMax, year, weekday, sortField, order] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\SubjectMapper.java:19 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\SubjectMapper.java:33 @param expected=[tagName] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\SubjectMapper.java:33 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\SubjectMapper.java:36 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\SubjectMapper.java:39 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\SubjectMapper.java:42 @param expected=[query, tags, scoreMin, scoreMax, year, weekday, subjectIds, indexVersion, limit] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\SubjectMapper.java:42 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\SubjectTagMapper.java:10 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\UserMapper.java:10 @param expected=[username] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\UserMapper.java:10 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\UserMapper.java:14 @param expected=[email] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\mapper\UserMapper.java:14 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\model\ProgressPreviewStatus.java:7 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\model\ProgressPreviewStatus.java:8 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\model\ProgressPreviewStatus.java:9 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\model\ProgressPreviewStatus.java:10 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientSubjectService.java:20 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientSubjectService.java:20 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientSubjectService.java:23 @param expected=[id] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientSubjectService.java:23 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientSubjectService.java:26 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientSubjectService.java:26 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientSubjectService.java:29 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientSubjectService.java:29 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientSubjectService.java:32 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientSubjectService.java:32 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientSubjectService.java:35 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientSubjectService.java:35 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientSubjectService.java:38 @param expected=[subjectIds, excludeCollected, userId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientSubjectService.java:38 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientSubjectService.java:41 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientUserService.java:11 @param expected=[userId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientUserService.java:11 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientUserService.java:14 @param expected=[userId, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientUserService.java:14 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\ClientUserService.java:19 @param expected=[userId, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionProgressCalculator.java:24 @param expected=[userId, weekStart, cutoffDate] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionProgressCalculator.java:24 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionProgressItemExecutor.java:31 @param expected=[userId, item] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionProgressService.java:12 @param expected=[userId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionProgressService.java:12 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionProgressService.java:15 @param expected=[userId, previewId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionProgressService.java:15 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionService.java:16 @param expected=[userId, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionService.java:16 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionService.java:19 @param expected=[userId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionService.java:19 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionService.java:22 @param expected=[userId, subjectId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionService.java:22 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionService.java:25 @param expected=[userId, subjectId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionService.java:25 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionService.java:28 @param expected=[userId, subjectId, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionService.java:31 @param expected=[userId, subjectId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionService.java:34 @param expected=[userId, subjectId, epStatus] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionService.java:37 @param expected=[userId, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\CollectionService.java:37 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\EpisodeService.java:13 @param expected=[subjectId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\EpisodeService.java:13 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\EvidenceService.java:16 @param expected=[subjectIds] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\EvidenceService.java:16 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\EvidenceService.java:22 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\EvidenceService.java:22 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientSubjectServiceImpl.java:75 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientSubjectServiceImpl.java:81 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientSubjectServiceImpl.java:81 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientSubjectServiceImpl.java:99 @param expected=[id] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientSubjectServiceImpl.java:99 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientSubjectServiceImpl.java:133 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientSubjectServiceImpl.java:133 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientSubjectServiceImpl.java:155 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientSubjectServiceImpl.java:155 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientSubjectServiceImpl.java:195 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientSubjectServiceImpl.java:195 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientSubjectServiceImpl.java:215 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientSubjectServiceImpl.java:215 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientSubjectServiceImpl.java:243 @param expected=[subjectIds, excludeCollected, userId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientSubjectServiceImpl.java:243 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientUserServiceImpl.java:34 @param expected=[userId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientUserServiceImpl.java:34 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientUserServiceImpl.java:44 @param expected=[userId, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientUserServiceImpl.java:44 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\ClientUserServiceImpl.java:57 @param expected=[userId, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionProgressServiceImpl.java:51 @param expected=[userId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionProgressServiceImpl.java:51 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionProgressServiceImpl.java:79 @param expected=[userId, previewId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionProgressServiceImpl.java:79 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionProgressServiceImpl.java:188 @param expected=[original, recalculated] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionProgressServiceImpl.java:188 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionServiceImpl.java:46 @param expected=[userId, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionServiceImpl.java:46 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionServiceImpl.java:60 @param expected=[userId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionServiceImpl.java:60 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionServiceImpl.java:73 @param expected=[userId, subjectId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionServiceImpl.java:73 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionServiceImpl.java:82 @param expected=[userId, subjectId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionServiceImpl.java:82 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionServiceImpl.java:111 @param expected=[userId, subjectId, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionServiceImpl.java:151 @param expected=[userId, subjectId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionServiceImpl.java:163 @param expected=[userId, subjectId, epStatus] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionServiceImpl.java:178 @param expected=[userId, request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\CollectionServiceImpl.java:178 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\EpisodeServiceImpl.java:30 @param expected=[subjectId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\EpisodeServiceImpl.java:30 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\EvidenceServiceImpl.java:29 @param expected=[subjectIds] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\EvidenceServiceImpl.java:29 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\EvidenceServiceImpl.java:73 @param expected=[request] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\EvidenceServiceImpl.java:73 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\TagServiceImpl.java:32 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\TagServiceImpl.java:40 @param expected=[tagName, page, size] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\TagServiceImpl.java:40 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\VerificationServiceImpl.java:61 @param expected=[email] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\VerificationServiceImpl.java:80 @param expected=[email, code] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\VerificationServiceImpl.java:115 @param expected=[userId, newEmail] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\VerificationServiceImpl.java:141 @param expected=[userId, newEmail, code] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\VerificationServiceImpl.java:195 @param expected=[email] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\impl\VerificationServiceImpl.java:211 @param expected=[email, code] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\RefreshCookieService.java:20 @param expected=[response, token, maxAgeSeconds] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\RefreshCookieService.java:31 @param expected=[response] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\TagService.java:15 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\TagService.java:18 @param expected=[tagName, page, size] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\TagService.java:18 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\VerificationService.java:23 @param expected=[email, code] actual=[code]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\VerificationService.java:47 @param expected=[email] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\service\VerificationService.java:55 @param expected=[email, code] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\store\ProgressPreviewStore.java:39 @param expected=[snapshot, ttl] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\store\ProgressPreviewStore.java:45 @param expected=[snapshot] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\store\ProgressPreviewStore.java:51 @param expected=[userId, previewId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\store\ProgressPreviewStore.java:51 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\store\ProgressPreviewStore.java:63 @param expected=[userId, previewId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\store\ProgressPreviewStore.java:73 @param expected=[userId, previewId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\store\ProgressPreviewStore.java:73 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\store\ProgressPreviewStore.java:78 @param expected=[userId, previewId] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\util\SeasonUtil.java:13 @param expected=[year, quarter] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\util\SeasonUtil.java:13 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\util\SeasonUtil.java:26 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\main\java\top\zhaizz\client\util\SeasonUtil.java:38 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\controller\EvidenceControllerTest.java:31 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\controller\EvidenceControllerTest.java:32 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\controller\EvidenceControllerTest.java:33 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\controller\EvidenceControllerTest.java:35 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\mapper\EvidenceMapperSqlCompatibilityTest.java:36 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\service\impl\ClientSubjectServiceLexicalTest.java:28 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\service\impl\ClientSubjectServiceLexicalTest.java:32 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\service\impl\ClientSubjectServiceLexicalTest.java:34 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\service\impl\ClientSubjectServiceLexicalTest.java:36 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\service\impl\ClientSubjectServiceLexicalTest.java:38 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\service\impl\ClientSubjectServiceLexicalTest.java:41 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\service\impl\EvidenceServiceImplTest.java:24 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\service\impl\EvidenceServiceImplTest.java:28 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\service\impl\EvidenceServiceImplTest.java:31 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\service\impl\EvidenceServiceImplTest.java:35 mechanical summary
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\service\impl\EvidenceServiceImplTest.java:41 mechanical summary
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\service\impl\EvidenceServiceImplTest.java:47 mechanical summary
+C:\workspace\project\AnimeTracker\backend\business\client\src\test\java\top\zhaizz\client\service\impl\EvidenceServiceImplTest.java:55 mechanical summary
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\constant\ErrorType.java:14 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\constant\ErrorType.java:15 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\constant\ErrorType.java:16 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\constant\ErrorType.java:17 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\constant\ErrorType.java:18 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\constant\ErrorType.java:19 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\constant\ErrorType.java:20 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\constant\ErrorType.java:21 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\constant\ErrorType.java:22 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\constant\ErrorType.java:23 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\constant\ErrorType.java:24 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\constant\ErrorType.java:25 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\constant\ErrorType.java:26 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\constant\ErrorType.java:33 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\exception\BizException.java:18 @param expected=[errorType] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\exception\BizException.java:25 @param expected=[errorType, message] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\exception\BizException.java:32 @param expected=[errorType, message, data] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\result\PageResult.java:11 @param expected=[<T>] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\result\PageResult.java:28 @param expected=[content, total, page, size] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\result\PageResult.java:38 @param expected=[<T>, content, total, page, size] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\result\PageResult.java:38 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\result\Result.java:9 @param expected=[<T>] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\result\Result.java:24 @param expected=[code, message, data] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\result\Result.java:31 @param expected=[<T>, data] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\result\Result.java:31 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\result\Result.java:36 @param expected=[<T>] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\result\Result.java:36 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\result\Result.java:41 @param expected=[<T>, code, message] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\result\Result.java:41 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\result\Result.java:46 @param expected=[<T>, code, message, data] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\common\src\main\java\top\zhaizz\common\result\Result.java:46 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\dto\evidence\EvidenceBatchRequestDTO.java:14 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\dto\evidence\EvidenceEntityBatchRequestDTO.java:28 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\dto\evidence\EvidenceEntityType.java:8 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\dto\evidence\EvidenceEntityType.java:11 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\dto\evidence\EvidenceEntityType.java:12 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\dto\evidence\EvidenceEntityType.java:13 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\dto\subject\LexicalSearchRequestDTO.java:30 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\dto\subject\LexicalSearchRequestDTO.java:53 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\dto\subject\SubjectBatchRequestDTO.java:14 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\entity\OperationLog.java:33 summary must explain behavior in Chinese
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\entity\SubjectCredit.java:29 summary must explain behavior in Chinese
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\vo\collection\CollectionProgressState.java:7 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\vo\collection\CollectionProgressState.java:8 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\vo\collection\CollectionProgressState.java:9 missing Javadoc
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\vo\collection\WishlistAddResultVO.java:20 summary must explain behavior in Chinese
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\vo\collection\WishlistAddResultVO.java:25 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\vo\collection\WishlistAddResultVO.java:30 @param expected=[existingType] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\vo\collection\WishlistAddResultVO.java:30 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\pojo\src\main\java\top\zhaizz\pojo\vo\log\OperationLogVO.java:31 summary must explain behavior in Chinese
+C:\workspace\project\AnimeTracker\backend\business\tools\CheckJavadoc.java:41 @param expected=[node, unused] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\tools\CheckJavadoc.java:41 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\tools\CheckJavadoc.java:46 @param expected=[node, unused] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\tools\CheckJavadoc.java:46 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\tools\CheckJavadoc.java:51 @param expected=[node, unused] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\tools\CheckJavadoc.java:51 @return count=0
+C:\workspace\project\AnimeTracker\backend\business\tools\CheckJavadoc.java:78 @param expected=[bad, p] actual=[]
+C:\workspace\project\AnimeTracker\backend\business\tools\CheckJavadoc.java:78 @return count=0
+Checked 247 files, 1601 declarations, 547 violations

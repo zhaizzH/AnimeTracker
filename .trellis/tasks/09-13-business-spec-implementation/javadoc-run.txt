@@ -1,0 +1,2 @@
+Checked 255 files, 1657 declarations, 0 violations
+Declaration check: 0; doclint: 0; reports: C:\workspace\project\AnimeTracker\backend\business\target\javadoc-check

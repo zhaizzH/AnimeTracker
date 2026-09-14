@@ -21,9 +21,12 @@
     <modules>
         <module>common</module>
         <module>pojo</module>
-        <module>admin</module>
-        <module>client</module>
+        <module>infrastructure</module>
+        <module>auth</module>
+        <module>log</module>
         <module>agent</module>
+        <module>client</module>
+        <module>admin</module>
         <module>app</module>
     </modules>
 
@@ -32,138 +35,44 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
         <mybatis-plus.version>3.5.5</mybatis-plus.version>
         <jjwt.version>0.12.3</jjwt.version>
         <minio.version>8.5.7</minio.version>
         <resend-java.version>3.1.0</resend-java.version>
         <archunit.version>1.5.0</archunit.version>
-
         <lombok.version>1.18.30</lombok.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
-            <!-- 子模块间依赖 -->
-            <dependency>
-                <groupId>top.zhaizz</groupId>
-                <artifactId>animetracker-common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.zhaizz</groupId>
-                <artifactId>animetracker-admin</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.zhaizz</groupId>
-                <artifactId>animetracker-client</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.zhaizz</groupId>
-                <artifactId>animetracker-pojo</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.zhaizz</groupId>
-                <artifactId>animetracker-agent</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.zhaizz</groupId>
-                <artifactId>animetracker-app</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.tngtech.archunit</groupId>
-                <artifactId>archunit-junit5</artifactId>
-                <version>${archunit.version}</version>
-            </dependency>
-
-            <!-- MyBatis-Plus -->
-            <dependency>
-                <groupId>com.baomidou</groupId>
-                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
-                <version>${mybatis-plus.version}</version>
-            </dependency>
-
-            <!-- JWT -->
-            <dependency>
-                <groupId>io.jsonwebtoken</groupId>
-                <artifactId>jjwt-api</artifactId>
-                <version>${jjwt.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.jsonwebtoken</groupId>
-                <artifactId>jjwt-impl</artifactId>
-                <version>${jjwt.version}</version>
-                <scope>runtime</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.jsonwebtoken</groupId>
-                <artifactId>jjwt-jackson</artifactId>
-                <version>${jjwt.version}</version>
-                <scope>runtime</scope>
-            </dependency>
-
-            <!-- Lombok -->
-            <dependency>
-                <groupId>org.projectlombok</groupId>
-                <artifactId>lombok</artifactId>
-                <version>${lombok.version}</version>
-                <scope>provided</scope>
-            </dependency>
-
-            <!-- MinIO -->
-            <dependency>
-                <groupId>io.minio</groupId>
-                <artifactId>minio</artifactId>
-                <version>${minio.version}</version>
-            </dependency>
-
-            <!-- Resend Email -->
-            <dependency>
-                <groupId>com.resend</groupId>
-                <artifactId>resend-java</artifactId>
-                <version>${resend-java.version}</version>
-            </dependency>
+            <dependency><groupId>top.zhaizz</groupId><artifactId>animetracker-common</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>top.zhaizz</groupId><artifactId>animetracker-pojo</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>top.zhaizz</groupId><artifactId>animetracker-infrastructure</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>top.zhaizz</groupId><artifactId>animetracker-auth</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>top.zhaizz</groupId><artifactId>animetracker-log</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>top.zhaizz</groupId><artifactId>animetracker-agent</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>top.zhaizz</groupId><artifactId>animetracker-client</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>top.zhaizz</groupId><artifactId>animetracker-admin</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>top.zhaizz</groupId><artifactId>animetracker-app</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>com.tngtech.archunit</groupId><artifactId>archunit-junit5</artifactId><version>${archunit.version}</version></dependency>
+            <dependency><groupId>com.baomidou</groupId><artifactId>mybatis-plus-spring-boot3-starter</artifactId><version>${mybatis-plus.version}</version></dependency>
+            <dependency><groupId>io.jsonwebtoken</groupId><artifactId>jjwt-api</artifactId><version>${jjwt.version}</version></dependency>
+            <dependency><groupId>io.jsonwebtoken</groupId><artifactId>jjwt-impl</artifactId><version>${jjwt.version}</version><scope>runtime</scope></dependency>
+            <dependency><groupId>io.jsonwebtoken</groupId><artifactId>jjwt-jackson</artifactId><version>${jjwt.version}</version><scope>runtime</scope></dependency>
+            <dependency><groupId>org.projectlombok</groupId><artifactId>lombok</artifactId><version>${lombok.version}</version><scope>provided</scope></dependency>
+            <dependency><groupId>io.minio</groupId><artifactId>minio</artifactId><version>${minio.version}</version></dependency>
+            <dependency><groupId>com.resend</groupId><artifactId>resend-java</artifactId><version>${resend-java.version}</version></dependency>
         </dependencies>
     </dependencyManagement>
 
     <build>
         <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-maven-plugin</artifactId>
-                </plugin>
-            </plugins>
+            <plugins><plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId></plugin></plugins>
         </pluginManagement>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.4.1</version>
-                <executions>
-                    <execution>
-                        <id>enforce-java</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <requireJavaVersion>
-                                    <version>[21,)</version>
-                                </requireJavaVersion>
-                                <requireMavenVersion>
-                                    <version>[3.9,)</version>
-                                </requireMavenVersion>
-                            </rules>
-                        </configuration>
-                    </execution>
-                </executions>
+                <groupId>org.apache.maven.plugins</groupId><artifactId>maven-enforcer-plugin</artifactId><version>3.4.1</version>
+                <executions><execution><id>enforce-java</id><goals><goal>enforce</goal></goals><configuration><rules><requireJavaVersion><version>[21,)</version></requireJavaVersion><requireMavenVersion><version>[3.9,)</version></requireMavenVersion></rules></configuration></execution></executions>
             </plugin>
         </plugins>
     </build>
