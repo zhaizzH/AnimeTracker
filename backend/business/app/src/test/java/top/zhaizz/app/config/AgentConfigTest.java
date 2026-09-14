@@ -11,7 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
 import top.zhaizz.agent.service.impl.AgentServiceImpl;
-import top.zhaizz.common.constant.TraceConstants;
+import top.zhaizz.agent.constant.TraceConstants;
 
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -25,13 +25,16 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+/** Agent HTTP 与 SSE 配置装配测试。 */
 class AgentConfigTest {
 
+    /** 清空请求追踪上下文，避免测试之间污染。 */
     @AfterEach
     void clearMdc() {
         MDC.clear();
     }
 
+    /** 验证普通请求超时配置和请求追踪头透传。 */
     @Test
     void configuresTimeoutsAndForwardsTraceHeader() {
         AgentProperties properties = new AgentProperties();
@@ -49,6 +52,7 @@ class AgentConfigTest {
         server.verify();
     }
 
+    /** 验证 SSE 请求不受普通读取超时影响。 */
     @Test
     void streamsAfterNormalReadTimeoutWithoutTimingOut() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);

@@ -7,8 +7,10 @@ import top.zhaizz.pojo.entity.Character;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/** MyBatis 实体别名冲突回归测试。 */
 class MyBatisEntityAliasTest {
 
+    /** 验证业务 Character 别名不会覆盖 Java 内置别名。 */
     @Test
     void scansBangumiCharacterWithoutCollidingWithJavaLangCharacter() {
         TypeAliasRegistry registry = new TypeAliasRegistry();

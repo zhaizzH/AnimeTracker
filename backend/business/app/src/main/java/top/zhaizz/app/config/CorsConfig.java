@@ -6,18 +6,24 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import top.zhaizz.common.security.CookieOriginFilter;
+import top.zhaizz.auth.security.CookieOriginFilter;
 
 import java.util.Arrays;
 import java.util.List;
 
 /**
- * CORS 跨域配置：仅放行白名单中的明确 Origin，刷新认证使用 HttpOnly Cookie，必须允许 credentialed 请求
+ * CORS 跨域配置：仅放行白名单中的明确 Origin，刷新认证使用 HttpOnly Cookie，必须允许 credentialed 请求。
  */
 @Configuration
 @EnableConfigurationProperties(CorsProperties.class)
 public class CorsConfig {
 
+    /**
+     * 创建并配置 corsConfigurationSource Bean。
+     *
+     * @param corsProperties 允许访问的明确 Origin 配置
+     * @return 应用于 API 路径并允许携带凭据的跨域配置源
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource(CorsProperties corsProperties) {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -29,9 +35,14 @@ public class CorsConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
         return source;
-    }
+    }。
 
-    /** Cookie 认证端点的 Origin 白名单由应用装配层显式传入。 */
+    /**
+     * Cookie 认证端点的 Origin 白名单由应用装配层显式传入。
+     *
+     * @param corsProperties 允许访问的明确 Origin 配置
+     * @return 校验 Cookie 请求来源的过滤器
+     */
     @Bean
     public CookieOriginFilter cookieOriginFilter(CorsProperties corsProperties) {
         return new CookieOriginFilter(corsProperties.getAllowedOrigins());

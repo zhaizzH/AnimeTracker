@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * AnimeTracker 应用入口
+ * AnimeTracker 应用入口。
  * <p>
  * 扫描 top.zhaizz 包下组件,注册 MyBatis mapper 并开启定时任务调度
  */
@@ -15,6 +15,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class AppApplication {
 
+    /**
+     * 启动应用程序。
+     *
+     * @param args Spring Boot 命令行启动参数
+     */
     public static void main(String[] args) {
         SpringApplication.run(AppApplication.class, args);
     }
