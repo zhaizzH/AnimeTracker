@@ -19,7 +19,7 @@
 | [数据与存储](./database-guidelines.md) | MySQL、MyBatis、SQLAlchemy、Redis、Schema 与存储约束 |
 | [RAG 检索与版本发布](./rag-retrieval-contract.md) | 检索、发布 gate、灰度、回滚与 Evidence 边界 |
 | [错误、日志与可观测性](./error-handling.md) | 异常适配、统一响应、操作日志模块、追踪与隐私 |
-| [质量与 Javadoc](./quality-guidelines.md) | 测试门禁、审查、Java 声明全覆盖、注释位置、建议篇幅与 pojo 字段契约 |
+| [质量与 Javadoc](./quality-guidelines.md) | 测试门禁、审查、Java 声明全覆盖、注释篇幅与 pojo 字段契约、AST/doclint 检查 |
 
 ## 不可破坏的系统约束
 

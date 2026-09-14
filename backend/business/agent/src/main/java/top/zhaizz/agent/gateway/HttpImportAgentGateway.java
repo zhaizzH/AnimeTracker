@@ -48,7 +48,7 @@ public class HttpImportAgentGateway implements ImportAgentGateway {
         String url = builder.build().encode().toUriString();
         try {
             restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<Void>(headers), String.class);
-            log.info("已触发导入: mode={} key={} since={}", request.getMode(), request.getKey(), request.getSince());
+            log.info("已触发导入任务");
         } catch (HttpStatusCodeException exception) {
             if (exception.getStatusCode().value() == 409) {
                 throw new BizException(ErrorType.CONFLICT, "已有导入任务运行中");
@@ -58,7 +58,7 @@ public class HttpImportAgentGateway implements ImportAgentGateway {
                     : ErrorType.BAD_REQUEST;
             throw new BizException(errorType, "导入任务启动失败");
         } catch (ResourceAccessException exception) {
-            log.error("Agent 导入服务连接失败: {}", url, exception);
+            log.error("Agent 导入服务连接失败");
             throw new BizException(ErrorType.INTERNAL_ERROR, "Agent 导入服务连接失败");
         }
     }

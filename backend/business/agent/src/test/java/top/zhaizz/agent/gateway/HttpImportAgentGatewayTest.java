@@ -1,6 +1,9 @@
 package top.zhaizz.agent.gateway;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.*;
@@ -14,6 +17,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
 /** 导入 HTTP 网关的请求协议、错误分类和上游隐私回归。 */
+@ExtendWith(OutputCaptureExtension.class)
 class HttpImportAgentGatewayTest {
     /** 每个用例独立的 HTTP 客户端。 */
     private final RestTemplate rest = new RestTemplate();
@@ -73,6 +77,29 @@ class HttpImportAgentGatewayTest {
         assertThat(error.getCode()).isEqualTo(500);
         assertThat(error).hasMessage("Agent 导入服务连接失败").hasNoCause();
         server.verify();
+    }
+
+
+    /**
+     * 成功与连接失败日志均只包含固定事件，不输出输入、URL、凭据或底层异常。
+     * @param output 捕获的标准输出和错误输出
+     */
+    @Test
+    void logsNeverIncludeRequestOrNetworkDetails(CapturedOutput output) {
+        ImportRunDTO request = request();
+        request.setKey("private-input-key");
+        request.setSince("private-input-since");
+        server.expect(anything()).andRespond(withSuccess());
+        gateway.runImport("Bearer private-credential", request);
+        server.verify();
+        server.reset();
+        server.expect(anything()).andRespond(withException(new IOException("private-network-error")));
+        assertThatThrownBy(() -> gateway.runImport("Bearer private-credential", request))
+                .isInstanceOf(BizException.class);
+        server.verify();
+        assertThat(output.getAll()).contains("已触发导入任务", "Agent 导入服务连接失败")
+                .doesNotContain("private-input", "private-credential", "private-network-error",
+                        "http://agent", "java.io.IOException", "ResourceAccessException");
     }
 
     /**

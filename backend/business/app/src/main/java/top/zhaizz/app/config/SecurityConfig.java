@@ -75,7 +75,7 @@ public class SecurityConfig {
                         .anyRequest().denyAll()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(cookieOriginFilter, JwtAuthenticationFilter.class);。
+                .addFilterBefore(cookieOriginFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }
