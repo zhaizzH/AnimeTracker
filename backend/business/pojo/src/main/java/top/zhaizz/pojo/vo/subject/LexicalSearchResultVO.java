@@ -13,7 +13,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LexicalSearchResultVO {
+    /** 检索索引版本标识。 */
     private String indexVersion;
+    /** 检索配置版本标识。 */
     private String profileVersion;
+    /** 检索或证据候选列表。 */
     private List<LexicalSearchCandidateVO> candidates;
 }

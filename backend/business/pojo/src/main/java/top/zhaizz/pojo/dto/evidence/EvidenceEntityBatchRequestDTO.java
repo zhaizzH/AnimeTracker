@@ -21,9 +21,13 @@ import java.util.List;
 @AllArgsConstructor
 public class EvidenceEntityBatchRequestDTO {
 
+    /** 待解析实体的类型。 */
     @NotNull(message = "实体类型不能为空")
     private EvidenceEntityType entityType;
 
+    /**
+     * 待解析的本地主键，必填且最多 50 个，每个 ID 必须为正数。
+     */
     @NotEmpty(message = "实体 ID 不能为空")
     @Size(max = 50, message = "实体 ID 最多 50 个")
     private List<@NotNull(message = "实体 ID 不能为空") @Positive(message = "实体 ID 必须为正数") Long> ids;

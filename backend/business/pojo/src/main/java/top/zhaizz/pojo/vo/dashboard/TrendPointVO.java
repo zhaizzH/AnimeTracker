@@ -5,12 +5,16 @@ import lombok.Data;
 import java.time.LocalDate;
 
 /**
- * 每日趋势点 VO
+ * 每日趋势点 VO。
  */
 @Data
 public class TrendPointVO {
+    /** 日期。 */
     private LocalDate date;     // 日期
+    /** 当日新增用户。 */
     private long newUsers;      // 当日新增用户
+    /** 当日新增收藏。 */
     private long newCollections;// 当日新增收藏
+    /** 当日登录次数。 */
     private long logins;        // 当日登录次数
 }

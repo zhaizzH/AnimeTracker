@@ -5,13 +5,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * 条目关联视图
+ * 条目关联视图。
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class SubjectRelationVO {
 
+    /** 关联类型: prequel, sequel, side_story 等。 */
     private String relation;            // 关联类型: prequel, sequel, side_story 等
+    /** 关联条目信息。 */
     private SubjectListVO relatedSubject;   // 关联条目信息
 }
