@@ -44,7 +44,7 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 
 ### 已知覆盖债务
 
-- Java 尚无认证刷新、收藏进度事务、管理写操作和完整 Controller 集成回归；本任务新增的两个 SSE 控制器单测不替代真实代理集成。
+- Java 已补充登录、刷新和注销编排单测，以及认证存储/绝对寿命、导入错误分类和 Converter 边界回归；仍缺收藏进度事务、管理写操作和完整 Controller 集成回归。SSE 控制器单测不替代真实代理集成。
 - Python 已有 Agent 图路由、SSE 持久化失败单测，但尚无 SSE 断开、真实 Redis/Business/Embedding 集成、灰度告警采集、importer 锁/恢复和 scheduler 重叠场景的完整自动化覆盖。
 - 当前测试基线只能证明列出的配置与指标用例通过，不能替代上述高风险路径；新改动必须按风险补测试。
 
@@ -160,7 +160,7 @@ trace = GoldenTrace(
 
 Java 后端统一遵循 [Javadoc 规范](./quality-guidelines.md#java-后端-javadoc-规范)，包括 pojo 全部字段、类型及手写成员。接口契约、实现继承说明与源码行为必须一致；字段行尾注释不满足 pojo 文档要求。方法体算法说明不冒充声明 Javadoc。
 
-本规则是已确认的项目要求；2026-09-14 复核发现存量构造器和字段仍缺少 Javadoc，部分方法缺少契约或使用机械模板，先前“缺失 0”的结论不成立。项目尚未配置自动覆盖门禁，审查仍须检查格式与契约真实性，普通测试通过不能替代文档检查。
+本规则是已确认的项目要求；2026-09-14 最终修复后，AST 检查 255 个 Java 文件、1658 个声明，违规 0，JDK doclint 通过。早期文本扫描的“缺失 0”结论已被替换，后续以可重复检查命令和人工语义审查为准。项目尚未配置自动覆盖门禁，审查仍须检查格式与契约真实性，普通测试通过不能替代文档检查。
 
 ### 代码审查清单
 
@@ -193,7 +193,7 @@ Java 后端统一遵循 [Javadoc 规范](./quality-guidelines.md#java-后端-jav
 
 ## Java 后端 Javadoc 规范
 
-状态：规范已确认，存量实现尚未完整达标；适用于 backend/business 的全部 Java 模块。类型、手写成员与 POJO 字段必须按下文要求补齐并验证，不能以历史覆盖结论代替复核。
+状态：规范已实施，2026-09-14 已完成存量声明修复及 AST/doclint 验证；适用于 backend/business 全部 Java 模块。新增或修改声明必须继续执行下述规则与检查。
 
 ### 覆盖范围
 
@@ -322,7 +322,7 @@ public static UserCollectionVO toUserCollectionVO(UserCollectionSubjectVO vo) {
 
 先核对实现，再补全文档：pojo 行尾字段注释迁至字段上方；接口的一句话说明补齐参数/返回/错误；实现方法继承完整契约；私有方法和 Converter 补充自身语义。不能仅批量添加 `/** */` 外壳就认定规范化完成。
 
-修改代码行为、字段、参数或返回类型时同步更新 Javadoc。存量 Javadoc 尚有缺失和语义不足，需按本规范继续补齐；新增或修改代码时同步维护 Javadoc，不因补注释改变接口行为。
+修改代码行为、字段、参数或返回类型时同步更新 Javadoc。存量声明已完成本轮修复与验证；新增或修改代码时同步维护 Javadoc，不因补注释改变接口行为。
 
 | 检查 | 通过条件 |
 |---|---|
@@ -332,6 +332,23 @@ public static UserCollectionVO toUserCollectionVO(UserCollectionSubjectVO vo) {
 | 继承 | 接口契约完整，覆盖方法显式继承或补充，未复制失效说明 |
 | 维护 | 不含空模板、无意义复述、虚构异常或历史作者信息；篇幅与复杂度匹配，不为满足行数重复契约 |
 
-当前 Business POM 未发现显式 Javadoc/Checkstyle/doclint 门禁配置；普通 Maven 测试通过不代表 Javadoc 覆盖与语法通过。后续若引入自动检查，应单独配置并验证，不能在本规范中声称 CI 已强制执行。纯注释更新不机械新增单元测试；需要核对实际行为的地方应使用已有源码和测试证据。
+### 可重复的声明与语法检查
+
+在仓库根目录执行：
+
+```bash
+# 先完成 Java 完整回归，再校验文档
+mvn -B clean test -f backend/business/pom.xml
+python backend/business/tools/check_javadoc.py
+python backend/business/tools/test_check_javadoc.py
+```
+
+`check_javadoc.py` 使用 JDK 21 语法树遍历全部 Java 源码（含测试和工具，排除 target），检查类型、手写构造器、字段、方法、record 组件的声明文档，以及参数顺序、返回标签、中文摘要和已知机械模板。继承文档只允许出现在显式覆盖的方法上。随后读取 app 的 Surefire 报告中实际构建类路径，运行 JDK `javadoc -private -Xdoclint:all,-missing -Werror`，校验 HTML、标签语法和引用；缺失检查由前一阶段执行，避免 Lombok 生成成员导致误报。任一阶段失败都返回非零。
+
+结果写入 `backend/business/target/javadoc-check/coverage.txt` 与 `doclint.txt`；HTML 文档和参数文件也位于该临时目录。`clean` 会清理报告，交付记录需保存日期、命令和结果摘要。检查器回归覆盖中文和 record、私有构造器和枚举、参数/返回错配、继承限制、模板及损坏源码。
+
+该命令是提交前独立检查，尚未接入 Maven 默认生命周期或 CI。自动检查不证明业务语义、异常条件或数据单位正确，也不能穷举无意义表述；仍需对照实现和测试人工审查。纯注释修改不机械新增业务单元测试；检查器自身的正反例用于证明门禁能发现已知遗漏。
 
 语法依据：[JDK 21 标准 Javadoc 规范](https://docs.oracle.com/en/java/javase/21/docs/specs/javadoc/doc-comment-spec.html)。覆盖范围、中文风格和审查要求是本项目约定。
+
+注释编辑必须以语法树定位或逐处核对，不能用跨行正则将字符串中的路径通配符误当注释起点。批量编辑后先运行声明/Java 语法检查，再进行完整构建；不得在最后一次验证后继续修改代码而沿用旧通过记录。
