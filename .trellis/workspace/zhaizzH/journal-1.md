@@ -196,3 +196,25 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 9: 完成 Business 规范复核修复
+<!-- trellis-session: v=2 fp=b4dd41de9d0ce3bc -->
+
+**Date**: 2026-09-14
+**Task**: 完成 Business 规范复核修复
+**Branch**: `codex/business-spec-implementation`
+
+### Summary
+
+完成 Javadoc 声明和 doclint 校验工具、架构门禁与专项回归，修复导入日志隐私和误写标点；95 个 Java 测试与 6 个检查器测试通过，255 文件 1658 声明检查通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9a732b22` | fix(business): 完成规范复核缺陷修复与文档校验 |
+
+### Status
+
+[OK] **Completed**
