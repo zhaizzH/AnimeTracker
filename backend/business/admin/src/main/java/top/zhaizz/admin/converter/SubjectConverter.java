@@ -10,13 +10,18 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 番剧相关对象转换器
+ * 番剧相关对象转换器。
  */
 public class SubjectConverter {
+    /**
+     * 禁止实例化仅提供静态操作的工具类。
+     */
     private SubjectConverter() {}
 
     /**
-     * 创建 DTO 转为 Subject 实体
+     * 映射创建请求为新实体，未指定类型时使用动画类型 2。
+     * @param request 创建内容，允许为 {@code null}
+     * @return 新实体；输入为空时返回 {@code null}，不修改请求或持久化
      */
     public static Subject toEntityFromCreate(SubjectCreateDTO request) {
         if (request == null) return null;
@@ -33,7 +38,10 @@ public class SubjectConverter {
     }
 
     /**
-     * 用更新 DTO 的非空字段更新 Subject 实体
+     * 将请求中的非空字段覆盖到条目实体，空字段保留原值。
+     * @param subject 被原地修改的目标实体，非空
+     * @param request 更新请求，非空；不支持通过空字段清除旧值
+     * @throws NullPointerException 请求为空，或条目为空且有字段需要更新
      */
     public static void updateFromRequest(Subject subject, SubjectUpdateDTO request) {
         if (request.getName() != null) subject.setName(request.getName());
@@ -46,7 +54,9 @@ public class SubjectConverter {
     }
 
     /**
-     * ImportRecord 转为导入记录 VO
+     * 将导入记录映射为展示对象，seasonKey 映射到 season。
+     * @param entity 导入记录，允许为 {@code null}
+     * @return 新对象；输入为空时返回 {@code null}，不修改实体
      */
     public static ImportRecordVO toImportRecordVO(ImportRecord entity) {
         if (entity == null) return null;
@@ -62,7 +72,9 @@ public class SubjectConverter {
     }
 
     /**
-     * ImportRecord 列表转为导入记录 VO 列表
+     * 按输入顺序映射导入记录，不修改源列表或元素。
+     * @param entities 导入记录列表，允许为 {@code null} 或包含空元素
+     * @return 新列表，保留顺序和空元素；空输入返回空列表
      */
     public static List<ImportRecordVO> toImportRecordVOList(List<ImportRecord> entities) {
         if (entities == null) return List.of();

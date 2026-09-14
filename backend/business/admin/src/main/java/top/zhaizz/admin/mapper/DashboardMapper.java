@@ -14,62 +14,77 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * 运营看板聚合查询 Mapper
+ * 运营看板聚合查询 Mapper。
  */
 public interface DashboardMapper {
 
     /**
-     * 聚合统计用户/番剧/收藏/集数/导入总量及今日新增，返回看板总览
+     * 聚合统计用户/番剧/收藏/集数/导入总量及今日新增，返回看板总览。
+     * @return 用户、条目与收藏总览指标
      */
     DashboardOverviewVO overview();
 
     /**
-     * 按日统计 since 起的每日新增用户数
+     * 按日统计 since 起的每日新增用户数。
+     * @param since 统计起始日期
+     * @return 按日统计 since 起的每日新增用户数
      */
     List<DailyCountVO> countUsersByDay(@Param("since") LocalDate since);
 
     /**
-     * 按日统计 since 起的每日新增收藏数
+     * 按日统计 since 起的每日新增收藏数。
+     * @param since 统计起始日期
+     * @return 按日统计 since 起的每日新增收藏数
      */
     List<DailyCountVO> countCollectionsByDay(@Param("since") LocalDate since);
 
     /**
-     * 按日统计 since 起的每日成功登录次数
+     * 按日统计 since 起的每日成功登录次数。
+     * @param since 统计起始日期
+     * @return 按日统计 since 起的每日成功登录次数
      */
     List<DailyCountVO> countLoginsByDay(@Param("since") LocalDate since);
 
     /**
-     * 统计各收藏类型的收藏数
+     * 统计各收藏类型的收藏数。
+     * @return 各收藏类型的收藏数
      */
     List<TypeCountVO> collectionTypeCounts();
 
     /**
-     * 统计各评分档（rate>0）的用户收藏数
+     * 统计各评分档（rate>0）的用户收藏数。
+     * @return 各评分档（rate>0）的用户收藏数
      */
     List<RatingCountVO> ratingCounts();
 
     /**
-     * 统计各分数档（score>0）的番剧数
+     * 统计各分数档（score>0）的番剧数。
+     * @return 各分数档（score>0）的番剧数
      */
     List<RatingCountVO> subjectScoreCounts();
 
     /**
-     * 按播出季度聚合番剧数（由 air_date 推导季度）
+     * 按播出季度聚合番剧数（由 air_date 推导季度）。
+     * @return 按播出季度聚合番剧数（由 air_date 推导季度）
      */
     List<SeasonCountVO> seasonCounts();
 
     /**
-     * 统计各导入状态的番剧数
+     * 统计各导入状态的番剧数。
+     * @return 各导入状态的番剧数
      */
     List<SubjectStatusCountVO> subjectStatusCounts();
 
     /**
-     * 聚合导入任务总数、成功数与失败数
+     * 聚合导入任务总数、成功数与失败数。
+     * @return 聚合导入任务总数、成功数与失败数
      */
     ImportStatVO importStats();
 
     /**
-     * 按收藏数降序取前 limit 条热门番剧
+     * 按收藏数降序取前 limit 条热门番剧。
+     * @param limit 最多返回的记录数
+     * @return 按收藏数降序取前 limit 条热门番剧
      */
     List<HotSubjectVO> hotSubjects(@Param("limit") int limit);
 }

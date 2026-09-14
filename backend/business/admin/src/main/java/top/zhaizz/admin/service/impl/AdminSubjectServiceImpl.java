@@ -9,7 +9,7 @@ import top.zhaizz.admin.mapper.AdminSubjectMapper;
 import top.zhaizz.admin.mapper.AdminSubjectTagMapper;
 import top.zhaizz.admin.service.AdminSubjectService;
 import top.zhaizz.common.constant.ErrorType;
-import top.zhaizz.common.converter.SubjectVoConverter;
+import top.zhaizz.admin.converter.SubjectVoConverter;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.pojo.dto.subject.SubjectCreateDTO;
 import top.zhaizz.pojo.dto.subject.SubjectUpdateDTO;
@@ -22,15 +22,18 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 番剧管理服务实现
+ * 番剧管理服务实现。
  */
 @Service
 @RequiredArgsConstructor
 public class AdminSubjectServiceImpl implements AdminSubjectService {
 
+    /** 条目数据 Mapper。 */
     private final AdminSubjectMapper subjectMapper;
+    /** 条目标签关系 Mapper。 */
     private final AdminSubjectTagMapper subjectTagMapper;
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public SubjectDetailVO createSubject(SubjectCreateDTO request) {
@@ -53,6 +56,7 @@ public class AdminSubjectServiceImpl implements AdminSubjectService {
         return getSubjectDetail(subject.getId());
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public SubjectDetailVO updateSubject(Long id, SubjectUpdateDTO request) {
@@ -68,6 +72,7 @@ public class AdminSubjectServiceImpl implements AdminSubjectService {
         return getSubjectDetail(id);
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public void deleteSubject(Long id) {
@@ -79,6 +84,13 @@ public class AdminSubjectServiceImpl implements AdminSubjectService {
         subjectMapper.deleteById(id);
     }
 
+    /**
+     * 查询管理端条目详情并转换为管理端响应对象。
+     *
+     * @param id 条目 ID
+     * @return 条目详情；条目不存在时抛出统一业务异常
+     * @throws BizException 条目不存在时抛出未找到错误
+     */
     private SubjectDetailVO getSubjectDetail(Long id) {
         Subject subject = subjectMapper.selectById(id);
         if (subject == null) {

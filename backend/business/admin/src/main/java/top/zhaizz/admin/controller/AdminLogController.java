@@ -12,7 +12,7 @@ import top.zhaizz.pojo.dto.log.LogQueryDTO;
 import top.zhaizz.pojo.vo.log.LogVO;
 
 /**
- * 日志查询控制器
+ * 日志查询控制器。
  */
 @RestController
 @RequestMapping("/api/admin/logs")
@@ -20,10 +20,13 @@ import top.zhaizz.pojo.vo.log.LogVO;
 @Validated
 public class AdminLogController {
 
+    /** 管理员日志查询服务。 */
     private final AdminLogService adminLogService;
 
     /**
-     * 分页查询操作/登录日志并返回当前筛选条件的全量聚合统计，管理后台日志页筛选查询时触发
+     * 分页查询操作/登录日志并返回当前筛选条件的全量聚合统计，管理后台日志页筛选查询时触发。
+     * @param request 日志筛选与分页条件
+     * @return 统一成功响应，其数据为：匹配的日志分页及全量聚合统计
      */
     @GetMapping
     public Result<LogVO> listLogs(@Valid LogQueryDTO request) {

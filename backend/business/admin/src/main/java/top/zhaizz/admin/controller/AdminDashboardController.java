@@ -19,7 +19,7 @@ import top.zhaizz.pojo.vo.dashboard.TrendPointVO;
 import java.util.List;
 
 /**
- * 运营看板控制器
+ * 运营看板控制器。
  */
 @RestController
 @RequestMapping("/api/admin/dashboard")
@@ -27,10 +27,12 @@ import java.util.List;
 @Validated
 public class AdminDashboardController {
 
+    /** 管理员仪表盘统计服务。 */
     private final DashboardService dashboardService;
 
     /**
-     * 看板总览，管理后台进入看板页时加载核心运营指标
+     * 看板总览，管理后台进入看板页时加载核心运营指标。
+     * @return 统一成功响应，其数据为：用户、条目与收藏总览指标
      */
     @GetMapping("/overview")
     public Result<DashboardOverviewVO> overview() {
@@ -38,7 +40,9 @@ public class AdminDashboardController {
     }
 
     /**
-     * 每日趋势（新增用户/收藏/登录），看板趋势图展示时触发
+     * 每日趋势（新增用户/收藏/登录），看板趋势图展示时触发。
+     * @param days 查询天数，服务层限制为 1–90 天
+     * @return 统一成功响应，其数据为：按日期升序排列的趋势点，缺失日期补零
      */
     @GetMapping("/trends")
     public Result<List<TrendPointVO>> trends(
@@ -47,7 +51,8 @@ public class AdminDashboardController {
     }
 
     /**
-     * 收藏类型与评分分布，看板分布图加载时触发
+     * 收藏类型与评分分布，看板分布图加载时触发。
+     * @return 统一成功响应，其数据为：收藏状态与评分分布
      */
     @GetMapping("/collection-stats")
     public Result<CollectionStatsVO> collectionStats() {
@@ -55,7 +60,8 @@ public class AdminDashboardController {
     }
 
     /**
-     * 番剧季度数量、导入状态与导入记录统计，看板内容面板加载时触发
+     * 番剧季度数量、导入状态与导入记录统计，看板内容面板加载时触发。
+     * @return 统一成功响应，其数据为：条目季度、导入状态与评分统计
      */
     @GetMapping("/subject-stats")
     public Result<SubjectStatsVO> subjectStats() {
@@ -63,7 +69,9 @@ public class AdminDashboardController {
     }
 
     /**
-     * 本站收藏最多 Top N 热门榜，看板热门排行加载时触发
+     * 本站收藏最多 Top N 热门榜，看板热门排行加载时触发。
+     * @param limit 最多返回的记录数
+     * @return 统一成功响应，其数据为：按本站收藏热度排列的条目，最多 50 条
      */
     @GetMapping("/hot")
     public Result<List<HotSubjectVO>> hot(

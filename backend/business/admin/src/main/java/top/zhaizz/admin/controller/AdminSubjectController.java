@@ -5,15 +5,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.admin.service.AdminSubjectService;
-import top.zhaizz.common.constant.OperationLogConstants;
-import top.zhaizz.common.log.OperationLog;
+import top.zhaizz.log.constant.OperationLogConstants;
+import top.zhaizz.log.annotation.OperationLog;
 import top.zhaizz.common.result.Result;
 import top.zhaizz.pojo.dto.subject.SubjectCreateDTO;
 import top.zhaizz.pojo.dto.subject.SubjectUpdateDTO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 
 /**
- * 番剧管理控制器
+ * 番剧管理控制器。
  */
 @RestController
 @RequestMapping("/api/admin/subjects")
@@ -21,10 +21,13 @@ import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 @Validated
 public class AdminSubjectController {
 
+    /** 管理员条目维护服务。 */
     private final AdminSubjectService adminSubjectService;
 
     /**
-     * 创建新番剧，管理后台新建表单提交时触发
+     * 创建新番剧，管理后台新建表单提交时触发。
+     * @param request 待创建的条目字段
+     * @return 统一成功响应，其数据为：新建条目的详情
      */
     @OperationLog(action = OperationLogConstants.ACTION_SUBJECT_CREATE, module = OperationLogConstants.MODULE_SUBJECT)
     @PostMapping
@@ -33,7 +36,10 @@ public class AdminSubjectController {
     }
 
     /**
-     * 更新指定番剧的信息，管理后台编辑表单提交时触发
+     * 更新指定番剧的信息，管理后台编辑表单提交时触发。
+     * @param id 目标条目 ID
+     * @param request 条目更新字段，空字段保留原值
+     * @return 统一成功响应，其数据为：修改后的条目详情
      */
     @OperationLog(action = OperationLogConstants.ACTION_SUBJECT_UPDATE, module = OperationLogConstants.MODULE_SUBJECT)
     @PostMapping("/{id}/update")
@@ -44,7 +50,9 @@ public class AdminSubjectController {
     }
 
     /**
-     * 删除指定番剧，管理后台删除操作确认时触发
+     * 删除指定番剧，管理后台删除操作确认时触发。
+     * @param id 目标条目 ID
+     * @return 无数据的统一成功响应
      */
     @OperationLog(action = OperationLogConstants.ACTION_SUBJECT_DELETE, module = OperationLogConstants.MODULE_SUBJECT)
     @PostMapping("/{id}/remove")
