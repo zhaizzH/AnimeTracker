@@ -46,6 +46,22 @@ record Sample(int page) {
 """)
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 
+    def test_natural_javadoc_without_terminal_periods_is_accepted(self):
+        result = self.check_source("""
+/** 用户会话 */
+class Sample {
+    /** 会话 ID */
+    private final String sessionId;
+
+    /**
+     * 读取会话用户
+     * @return 用户 ID；不存在时返回 null
+     */
+    String userId() { return null; }
+}
+""")
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_missing_constructor_and_enum_member_are_reported(self):
         result = self.check_source("""
 /** 仅用于枚举声明扫描。 */
