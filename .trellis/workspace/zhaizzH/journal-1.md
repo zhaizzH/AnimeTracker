@@ -241,3 +241,26 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 11: 精简 Java 后端中文注释规范
+<!-- trellis-session: v=2 fp=3faf328f2b971efa -->
+
+**Date**: 2026-09-15
+**Task**: 精简 Java 后端中文注释规范
+**Branch**: `main`
+
+### Summary
+
+更新自然中文无句号的 Java 注释规范，新增检查器回归；Business clean test、Javadoc 声明检查和 JDK doclint 全部通过；复核后补齐类型示例、修正方法体示例标点与归档状态记录
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3861752b` | docs(java): 规范自然中文注释 |
+| `67b4ed8f` | docs(java): 补齐注释规范示例 |
+
+### Status
+
+[OK] **Completed**
