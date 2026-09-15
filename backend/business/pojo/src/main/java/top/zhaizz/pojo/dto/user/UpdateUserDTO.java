@@ -4,16 +4,16 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * 修改个人信息请求 DTO。
+ * 修改个人信息请求 DTO
  */
 @Data
 public class UpdateUserDTO {
 
-    /** 昵称。 */
+    /** 昵称 */
     @Size(max = 64, message = "昵称长度不能超过64")
     private String nickname;    // 昵称
 
-    /** 头像URL。 */
+    /** 头像URL */
     @Size(max = 512, message = "头像URL长度不能超过512")
     private String avatar;      // 头像URL
 

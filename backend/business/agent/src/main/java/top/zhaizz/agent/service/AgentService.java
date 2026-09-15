@@ -6,12 +6,12 @@ import top.zhaizz.common.result.Result;
 import java.util.function.Consumer;
 
 /**
- * Python agent 服务：controller 只关心业务请求与统一响应。
+ * Python agent 服务：controller 只关心业务请求与统一响应
  */
 public interface AgentService {
 
     /**
-     * 转发普通 HTTP 请求并将 Agent 响应包装为统一结果。
+     * 转发普通 HTTP 请求并将 Agent 响应包装为统一结果
      *
      * @param path Agent API 相对路径
      * @param method HTTP 方法
@@ -24,7 +24,7 @@ public interface AgentService {
     Result<?> exchange(String path, HttpMethod method, String authorization, Object body);
 
     /**
-     * 转发流式 HTTP 请求并逐行消费 Agent 响应。
+     * 转发流式 HTTP 请求并逐行消费 Agent 响应
      *
      * @param path Agent SSE API 相对路径
      * @param method HTTP 方法

@@ -18,13 +18,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 运营看板服务实现。
+ * 运营看板服务实现
  */
 @Service
 @RequiredArgsConstructor
 public class DashboardServiceImpl implements DashboardService {
 
-    /** 仪表盘统计 Mapper。 */
+    /** 仪表盘统计 Mapper */
     private final DashboardMapper dashboardMapper;
 
     /** {@inheritDoc} */
@@ -55,7 +55,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     /**
-     * 将每日统计行整理为日期到数量的映射。
+     * 将每日统计行整理为日期到数量的映射
      *
      * @param rows 按日期聚合的统计行
      * @return 日期到数量的映射

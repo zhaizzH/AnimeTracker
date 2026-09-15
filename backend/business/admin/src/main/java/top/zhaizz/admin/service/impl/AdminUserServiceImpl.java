@@ -19,19 +19,19 @@ import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 /**
- * 用户管理服务实现。
+ * 用户管理服务实现
  */
 @Service
 @RequiredArgsConstructor
 public class AdminUserServiceImpl implements AdminUserService {
 
-    /** 用户数据 Mapper。 */
+    /** 用户数据 Mapper */
     private final AdminUserMapper userMapper;
-    /** 认证会话存储。 */
+    /** 认证会话存储 */
     private final AuthSessionStore sessionStore;
 
     // 超级管理员账号 ID
-    /** 受保护的超级管理员标识。 */
+    /** 受保护的超级管理员标识 */
     @Value("${at.admin.superadmin-id}")
     private long superadminId;
 

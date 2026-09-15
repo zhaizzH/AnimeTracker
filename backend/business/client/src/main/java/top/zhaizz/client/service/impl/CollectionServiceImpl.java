@@ -31,15 +31,15 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * 收藏服务实现。
+ * 收藏服务实现
  */
 @Service
 @RequiredArgsConstructor
 public class CollectionServiceImpl implements CollectionService {
 
-    /** 收藏数据 Mapper。 */
+    /** 收藏数据 Mapper */
     private final CollectionMapper collectionMapper;
-    /** 条目数据 Mapper。 */
+    /** 条目数据 Mapper */
     private final SubjectMapper subjectMapper;
 
     /** {@inheritDoc} */
@@ -194,7 +194,7 @@ public class CollectionServiceImpl implements CollectionService {
 
 
     /**
-     * 查询用户与条目对应的收藏记录。
+     * 查询用户与条目对应的收藏记录
      *
      * @param userId 用户 ID
      * @param subjectId 条目 ID

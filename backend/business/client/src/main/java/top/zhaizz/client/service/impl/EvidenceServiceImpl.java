@@ -14,15 +14,15 @@ import top.zhaizz.pojo.vo.evidence.EvidenceCandidateVO;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/** 证据回查服务实现。 */
+/** 证据回查服务实现 */
 @Service
 @RequiredArgsConstructor
 public class EvidenceServiceImpl implements EvidenceService {
 
-    /** 证据批量请求允许的最大条数。 */
+    /** 证据批量请求允许的最大条数 */
     private static final int MAX_BATCH_SIZE = 50;
 
-    /** 证据数据 Mapper。 */
+    /** 证据数据 Mapper */
     private final EvidenceMapper evidenceMapper;
 
     /** {@inheritDoc} */

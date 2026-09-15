@@ -8,16 +8,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 收藏转换器。
+ * 收藏转换器
  */
 public class CollectionConverter {
     /**
-     * 禁止实例化仅提供静态操作的工具类。
+     * 禁止实例化仅提供静态操作的工具类
      */
     private CollectionConverter() {}
 
     /**
-     * 将收藏与条目联合数据映射为收藏展示对象及新的嵌套条目对象。
+     * 将收藏与条目联合数据映射为收藏展示对象及新的嵌套条目对象
      * @param vo 联合查询结果，允许为 {@code null}
      * @return 新的收藏对象；输入为空时返回 {@code null}，不修改输入
      */
@@ -46,7 +46,7 @@ public class CollectionConverter {
     }
 
     /**
-     * 按输入顺序转换收藏列表，不修改源列表与元素。
+     * 按输入顺序转换收藏列表，不修改源列表与元素
      * @param list 联合查询结果，允许为 {@code null} 或包含空元素
      * @return 新列表，保留顺序和空元素；空输入返回空列表
      */
@@ -58,7 +58,7 @@ public class CollectionConverter {
     }
 
     /**
-     * 映射收藏自身字段，不查询或填充嵌套条目详情。
+     * 映射收藏自身字段，不查询或填充嵌套条目详情
      * @param entity 收藏实体，允许为 {@code null}
      * @return 新的简要收藏对象，subject 字段保持空；输入为空时返回 {@code null}
      */

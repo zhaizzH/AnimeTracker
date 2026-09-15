@@ -9,9 +9,9 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-/** 验证计数窗口只在首次计数设置，后续尝试不延长窗口。 */
+/** 验证计数窗口只在首次计数设置，后续尝试不延长窗口 */
 class RedisUtilTest {
-    /** 首次计数设置过期时间；后续计数和空结果不设置。 */
+    /** 首次计数设置过期时间；后续计数和空结果不设置 */
     @Test
     @SuppressWarnings("unchecked")
     void expiresOnlyTheFirstIncrement() {

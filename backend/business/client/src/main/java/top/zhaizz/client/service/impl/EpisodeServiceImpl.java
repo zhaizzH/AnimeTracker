@@ -15,15 +15,15 @@ import top.zhaizz.pojo.vo.subject.EpisodeVO;
 import java.util.List;
 
 /**
- * 剧集服务实现。
+ * 剧集服务实现
  */
 @Service
 @RequiredArgsConstructor
 public class EpisodeServiceImpl implements EpisodeService {
 
-    /** 分集数据 Mapper。 */
+    /** 分集数据 Mapper */
     private final EpisodeMapper episodeMapper;
-    /** 条目数据 Mapper。 */
+    /** 条目数据 Mapper */
     private final SubjectMapper subjectMapper;
 
     /** {@inheritDoc} */

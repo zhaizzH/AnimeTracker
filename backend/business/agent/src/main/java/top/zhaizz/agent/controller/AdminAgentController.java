@@ -18,18 +18,18 @@ import java.io.UncheckedIOException;
 import java.util.Map;
 
 /**
- * Agent 配置管理控制器（管理端，转发至 Python agent）。
+ * Agent 配置管理控制器（管理端，转发至 Python agent）
  */
 @RestController
 @RequestMapping("/api/admin/agent")
 @RequiredArgsConstructor
 public class AdminAgentController {
 
-    /** 负责转发 Agent 请求的服务。 */
+    /** 负责转发 Agent 请求的服务 */
     private final AgentService agentService;
 
     /**
-     * 提示词列表。
+     * 提示词列表
      *
      * @param auth 透传给 Python Agent 的 Authorization 请求头
      * @return 上游提示词列表包装的统一结果
@@ -40,7 +40,7 @@ public class AdminAgentController {
     }
 
     /**
-     * 提示词详情。
+     * 提示词详情
      *
      * @param key 上游提示词配置键
      * @param auth 透传给 Python Agent 的 Authorization 请求头
@@ -52,7 +52,7 @@ public class AdminAgentController {
     }
 
     /**
-     * 更新提示词。
+     * 更新提示词
      *
      * @param key 上游提示词配置键
      * @param body 向上游透传的请求体
@@ -67,7 +67,7 @@ public class AdminAgentController {
     }
 
     /**
-     * 重置提示词为默认。
+     * 重置提示词为默认
      *
      * @param key 上游提示词配置键
      * @param auth 透传给 Python Agent 的 Authorization 请求头
@@ -80,7 +80,7 @@ public class AdminAgentController {
     }
 
     /**
-     * 读取模型配置。
+     * 读取模型配置
      *
      * @param auth 透传给 Python Agent 的 Authorization 请求头
      * @return 上游模型配置包装的统一结果
@@ -91,7 +91,7 @@ public class AdminAgentController {
     }
 
     /**
-     * 更新模型配置。
+     * 更新模型配置
      *
      * @param body 向上游透传的请求体
      * @param auth 透传给 Python Agent 的 Authorization 请求头
@@ -104,7 +104,7 @@ public class AdminAgentController {
     }
 
     /**
-     * 管理端 Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）。
+     * 管理端 Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）
      *
      * @param auth 透传给 Python Agent 的 Authorization 请求头
      * @param body 向上游透传的请求体
@@ -133,7 +133,7 @@ public class AdminAgentController {
     }
 
     /**
-     * 获取管理端会话列表。
+     * 获取管理端会话列表
      *
      * @param auth 透传给 Python Agent 的 Authorization 请求头
      * @return 当前身份的上游会话列表包装的统一结果
@@ -144,7 +144,7 @@ public class AdminAgentController {
     }
 
     /**
-     * 创建管理端会话。
+     * 创建管理端会话
      *
      * @param auth 透传给 Python Agent 的 Authorization 请求头
      * @param body 会话创建参数，可为空；空值按空对象转发
@@ -156,7 +156,7 @@ public class AdminAgentController {
     }
 
     /**
-     * 获取管理端会话历史。
+     * 获取管理端会话历史
      *
      * @param sessionId 上游会话标识
      * @param auth 透传给 Python Agent 的 Authorization 请求头
@@ -168,7 +168,7 @@ public class AdminAgentController {
     }
 
     /**
-     * 删除管理端会话。
+     * 删除管理端会话
      *
      * @param sessionId 上游会话标识
      * @param auth 透传给 Python Agent 的 Authorization 请求头

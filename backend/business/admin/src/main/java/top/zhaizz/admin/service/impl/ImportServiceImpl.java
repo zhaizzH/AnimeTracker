@@ -23,14 +23,14 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 番剧导入服务实现 — 触发转发至 Python Agent；状态与记录直接查库。
+ * 番剧导入服务实现 — 触发转发至 Python Agent；状态与记录直接查库
  */
 @Service
 @RequiredArgsConstructor
 public class ImportServiceImpl implements ImportService {
-    /** Python Agent 导入通信网关。 */
+    /** Python Agent 导入通信网关 */
     private final ImportAgentGateway importAgentGateway;
-    /** 导入记录 Mapper。 */
+    /** 导入记录 Mapper */
     private final ImportRecordMapper importRecordMapper;
 
     /** {@inheritDoc} */
@@ -80,7 +80,7 @@ public class ImportServiceImpl implements ImportService {
     }
 
     /**
-     * 校验导入模式及其附加参数的组合约束。
+     * 校验导入模式及其附加参数的组合约束
      *
      * @param mode 导入模式
      * @param key 季度键，season 模式使用

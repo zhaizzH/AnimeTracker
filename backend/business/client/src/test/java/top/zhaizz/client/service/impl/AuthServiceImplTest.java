@@ -23,26 +23,26 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 
-/** 登录资格校验、刷新消费顺序和注销撤销的业务编排回归。 */
+/** 登录资格校验、刷新消费顺序和注销撤销的业务编排回归 */
 class AuthServiceImplTest {
-    /** 固定首次登录时刻，单位为纪元毫秒。 */
+    /** 固定首次登录时刻，单位为纪元毫秒 */
     private static final long NOW = 1_800_000_000_000L;
-    /** 模拟账户持久化。 */
+    /** 模拟账户持久化 */
     private final UserMapper users = mock(UserMapper.class);
-    /** 模拟密码哈希校验。 */
+    /** 模拟密码哈希校验 */
     private final PasswordEncoder passwords = mock(PasswordEncoder.class);
-    /** 模拟登录失败计数。 */
+    /** 模拟登录失败计数 */
     private final RedisUtil redis = mock(RedisUtil.class);
-    /** 模拟认证凭据签发。 */
+    /** 模拟认证凭据签发 */
     private final AuthTokenService tokens = mock(AuthTokenService.class);
-    /** 模拟邮箱验证业务。 */
+    /** 模拟邮箱验证业务 */
     private final VerificationService verification = mock(VerificationService.class);
-    /** 模拟刷新原子消费与撤销。 */
+    /** 模拟刷新原子消费与撤销 */
     private final AuthSessionStore sessions = mock(AuthSessionStore.class);
-    /** 被测用户端认证编排。 */
+    /** 被测用户端认证编排 */
     private final AuthServiceImpl service = new AuthServiceImpl(users, passwords, redis, tokens, verification, sessions);
 
-    /** 配置固定时钟与失败计数窗口，避免测试依赖运行时间。 */
+    /** 配置固定时钟与失败计数窗口，避免测试依赖运行时间 */
     @BeforeEach
     void configure() {
         ReflectionTestUtils.setField(service, "clock", Clock.fixed(Instant.ofEpochMilli(NOW), ZoneOffset.UTC));
@@ -50,7 +50,7 @@ class AuthServiceImplTest {
         ReflectionTestUtils.setField(service, "loginFailWindowMinutes", 5L);
     }
 
-    /** 成功登录清除失败计数，并以当前时刻签发首次会话。 */
+    /** 成功登录清除失败计数，并以当前时刻签发首次会话 */
     @Test
     void loginIssuesFirstSession() {
         User user = user();
@@ -66,7 +66,7 @@ class AuthServiceImplTest {
         verify(tokens).issue(7L, "USER", NOW, false);
     }
 
-    /** 密码错误累加限时计数且不签发凭据。 */
+    /** 密码错误累加限时计数且不签发凭据 */
     @Test
     void wrongPasswordIncrementsFailures() {
         when(users.selectOne(any())).thenReturn(user());
@@ -75,7 +75,7 @@ class AuthServiceImplTest {
         verifyNoInteractions(tokens);
     }
 
-    /** 达到失败阈值时在查询账户之前拒绝登录。 */
+    /** 达到失败阈值时在查询账户之前拒绝登录 */
     @Test
     void lockedLoginSkipsAccountLookup() {
         when(redis.get(ClientRedisKeys.LOGIN_FAIL + "alice")).thenReturn("5");
@@ -83,7 +83,7 @@ class AuthServiceImplTest {
         verifyNoInteractions(users, passwords, tokens);
     }
 
-    /** 禁用账户即使密码正确也不能取得凭据。 */
+    /** 禁用账户即使密码正确也不能取得凭据 */
     @Test
     void disabledAccountCannotLogin() {
         User user = user(); user.setEnabled(false);
@@ -93,7 +93,7 @@ class AuthServiceImplTest {
         verifyNoInteractions(tokens);
     }
 
-    /** 未验证邮箱返回验证所需邮箱信息，禁止签发登录凭据。 */
+    /** 未验证邮箱返回验证所需邮箱信息，禁止签发登录凭据 */
     @Test
     void unverifiedAccountCannotLogin() {
         User user = user(); user.setEmailVerified(false);
@@ -105,7 +105,7 @@ class AuthServiceImplTest {
         verifyNoInteractions(tokens);
     }
 
-    /** 刷新先消费旧凭据再查账户，续签沿用原始起点而非当前时刻。 */
+    /** 刷新先消费旧凭据再查账户，续签沿用原始起点而非当前时刻 */
     @Test
     void refreshPreservesAbsoluteSessionStartAndRejectsReuse() {
         long originalStart = NOW - 60_000L;
@@ -124,7 +124,7 @@ class AuthServiceImplTest {
         verify(users, times(1)).selectById(7L);
     }
 
-    /** 刷新消费后发现账户禁用时拒绝续签。 */
+    /** 刷新消费后发现账户禁用时拒绝续签 */
     @Test
     void disabledAccountCannotRefresh() {
         when(sessions.consumeRefresh("old")).thenReturn(Optional.of(new ConsumedRefreshSession(7L, NOW - 1000)));
@@ -135,7 +135,7 @@ class AuthServiceImplTest {
         verifyNoInteractions(tokens);
     }
 
-    /** 达到绝对寿命时原样传播认证拒绝，不返回半成品登录结果。 */
+    /** 达到绝对寿命时原样传播认证拒绝，不返回半成品登录结果 */
     @Test
     void absoluteExpiryFailsRefresh() {
         long originalStart = NOW - 60_000L;
@@ -146,7 +146,7 @@ class AuthServiceImplTest {
         assertThatThrownBy(() -> service.refresh("old")).isSameAs(expired);
     }
 
-    /** 缺失刷新凭据直接拒绝，不访问会话或账户存储。 */
+    /** 缺失刷新凭据直接拒绝，不访问会话或账户存储 */
     @Test
     void absentRefreshSkipsStores() {
         assertThatThrownBy(() -> service.refresh(null)).isInstanceOf(BizException.class);
@@ -154,7 +154,7 @@ class AuthServiceImplTest {
         verifyNoInteractions(sessions, users, tokens);
     }
 
-    /** 注销分别撤销访问和刷新凭据，空值及空白不触发撤销。 */
+    /** 注销分别撤销访问和刷新凭据，空值及空白不触发撤销 */
     @Test
     void logoutRevokesOnlyProvidedTokens() {
         service.logout("access", "refresh");
@@ -167,7 +167,7 @@ class AuthServiceImplTest {
     }
 
     /**
-     * 创建可登录账户。
+     * 创建可登录账户
      * @return 已验证邮箱且未禁用的普通用户
      */
     private static User user() {
@@ -177,7 +177,7 @@ class AuthServiceImplTest {
     }
 
     /**
-     * 创建用户名密码登录请求。
+     * 创建用户名密码登录请求
      * @return 与模拟密码匹配的登录输入
      */
     private static LoginDTO login() {

@@ -9,9 +9,9 @@ import java.util.Arrays;
 import java.util.List;
 import static org.assertj.core.api.Assertions.*;
 
-/** 收藏查询扁平结果与嵌套响应的映射契约。 */
+/** 收藏查询扁平结果与嵌套响应的映射契约 */
 class CollectionConverterTest {
-    /** 空实体返回空值，空列表返回空集合。 */
+    /** 空实体返回空值，空列表返回空集合 */
     @Test
     void handlesAbsentInputs() {
         assertThat(CollectionConverter.toUserCollectionVO(null)).isNull();
@@ -20,7 +20,7 @@ class CollectionConverterTest {
         assertThat(CollectionConverter.toUserCollectionVOList(List.of())).isEmpty();
     }
 
-    /** 收藏类型与条目类型分别映射，查询字段完整填入嵌套条目。 */
+    /** 收藏类型与条目类型分别映射，查询字段完整填入嵌套条目 */
     @Test
     void mapsCollectionAndNestedSubject() {
         UserCollectionSubjectVO row = new UserCollectionSubjectVO();
@@ -36,7 +36,7 @@ class CollectionConverterTest {
         assertThat(row.getName()).isEqualTo("Original");
     }
 
-    /** 列表不排序、不丢弃空元素，缺失的条目字段保持空值。 */
+    /** 列表不排序、不丢弃空元素，缺失的条目字段保持空值 */
     @Test
     void preservesOrderAndNullFields() {
         UserCollectionSubjectVO first = new UserCollectionSubjectVO(); first.setId(9L);
@@ -51,7 +51,7 @@ class CollectionConverterTest {
         assertThat(result.get(0).getRate()).isNull();
     }
 
-    /** 简要响应保留收藏字段而不虚构未查询的条目详情。 */
+    /** 简要响应保留收藏字段而不虚构未查询的条目详情 */
     @Test
     void mapsSimpleCollectionWithoutSubject() {
         UserCollection source = new UserCollection();

@@ -10,16 +10,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 番剧相关对象转换器。
+ * 番剧相关对象转换器
  */
 public class SubjectConverter {
     /**
-     * 禁止实例化仅提供静态操作的工具类。
+     * 禁止实例化仅提供静态操作的工具类
      */
     private SubjectConverter() {}
 
     /**
-     * 映射创建请求为新实体，未指定类型时使用动画类型 2。
+     * 映射创建请求为新实体，未指定类型时使用动画类型 2
      * @param request 创建内容，允许为 {@code null}
      * @return 新实体；输入为空时返回 {@code null}，不修改请求或持久化
      */
@@ -38,7 +38,7 @@ public class SubjectConverter {
     }
 
     /**
-     * 将请求中的非空字段覆盖到条目实体，空字段保留原值。
+     * 将请求中的非空字段覆盖到条目实体，空字段保留原值
      * @param subject 被原地修改的目标实体，非空
      * @param request 更新请求，非空；不支持通过空字段清除旧值
      * @throws NullPointerException 请求为空，或条目为空且有字段需要更新
@@ -54,7 +54,7 @@ public class SubjectConverter {
     }
 
     /**
-     * 将导入记录映射为展示对象，seasonKey 映射到 season。
+     * 将导入记录映射为展示对象，seasonKey 映射到 season
      * @param entity 导入记录，允许为 {@code null}
      * @return 新对象；输入为空时返回 {@code null}，不修改实体
      */
@@ -72,7 +72,7 @@ public class SubjectConverter {
     }
 
     /**
-     * 按输入顺序映射导入记录，不修改源列表或元素。
+     * 按输入顺序映射导入记录，不修改源列表或元素
      * @param entities 导入记录列表，允许为 {@code null} 或包含空元素
      * @return 新列表，保留顺序和空元素；空输入返回空列表
      */

@@ -7,12 +7,12 @@ import lombok.Data;
 
 import java.util.List;
 
-/** 批量证据回查请求。 */
+/** 批量证据回查请求 */
 @Data
 public class EvidenceBatchRequestDTO {
 
     /**
-     * 待回查条目 ID，必填且最多 50 个，元素不得为空。
+     * 待回查条目 ID，必填且最多 50 个，元素不得为空
      */
     @NotEmpty(message = "条目 ID 不能为空")
     @Size(max = 50, message = "条目 ID 最多 50 个")

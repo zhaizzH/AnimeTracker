@@ -47,14 +47,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 番剧查询服务实现。
+ * 番剧查询服务实现
  */
 @Service
 @RequiredArgsConstructor
 public class ClientSubjectServiceImpl implements ClientSubjectService {
 
     /**
-     * 排序参数到列/字段的白名单。
+     * 排序参数到列/字段的白名单
      */
     private static final Map<String, SFunction<Subject, ?>> SORT_FIELDS = Map.of(
             "id", Subject::getId,
@@ -62,13 +62,13 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
             "air_date", Subject::getAirDate,
             "rank", Subject::getRank,
             "collection_total", Subject::getCollectionTotal);
-    /** 条目数据 Mapper。 */
+    /** 条目数据 Mapper */
     private final SubjectMapper subjectMapper;
-    /** 条目标签关系 Mapper。 */
+    /** 条目标签关系 Mapper */
     private final SubjectTagMapper subjectTagMapper;
-    /** 条目关联关系 Mapper。 */
+    /** 条目关联关系 Mapper */
     private final SubjectRelationMapper subjectRelationMapper;
-    /** 收藏数据 Mapper。 */
+    /** 收藏数据 Mapper */
     private final CollectionMapper collectionMapper;
 
     /** {@inheritDoc} */
@@ -267,7 +267,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
 
 
     /**
-     * 将受控排序字段转换为 MyBatis-Plus 的实体字段引用。
+     * 将受控排序字段转换为 MyBatis-Plus 的实体字段引用
      *
      * @param sort 请求的排序字段
      * @return 允许的实体字段引用；不支持的字段返回默认评分字段
@@ -277,7 +277,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
     }
 
     /**
-     * 将受控排序字段转换为 SQL 白名单中的列名。
+     * 将受控排序字段转换为 SQL 白名单中的列名
      *
      * @param sort 请求的排序字段
      * @return 安全的 SQL 列名
@@ -287,7 +287,7 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
     }
 
     /**
-     * 将排序方向限制为 SQL 白名单中的升序或降序。
+     * 将排序方向限制为 SQL 白名单中的升序或降序
      *
      * @param order 请求的排序方向
      * @return {@code asc} 或 {@code desc}

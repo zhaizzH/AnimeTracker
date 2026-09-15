@@ -3,12 +3,12 @@ package top.zhaizz.pojo.vo.dashboard;
 import lombok.Data;
 
 /**
- * 评分分布。
+ * 评分分布
  */
 @Data
 public class RatingCountVO {
-    /** 评分值 1~10。 */
+    /** 评分值 1~10 */
     private Integer rate;   // 评分值 1~10
-    /** 该评分数量。 */
+    /** 该评分数量 */
     private long count;     // 该评分数量
 }

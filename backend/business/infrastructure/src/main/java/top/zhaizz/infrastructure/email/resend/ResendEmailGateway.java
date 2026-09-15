@@ -7,16 +7,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import top.zhaizz.infrastructure.email.EmailGateway;
 
-/** 使用 Resend SDK 发送业务层提供的邮件内容。 */
+/** 使用 Resend SDK 发送业务层提供的邮件内容 */
 @Component
 public class ResendEmailGateway implements EmailGateway {
-    /** 用于提交邮件的供应商客户端。 */
+    /** 用于提交邮件的供应商客户端 */
     private final Resend resend;
-    /** resend.send-email 配置的发件地址。 */
+    /** resend.send-email 配置的发件地址 */
     private final String sender;
 
     /**
-     * 绑定发送客户端和配置的发件人。
+     * 绑定发送客户端和配置的发件人
      * @param resend Resend SDK 客户端
      * @param sender 已配置的发件地址
      */

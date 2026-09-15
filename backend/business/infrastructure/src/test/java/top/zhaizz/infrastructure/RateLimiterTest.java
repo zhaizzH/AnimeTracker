@@ -8,9 +8,9 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-/** 验证限流迁移保留键格式、窗口、空值和故障契约。 */
+/** 验证限流迁移保留键格式、窗口、空值和故障契约 */
 class RateLimiterTest {
-    /** 边界次数放行、超限拒绝、空计数放行，重置删除同一个桶。 */
+    /** 边界次数放行、超限拒绝、空计数放行，重置删除同一个桶 */
     @Test
     void preservesQuotaWindowAndReset() {
         RedisUtil redis = mock(RedisUtil.class);
@@ -24,7 +24,7 @@ class RateLimiterTest {
         verify(redis).del(key);
     }
 
-    /** Redis 连接异常继续传播，不误认为空计数而放行。 */
+    /** Redis 连接异常继续传播，不误认为空计数而放行 */
     @Test
     void propagatesRedisFailure() {
         RedisUtil redis = mock(RedisUtil.class);

@@ -6,26 +6,26 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 条目-角色关联实体。
+ * 条目-角色关联实体
  */
 @Data
 @TableName("subject_character")
 public class SubjectCharacter {
 
-    /** 关联ID。 */
+    /** 关联ID */
     private Long id;                    // 关联ID
-    /** 条目ID。 */
+    /** 条目ID */
     private Long subjectId;             // 条目ID
-    /** 角色ID。 */
+    /** 角色ID */
     private Long characterId;           // 角色ID
-    /** 角色在作品中的定位: MAIN=主角, SUPPORTING=配角, GUEST=客串。 */
+    /** 角色在作品中的定位: MAIN=主角, SUPPORTING=配角, GUEST=客串 */
     private String relation;            // 角色在作品中的定位: MAIN=主角, SUPPORTING=配角, GUEST=客串
-    /** 来源排序。 */
+    /** 来源排序 */
     private Integer sortOrder;          // 来源排序
-    /** 上游是否仍然活跃。 */
+    /** 上游是否仍然活跃 */
     private Boolean sourceActive;       // 上游是否仍然活跃
-    /** 创建时间。 */
+    /** 创建时间 */
     private LocalDateTime createdAt;    // 创建时间
-    /** 更新时间。 */
+    /** 更新时间 */
     private LocalDateTime updatedAt;    // 更新时间
 }

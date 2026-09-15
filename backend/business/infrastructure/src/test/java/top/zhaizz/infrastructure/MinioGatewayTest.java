@@ -13,9 +13,9 @@ import top.zhaizz.infrastructure.storage.minio.MinioProperties;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-/** 验证上传分类、对象名与失败行为在迁移后保持一致。 */
+/** 验证上传分类、对象名与失败行为在迁移后保持一致 */
 class MinioGatewayTest {
-    /** 上传保留 MIME 和桶，使用服务端名称生成公开 URL。 */
+    /** 上传保留 MIME 和桶，使用服务端名称生成公开 URL */
     @Test
     void uploadsIntoCategoryWithGeneratedName() throws Exception {
         MinioClient client = mock(MinioClient.class);
@@ -29,7 +29,7 @@ class MinioGatewayTest {
         assertEquals("http://storage/images/" + args.getValue().object(), url);
     }
 
-    /** 不支持的类型拒绝上传，SDK 故障映射为既有业务错误。 */
+    /** 不支持的类型拒绝上传，SDK 故障映射为既有业务错误 */
     @Test
     void rejectsUnsupportedTypeAndMapsUploadFailure() throws Exception {
         MinioClient client = mock(MinioClient.class);
@@ -40,7 +40,7 @@ class MinioGatewayTest {
         assertEquals("文件上传失败", assertThrows(BizException.class, () -> gateway.upload(new MockMultipartFile("file", "a.png", "image/png", new byte[]{1}), ImageCategory.COVER)).getMessage());
     }
 
-    /** 桶初始化连接失败返回 false，不阻断应用装配。 */
+    /** 桶初始化连接失败返回 false，不阻断应用装配 */
     @Test
     void bucketFailureDoesNotAbortStartup() throws Exception {
         MinioClient client = mock(MinioClient.class);
@@ -49,7 +49,7 @@ class MinioGatewayTest {
     }
 
     /**
-     * 提供不连接外部服务的存储配置。
+     * 提供不连接外部服务的存储配置
      * @return 测试使用的端点与桶
      */
     private MinioProperties properties() {

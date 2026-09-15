@@ -7,16 +7,16 @@ import java.util.*;
 import javax.tools.*;
 
 /**
- * 使用 JDK 语法树检查全部源码声明及 Javadoc 标签，不运行注解处理器。
+ * 使用 JDK 语法树检查全部源码声明及 Javadoc 标签，不运行注解处理器
  */
 public class CheckJavadoc {
-    /** 当前扫描到的违规总数。 */
+    /** 当前扫描到的违规总数 */
     private static int errors;
-    /** 已检查的源码声明数。 */
+    /** 已检查的源码声明数 */
     private static int declarations;
 
     /**
-     * 扫描指定源码根目录，发现违规时退出非零。
+     * 扫描指定源码根目录，发现违规时退出非零
      * @param args 唯一参数为源码根目录
      * @throws Exception 文件读取或编译器初始化失败
      */
@@ -38,25 +38,25 @@ public class CheckJavadoc {
             for (CompilationUnitTree unit : task.parse()) {
                 new TreePathScanner<Void, Void>() {
                     /** {@inheritDoc}
-                     * <p>检查有名称的类型，不要求匿名类产生虚构类型注释。
+                     * <p>检查有名称的类型，不要求匿名类产生虚构类型注释
                      */
                     @Override public Void visitClass(ClassTree node, Void unused) {
                         if (!node.getSimpleName().toString().isEmpty()) check(node);
                         return super.visitClass(node, unused);
                     }
                     /** {@inheritDoc}
-                     * <p>检查手写方法和构造器，参数不作为字段处理。
+                     * <p>检查手写方法和构造器，参数不作为字段处理
                      */
                     @Override public Void visitMethod(MethodTree node, Void unused) {
                         check(node);
                         return super.visitMethod(node, unused);
                     }
                     /** {@inheritDoc}
-                     * <p>仅检查成员字段；局部变量和参数无需声明 Javadoc。
+                     * <p>仅检查成员字段；局部变量和参数无需声明 Javadoc
                      */
                     @Override public Void visitVariable(VariableTree node, Void unused) {
                         if (getCurrentPath().getParentPath().getLeaf() instanceof ClassTree owner) {
-                            // javac 将 record 组件表示为字段，契约由 record 的 @param 承载。
+                            // javac 将 record 组件表示为字段，契约由 record 的 @param 承载
                             if (owner.getKind() != Tree.Kind.RECORD ||
                                     node.getModifiers().getFlags().contains(javax.lang.model.element.Modifier.STATIC)) {
                                 check(node);
@@ -65,7 +65,7 @@ public class CheckJavadoc {
                         return super.visitVariable(node, unused);
                     }
                     /**
-                     * 核对单个声明的文档、参数顺序和返回值标签。
+                     * 核对单个声明的文档、参数顺序和返回值标签
                      * @param node 当前声明
                      */
                     private void check(Tree node) {
@@ -81,7 +81,7 @@ public class CheckJavadoc {
                         }
                         new DocTreeScanner<Void, Void>() {
                             /** {@inheritDoc}
-                     * <p>拒绝 JDK 文档解析器识别的格式错误。
+                     * <p>拒绝 JDK 文档解析器识别的格式错误
                      */
                             @Override public Void visitErroneous(com.sun.source.doctree.ErroneousTree bad, Void p) {
                                 fail(location, "invalid Javadoc: " + bad.getDiagnostic().getMessage(Locale.ROOT));
@@ -94,7 +94,7 @@ public class CheckJavadoc {
                                     m.getModifiers().getAnnotations().stream().noneMatch(a -> a.getAnnotationType().toString().equals("Override"))) {
                                 fail(location, "inheritDoc requires an overriding method");
                             }
-                            return; // 继承来源与链接由完整 classpath 下的 doclint 校验。
+                            return; // 继承来源与链接由完整 classpath 下的 doclint 校验
                         }
                         if (doc.getFullBody().stream().filter(t -> t instanceof TextTree).map(t -> ((TextTree)t).getBody()).collect(java.util.stream.Collectors.joining()).codePoints().noneMatch(c -> Character.UnicodeScript.of(c) == Character.UnicodeScript.HAN)) {
                             fail(location, "summary must explain behavior in Chinese");
@@ -140,7 +140,7 @@ public class CheckJavadoc {
         if (errors > 0) System.exit(1);
     }
     /**
-     * 输出可定位的违规证据。
+     * 输出可定位的违规证据
      * @param location 文件及行号
      * @param message 违规原因
      */

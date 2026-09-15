@@ -13,18 +13,18 @@ import top.zhaizz.infrastructure.storage.ImageCategory;
 import top.zhaizz.infrastructure.storage.ImageStorageGateway;
 
 /**
- * 用户图片上传入口。
+ * 用户图片上传入口
  */
 @RestController
 @RequestMapping("/api/client/files")
 @RequiredArgsConstructor
 public class ClientFileController {
 
-    /** 图片存储网关。 */
+    /** 图片存储网关 */
     private final ImageStorageGateway imageStorageGateway;
 
     /**
-     * 上传当前用户的头像。
+     * 上传当前用户的头像
      * @param file 待上传的图片文件
      * @return 包含已上传头像 URL 的成功响应
      */

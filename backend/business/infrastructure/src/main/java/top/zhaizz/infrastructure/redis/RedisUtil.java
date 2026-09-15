@@ -8,16 +8,16 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Redis 常用操作封装，统一走 StringRedisTemplate（String 值 + Set 成员）。
+ * Redis 常用操作封装，统一走 StringRedisTemplate（String 值 + Set 成员）
  */
 @Component
 public class RedisUtil {
-    /** 字符串值与集合操作使用的 Redis 模板；连接异常直接传播给调用方。 */
+    /** 字符串值与集合操作使用的 Redis 模板；连接异常直接传播给调用方 */
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
     /**
-     * 保存字符串值，不设置过期时间。
+     * 保存字符串值，不设置过期时间
      * @param key Redis 键
      * @param value 待保存字符串
      */
@@ -26,7 +26,7 @@ public class RedisUtil {
     }
 
     /**
-     * 保存字符串值并设置有效期。
+     * 保存字符串值并设置有效期
      * @param key Redis 键
      * @param value 待保存字符串
      * @param ttl 有效时长
@@ -37,7 +37,7 @@ public class RedisUtil {
     }
 
     /**
-     * 仅在键不存在时写入并设置有效期。
+     * 仅在键不存在时写入并设置有效期
      * @param key Redis 键
      * @param value 待保存字符串
      * @param ttl 有效时长
@@ -49,7 +49,7 @@ public class RedisUtil {
     }
 
     /**
-     * 读取字符串值。
+     * 读取字符串值
      * @param key Redis 键
      * @return 对应字符串；键不存在时为 null
      */
@@ -58,7 +58,7 @@ public class RedisUtil {
     }
 
     /**
-     * 修改已有键的有效期。
+     * 修改已有键的有效期
      * @param key Redis 键
      * @param timeout 有效时长
      * @param unit 时长单位
@@ -68,7 +68,7 @@ public class RedisUtil {
     }
 
     /**
-     * 原子读取并删除字符串值。
+     * 原子读取并删除字符串值
      * @param key 待消费的 Redis 键
      * @return 删除前的字符串；键不存在时为 null
      */
@@ -77,7 +77,7 @@ public class RedisUtil {
     }
 
     /**
-     * 自增字符串计数器。
+     * 自增字符串计数器
      * @param key 计数器键
      * @return 自增结果；流水线或事务中可能为 null
      */
@@ -86,7 +86,7 @@ public class RedisUtil {
     }
 
     /**
-     * 自增计数器，仅首次创建时设置有效期；两条命令不具备原子性。
+     * 自增计数器，仅首次创建时设置有效期；两条命令不具备原子性
      * @param key 计数器键
      * @param ttl 首次写入时的有效时长
      * @param unit 时长单位
@@ -101,7 +101,7 @@ public class RedisUtil {
     }
 
     /**
-     * 删除指定键。
+     * 删除指定键
      * @param key 待删除键；不存在时无副作用
      */
     public void del(String key) {
@@ -109,7 +109,7 @@ public class RedisUtil {
     }
 
     /**
-     * 检查键是否存在。
+     * 检查键是否存在
      * @param key Redis 键
      * @return 是否存在；流水线或事务中可能为 null
      */
@@ -118,7 +118,7 @@ public class RedisUtil {
     }
 
     /**
-     * 读取集合的全部成员。
+     * 读取集合的全部成员
      * @param key 集合键
      * @return 成员集合；缺失键返回空集合，流水线或事务中可能为 null
      */
@@ -127,7 +127,7 @@ public class RedisUtil {
     }
 
     /**
-     * 向集合加入成员，已有成员不重复添加。
+     * 向集合加入成员，已有成员不重复添加
      * @param key 集合键
      * @param values 待加入成员
      */
@@ -136,7 +136,7 @@ public class RedisUtil {
     }
 
     /**
-     * 从集合移除指定成员。
+     * 从集合移除指定成员
      * @param key 集合键
      * @param values 待移除成员；不存在的成员被忽略
      */

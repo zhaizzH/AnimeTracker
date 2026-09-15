@@ -13,16 +13,16 @@ import top.zhaizz.common.constant.ErrorType;
 import top.zhaizz.common.exception.BizException;
 import top.zhaizz.pojo.dto.imprt.ImportRunDTO;
 
-/** 通过 HTTP 触发 Python Agent 导入任务的网关实现。 */
+/** 通过 HTTP 触发 Python Agent 导入任务的网关实现 */
 @Slf4j
 public class HttpImportAgentGateway implements ImportAgentGateway {
-    /** 用于普通 Agent 请求的 HTTP 客户端。 */
+    /** 用于普通 Agent 请求的 HTTP 客户端 */
     private final RestTemplate restTemplate;
-    /** Agent 服务的基础 URL。 */
+    /** Agent 服务的基础 URL */
     private final String baseUrl;
 
     /**
-     * 创建导入网关。
+     * 创建导入网关
      *
      * @param restTemplate HTTP 客户端
      * @param baseUrl Agent 服务基础地址

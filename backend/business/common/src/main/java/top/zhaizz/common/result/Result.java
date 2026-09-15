@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 
 /**
- * 统一响应体 {code, message, data}。
+ * 统一响应体 {code, message, data}
  *
  * @param <T> 承载的数据类型
  */
@@ -12,18 +12,18 @@ import lombok.Getter;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Result<T> {
 
-    /** 统一响应或异常的状态码。 */
+    /** 统一响应或异常的状态码 */
     private int code;
-    /** 统一响应的状态说明。 */
+    /** 统一响应的状态说明 */
     private String message;
-    /** 统一响应承载的业务数据。 */
+    /** 统一响应承载的业务数据 */
     private T data;
 
-    /** 创建空响应。 */
+    /** 创建空响应 */
     public Result() {}
 
     /**
-     * 创建包含状态、消息和数据的响应。
+     * 创建包含状态、消息和数据的响应
      *
      * @param code 响应状态码
      * @param message 向调用方展示的提示消息
@@ -36,7 +36,7 @@ public class Result<T> {
     }
 
     /**
-     * 创建表示成功的统一响应。
+     * 创建表示成功的统一响应
      *
      * @param <T> 承载的数据类型
      * @param data 附加响应数据，可为空；不进行复制
@@ -47,7 +47,7 @@ public class Result<T> {
     }
 
     /**
-     * 创建表示成功的统一响应。
+     * 创建表示成功的统一响应
      *
      * @param <T> 承载的数据类型
      * @return 状态码为 200 且附加数据为空的成功响应
@@ -57,7 +57,7 @@ public class Result<T> {
     }
 
     /**
-     * 创建包含状态码、消息及可选数据的失败响应。
+     * 创建包含状态码、消息及可选数据的失败响应
      *
      * @param <T> 承载的数据类型
      * @param code 响应状态码
@@ -69,7 +69,7 @@ public class Result<T> {
     }
 
     /**
-     * 创建包含状态码、消息及可选数据的失败响应。
+     * 创建包含状态码、消息及可选数据的失败响应
      *
      * @param <T> 承载的数据类型
      * @param code 响应状态码

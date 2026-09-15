@@ -13,13 +13,13 @@ import top.zhaizz.pojo.dto.log.LogQueryDTO;
 import top.zhaizz.pojo.dto.log.LogQueryResultDTO;
 import top.zhaizz.pojo.entity.OperationLog;
 
-/** 使用同一参数化条件完成日志分页和统计，防止筛选口径分叉。 */
+/** 使用同一参数化条件完成日志分页和统计，防止筛选口径分叉 */
 @Service
 @RequiredArgsConstructor
 public class LogQueryServiceImpl implements LogQueryService {
-    /** 日志分页与存储访问入口。 */
+    /** 日志分页与存储访问入口 */
     private final OperationLogMapper operationLogMapper;
-    /** 完整筛选结果的聚合访问入口。 */
+    /** 完整筛选结果的聚合访问入口 */
     private final LogStatsMapper logStatsMapper;
 
     /** {@inheritDoc} */
@@ -32,8 +32,8 @@ public class LogQueryServiceImpl implements LogQueryService {
     }
 
     /**
-     * 构建日志分页筛选条件，筛选逻辑需与 统计查询 保持同步。
-     * 日期条件用显式 if 添加，避免空日期在条件求值前被提前解引用导致 NPE。
+     * 构建日志分页筛选条件，筛选逻辑需与 统计查询 保持同步
+     * 日期条件用显式 if 添加，避免空日期在条件求值前被提前解引用导致 NPE
      * @param q 已校验的查询条件，不可为空
      * @return 参数化筛选条件，结束日期使用次日零点的严格小于比较
      */

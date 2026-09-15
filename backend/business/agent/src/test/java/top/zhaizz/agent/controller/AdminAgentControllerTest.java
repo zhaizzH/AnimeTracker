@@ -13,10 +13,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-/** 管理员 Agent 代理控制器边界测试。 */
+/** 管理员 Agent 代理控制器边界测试 */
 class AdminAgentControllerTest {
 
-/** 上游拒绝请求时不得提前获取响应写入器。 */
+/** 上游拒绝请求时不得提前获取响应写入器 */
     @Test
     void doesNotCommitWriterBeforeUpstreamError() throws Exception {
         AgentService service = mock(AgentService.class);

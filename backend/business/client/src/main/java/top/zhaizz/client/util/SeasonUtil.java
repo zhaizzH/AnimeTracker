@@ -3,12 +3,12 @@ package top.zhaizz.client.util;
 import java.time.LocalDate;
 
 /**
- * 季度工具类：季度字符串与年份日期范围换算，并提供当前季度/年份。
+ * 季度工具类：季度字符串与年份日期范围换算，并提供当前季度/年份
  */
 public class SeasonUtil {
 
     /**
-     * 获取指定年份季度的起止日期。
+     * 获取指定年份季度的起止日期
      * @param year 年份筛选值
      * @param quarter 季度名称 winter、spring、summer 或 autumn，忽略大小写，不可为空
      * @return 长度为 2 的日期数组，依次为季度首日与末日
@@ -26,7 +26,7 @@ public class SeasonUtil {
     }
 
     /**
-     * 获取当前季度。
+     * 获取当前季度
      * @return 系统默认时区当前日期所属的英文季度名称
      */
     public static String getCurrentQuarter() {
@@ -39,7 +39,7 @@ public class SeasonUtil {
     }
 
     /**
-     * 获取当前年份。
+     * 获取当前年份
      * @return 系统默认时区当前日期的年份
      */
     public static int getCurrentYear() {

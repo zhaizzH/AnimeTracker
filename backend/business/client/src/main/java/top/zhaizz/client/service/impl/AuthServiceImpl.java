@@ -29,37 +29,37 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-/** 保留注册、登录资格、邮箱验证和密码重置业务，委托 auth 管理凭据。 */
+/** 保留注册、登录资格、邮箱验证和密码重置业务，委托 auth 管理凭据 */
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
-    /** 账户持久化查询与更新入口。 */
+    /** 账户持久化查询与更新入口 */
     private final UserMapper userMapper;
-    /** 密码哈希校验和编码器，不处理明文存储。 */
+    /** 密码哈希校验和编码器，不处理明文存储 */
     private final PasswordEncoder passwordEncoder;
-    /** 登录失败计数与业务验证码清理入口。 */
+    /** 登录失败计数与业务验证码清理入口 */
     private final RedisUtil redisUtil;
-    /** 仅接收已校验身份的凭据签发能力。 */
+    /** 仅接收已校验身份的凭据签发能力 */
     private final AuthTokenService tokenService;
-    /** 邮箱及密码重置验证码业务。 */
+    /** 邮箱及密码重置验证码业务 */
     private final VerificationService verificationService;
-    /** 刷新凭据原子消费与会话撤销入口。 */
+    /** 刷新凭据原子消费与会话撤销入口 */
     private final AuthSessionStore sessionStore;
 
-    /** 登录失败次数阈值，达到后拒绝登录。 */
-        /** 允许连续登录失败的最大次数。 */
+    /** 登录失败次数阈值，达到后拒绝登录 */
+        /** 允许连续登录失败的最大次数 */
     @Value("${jwt.max-login-fails}")
     private int maxLoginFails;
-    /** 登录失败计数窗口，单位分钟。 */
-        /** 登录失败计数窗口时长，单位分钟。 */
+    /** 登录失败计数窗口，单位分钟 */
+        /** 登录失败计数窗口时长，单位分钟 */
     @Value("${jwt.login-fail-window-minutes}")
     private long loginFailWindowMinutes;
 
-    /** 账户更新时间和首次登录时间使用的 UTC 时钟。 */
+    /** 账户更新时间和首次登录时间使用的 UTC 时钟 */
     private Clock clock = Clock.systemUTC();
 
     /**
-     * 创建默认 USER 账户并发送邮箱验证码。
+     * 创建默认 USER 账户并发送邮箱验证码
      * @param request 注册资料，密码仅以哈希持久化
      * @throws BizException 用户名或邮箱已存在时返回 CONFLICT
      */
@@ -82,14 +82,14 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * 重新发送邮箱验证凭据。
+     * 重新发送邮箱验证凭据
      * @param email 验证邮件接收地址
      */
     @Override
     public void resendCode(String email) { verificationService.sendVerificationCode(email); }
 
     /**
-     * 验证邮箱后签发该账户首次登录会话。
+     * 验证邮箱后签发该账户首次登录会话
      * @param email 待验证邮箱
      * @param code 用户提交的验证码
      * @return 用户响应和刷新 Cookie 材料
@@ -103,7 +103,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * 校验密码、邮箱状态及账户可用性后签发会话。
+     * 校验密码、邮箱状态及账户可用性后签发会话
      * @param request 用户名或邮箱及密码
      * @return 用户响应和刷新 Cookie 材料
      * @throws BizException 失败次数超限、凭据错误、邮箱未验证或账户不可用
@@ -129,7 +129,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * 撤销提交的访问和刷新凭据，空凭据跳过。
+     * 撤销提交的访问和刷新凭据，空凭据跳过
      * @param accessToken 访问令牌，可为空或空白
      * @param refreshToken 刷新凭据，可为空或空白
      */
@@ -140,7 +140,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * 先原子消费刷新凭据，再校验账户并委托认证能力续签。
+     * 先原子消费刷新凭据，再校验账户并委托认证能力续签
      * @param refreshToken 刷新 Cookie 凭据
      * @return 保持原始会话起点的新凭据及账户响应
      * @throws BizException 凭据无效、账户不可用或绝对寿命耗尽
@@ -161,7 +161,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * 校验账户可用性后签发首次登录凭据。
+     * 校验账户可用性后签发首次登录凭据
      * @param user 查出的账户，可为空
      * @param startedAtEpochMs 首次登录 UTC 纪元毫秒
      * @return 用户展示信息及仅用于 Cookie 的刷新凭据
@@ -173,7 +173,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * 将认证能力的凭据和用户端转换结果组合为登录结果。
+     * 将认证能力的凭据和用户端转换结果组合为登录结果
      * @param user 已通过资格校验的账户
      * @param startedAtEpochMs 原始登录 UTC 纪元毫秒
      * @param refreshing 是否续签已消费的刷新凭据
@@ -187,7 +187,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * 账户存在时发送重置码，账户不存在时同样正常返回。
+     * 账户存在时发送重置码，账户不存在时同样正常返回
      * @param email 用户提交的邮箱
      */
     @Override
@@ -197,7 +197,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * 验证重置码、更新密码并撤销该用户全部会话。
+     * 验证重置码、更新密码并撤销该用户全部会话
      * @param request 邮箱、重置码和新密码
      * @throws BizException 验证码无效或账户不存在
      */

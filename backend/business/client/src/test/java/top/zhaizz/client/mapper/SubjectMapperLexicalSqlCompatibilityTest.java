@@ -8,10 +8,10 @@ import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** 条目词法检索 SQL 参数和筛选测试。 */
+/** 条目词法检索 SQL 参数和筛选测试 */
 class SubjectMapperLexicalSqlCompatibilityTest {
 
-/** 验证词法 SQL 使用绑定参数并筛选 active release。 */
+/** 验证词法 SQL 使用绑定参数并筛选 active release */
     @Test
     void lexicalQueryUsesBoundParametersAndActiveRelease() throws IOException {
         String xml;

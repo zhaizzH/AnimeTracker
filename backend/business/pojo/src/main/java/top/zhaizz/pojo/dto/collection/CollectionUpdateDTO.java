@@ -6,23 +6,23 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
- * 追番收藏更新请求 DTO。
+ * 追番收藏更新请求 DTO
  */
 @Data
 public class CollectionUpdateDTO {
 
-    /** 收藏状态: 1=想看, 2=看过, 3=在看, 4=搁置, 5=抛弃。 */
+    /** 收藏状态: 1=想看, 2=看过, 3=在看, 4=搁置, 5=抛弃 */
     @NotNull(message = "收藏类型不能为空")
     @Min(value = 1, message = "收藏类型范围 1-5")
     @Max(value = 5, message = "收藏类型范围 1-5")
     private Integer type;           // 收藏状态: 1=想看, 2=看过, 3=在看, 4=搁置, 5=抛弃
 
-    /** 评分（0~10, 0 表示未评分）。 */
+    /** 评分（0~10, 0 表示未评分） */
     @Min(value = 0, message = "评分范围 0-10")
     @Max(value = 10, message = "评分范围 0-10")
     private Integer rate;           // 评分（0~10, 0 表示未评分）
 
-    /** 看到第几集。 */
+    /** 看到第几集 */
     @Min(value = 0, message = "剧集进度不能为负")
     private Integer epStatus;       // 看到第几集
 }

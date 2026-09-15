@@ -11,17 +11,17 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 本周追番进度候选项纯计算。
+ * 本周追番进度候选项纯计算
  */
 @Component
 @RequiredArgsConstructor
 public class CollectionProgressCalculator {
 
-    /** 数据查询 Mapper。 */
+    /** 数据查询 Mapper */
     private final CollectionMapper mapper;
 
     /**
-     * 根据用户收藏和日期范围计算收藏进度条目。
+     * 根据用户收藏和日期范围计算收藏进度条目
      * @param userId 所属用户 ID，由调用方确认访问权限
      * @param weekStart 统计周的起始日期
      * @param cutoffDate 统计截止日期
@@ -37,7 +37,7 @@ public class CollectionProgressCalculator {
     }
 
     /**
-     * 将单个进度候选转换为预览条目，并计算完成后建议状态。
+     * 将单个进度候选转换为预览条目，并计算完成后建议状态
      *
      * @param c 查询得到的进度候选
      * @return 进度预览条目

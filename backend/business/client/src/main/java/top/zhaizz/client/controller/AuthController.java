@@ -18,18 +18,18 @@ import top.zhaizz.auth.security.JwtAuthenticationFilter;
 import top.zhaizz.pojo.dto.auth.*;
 import top.zhaizz.pojo.vo.auth.LoginVO;
 
-/** AuthController HTTP 控制器。 */
+/** AuthController HTTP 控制器 */
 @RestController
 @RequestMapping("/api/client/auth")
 @RequiredArgsConstructor
 public class AuthController {
-    /** 用户认证业务服务。 */
+    /** 用户认证业务服务 */
     private final AuthService authService;
-    /** refresh Cookie 写入与清理服务。 */
+    /** refresh Cookie 写入与清理服务 */
     private final RefreshCookieService refreshCookieService;
 
     /**
-     * 注册账户并发送邮箱验证码。
+     * 注册账户并发送邮箱验证码
      * @param request 注册用户名、邮箱与密码
      * @return 无数据的统一成功响应
      */
@@ -42,7 +42,7 @@ public class AuthController {
     }
 
     /**
-     * 验证邮箱并写入刷新 Cookie。
+     * 验证邮箱并写入刷新 Cookie
      * @param request 邮箱地址及验证码
      * @param response 用于写入 Cookie 的 HTTP 响应
      * @return 包含访问令牌和用户信息的登录响应
@@ -54,7 +54,7 @@ public class AuthController {
     }
 
     /**
-     * 重新发送邮箱验证码。
+     * 重新发送邮箱验证码
      * @param request 待重新发送验证码的邮箱
      * @return 无数据的统一成功响应
      */
@@ -66,7 +66,7 @@ public class AuthController {
     }
 
     /**
-     * 校验账户并写入刷新 Cookie。
+     * 校验账户并写入刷新 Cookie
      * @param request 登录用户名或邮箱及密码
      * @param response 用于写入 Cookie 的 HTTP 响应
      * @return 包含访问令牌和用户信息的登录响应
@@ -78,7 +78,7 @@ public class AuthController {
     }
 
     /**
-     * 申请密码重置验证码。
+     * 申请密码重置验证码
      * @param request 申请重置密码的邮箱
      * @return 无数据的统一成功响应
      */
@@ -90,7 +90,7 @@ public class AuthController {
     }
 
     /**
-     * 重置密码并清除刷新 Cookie。
+     * 重置密码并清除刷新 Cookie
      * @param request 邮箱、验证码及新密码
      * @param response 用于写入 Cookie 的 HTTP 响应
      * @return 无数据的统一成功响应
@@ -104,7 +104,7 @@ public class AuthController {
     }
 
     /**
-     * 轮换登录会话，认证失败时清除刷新 Cookie。
+     * 轮换登录会话，认证失败时清除刷新 Cookie
      * @param refreshToken 客户端刷新令牌
      * @param response 用于写入 Cookie 的 HTTP 响应
      * @return 包含新访问令牌和用户信息的登录响应
@@ -123,7 +123,7 @@ public class AuthController {
     }
 
     /**
-     * 撤销登录凭据并清除刷新 Cookie。
+     * 撤销登录凭据并清除刷新 Cookie
      * @param request 读取访问令牌的当前 HTTP 请求
      * @param response 用于写入 Cookie 的 HTTP 响应
      * @param refreshToken 客户端刷新令牌
@@ -144,7 +144,7 @@ public class AuthController {
     }
 
     /**
-     * 写入刷新 Cookie 并包装登录响应体。
+     * 写入刷新 Cookie 并包装登录响应体
      *
      * @param issued 已签发的登录会话
      * @param response 当前 HTTP 响应

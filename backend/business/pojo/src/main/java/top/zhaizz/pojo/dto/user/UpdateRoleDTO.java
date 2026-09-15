@@ -5,12 +5,12 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 /**
- * 修改角色请求 DTO。
+ * 修改角色请求 DTO
  */
 @Data
 public class UpdateRoleDTO {
 
-    /** 角色: USER=普通用户, ADMIN=管理员。 */
+    /** 角色: USER=普通用户, ADMIN=管理员 */
     @NotBlank(message = "角色不能为空")
     @Pattern(regexp = "USER|ADMIN", message = "角色值必须是 USER 或 ADMIN")
     private String role;            // 角色: USER=普通用户, ADMIN=管理员

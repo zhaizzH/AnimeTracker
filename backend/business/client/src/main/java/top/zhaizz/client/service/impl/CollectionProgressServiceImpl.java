@@ -29,22 +29,22 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 收藏进度预览服务实现。
+ * 收藏进度预览服务实现
  */
 @Service
 @RequiredArgsConstructor
 public class CollectionProgressServiceImpl implements CollectionProgressService {
 
-    /** 收藏进度预览快照的有效期。 */
+    /** 收藏进度预览快照的有效期 */
     private static final Duration PREVIEW_TTL = Duration.ofMinutes(10);
 
-    /** 收藏进度计算器。 */
+    /** 收藏进度计算器 */
     private final CollectionProgressCalculator calculator;
-    /** 收藏进度快照存储。 */
+    /** 收藏进度快照存储 */
     private final ProgressPreviewStore store;
-    /** 单条收藏进度执行器。 */
+    /** 单条收藏进度执行器 */
     private final CollectionProgressItemExecutor itemExecutor;
-    /** 用于计算时间的时钟，便于测试。 */
+    /** 用于计算时间的时钟，便于测试 */
     private final Clock clock;
 
     /** {@inheritDoc} */
@@ -93,7 +93,7 @@ public class CollectionProgressServiceImpl implements CollectionProgressService 
     }
 
     /**
-     * 在持有执行锁时重新校验并推进收藏，完成快照允许幂等重放。
+     * 在持有执行锁时重新校验并推进收藏，完成快照允许幂等重放
      * @param userId 快照所属用户 ID
      * @param previewId 已获取执行锁的预览标识
      * @param snapshot 保存的预览快照
@@ -185,7 +185,7 @@ public class CollectionProgressServiceImpl implements CollectionProgressService 
     }
 
     /**
-     * 忽略顺序比较条目标识、当前进度和目标进度，不比较展示名称。
+     * 忽略顺序比较条目标识、当前进度和目标进度，不比较展示名称
      * @param original 原始预览条目列表
      * @param recalculated 重新计算的条目列表
      * @return 三元组规范化排序后相同为 {@code true}
@@ -195,7 +195,7 @@ public class CollectionProgressServiceImpl implements CollectionProgressService 
     }
 
     /**
-     * 按稳定字段顺序提取进度条目，用于比较重算前后的内容是否一致。
+     * 按稳定字段顺序提取进度条目，用于比较重算前后的内容是否一致
      *
      * @param items 进度条目集合
      * @return 可比较的字段列表；输入为空时返回空列表

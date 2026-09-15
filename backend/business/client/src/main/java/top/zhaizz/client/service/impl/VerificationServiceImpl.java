@@ -19,33 +19,33 @@ import java.time.LocalDateTime;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 邮箱验证服务实现。
+ * 邮箱验证服务实现
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class VerificationServiceImpl implements VerificationService {
 
-    /** Redis 访问工具。 */
+    /** Redis 访问工具 */
     private final RedisUtil redisUtil;
-    /** 用户数据 Mapper。 */
+    /** 用户数据 Mapper */
     private final UserMapper userMapper;
-    /** 邮件发送网关。 */
+    /** 邮件发送网关 */
     private final EmailGateway emailGateway;
-    /** 限流器。 */
+    /** 限流器 */
     private final RateLimiter rateLimiter;
 
-    /** 验证码有效期（分钟）。 */
+    /** 验证码有效期（分钟） */
     private static final long CODE_TTL_MINUTES = 5;
-    /** 验证码长度。 */
+    /** 验证码长度 */
     private static final int CODE_LENGTH = 6;
     // 字符集刻意剔除易混淆的 0/O/1/l/I，降低人工输入错误率
-    /** 验证码允许使用的字符集合。 */
+    /** 验证码允许使用的字符集合 */
     private static final String ALPHANUMERIC = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-    /** 生成验证码的随机源。 */
+    /** 生成验证码的随机源 */
     private static final SecureRandom RANDOM = new SecureRandom();
     /**
-     * 生成六位数字邮箱验证码。
+     * 生成六位数字邮箱验证码
      *
      * @return 六位数字字符串
      */

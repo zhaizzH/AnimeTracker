@@ -19,15 +19,15 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-/** 验证分页与聚合使用同一参数化筛选条件及日期边界。 */
+/** 验证分页与聚合使用同一参数化筛选条件及日期边界 */
 class LogQueryServiceImplTest {
-    /** 为独立单元测试初始化实体列映射。 */
+    /** 为独立单元测试初始化实体列映射 */
     @BeforeAll
     static void initializeMapping() {
         TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), "log-test"), OperationLog.class);
     }
 
-    /** 验证所有筛选字段共享，结束日期转换为次日零点且严格排除。 */
+    /** 验证所有筛选字段共享，结束日期转换为次日零点且严格排除 */
     @Test
     @SuppressWarnings({"unchecked", "rawtypes"})
     void sharesAllFiltersWithStats() {
@@ -55,7 +55,7 @@ class LogQueryServiceImplTest {
         assertEquals(5, result.total()); assertSame(stats, result.stats());
     }
 
-    /** 验证空日期和纯空白文本不生成筛选条件，也不导致空指针异常。 */
+    /** 验证空日期和纯空白文本不生成筛选条件，也不导致空指针异常 */
     @Test
     @SuppressWarnings({"unchecked", "rawtypes"})
     void absentDatesAndBlankTextAreUnfiltered() {

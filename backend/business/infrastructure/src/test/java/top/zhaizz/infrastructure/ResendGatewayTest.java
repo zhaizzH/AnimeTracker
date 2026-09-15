@@ -8,9 +8,9 @@ import top.zhaizz.infrastructure.email.resend.ResendEmailGateway;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-/** 验证邮件适配器提交请求并保留供应商失败语义。 */
+/** 验证邮件适配器提交请求并保留供应商失败语义 */
 class ResendGatewayTest {
-    /** 业务提供的邮件正常提交给 SDK，不连接真实邮件服务。 */
+    /** 业务提供的邮件正常提交给 SDK，不连接真实邮件服务 */
     @Test
     void submitsEmail() throws Exception {
         Resend resend = mock(Resend.class, RETURNS_DEEP_STUBS);
@@ -19,7 +19,7 @@ class ResendGatewayTest {
         verify(resend.emails()).send(any(CreateEmailOptions.class));
     }
 
-    /** SDK 失败保留原因并转为调用方可处理的非法状态异常。 */
+    /** SDK 失败保留原因并转为调用方可处理的非法状态异常 */
     @Test
     void mapsProviderFailure() throws Exception {
         Resend resend = mock(Resend.class, RETURNS_DEEP_STUBS);

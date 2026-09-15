@@ -2,10 +2,10 @@ package top.zhaizz.agent.gateway;
 
 import top.zhaizz.pojo.dto.imprt.ImportRunDTO;
 
-/** 触发 Python Agent 导入任务的外部端口。 */
+/** 触发 Python Agent 导入任务的外部端口 */
 public interface ImportAgentGateway {
     /**
-     * 触发一次导入任务。
+     * 触发一次导入任务
      *
      * @param authorization 当前请求的授权头，可为空或空字符串，此时不追加授权头
      * @param request 已由业务层校验的非空导入参数

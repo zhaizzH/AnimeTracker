@@ -22,15 +22,15 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 番剧管理服务实现。
+ * 番剧管理服务实现
  */
 @Service
 @RequiredArgsConstructor
 public class AdminSubjectServiceImpl implements AdminSubjectService {
 
-    /** 条目数据 Mapper。 */
+    /** 条目数据 Mapper */
     private final AdminSubjectMapper subjectMapper;
-    /** 条目标签关系 Mapper。 */
+    /** 条目标签关系 Mapper */
     private final AdminSubjectTagMapper subjectTagMapper;
 
     /** {@inheritDoc} */
@@ -85,7 +85,7 @@ public class AdminSubjectServiceImpl implements AdminSubjectService {
     }
 
     /**
-     * 查询管理端条目详情并转换为管理端响应对象。
+     * 查询管理端条目详情并转换为管理端响应对象
      *
      * @param id 条目 ID
      * @return 条目详情；条目不存在时抛出统一业务异常

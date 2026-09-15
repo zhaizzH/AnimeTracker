@@ -8,31 +8,31 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
 
 /**
- * 日志查询参数。
+ * 日志查询参数
  */
 @Data
 public class LogQueryDTO {
 
-    /** 动作。 */
+    /** 动作 */
     private String action;      // 动作
-    /** 模块。 */
+    /** 模块 */
     private String module;      // 模块
-    /** 用户名/邮箱快照。 */
+    /** 用户名/邮箱快照 */
     private String username;    // 用户名/邮箱快照
-    /** 用户ID。 */
+    /** 用户ID */
     private Long userId;        // 用户ID
-    /** 状态: 0=成功, 1=失败。 */
+    /** 状态: 0=成功, 1=失败 */
     private Integer status;     // 状态: 0=成功, 1=失败
-    /** 开始日期(含)。 */
+    /** 开始日期(含) */
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate start;    // 开始日期(含)
-    /** 结束日期(含)。 */
+    /** 结束日期(含) */
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate end;      // 结束日期(含)
-    /** 页码。 */
+    /** 页码 */
     @Min(value = 1, message = "页码不能小于1")
     private int page = 1;       // 页码
-    /** 每页条数。 */
+    /** 每页条数 */
     @Min(value = 1, message = "每页条数不能小于1")
     @Max(value = 100, message = "每页条数不能超过100")
     private int size = 20;      // 每页条数
