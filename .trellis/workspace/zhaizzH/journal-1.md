@@ -264,3 +264,25 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 12: 统一后端 Java 中文注释标点
+<!-- trellis-session: v=2 fp=70b487b395cc1af1 -->
+
+**Date**: 2026-09-15
+**Task**: 统一后端 Java 中文注释标点
+**Branch**: `main`
+
+### Summary
+
+扫描并修复 backend/business 全部 255 个 Java 文件的 1635 处中文注释末尾句号；Javadoc 检查器、doclint、Maven clean test 全部通过
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ef8775b` | style(java): 统一后端中文注释标点 |
+
+### Status
+
+[OK] **Completed**
