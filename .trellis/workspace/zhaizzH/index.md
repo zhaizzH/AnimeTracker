@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 11
+- **Total Sessions**: 12
 - **Last Active**: 2026-09-15
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~266 | Active |
+| `journal-1.md` | ~288 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 12 | 2026-09-15 | 统一后端 Java 中文注释标点 | `ef8775b` | `main` |
 | 11 | 2026-09-15 | 精简 Java 后端中文注释规范 | `3861752b`, `67b4ed8f` | `main` |
 | 10 | 2026-09-14 | 提交 Business 规范任务代码 | `9a732b22`, `937bdcff` | `codex/business-spec-implementation` |
 | 9 | 2026-09-14 | 完成 Business 规范复核修复 | `9a732b22` | `codex/business-spec-implementation` |
