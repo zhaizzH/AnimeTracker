@@ -17,15 +17,15 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * 标签服务实现。
+ * 标签服务实现
  */
 @Service
 @RequiredArgsConstructor
 public class TagServiceImpl implements TagService {
 
-    /** 条目标签关系 Mapper。 */
+    /** 条目标签关系 Mapper */
     private final SubjectTagMapper subjectTagMapper;
-    /** 条目数据 Mapper。 */
+    /** 条目数据 Mapper */
     private final SubjectMapper subjectMapper;
 
     /** {@inheritDoc} */

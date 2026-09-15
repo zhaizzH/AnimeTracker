@@ -11,16 +11,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 条目转换器。
+ * 条目转换器
  */
 public class SubjectConverter {
     /**
-     * 禁止实例化仅提供静态操作的工具类。
+     * 禁止实例化仅提供静态操作的工具类
      */
     private SubjectConverter() {}
 
     /**
-     * 将条目基本信息映射为列表展示对象，不修改实体。
+     * 将条目基本信息映射为列表展示对象，不修改实体
      * @param entity 条目实体，允许为 {@code null}
      * @return 新的列表项；输入为空时返回 {@code null}
      */
@@ -42,7 +42,7 @@ public class SubjectConverter {
     }
 
     /**
-     * 映射剧集信息，并按系统当前日期计算播出状态，不修改实体。
+     * 映射剧集信息，并按系统当前日期计算播出状态，不修改实体
      * @param entity 剧集实体，允许为 {@code null}
      * @return 新的剧集对象；过去播出为 Air、今日为 Today、未来或日期缺失为 NA；实体为空返回 {@code null}
      */
@@ -63,7 +63,7 @@ public class SubjectConverter {
     }
 
     /**
-     * 以系统默认时区的当前日期判断剧集是否播出。
+     * 以系统默认时区的当前日期判断剧集是否播出
      * @param airdate 播出日期，允许为 {@code null}
      * @return 过去日期返回 Air，今日返回 Today，未来或空日期返回 NA
      */
@@ -76,7 +76,7 @@ public class SubjectConverter {
     }
 
     /**
-     * 按输入顺序转换剧集列表，不修改源列表与元素。
+     * 按输入顺序转换剧集列表，不修改源列表与元素
      * @param episodes 剧集列表，允许为 {@code null} 或包含空元素
      * @return 新列表，保留顺序和空元素；空输入返回空列表
      */
@@ -86,7 +86,7 @@ public class SubjectConverter {
     }
 
     /**
-     * 映射关系名称并创建嵌套的关联条目列表项，不修改输入。
+     * 映射关系名称并创建嵌套的关联条目列表项，不修改输入
      * @param relation 条目关联记录，允许为 {@code null}
      * @param relatedSubject 关联目标条目，允许为 {@code null}
      * @return 新的关联展示对象；任一输入为空时返回 {@code null}
@@ -100,7 +100,7 @@ public class SubjectConverter {
     }
 
     /**
-     * 映射批量回查展示字段，以导入状态恰为 1 判定 active。
+     * 映射批量回查展示字段，以导入状态恰为 1 判定 active
      * @param subject 条目实体，允许为 {@code null}
      * @return 新的批量项；输入为空返回 {@code null}，不修改实体
      */

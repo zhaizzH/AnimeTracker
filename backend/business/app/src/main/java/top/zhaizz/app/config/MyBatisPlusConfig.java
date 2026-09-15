@@ -7,13 +7,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * MyBatis-Plus 插件配置（分页拦截器）。
+ * MyBatis-Plus 插件配置（分页拦截器）
  */
 @Configuration
 public class MyBatisPlusConfig {
 
     /**
-     * 注册明确使用 MySQL 方言、单页最多 100 条的分页插件。
+     * 注册明确使用 MySQL 方言、单页最多 100 条的分页插件
      *
      * @return 包含 MySQL 分页插件的拦截器链
      */

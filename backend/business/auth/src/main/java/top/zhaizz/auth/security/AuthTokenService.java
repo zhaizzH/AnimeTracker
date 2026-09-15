@@ -14,32 +14,32 @@ import top.zhaizz.common.exception.BizException;
 import top.zhaizz.infrastructure.redis.RedisUtil;
 import top.zhaizz.pojo.dto.auth.AuthTokens;
 
-/** 为已通过业务校验的身份签发凭据，并维护会话绝对寿命及 Redis 白名单。 */
+/** 为已通过业务校验的身份签发凭据，并维护会话绝对寿命及 Redis 白名单 */
 @Service
 @RequiredArgsConstructor
 public class AuthTokenService {
-    /** JWT 签名与访问凭据生成器。 */
+    /** JWT 签名与访问凭据生成器 */
     private final JwtTokenProvider jwtTokenProvider;
-    /** 访问凭据白名单的 Redis 访问入口。 */
+    /** 访问凭据白名单的 Redis 访问入口 */
     private final RedisUtil redis;
-    /** 刷新凭据与撤销索引存储。 */
+    /** 刷新凭据与撤销索引存储 */
     private final AuthSessionStore sessionStore;
-    /** Access Token 有效期，单位毫秒。 */
+    /** Access Token 有效期，单位毫秒 */
     @Value("${jwt.expiration}")
     private long jwtExpiration;
-    /** 单次刷新凭据有效期，单位毫秒。 */
+    /** 单次刷新凭据有效期，单位毫秒 */
     @Value("${jwt.refresh-expiration}")
     private long jwtRefreshExpiration;
-    /** 从首次登录起计算的绝对会话上限，单位毫秒。 */
+    /** 从首次登录起计算的绝对会话上限，单位毫秒 */
     @Value("${jwt.max-session-expiration}")
     private long jwtMaxSessionExpiration;
-    /** 用于绝对会话寿命计算的 UTC 时钟。 */
+    /** 用于绝对会话寿命计算的 UTC 时钟 */
     private Clock clock = Clock.systemUTC();
-    /** 用于生成不可预测刷新凭据的安全随机源。 */
+    /** 用于生成不可预测刷新凭据的安全随机源 */
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     /**
-     * 签发访问与刷新凭据；刷新保留原始登录起点并截断剩余寿命。
+     * 签发访问与刷新凭据；刷新保留原始登录起点并截断剩余寿命
      * @param userId 已通过业务资格校验的用户 ID
      * @param role 已通过业务校验的角色
      * @param startedAtEpochMs 首次登录时间，UTC 纪元毫秒
@@ -65,7 +65,7 @@ public class AuthTokenService {
     }
 
     /**
-     * 生成 32 字节随机值的十六进制刷新凭据。
+     * 生成 32 字节随机值的十六进制刷新凭据
      * @return 64 个十六进制字符，不存储明文
      */
     private String generateRefreshToken() {

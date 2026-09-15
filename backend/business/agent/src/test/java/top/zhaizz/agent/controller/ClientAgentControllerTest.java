@@ -16,10 +16,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-/** 用户 Agent 代理控制器边界测试。 */
+/** 用户 Agent 代理控制器边界测试 */
 class ClientAgentControllerTest {
 
-/** 上游拒绝请求时不得提前获取响应写入器。 */
+/** 上游拒绝请求时不得提前获取响应写入器 */
     @Test
     void doesNotCommitWriterBeforeUpstreamError() throws Exception {
         AgentService service = mock(AgentService.class);
@@ -34,7 +34,7 @@ class ClientAgentControllerTest {
         verify(response, never()).getWriter();
     }
 
-/** 收到首条成功事件后才打开写入器并声明 SSE 内容类型。 */
+/** 收到首条成功事件后才打开写入器并声明 SSE 内容类型 */
     @Test
     @SuppressWarnings("unchecked")
     void opensWriterOnFirstSuccessfulLine() throws Exception {

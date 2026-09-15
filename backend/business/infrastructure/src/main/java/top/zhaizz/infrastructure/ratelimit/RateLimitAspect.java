@@ -13,18 +13,18 @@ import top.zhaizz.common.exception.BizException;
 import java.lang.reflect.Method;
 
 /**
- * 限流切面：@RateLimit 各规则逐条校验，超限抛 429。
+ * 限流切面：@RateLimit 各规则逐条校验，超限抛 429
  */
 @Aspect
 @Component
 @RequiredArgsConstructor
 public class RateLimitAspect {
 
-    /** 逐条规则计数与配额判断入口。 */
+    /** 逐条规则计数与配额判断入口 */
     private final RateLimiter rateLimiter;
 
     /**
-     * 依次计数所有可解析规则，全部通过后调用业务方法。
+     * 依次计数所有可解析规则，全部通过后调用业务方法
      * @param pjp 被增强的业务调用
      * @param rateLimit 方法声明的限流规则
      * @return 业务方法的原始返回值
@@ -42,7 +42,7 @@ public class RateLimitAspect {
     }
 
     /**
-     * 从请求参数邮箱或 HTTP 来源地址解析桶标识。
+     * 从请求参数邮箱或 HTTP 来源地址解析桶标识
      * @param key 桶维度
      * @param args 业务方法参数，元素可为 null
      * @return 带维度前缀的桶后缀；缺少可用数据时返回 null，跳过该规则

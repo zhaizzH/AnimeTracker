@@ -7,30 +7,30 @@ import lombok.Data;
 import java.time.LocalDate;
 
 /**
- * 新增条目请求 DTO。
+ * 新增条目请求 DTO
  */
 @Data
 public class SubjectCreateDTO {
 
     // DB 列为 NOT NULL UNIQUE，必填
-    /** Bangumi API 条目ID。 */
+    /** Bangumi API 条目ID */
     @NotNull(message = "Bangumi ID 不能为空")
     private Integer bangumiId;      // Bangumi API 条目ID
 
-    /** 日文/英文名。 */
+    /** 日文/英文名 */
     @NotBlank(message = "条目名称不能为空")
     private String name;            // 日文/英文名
 
-    /** 中文名。 */
+    /** 中文名 */
     private String nameCn;          // 中文名
-    /** 简介/描述。 */
+    /** 简介/描述 */
     private String summary;         // 简介/描述
-    /** 条目类型（2=动画）。 */
+    /** 条目类型（2=动画） */
     private Integer type;           // 条目类型（2=动画）
-    /** 总集数。 */
+    /** 总集数 */
     private Integer eps;            // 总集数
-    /** 播出日期。 */
+    /** 播出日期 */
     private LocalDate airDate;      // 播出日期
-    /** 封面图URL。 */
+    /** 封面图URL */
     private String image;           // 封面图URL
 }

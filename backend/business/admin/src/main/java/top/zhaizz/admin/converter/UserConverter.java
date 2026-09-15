@@ -4,16 +4,16 @@ import top.zhaizz.pojo.entity.User;
 import top.zhaizz.pojo.vo.user.UserVO;
 
 /**
- * 用户相关对象转换器。
+ * 用户相关对象转换器
  */
 public class UserConverter {
     /**
-     * 禁止实例化仅提供静态操作的工具类。
+     * 禁止实例化仅提供静态操作的工具类
      */
     private UserConverter() {}
 
     /**
-     * 将账户转换为展示对象，省略密码等认证材料。
+     * 将账户转换为展示对象，省略密码等认证材料
      * @param entity 用户实体，允许为 {@code null}
      * @return 新的用户展示对象；输入为空时返回 {@code null}，不修改实体
      */

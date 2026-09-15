@@ -18,22 +18,22 @@ import top.zhaizz.pojo.dto.user.UpdateUserDTO;
 import top.zhaizz.pojo.vo.user.UserVO;
 
 /**
- * 个人信息控制器。
+ * 个人信息控制器
  */
 @RestController
 @RequestMapping("/api/client/me")
 @RequiredArgsConstructor
 public class UserController {
 
-    /** 用户端用户服务。 */
+    /** 用户端用户服务 */
     private final ClientUserService clientUserService;
-    /** 验证码与邮箱验证服务。 */
+    /** 验证码与邮箱验证服务 */
     private final VerificationService verificationService;
-    /** refresh Cookie 写入与清理服务。 */
+    /** refresh Cookie 写入与清理服务 */
     private final RefreshCookieService refreshCookieService;
 
     /**
-     * 获取当前登录用户信息。
+     * 获取当前登录用户信息
      * @return 统一成功响应，其数据为：当前登录用户信息
      */
     @GetMapping
@@ -43,7 +43,7 @@ public class UserController {
     }
 
     /**
-     * 修改当前登录用户信息。
+     * 修改当前登录用户信息
      * @param request 待更新的昵称和头像
      * @return 统一成功响应，其数据为：修改当前登录用户信息
      */
@@ -54,7 +54,7 @@ public class UserController {
     }
 
     /**
-     * 修改当前登录用户密码。
+     * 修改当前登录用户密码
      * @param request 旧密码和新密码
      * @param response 用于写入 Cookie 的 HTTP 响应
      * @return 无数据的统一成功响应
@@ -69,7 +69,7 @@ public class UserController {
     }
 
     /**
-     * 发送邮箱修改验证码（修改绑定邮箱前调用，校验新邮箱未被占用）。
+     * 发送邮箱修改验证码（修改绑定邮箱前调用，校验新邮箱未被占用）
      * @param request 待绑定的新邮箱及本次操作所需校验信息
      * @return 无数据的统一成功响应
      */
@@ -81,7 +81,7 @@ public class UserController {
     }
 
     /**
-     * 校验邮箱修改验证码（通过后更新绑定邮箱并通知旧邮箱）。
+     * 校验邮箱修改验证码（通过后更新绑定邮箱并通知旧邮箱）
      * @param request 待绑定的新邮箱及本次操作所需校验信息
      * @return 无数据的统一成功响应
      */

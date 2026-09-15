@@ -16,18 +16,18 @@ import java.io.UncheckedIOException;
 import java.util.Map;
 
 /**
- * Agent 对话控制器（用户端，转发至 Python agent）。
+ * Agent 对话控制器（用户端，转发至 Python agent）
  */
 @RestController
 @RequestMapping("/api/client/agent")
 @RequiredArgsConstructor
 public class ClientAgentController {
 
-    /** 负责转发 Agent 请求的服务。 */
+    /** 负责转发 Agent 请求的服务 */
     private final AgentService agentService;
 
     /**
-     * 健康检查。
+     * 健康检查
      *
      * @param auth 透传给 Python Agent 的 Authorization 请求头
      * @return 上游健康状态包装的统一结果
@@ -38,7 +38,7 @@ public class ClientAgentController {
     }
 
     /**
-     * Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）。
+     * Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）
      *
      * @param auth 透传给 Python Agent 的 Authorization 请求头
      * @param body 向上游透传的请求体
@@ -72,7 +72,7 @@ public class ClientAgentController {
     }
 
     /**
-     * 获取会话列表。
+     * 获取会话列表
      *
      * @param auth 透传给 Python Agent 的 Authorization 请求头
      * @return 当前身份的上游会话列表包装的统一结果
@@ -83,7 +83,7 @@ public class ClientAgentController {
     }
 
     /**
-     * 创建新会话。
+     * 创建新会话
      *
      * @param auth 透传给 Python Agent 的 Authorization 请求头
      * @param body 会话创建参数，可为空；空值按空对象转发
@@ -95,7 +95,7 @@ public class ClientAgentController {
     }
 
     /**
-     * 获取会话历史。
+     * 获取会话历史
      *
      * @param sessionId 上游会话标识
      * @param auth 透传给 Python Agent 的 Authorization 请求头
@@ -107,7 +107,7 @@ public class ClientAgentController {
     }
 
     /**
-     * 删除会话。
+     * 删除会话
      *
      * @param sessionId 上游会话标识
      * @param auth 透传给 Python Agent 的 Authorization 请求头

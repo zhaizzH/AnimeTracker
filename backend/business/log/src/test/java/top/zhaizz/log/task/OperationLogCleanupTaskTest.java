@@ -14,10 +14,10 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-/** 验证日志清理保留期、严格比较及原有调度时间。 */
+/** 验证日志清理保留期、严格比较及原有调度时间 */
 class OperationLogCleanupTaskTest {
     /**
-     * 验证只删除严格早于当前时间减 90 天的日志，保留每日 03:30 调度。
+     * 验证只删除严格早于当前时间减 90 天的日志，保留每日 03:30 调度
      * @throws NoSuchMethodException 清理入口缺失时使测试失败
      */
     @Test

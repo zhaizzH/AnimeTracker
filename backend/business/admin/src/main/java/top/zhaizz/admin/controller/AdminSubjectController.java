@@ -13,7 +13,7 @@ import top.zhaizz.pojo.dto.subject.SubjectUpdateDTO;
 import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 
 /**
- * 番剧管理控制器。
+ * 番剧管理控制器
  */
 @RestController
 @RequestMapping("/api/admin/subjects")
@@ -21,11 +21,11 @@ import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
 @Validated
 public class AdminSubjectController {
 
-    /** 管理员条目维护服务。 */
+    /** 管理员条目维护服务 */
     private final AdminSubjectService adminSubjectService;
 
     /**
-     * 创建新番剧，管理后台新建表单提交时触发。
+     * 创建新番剧，管理后台新建表单提交时触发
      * @param request 待创建的条目字段
      * @return 统一成功响应，其数据为：新建条目的详情
      */
@@ -36,7 +36,7 @@ public class AdminSubjectController {
     }
 
     /**
-     * 更新指定番剧的信息，管理后台编辑表单提交时触发。
+     * 更新指定番剧的信息，管理后台编辑表单提交时触发
      * @param id 目标条目 ID
      * @param request 条目更新字段，空字段保留原值
      * @return 统一成功响应，其数据为：修改后的条目详情
@@ -50,7 +50,7 @@ public class AdminSubjectController {
     }
 
     /**
-     * 删除指定番剧，管理后台删除操作确认时触发。
+     * 删除指定番剧，管理后台删除操作确认时触发
      * @param id 目标条目 ID
      * @return 无数据的统一成功响应
      */

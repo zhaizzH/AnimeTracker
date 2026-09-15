@@ -7,12 +7,12 @@ import top.zhaizz.pojo.vo.dashboard.TypeCountVO;
 import java.util.List;
 
 /**
- * 收藏统计 VO。
+ * 收藏统计 VO
  */
 @Data
 public class CollectionStatsVO {
-    /** 各收藏类型数量分布。 */
+    /** 各收藏类型数量分布 */
     private List<TypeCountVO> types;        // 各收藏类型数量分布
-    /** 各评分数量分布。 */
+    /** 各评分数量分布 */
     private List<RatingCountVO> ratings;    // 各评分数量分布
 }

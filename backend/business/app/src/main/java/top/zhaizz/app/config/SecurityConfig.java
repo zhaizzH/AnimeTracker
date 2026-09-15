@@ -24,24 +24,24 @@ import top.zhaizz.auth.security.JwtAuthenticationFilter;
 import java.io.IOException;
 
 /**
- * Spring Security 运行时策略：无状态 JWT 认证、接口放行与角色鉴权。
+ * Spring Security 运行时策略：无状态 JWT 认证、接口放行与角色鉴权
  */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-    /** JWT 请求认证过滤器。 */
+    /** JWT 请求认证过滤器 */
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    /** Cookie 请求来源校验过滤器。 */
+    /** Cookie 请求来源校验过滤器 */
     private final CookieOriginFilter cookieOriginFilter;
-    /** CORS 配置源。 */
+    /** CORS 配置源 */
     private final CorsConfigurationSource corsConfigurationSource;
-    /** 应用共用的 JSON 序列化器。 */
+    /** 应用共用的 JSON 序列化器 */
     private final ObjectMapper objectMapper;
 
     /**
-     * 配置无状态 JWT 安全过滤链；未显式匹配的 URL 默认拒绝。
+     * 配置无状态 JWT 安全过滤链；未显式匹配的 URL 默认拒绝
      *
      * @param http Spring Security HTTP 安全构建器
      * @return 无状态认证与授权过滤链
@@ -91,7 +91,7 @@ public class SecurityConfig {
     }
 
     /**
-     * 直接写入安全层统一 JSON 响应，避免经过 Controller advice。
+     * 直接写入安全层统一 JSON 响应，避免经过 Controller advice
      *
      * @param response 待写入内容的 HTTP 响应
      * @param errorType 非空统一错误类型，提供错误码与默认提示

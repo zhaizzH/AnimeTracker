@@ -6,7 +6,7 @@ import lombok.Setter;
 import java.util.List;
 
 /**
- * 统一分页格式 {content, total, page, size}。
+ * 统一分页格式 {content, total, page, size}
  *
  * @param <T> 承载的数据类型
  */
@@ -14,20 +14,20 @@ import java.util.List;
 @Setter
 public class PageResult<T> {
 
-    /** 当前页记录列表。 */
+    /** 当前页记录列表 */
     private List<T> content;
-    /** 符合条件的记录总数。 */
+    /** 符合条件的记录总数 */
     private long total;
-    /** 分页页码。 */
+    /** 分页页码 */
     private int page;
-    /** 单页返回数量。 */
+    /** 单页返回数量 */
     private int size;
 
-    /** 创建空分页结果。 */
+    /** 创建空分页结果 */
     public PageResult() {}
 
     /**
-     * 创建分页结果。
+     * 创建分页结果
      *
      * @param content 当前页记录，可为空；保存传入列表引用
      * @param total 符合查询条件的总记录数
@@ -42,7 +42,7 @@ public class PageResult<T> {
     }
 
     /**
-     * 创建分页结果。
+     * 创建分页结果
      *
      * @param <T> 承载的数据类型
      * @param content 当前页记录，可为空；保存传入列表引用

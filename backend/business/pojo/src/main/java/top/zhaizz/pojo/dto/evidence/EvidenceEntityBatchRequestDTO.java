@@ -11,22 +11,22 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * 按实体批量扩展至安全动画条目的请求。
+ * 按实体批量扩展至安全动画条目的请求
  * <p>
  * ids 始终是本地数据库主键；人物声优（ACTOR）同样使用 person.id，
- * 仅关系路径不同。
+ * 仅关系路径不同
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class EvidenceEntityBatchRequestDTO {
 
-    /** 待解析实体的类型。 */
+    /** 待解析实体的类型 */
     @NotNull(message = "实体类型不能为空")
     private EvidenceEntityType entityType;
 
     /**
-     * 待解析的本地主键，必填且最多 50 个，每个 ID 必须为正数。
+     * 待解析的本地主键，必填且最多 50 个，每个 ID 必须为正数
      */
     @NotEmpty(message = "实体 ID 不能为空")
     @Size(max = 50, message = "实体 ID 最多 50 个")

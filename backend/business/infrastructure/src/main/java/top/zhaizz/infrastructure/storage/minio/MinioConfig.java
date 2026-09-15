@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * MinIO 客户端配置与桶自动初始化。
+ * MinIO 客户端配置与桶自动初始化
  * <p>启动时自动检查并创建 Bucket，设置公开读策略</p>
  */
 @Slf4j
@@ -20,11 +20,11 @@ import org.springframework.context.annotation.Configuration;
 @EnableConfigurationProperties(MinioProperties.class)
 public class MinioConfig {
 
-    /** MinIO 连接与目标存储桶配置。 */
+    /** MinIO 连接与目标存储桶配置 */
     private final MinioProperties properties;
 
     /**
-     * 按配置创建 MinIO 客户端。
+     * 按配置创建 MinIO 客户端
      * @return 使用配置端点和凭据的客户端
      */
     @Bean
@@ -36,7 +36,7 @@ public class MinioConfig {
     }
 
     /**
-     * 检查存储桶，仅对新建桶设置公开读策略；失败不阻断启动。
+     * 检查存储桶，仅对新建桶设置公开读策略；失败不阻断启动
      * @param minioClient 用于检查和初始化的客户端
      * @return 存储桶存在或初始化成功时为 true，出现异常时为 false
      */

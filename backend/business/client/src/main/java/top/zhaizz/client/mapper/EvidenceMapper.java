@@ -13,11 +13,11 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 import java.util.List;
 
-/** 证据回查 Mapper：批量查询条目及其关联数据。 */
+/** 证据回查 Mapper：批量查询条目及其关联数据 */
 public interface EvidenceMapper extends BaseMapper<Subject> {
 
     /**
-     * 批量查询动画条目的基础证据。
+     * 批量查询动画条目的基础证据
      *
      * @param subjectIds 条目 ID 列表
      * @return 条目基础证据；不存在的条目不返回
@@ -25,7 +25,7 @@ public interface EvidenceMapper extends BaseMapper<Subject> {
     List<EvidenceSubjectRow> selectSubjectBasics(@Param("ids") List<Long> subjectIds);
 
     /**
-     * 批量查询动画条目的别名证据。
+     * 批量查询动画条目的别名证据
      *
      * @param subjectIds 条目 ID 列表
      * @return 别名证据行；无匹配时返回空列表
@@ -33,7 +33,7 @@ public interface EvidenceMapper extends BaseMapper<Subject> {
     List<EvidenceAliasRow> selectAliases(@Param("ids") List<Long> subjectIds);
 
     /**
-     * 批量查询动画条目的元标签证据。
+     * 批量查询动画条目的元标签证据
      *
      * @param subjectIds 条目 ID 列表
      * @return 元标签证据行；无匹配时返回空列表
@@ -41,7 +41,7 @@ public interface EvidenceMapper extends BaseMapper<Subject> {
     List<EvidenceMetaTagRow> selectMetaTags(@Param("ids") List<Long> subjectIds);
 
     /**
-     * 批量查询动画条目的主创证据。
+     * 批量查询动画条目的主创证据
      *
      * @param subjectIds 条目 ID 列表
      * @return 主创证据行；无匹配时返回空列表
@@ -49,7 +49,7 @@ public interface EvidenceMapper extends BaseMapper<Subject> {
     List<EvidenceCreditRow> selectCredits(@Param("ids") List<Long> subjectIds);
 
     /**
-     * 批量查询动画条目的角色与声优证据。
+     * 批量查询动画条目的角色与声优证据
      *
      * @param subjectIds 条目 ID 列表
      * @return 角色证据行；无匹配时返回空列表
@@ -57,7 +57,7 @@ public interface EvidenceMapper extends BaseMapper<Subject> {
     List<EvidenceCharacterRow> selectCharacters(@Param("ids") List<Long> subjectIds);
 
     /**
-     * 批量查询动画条目的关联作品证据。
+     * 批量查询动画条目的关联作品证据
      *
      * @param subjectIds 条目 ID 列表
      * @return 关联作品证据行；无匹配时返回空列表
@@ -65,28 +65,28 @@ public interface EvidenceMapper extends BaseMapper<Subject> {
     List<EvidenceRelationRow> selectRelations(@Param("ids") List<Long> subjectIds);
 
     /**
-     * 通过主创人物本地 ID 扩展安全动画条目。
+     * 通过主创人物本地 ID 扩展安全动画条目
      * @param personIds 人物 ID 列表
      * @return 通过主创人物本地 ID 扩展安全动画条目
      */
     List<Long> selectSubjectIdsByPersonIds(@Param("ids") List<Long> personIds);
 
     /**
-     * 通过角色本地 ID 扩展安全动画条目。
+     * 通过角色本地 ID 扩展安全动画条目
      * @param characterIds 角色 ID 列表
      * @return 通过角色本地 ID 扩展安全动画条目
      */
     List<Long> selectSubjectIdsByCharacterIds(@Param("ids") List<Long> characterIds);
 
     /**
-     * 通过声优人物本地 ID 沿 character_actor 关系扩展安全动画条目。
+     * 通过声优人物本地 ID 沿 character_actor 关系扩展安全动画条目
      * @param actorIds 声优人物 ID 列表
      * @return 通过声优人物本地 ID 沿 character_actor 关系扩展安全动画条目
      */
     List<Long> selectSubjectIdsByActorIds(@Param("ids") List<Long> actorIds);
 
     /**
-     * 通过作品 ID 沿 subject_relation 双向扩展安全动画条目。
+     * 通过作品 ID 沿 subject_relation 双向扩展安全动画条目
      * @param subjectIds 待查询的条目 ID 列表
      * @return 通过作品 ID 沿 subject_relation 双向扩展安全动画条目
      */

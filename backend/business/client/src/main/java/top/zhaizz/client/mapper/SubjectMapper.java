@@ -12,11 +12,11 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * 番剧 Mapper。
+ * 番剧 Mapper
  */
 public interface SubjectMapper extends BaseMapper<Subject> {
     /**
-     * 多维条件搜索番剧（分页）：关键字/标签/评分/年份/周 + 排序。
+     * 多维条件搜索番剧（分页）：关键字/标签/评分/年份/周 + 排序
      * @param page MyBatis 分页对象，包含当前页码与每页大小
      * @param keyword 名称检索关键词
      * @param tagList 筛选标签名称列表
@@ -40,26 +40,26 @@ public interface SubjectMapper extends BaseMapper<Subject> {
             @Param("order") String order);
 
     /**
-     * 根据标签名查询番剧 ID 列表。
+     * 根据标签名查询番剧 ID 列表
      * @param tagName 用于匹配条目的标签名称
      * @return 匹配标签的条目 ID 列表
      */
     List<Long> findSubjectIdsByTag(@Param("tagName") String tagName);
 
     /**
-     * 查询库中实际存在番剧年份（去重，降序）。
+     * 查询库中实际存在番剧年份（去重，降序）
      * @return 库中实际存在番剧年份（去重，降序）
      */
     List<Integer> selectYears();
 
     /**
-     * 读取唯一 active release；不存在时由 service fail-closed。
+     * 读取唯一 active release；不存在时由 service fail-closed
      * @return 当前激活的索引发布记录；不存在时为 null
      */
     SearchIndexReleaseRow selectActiveSearchIndexRelease();
 
     /**
-     * 在指定 active release 的 SUBJECT 投影上执行参数化 FULLTEXT 召回。
+     * 在指定 active release 的 SUBJECT 投影上执行参数化 FULLTEXT 召回
      * @param query 查询条件
      * @param tags 条目标签列表
      * @param scoreMin 最低评分筛选值

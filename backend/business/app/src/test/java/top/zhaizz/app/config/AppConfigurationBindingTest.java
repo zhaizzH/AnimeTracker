@@ -14,10 +14,10 @@ import top.zhaizz.auth.security.CookieOriginFilter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** 应用配置绑定和基础 Bean 装配测试。 */
+/** 应用配置绑定和基础 Bean 装配测试 */
 class AppConfigurationBindingTest {
 
-    /** 使用隔离上下文验证配置键绑定与 Bean 唯一性。 */
+    /** 使用隔离上下文验证配置键绑定与 Bean 唯一性 */
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withUserConfiguration(
                     AgentConfig.class,
@@ -30,7 +30,7 @@ class AppConfigurationBindingTest {
                     "at.agent.read-timeout=3400",
                     "at.cors.allowed-origins[0]=http://allowed.test");
 
-    /** 验证应用配置绑定及 CORS、HTTP Bean 的唯一装配。 */
+    /** 验证应用配置绑定及 CORS、HTTP Bean 的唯一装配 */
     @Test
     void bindsPropertiesAndBuildsExpectedCorsAndHttpBeans() {
         contextRunner.run(context -> {

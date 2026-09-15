@@ -16,17 +16,17 @@ import top.zhaizz.log.mapper.OperationLogMapper;
 
 import java.time.LocalDateTime;
 
-/** 采集动作、身份与耗时等审计元数据，不记录请求正文或原始异常消息。 */
+/** 采集动作、身份与耗时等审计元数据，不记录请求正文或原始异常消息 */
 @Aspect
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class OperationLogAspect {
-    /** 操作日志存储入口，写入异常只产生安全告警。 */
+    /** 操作日志存储入口，写入异常只产生安全告警 */
     private final OperationLogMapper operationLogMapper;
 
     /**
-     * 执行业务方法，并在成功或失败后旁路记录操作日志。
+     * 执行业务方法，并在成功或失败后旁路记录操作日志
      * @param pjp 被增强的业务调用，不可为空
      * @param annotation 声明的动作与模块编码，不可为空
      * @return 原业务返回值，允许为空
@@ -46,7 +46,7 @@ public class OperationLogAspect {
     }
 
     /**
-     * 保存安全的操作元数据；参数、用户名输入和异常原文不进入日志。
+     * 保存安全的操作元数据；参数、用户名输入和异常原文不进入日志
      * @param annotation 操作注解，不可为空
      * @param failure 原业务异常；成功时为空
      * @param start 单调时钟的开始纳秒数
@@ -75,7 +75,7 @@ public class OperationLogAspect {
     }
 
     /**
-     * 获取当前线程绑定的 HTTP 请求。
+     * 获取当前线程绑定的 HTTP 请求
      * @return 当前请求；非 HTTP 调用时为空
      */
     private HttpServletRequest currentRequest() {

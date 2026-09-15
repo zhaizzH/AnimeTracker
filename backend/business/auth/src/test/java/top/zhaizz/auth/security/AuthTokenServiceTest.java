@@ -10,9 +10,9 @@ import top.zhaizz.infrastructure.redis.RedisUtil;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-/** 验证续签不延长绝对寿命，并保持刷新 Cookie 的秒数契约。 */
+/** 验证续签不延长绝对寿命，并保持刷新 Cookie 的秒数契约 */
 class AuthTokenServiceTest {
-    /** 验证剩余寿命短于刷新窗口时，保存截断后的 TTL 和原始起点。 */
+    /** 验证剩余寿命短于刷新窗口时，保存截断后的 TTL 和原始起点 */
     @Test
     void capsRefreshAtAbsoluteLifetime() {
         JwtTokenProvider jwt = mock(JwtTokenProvider.class);
@@ -27,7 +27,7 @@ class AuthTokenServiceTest {
         verify(store).saveRefresh(result.refreshToken(), 42L, 1000L, 1500L);
     }
 
-    /** 验证刷新窗口较短时按窗口发放，首次会话起点保持不变。 */
+    /** 验证刷新窗口较短时按窗口发放，首次会话起点保持不变 */
     @Test
     void capsRefreshAtConfiguredWindow() {
         JwtTokenProvider jwt = mock(JwtTokenProvider.class);
@@ -39,7 +39,7 @@ class AuthTokenServiceTest {
         verify(store).saveRefresh(result.refreshToken(), 42L, 1000L, 4000L);
     }
 
-    /** 验证达到绝对截止时不生成令牌、不写入新凭据。 */
+    /** 验证达到绝对截止时不生成令牌、不写入新凭据 */
     @Test
     void refusesExpiredSessionBeforeIssuing() {
         JwtTokenProvider jwt = mock(JwtTokenProvider.class);
@@ -51,7 +51,7 @@ class AuthTokenServiceTest {
     }
 
     /**
-     * 构建固定时间与配置的认证能力，隔离真实时钟和外部 Redis。
+     * 构建固定时间与配置的认证能力，隔离真实时钟和外部 Redis
      * @param jwt JWT 替身
      * @param redis Redis 替身
      * @param store 刷新存储替身

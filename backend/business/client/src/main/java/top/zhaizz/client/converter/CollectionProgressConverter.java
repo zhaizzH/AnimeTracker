@@ -9,16 +9,16 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 
-/** 收藏进度预览响应转换器。 */
+/** 收藏进度预览响应转换器 */
 public final class CollectionProgressConverter {
     /**
-     * 禁止实例化仅提供静态操作的工具类。
+     * 禁止实例化仅提供静态操作的工具类
      */
     private CollectionProgressConverter() {
     }
 
     /**
-     * 将预览条目的标识与进度映射为失败说明，不修改条目。
+     * 将预览条目的标识与进度映射为失败说明，不修改条目
      * @param item 预览条目，不可为 {@code null}
      * @param reason 失败原因，允许为空并原样保留
      * @return 新的失败对象
@@ -32,7 +32,7 @@ public final class CollectionProgressConverter {
     }
 
     /**
-     * 组装预览响应，直接引用条目列表，不修改任何输入。
+     * 组装预览响应，直接引用条目列表，不修改任何输入
      * @param state 预览状态，原样保留
      * @param previewId 预览标识，原样保留
      * @param items 预览条目列表，可为空，不复制列表或元素

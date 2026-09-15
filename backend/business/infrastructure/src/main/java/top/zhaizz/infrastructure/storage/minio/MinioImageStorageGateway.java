@@ -15,27 +15,27 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * 基于 MinIO 的图片存储实现。
+ * 基于 MinIO 的图片存储实现
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class MinioImageStorageGateway implements ImageStorageGateway {
 
-    /** 允许上传的 MIME 类型及其服务端文件后缀。 */
+    /** 允许上传的 MIME 类型及其服务端文件后缀 */
     private static final Map<String, String> EXTENSIONS = Map.of(
             "image/jpeg", "jpg",
             "image/png", "png",
             "image/webp", "webp");
 
-    /** 执行对象上传的 SDK 客户端。 */
+    /** 执行对象上传的 SDK 客户端 */
     private final MinioClient minioClient;
-    /** 用于选择存储桶及生成访问地址的配置。 */
+    /** 用于选择存储桶及生成访问地址的配置 */
     private final MinioProperties minioProperties;
 
     /**
      * {@inheritDoc}
-     * <p>对象名使用服务端 UUID，不使用客户端文件名。
+     * <p>对象名使用服务端 UUID，不使用客户端文件名
      */
     @Override
     public String upload(MultipartFile file, ImageCategory category) {

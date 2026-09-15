@@ -11,9 +11,9 @@ import java.util.Arrays;
 import java.util.List;
 import static org.assertj.core.api.Assertions.*;
 
-/** 条目详情与标签转换的空值、字段和顺序契约。 */
+/** 条目详情与标签转换的空值、字段和顺序契约 */
 class SubjectVoConverterTest {
-    /** 空实体返回空值，空标签集合返回空集合。 */
+    /** 空实体返回空值，空标签集合返回空集合 */
     @Test
     void acceptsAbsentInputs() {
         assertThat(SubjectVoConverter.toSubjectDetailVO(null, List.of())).isNull();
@@ -25,7 +25,7 @@ class SubjectVoConverterTest {
         assertThat(detail.getScore()).isNull();
     }
 
-    /** 详情保留所有展示字段，并保持调用方提供的标签顺序和空元素。 */
+    /** 详情保留所有展示字段，并保持调用方提供的标签顺序和空元素 */
     @Test
     void mapsDetailWithoutChangingTags() {
         Subject source = new Subject();
@@ -47,7 +47,7 @@ class SubjectVoConverterTest {
         assertThat(source.getNameCn()).isEqualTo("中文标题");
     }
 
-    /** 标签转换保留输入顺序和空元素，创建独立标签响应并保留统计数量。 */
+    /** 标签转换保留输入顺序和空元素，创建独立标签响应并保留统计数量 */
     @Test
     void preservesTagOrderAndNullElements() {
         SubjectTag first = new SubjectTag(); first.setId(9L); first.setName("科幻"); first.setCount(20);

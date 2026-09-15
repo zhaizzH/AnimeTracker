@@ -10,18 +10,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-/** 证据回查结果转换器。 */
+/** 证据回查结果转换器 */
 public final class EvidenceConverter {
     /**
-     * 禁止实例化仅提供静态操作的工具类。
+     * 禁止实例化仅提供静态操作的工具类
      */
     private EvidenceConverter() {
     }
 
     /**
-     * 将查询行及其关联数据转换为证据候选响应，不修改输入。
-     * <p>映射和条目须非空，关联列表不得含空元素；列表顺序保留。
-     * 别名和元标签列表直接引用，缺键时为空列表；主创、角色和关系缺键或空列表时输出 null。
+     * 将查询行及其关联数据转换为证据候选响应，不修改输入
+     * <p>映射和条目须非空，关联列表不得含空元素；列表顺序保留
+     * 别名和元标签列表直接引用，缺键时为空列表；主创、角色和关系缺键或空列表时输出 null
      * @param subject 条目基础查询行
      * @param aliasMap 别名映射
      * @param metaTagMap 元标签映射

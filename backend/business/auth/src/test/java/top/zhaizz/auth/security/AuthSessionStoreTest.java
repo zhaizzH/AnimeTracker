@@ -8,9 +8,9 @@ import top.zhaizz.infrastructure.redis.RedisUtil;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-/** 验证刷新单次消费与凭据、用户索引一致撤销。 */
+/** 验证刷新单次消费与凭据、用户索引一致撤销 */
 class AuthSessionStoreTest {
-    /** 验证 GETDEL 第二次返回空，不允许已消费凭据重放。 */
+    /** 验证 GETDEL 第二次返回空，不允许已消费凭据重放 */
     @Test
     void consumesRefreshOnlyOnceAndPreservesStart() {
         RedisUtil redis = mock(RedisUtil.class);
@@ -24,7 +24,7 @@ class AuthSessionStoreTest {
         verify(redis).srem("auth:active-refresh:42", hash);
     }
 
-    /** 验证损坏的元数据被消费后拒绝续签。 */
+    /** 验证损坏的元数据被消费后拒绝续签 */
     @Test
     void rejectsMalformedRefreshMetadata() {
         RedisUtil redis = mock(RedisUtil.class);
@@ -35,7 +35,7 @@ class AuthSessionStoreTest {
         verify(redis, never()).srem(anyString(), anyString());
     }
 
-    /** 验证撤销用户会话会删除两类凭据和两个用户索引。 */
+    /** 验证撤销用户会话会删除两类凭据和两个用户索引 */
     @Test
     void revokesAllCredentialsAndIndexes() {
         RedisUtil redis = mock(RedisUtil.class);
@@ -48,7 +48,7 @@ class AuthSessionStoreTest {
         verify(redis).del("auth:active-refresh:42");
     }
 
-    /** 验证单会话撤销保留其他凭据并移除被撤销摘要。 */
+    /** 验证单会话撤销保留其他凭据并移除被撤销摘要 */
     @Test
     void revokesSingleAccessAndRefresh() {
         RedisUtil redis = mock(RedisUtil.class);
@@ -63,7 +63,7 @@ class AuthSessionStoreTest {
         verify(redis).srem("auth:active-refresh:42", hash);
     }
 
-    /** 验证只保存摘要、既有值格式和毫秒寿命，索引保留 30 天兜底。 */
+    /** 验证只保存摘要、既有值格式和毫秒寿命，索引保留 30 天兜底 */
     @Test
     void savesOnlyHashedRefreshWithOriginalStart() {
         RedisUtil redis = mock(RedisUtil.class);

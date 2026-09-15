@@ -25,28 +25,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-/** 用户端词法检索版本和安全边界测试。 */
+/** 用户端词法检索版本和安全边界测试 */
 @ExtendWith(MockitoExtension.class)
 class ClientSubjectServiceLexicalTest {
 
-    /** 模拟条目及发布版本查询。 */
+    /** 模拟条目及发布版本查询 */
     @Mock
     private SubjectMapper subjectMapper;
-    /** 模拟条目标签查询。 */
+    /** 模拟条目标签查询 */
     @Mock
     private SubjectTagMapper subjectTagMapper;
-    /** 模拟关联条目查询。 */
+    /** 模拟关联条目查询 */
     @Mock
     private SubjectRelationMapper subjectRelationMapper;
-    /** 模拟用户收藏查询。 */
+    /** 模拟用户收藏查询 */
     @Mock
     private CollectionMapper collectionMapper;
 
-    /** 被测条目检索服务。 */
+    /** 被测条目检索服务 */
     @InjectMocks
     private ClientSubjectServiceImpl subjectService;
 
-/** 验证词法检索返回发布版本并保持确定性排序。 */
+/** 验证词法检索返回发布版本并保持确定性排序 */
     @Test
     void lexicalSearchReturnsReleaseVersionAndDeterministicRank() {
         SearchIndexReleaseRow release = new SearchIndexReleaseRow();
@@ -76,7 +76,7 @@ class ClientSubjectServiceLexicalTest {
         assertThat(result.getCandidates().get(0).getLexicalScore()).isEqualByComparingTo("3.25");
     }
 
-/** 验证词法投影不完整或无发布版本时安全降级。 */
+/** 验证词法投影不完整或无发布版本时安全降级 */
     @Test
     void lexicalSearchFailsClosedWhenNoReleaseIsActive() {
         when(subjectMapper.selectActiveSearchIndexRelease()).thenReturn(null);
@@ -89,7 +89,7 @@ class ClientSubjectServiceLexicalTest {
                 .hasMessageContaining("词法索引尚未发布");
     }
 
-/** 验证词法投影不完整或无发布版本时安全降级。 */
+/** 验证词法投影不完整或无发布版本时安全降级 */
     @Test
     void lexicalSearchFailsClosedWhenProjectionMigrationIsMissing() {
         when(subjectMapper.selectActiveSearchIndexRelease())
@@ -103,7 +103,7 @@ class ClientSubjectServiceLexicalTest {
                 .hasMessageContaining("尚未迁移");
     }
 
-/** 验证批量条目结果暴露 Agent 权威检查所需的有效标记。 */
+/** 验证批量条目结果暴露 Agent 权威检查所需的有效标记 */
     @Test
     void batchSubjectsExposesActiveFlagForAgentAuthorityChecks() {
         Subject subject = new Subject();

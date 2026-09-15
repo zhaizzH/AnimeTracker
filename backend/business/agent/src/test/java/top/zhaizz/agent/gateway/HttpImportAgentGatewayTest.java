@@ -16,17 +16,17 @@ import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
-/** 导入 HTTP 网关的请求协议、错误分类和上游隐私回归。 */
+/** 导入 HTTP 网关的请求协议、错误分类和上游隐私回归 */
 @ExtendWith(OutputCaptureExtension.class)
 class HttpImportAgentGatewayTest {
-    /** 每个用例独立的 HTTP 客户端。 */
+    /** 每个用例独立的 HTTP 客户端 */
     private final RestTemplate rest = new RestTemplate();
-    /** 拦截 HTTP 请求，无需连接真实 Agent。 */
+    /** 拦截 HTTP 请求，无需连接真实 Agent */
     private final MockRestServiceServer server = MockRestServiceServer.bindTo(rest).build();
-    /** 被测导入适配器。 */
+    /** 被测导入适配器 */
     private final HttpImportAgentGateway gateway = new HttpImportAgentGateway(rest, "http://agent");
 
-    /** 完整参数以查询字符串传递，鉴权头原样转发且不发送请求体。 */
+    /** 完整参数以查询字符串传递，鉴权头原样转发且不发送请求体 */
     @Test
     void forwardsImportRequest() {
         ImportRunDTO request = request();
@@ -41,7 +41,7 @@ class HttpImportAgentGatewayTest {
         server.verify();
     }
 
-    /** 可选参数和凭据缺失时不发送空查询值或鉴权头。 */
+    /** 可选参数和凭据缺失时不发送空查询值或鉴权头 */
     @Test
     void omitsAbsentOptions() {
         server.expect(requestTo("http://agent/api/admin/agent/import/run?mode=recent"))
@@ -52,7 +52,7 @@ class HttpImportAgentGatewayTest {
     }
 
     /**
-     * 上游状态码归并为业务错误，私有响应体不会进入返回异常。
+     * 上游状态码归并为业务错误，私有响应体不会进入返回异常
      * @param status 上游 HTTP 状态码
      * @param code 预期业务错误码
      * @param message 面向用户的固定错误说明
@@ -69,7 +69,7 @@ class HttpImportAgentGatewayTest {
         server.verify();
     }
 
-    /** 连接失败转换为统一内部错误，底层网络细节不返回调用方。 */
+    /** 连接失败转换为统一内部错误，底层网络细节不返回调用方 */
     @Test
     void classifiesConnectionFailure() {
         server.expect(anything()).andRespond(withException(new IOException("private-network-detail")));
@@ -81,7 +81,7 @@ class HttpImportAgentGatewayTest {
 
 
     /**
-     * 成功与连接失败日志均只包含固定事件，不输出输入、URL、凭据或底层异常。
+     * 成功与连接失败日志均只包含固定事件，不输出输入、URL、凭据或底层异常
      * @param output 捕获的标准输出和错误输出
      */
     @Test
@@ -103,7 +103,7 @@ class HttpImportAgentGatewayTest {
     }
 
     /**
-     * 创建只含必填模式的导入请求。
+     * 创建只含必填模式的导入请求
      * @return 最近更新导入参数
      */
     private static ImportRunDTO request() {

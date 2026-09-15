@@ -9,17 +9,17 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
-/** Cookie 认证端点只接受 CORS 白名单中的精确 Origin。 */
+/** Cookie 认证端点只接受 CORS 白名单中的精确 Origin */
 public class CookieOriginFilter extends OncePerRequestFilter {
-    /** 使用 Cookie 刷新凭据的接口路径。 */
+    /** 使用 Cookie 刷新凭据的接口路径 */
     private static final String REFRESH_PATH = "/api/client/auth/refresh";
-    /** 撤销 Cookie 会话的接口路径。 */
+    /** 撤销 Cookie 会话的接口路径 */
     private static final String LOGOUT_PATH = "/api/client/auth/logout";
-    /** 允许的精确 Origin 列表；空列表拒绝所有目标请求。 */
+    /** 允许的精确 Origin 列表；空列表拒绝所有目标请求 */
     private final List<String> allowedOrigins;
 
     /**
-     * 保存允许来源的不可变快照。
+     * 保存允许来源的不可变快照
      * @param allowedOrigins 允许来源；null 按空列表处理
      */
     public CookieOriginFilter(List<String> allowedOrigins) {
@@ -27,7 +27,7 @@ public class CookieOriginFilter extends OncePerRequestFilter {
     }
 
     /**
-     * 仅拦截刷新和退出的 POST 请求。
+     * 仅拦截刷新和退出的 POST 请求
      * @param request 当前 HTTP 请求
      * @return 非 Cookie 认证写请求时为 true
      */
@@ -39,7 +39,7 @@ public class CookieOriginFilter extends OncePerRequestFilter {
     }
 
     /**
-     * 来源缺失或不匹配时返回 403，否则继续过滤链。
+     * 来源缺失或不匹配时返回 403，否则继续过滤链
      * @param request 当前 HTTP 请求
      * @param response 当前 HTTP 响应
      * @param chain 后续过滤链

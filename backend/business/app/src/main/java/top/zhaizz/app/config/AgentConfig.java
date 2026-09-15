@@ -17,14 +17,14 @@ import top.zhaizz.agent.constant.TraceConstants;
 import java.time.Duration;
 
 /**
- * Agent HTTP 客户端与服务装配：连接/读超时取自 at.agent.*。
+ * Agent HTTP 客户端与服务装配：连接/读超时取自 at.agent.*
  */
 @Configuration
 @EnableConfigurationProperties(AgentProperties.class)
 public class AgentConfig {
 
     /**
-     * 创建并配置 restTemplate Bean。
+     * 创建并配置 restTemplate Bean
      *
      * @param builder Spring Boot HTTP 客户端构建器
      * @param agentProperties Agent 地址与以毫秒计的超时配置
@@ -41,7 +41,7 @@ public class AgentConfig {
     }
 
     /**
-     * 由应用装配层注入 Agent 运行时配置，避免 agent 模块反向依赖 app。
+     * 由应用装配层注入 Agent 运行时配置，避免 agent 模块反向依赖 app
      *
      * @param restTemplate 已装配超时和请求追踪的普通 HTTP 客户端
      * @param agentProperties Agent 地址与以毫秒计的超时配置
@@ -56,7 +56,7 @@ public class AgentConfig {
     }
 
     /**
-     * 由应用装配层注入导入网关，Agent 模块仅提供端口与 HTTP 实现。
+     * 由应用装配层注入导入网关，Agent 模块仅提供端口与 HTTP 实现
      *
      * @param restTemplate 已装配超时和请求追踪的普通 HTTP 客户端
      * @param agentProperties Agent 地址与以毫秒计的超时配置
@@ -68,7 +68,7 @@ public class AgentConfig {
     }
 
     /**
-     * 把当前请求 MDC 中的 traceId 透传给下游（Agent）。
+     * 把当前请求 MDC 中的 traceId 透传给下游（Agent）
      *
      * @return 追踪头拦截器，MDC 无追踪 ID 时不追加该头
      */

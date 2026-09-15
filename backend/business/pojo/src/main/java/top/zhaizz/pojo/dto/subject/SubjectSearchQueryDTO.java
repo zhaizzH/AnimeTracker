@@ -10,48 +10,48 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.util.List;
 
-/** 番剧搜索查询参数。 */
+/** 番剧搜索查询参数 */
 @Data
 public class SubjectSearchQueryDTO {
-    /** 搜索词（service 内 trim）。 */
+    /** 搜索词（service 内 trim） */
     @Size(max = 100, message = "搜索词不能超过100字符")
     private String q;               // 搜索词（service 内 trim）
 
-    /** 标签筛选。 */
+    /** 标签筛选 */
     @Size(max = 20, message = "标签最多20个")
     private List<String> tag;       // 标签筛选
 
-    /** 最低评分。 */
+    /** 最低评分 */
     @DecimalMin(value = "0", message = "最低评分不能小于0")
     @DecimalMax(value = "10", message = "最低评分不能大于10")
     private BigDecimal scoreMin;    // 最低评分
 
-    /** 最高评分。 */
+    /** 最高评分 */
     @DecimalMin(value = "0", message = "最高评分不能小于0")
     @DecimalMax(value = "10", message = "最高评分不能大于10")
     private BigDecimal scoreMax;    // 最高评分
 
-    /** 年份。 */
+    /** 年份 */
     @Min(value = 1970, message = "年份不能早于1970")
     @Max(value = 2100, message = "年份不能晚于2100")
     private Integer year;           // 年份
 
-    /** 播出星期。 */
+    /** 播出星期 */
     @Min(value = 0, message = "星期范围 0-6")
     @Max(value = 6, message = "星期范围 0-6")
     private Integer weekday;        // 播出星期
 
-    /** 排序字段（进 SQL 走白名单）。 */
+    /** 排序字段（进 SQL 走白名单） */
     private String sort = "score";  // 排序字段（进 SQL 走白名单）
 
-    /** 排序方向（asc/desc）。 */
+    /** 排序方向（asc/desc） */
     private String order = "desc";  // 排序方向（asc/desc）
 
-    /** 页码。 */
+    /** 页码 */
     @Min(value = 1, message = "页码不能小于1")
     private int page = 1;           // 页码
 
-    /** 每页条数。 */
+    /** 每页条数 */
     @Min(value = 1, message = "每页条数不能小于1")
     @Max(value = 100, message = "每页条数不能超过100")
     private int size = 20;          // 每页条数

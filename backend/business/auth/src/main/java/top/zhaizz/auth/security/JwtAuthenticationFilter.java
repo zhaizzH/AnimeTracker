@@ -18,24 +18,24 @@ import top.zhaizz.infrastructure.redis.RedisUtil;
 import java.io.IOException;
 
 /**
- * 提取 Authorization 凭据，通过 JWT 和白名单双重检查后建立请求身份。
+ * 提取 Authorization 凭据，通过 JWT 和白名单双重检查后建立请求身份
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    /** 访问令牌签名、过期与身份声明校验入口。 */
+    /** 访问令牌签名、过期与身份声明校验入口 */
     private final JwtTokenProvider jwtTokenProvider;
-    /** 访问凭据白名单查询入口。 */
+    /** 访问凭据白名单查询入口 */
     private final RedisUtil redisUtil;
-    /** Bearer 令牌所在的 HTTP 请求头。 */
+    /** Bearer 令牌所在的 HTTP 请求头 */
     private static final String AUTHORIZATION_HEADER = "Authorization";
-    /** 必须精确匹配的 Bearer 认证前缀。 */
+    /** 必须精确匹配的 Bearer 认证前缀 */
     public static final String BEARER_PREFIX = "Bearer ";
 
     /**
-     * JWT 与 Redis 白名单均通过时建立身份，否则保持未认证并继续过滤链。
+     * JWT 与 Redis 白名单均通过时建立身份，否则保持未认证并继续过滤链
      * @param request 当前 HTTP 请求
      * @param response 当前 HTTP 响应
      * @param chain 后续过滤链
@@ -74,7 +74,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * 从请求头提取 Bearer 凭据。
+     * 从请求头提取 Bearer 凭据
      * @param request 当前请求
      * @return 去掉前缀的令牌；请求头缺失或前缀不匹配时为 null
      */

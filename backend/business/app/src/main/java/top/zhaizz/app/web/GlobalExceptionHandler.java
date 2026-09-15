@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 全局异常处理，捕获 BizException、参数校验异常、Spring MVC 异常等。
+ * 全局异常处理，捕获 BizException、参数校验异常、Spring MVC 异常等
  * <p>
  * 统一返回 {code, message, data}，异常按范围从小到大逐级匹配，兜底未知异常 500
  */
@@ -37,7 +37,7 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     /**
-     * 处理业务异常 — 将 BizException.code 映射为 HTTP 状态码。
+     * 处理业务异常 — 将 BizException.code 映射为 HTTP 状态码
      *
      * @param e 触发当前异常适配的异常实例
      * @return HTTP 状态与业务错误码一致、保留消息及附加数据的响应
@@ -50,7 +50,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理方法级鉴权失败（@PreAuthorize / 角色校验）。
+     * 处理方法级鉴权失败（@PreAuthorize / 角色校验）
      *
      * @param e 触发当前异常适配的异常实例
      * @return 错误码 403 的无数据结果
@@ -63,7 +63,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理数据库约束冲突（唯一键 / 外键等）。
+     * 处理数据库约束冲突（唯一键 / 外键等）
      *
      * @param e 触发当前异常适配的异常实例
      * @return 错误码 409 的无数据结果
@@ -76,7 +76,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理 @Valid 参数校验失败 — message 取首个字段错误的具体提示，data 保留字段映射。
+     * 处理 @Valid 参数校验失败 — message 取首个字段错误的具体提示，data 保留字段映射
      *
      * @param e 触发当前异常适配的异常实例
      * @return 错误码 400 的结果，包含首个错误提示及字段错误映射
@@ -97,7 +97,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理 @Validated 参数校验失败（如查询参数）— message 取首个约束的具体提示，data 给空 map（方法级无字段 key）。
+     * 处理 @Validated 参数校验失败（如查询参数）— message 取首个约束的具体提示，data 给空 map（方法级无字段 key）
      *
      * @param e 触发当前异常适配的异常实例
      * @return 错误码 400 的结果，包含首个约束提示与空映射
@@ -114,7 +114,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理请求体 JSON 解析失败（空 body / 语法错误 / 字段类型不匹配）。
+     * 处理请求体 JSON 解析失败（空 body / 语法错误 / 字段类型不匹配）
      *
      * @param e 触发当前异常适配的异常实例
      * @return 错误码 400 的请求体格式错误结果
@@ -127,7 +127,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理缺参 / 缺请求头 / 参数类型不匹配。
+     * 处理缺参 / 缺请求头 / 参数类型不匹配
      *
      * @param e 触发当前异常适配的异常实例
      * @return 错误码 400 的参数错误结果
@@ -140,7 +140,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理不支持的 Content-Type。
+     * 处理不支持的 Content-Type
      *
      * @param e 触发当前异常适配的异常实例
      * @return 错误码 415 的无数据结果
@@ -153,7 +153,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理不支持的 HTTP 方法。
+     * 处理不支持的 HTTP 方法
      *
      * @param e 触发当前异常适配的异常实例
      * @return 错误码 405 的结果，消息包含不支持的 HTTP 方法
@@ -166,7 +166,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理上传文件超限。
+     * 处理上传文件超限
      *
      * @param e 触发当前异常适配的异常实例
      * @return 错误码 413 的上传超限结果
@@ -179,7 +179,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理静态资源 handler 抛出的 404（未知 API 路径）。
+     * 处理静态资源 handler 抛出的 404（未知 API 路径）
      *
      * @param e 触发当前异常适配的异常实例
      * @return 错误码 404 的接口不存在结果
@@ -191,7 +191,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理未知异常。
+     * 处理未知异常
      *
      * @param e 触发当前异常适配的异常实例
      * @return 错误码 500 的通用结果，不包含原始异常信息

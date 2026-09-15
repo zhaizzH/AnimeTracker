@@ -10,18 +10,18 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 /**
- * 签发和校验 JWT 访问令牌，Redis 白名单由请求认证过滤器独立检查。
+ * 签发和校验 JWT 访问令牌，Redis 白名单由请求认证过滤器独立检查
  */
 @Component
 public class JwtTokenProvider {
 
-    /** 用于签发和验签的 HMAC 密钥，不得记录或输出。 */
+    /** 用于签发和验签的 HMAC 密钥，不得记录或输出 */
     private final SecretKey secretKey;
-    /** 访问令牌有效期，单位毫秒。 */
+    /** 访问令牌有效期，单位毫秒 */
     private final long expirationMs;
 
     /**
-     * 构建共享签名密钥与访问寿命。
+     * 构建共享签名密钥与访问寿命
      * @param secret 满足 JWT 库 HMAC 长度要求的密钥文本
      * @param expirationMs 访问寿命，单位毫秒
      * @throws io.jsonwebtoken.security.WeakKeyException 密钥长度不足
@@ -34,7 +34,7 @@ public class JwtTokenProvider {
     }
 
     /**
-     * 生成携带用户 ID 和角色声明的签名访问令牌。
+     * 生成携带用户 ID 和角色声明的签名访问令牌
      * @param userId 经过业务校验的用户 ID
      * @param role 经过业务校验的角色
      * @return 已签名访问令牌
@@ -53,7 +53,7 @@ public class JwtTokenProvider {
     }
 
     /**
-     * 验签并提取用户 ID 声明。
+     * 验签并提取用户 ID 声明
      * @param token 签名访问令牌
      * @return 用户 ID；声明缺失时为 null
      * @throws JwtException 令牌签名、格式、有效期或声明类型无效
@@ -64,7 +64,7 @@ public class JwtTokenProvider {
     }
 
     /**
-     * 验签并提取角色声明。
+     * 验签并提取角色声明
      * @param token 签名访问令牌
      * @return 角色；声明缺失时为 null
      * @throws JwtException 令牌签名、格式、有效期或声明类型无效
@@ -75,7 +75,7 @@ public class JwtTokenProvider {
     }
 
     /**
-     * 检查访问令牌签名与有效期，不查询 Redis 白名单。
+     * 检查访问令牌签名与有效期，不查询 Redis 白名单
      * @param token 访问令牌，允许为空
      * @return 解析成功时为 true，格式、签名或有效期无效时为 false
      */
@@ -89,7 +89,7 @@ public class JwtTokenProvider {
     }
 
     /**
-     * 验签并解析未过期的 JWT 声明。
+     * 验签并解析未过期的 JWT 声明
      * @param token 签名令牌
      * @return 已校验声明集合
      * @throws JwtException 签名、格式或有效期无效
