@@ -225,6 +225,15 @@ Javadoc 紧邻声明，放在注解之前。方法体内的步骤、算法理由
 
 以上是写作建议，不是最低行数、上限或自动检查阈值。超过约 15–20 行时，检查是否混入长期架构背景或逐步实现说明：架构决策放到对应 spec，声明旁保留使用该声明所需的契约。不能为了缩短注释省略必要标签或边界。
 
+类型示例依据现有 ImageStorageGateway，仅展示类型职责，接口成员省略：
+
+```java
+/** 校验并上传图片，返回可访问的 URL */
+public interface ImageStorageGateway {
+    // 接口成员省略
+}
+```
+
 简单声明允许单行 Javadoc，仍放在注解之前；中文说明末尾不加句号：
 
 ```java
@@ -313,7 +322,7 @@ Converter 必须说明 null 输入、空集合、顺序、嵌套字段和副作�
  * @return 新的收藏展示对象；输入为 {@code null} 时返回 {@code null}
  */
 public static UserCollectionVO toUserCollectionVO(UserCollectionSubjectVO vo) {
-    // 沿用现有方法体；此处省略。
+    // 沿用现有方法体；此处省略
 }
 ```
 
