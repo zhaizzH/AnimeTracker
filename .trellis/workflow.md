@@ -69,8 +69,6 @@ python ./.trellis/scripts/task.py set-scope <name> <scope>
 python ./.trellis/scripts/task.py add-subtask <parent> <child>
 python ./.trellis/scripts/task.py remove-subtask <parent> <child>
 
-# PR creation
-python ./.trellis/scripts/task.py create-pr [name] [--dry-run]
 ```
 
 > Run `python ./.trellis/scripts/task.py --help` to see the authoritative, up-to-date list.

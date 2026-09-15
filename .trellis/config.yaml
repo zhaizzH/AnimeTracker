@@ -142,10 +142,11 @@ channel:
 #
 # All values are byte counts. `0` disables the corresponding limit.
 #
-# context_injection:
-#   max_file_bytes: 32768        # per implement.jsonl / check.jsonl referenced file
-#   max_artifact_bytes: 65536    # per task artifact (prd.md / design.md / implement.md)
-#   max_total_bytes: 131072      # whole injected payload; overflow degrades to index lines
+# Merged topic specs need more than 32 KiB; keep a bounded total budget.
+context_injection:
+  max_file_bytes: 65536
+  max_artifact_bytes: 65536
+  max_total_bytes: 262144
 
 #-------------------------------------------------------------------------------
 # Per-turn prompt injection

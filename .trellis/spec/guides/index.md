@@ -48,3 +48,11 @@
 | 原文件 | 当前主题 |
 |---|---|
 | `code-reuse-thinking-guide.md` | [cross-layer-thinking-guide.md](./cross-layer-thinking-guide.md#代码复用检查指南) |
+
+## Trellis 本地接入与上下文维护
+
+- `.trellis/` 中的共享工作流、规范和任务受 Git 管理；根忽略规则将 `AGENTS.md`、`.agents/`、`.codex/`、`.claude/` 留作本地接入文件。新检出不会自动获得平台接入；在项目根目录使用与 `.trellis/.version` 对应的 Trellis CLI，执行 `trellis init --codex --skip-existing` 补齐，再检查差异，保留已有项目定制规则。该操作生成基础模板，不恢复其他开发者未提交的本地定制。
+- 使用 `python .trellis/scripts/get_context.py --mode packages` 确认 backend/frontend 规范层；用 `python .trellis/scripts/task.py current --source` 检查会话状态。若确认旧会话指向不存在的任务，在当前终端临时设置 `TRELLIS_CONTEXT_ID` 为该会话的实际标识，再运行 `python .trellis/scripts/task.py finish`；不要清除其他仍在工作的会话。
+- 平台钩子文件存在不等于已自动执行。按本地 `.codex/config.toml` 的说明完成用户级启用与信任检查；未启用时用 `trellis-start` 和 `trellis-before-dev` 主动加载规范。
+- 合并主题规范后，单文件注入上限为 65536 字节，总上限为 262144 字节；任务启动前运行 `task.py validate <任务目录>`，同时检查清单引用及 PRD/design/implement 的总大小。超限时缩小相关上下文，并显式读取剩余必要章节，不把截断文本当成全文。
+- 归档上下文是历史任务的复核入口。规范合并后可修正 JSONL 引用；补齐历史空清单时，必须在 PRD 中记录维护日期与用途，不能声称新增清单证明当时已加载规范或完成测试。

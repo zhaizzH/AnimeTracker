@@ -41,3 +41,7 @@
 - 不使用 `--passWithNoTests`；Admin 门禁必须至少执行一项有业务价值的测试。
 - 首个测试聚焦 `RequireAdmin`，因为它是管理端访问控制边界，价值高于仅渲染 `App` 的无行为 smoke test。
 - 此任务按轻量任务处理，仅使用 `prd.md`；不创建不必要的 `design.md` 和 `implement.md`。
+
+## 2026-09-15 上下文维护
+
+本次按原任务范围更新 implement.jsonl / check.jsonl：迁移已合并的规范路径，或补齐空清单，供后续复核使用。这不是原执行时的注入证据，不改变历史验收结果和完成状态。
