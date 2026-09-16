@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/index.md","reason":"检查主题入口、链接和当前 Backend 范围"}
+{"file":".trellis/spec/backend/directory-structure.md","reason":"检查模块边界、依赖矩阵和资源路径"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"检查错误类型和 HTTP 异常适配边界"}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"检查质量门禁和注释规范"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"检查跨层约束与历史说明"}

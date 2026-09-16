@@ -17,7 +17,7 @@
 
 参考：`common/result/Result.java`、`app/web/GlobalExceptionHandler.java`、`common/constant/ErrorType.java`。
 
-### common / app 异常边界（目标设计）
+### common / app 异常边界（已实施）
 
 #### 1. Scope / Trigger
 

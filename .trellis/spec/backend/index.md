@@ -41,7 +41,14 @@ cd ../agent
 uv run pytest
 ```
 
-CI 当前执行 Java `mvn -B test`、Python `uv run pytest` 和前端 typecheck；`clean test` 与前端 build 属于相应变更的提交前/交付前验证。Python 已包含 importer/indexer/backfill/scheduler、RAG、适配器、eval 和 Agent Prompt 测试。2026-09-10 的能力路由测试收集失败是历史记录，2026-09-12 既有记录说明已重写；本次已重跑 Business reactor clean test，详见 [质量门禁](./quality-guidelines.md#后端质量门禁)；不得沿用历史通过数。
+CI 当前执行 Java `mvn -B test`、Python `uv run pytest` 和前端 typecheck；`clean test` 与前端 build 属于相应变更的提交前/交付前验证。Python 已包含 importer/indexer/backfill/scheduler、RAG、适配器、eval 和 Agent Prompt 测试。2026-09-10 的能力路由测试收集失败是历史记录，2026-09-12 既有记录说明已重写；2026-09-15 的既有证据包含 Business reactor clean test，2026-09-16 本轮复核重新运行了 `mvn -B test`、Javadoc 检查和检查器回归，详见 [质量门禁](./quality-guidelines.md#后端质量门禁)；不得沿用历史通过数。
+
+### 2026-09-16 Backend 复核基线
+
+- Business reactor 当前包含 `common`、`pojo`、`infrastructure`、`auth`、`log`、`agent`、`client`、`admin`、`app` 九个 Maven 模块；模块上限和实际职责以 [目录与依赖边界](./directory-structure.md) 及 `ArchitectureBoundaryTest` 为准
+- `mvn -B test -f backend/business/pom.xml`：95 个测试通过，0 失败，0 错误
+- `python backend/business/tools/check_javadoc.py`：255 个 Java 文件、1658 个声明、0 个违规；`test_check_javadoc.py`：7 项通过
+- `app/src/main/resources` 当前包含 `application.yml`、`application-local.yml`、`logback-spring.xml`；配置与 Profile 说明不能只引用公共配置文件
 
 ## 合并前路径对照
 
