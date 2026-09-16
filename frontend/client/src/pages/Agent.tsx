@@ -17,7 +17,10 @@ export default function Agent() {
         <Button type="primary" block style={{ borderRadius: 0, marginBottom: 12 }} disabled={!ready || streaming} onClick={create}>新建会话</Button>
         <List size="small" dataSource={sessions} renderItem={(s: Record<string, unknown>) => (
           <List.Item style={{ cursor: ready ? 'pointer' : 'default', padding: '8px 12px', background: String(s.id) === activeId ? token.colorPrimaryBg : undefined }} onClick={() => { if (ready && !streaming) void select(String(s.id)); }}>
-            <Space>{String((s as { title?: unknown }).title ?? (s as { id?: unknown }).id)}<Button type="text" danger size="small" className="od-session-delete" icon={<DeleteOutlined />} aria-label="删除会话" disabled={!ready || streaming} onClick={(e) => { e.stopPropagation(); void remove(String(s.id)); }} /></Space>
+            <Space className="od-session-row">
+              <span className="od-session-title">{String((s as { title?: unknown }).title ?? (s as { id?: unknown }).id)}</span>
+              <Button type="text" danger size="small" className="od-session-delete" icon={<DeleteOutlined />} aria-label="删除会话" disabled={!ready || streaming} onClick={(e) => { e.stopPropagation(); void remove(String(s.id)); }} />
+            </Space>
           </List.Item>
         )} />
       </Sider>

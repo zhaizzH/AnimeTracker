@@ -756,6 +756,11 @@ body {
 .od-sider .ant-layout-sider-children { display: flex; flex-direction: column; overflow: hidden; white-space: nowrap; }
 .od-sider .ant-layout-sider-children > * { transition: opacity .1s ease; }
 .od-sider .ant-list { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+.od-sider .ant-list-item { min-width: 0; }
+.od-sider .od-session-row { width: 100%; min-width: 0; }
+.od-sider .od-session-row > .ant-space-item:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.od-sider .od-session-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.od-sider .od-session-row > .ant-space-item:last-child { flex-shrink: 0; }
 .od-sider.ant-layout-sider-collapsed .ant-layout-sider-children > * { opacity: 0; }
 .od-sider .ant-list-item .od-session-delete { opacity: 0; transition: opacity .1s ease; }
 .od-sider .ant-list-item:hover .od-session-delete,
