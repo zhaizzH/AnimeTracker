@@ -9,23 +9,25 @@
 
 ## 后端目录与依赖边界
 
-### Business 目标模块总览（已实施）
+### Business 当前模块总览（已实施）
 
-本节是本轮确认后的目标边界；后文标注“迁移前”的目录、配置与依赖仅用于核对现有源码。新增模块已落地；实现与测试状态以本任务记录和 Business reactor 验证为准。
+本节是当前九模块边界；后文标注“迁移前”的目录、配置与依赖仅作为历史证据。新增模块已落地；实现与测试状态以当前源码、POM、`ArchitectureBoundaryTest` 和质量记录为准。
 
-| 模块 | 目标职责 | 允许的项目内直接依赖上限 |
+| 模块 | 当前职责 | 允许的项目内直接依赖上限 |
 |---|---|---|
 | common | Result、PageResult、BizException、ErrorType 等基础定义 | 无其他业务模块 |
-| pojo | 统一 DTO、VO、Entity，按业务分包 | 必要时使用 common 基础类型，不依赖实现模块 |
+| pojo | 统一 DTO、VO、Entity，按业务分包 | `common`（矩阵允许；当前 POM 未声明该依赖） |
 | infrastructure（新增） | Redis、限流、图片、邮件的公开技术接口与现有实现 | common、pojo（实际需要时） |
 | auth（新增） | Token、会话、请求认证、当前身份读取 | infrastructure、common、pojo |
-| log（新增） | 操作日志采集、存储、清理、查询 | auth、common、pojo；实际使用通用能力时可依赖 infrastructure |
-| agent | Python Agent HTTP/SSE 与导入通信接口、实现 | log（现有管理员代理日志采集）、common、pojo；实际需要时使用 auth/infrastructure 公开能力 |
+| log（新增） | 操作日志采集、存储、清理、查询 | auth、infrastructure、common、pojo |
+| agent | Python Agent HTTP/SSE 与导入通信接口、实现 | log、auth、infrastructure、common、pojo |
 | client | 用户业务、用户接口与本端 Converter | auth、log、infrastructure、common、pojo |
 | admin | 管理员业务、管理接口与本端 Converter | agent、auth、log、infrastructure、common、pojo |
 | app | 启动、组合装配、安全配置、HTTP 异常适配 | 按装配需要依赖上述模块 |
 
-依赖上限不是要求引入全部依赖。每项直接使用显式声明；禁止 client/admin 相互依赖，禁止下层依赖 app，禁止 auth → log、infrastructure → auth/log/agent/client/admin。业务方只能使用能力模块的公开入口，不直接引用内部 Mapper 或供应商实现。
+依赖上限不是要求引入全部依赖。每项直接使用显式声明；当前 POM 可能比矩阵更窄，例如 `pojo` 当前没有内部模块依赖。禁止 client/admin 相互依赖，禁止下层依赖 app，禁止 auth → log、infrastructure → auth/log/agent/client/admin。业务方只能使用能力模块的公开入口，不直接引用内部 Mapper 或供应商实现。
+
+矩阵的可执行证据是 `backend/business/app/src/test/java/top/zhaizz/app/architecture/ArchitectureBoundaryTest.java`：它覆盖九模块禁止边、排除测试夹具、断言 `common` 仅含四个基础类型，并对除 `app` 外的模块拒绝跨模块访问 Mapper、Service 实现和供应商适配器。新增边界时必须同时核对 POM、生产源码和该测试
 
 关键协作链：`admin → agent → log → auth → infrastructure → common`。各层按需使用 pojo；链条不要求中间模块替其他模块转发调用。现有 agent 管理员代理使用操作日志注解，因此迁移清单必须同时更新其 log 依赖。
 
@@ -44,15 +46,15 @@
 
 DTO/VO/Entity 统一放 pojo；框架身份实现、技术接口与其配套枚举不按名称机械搬入 pojo。common 收紧时同步移除不再使用的 pojo/运行时依赖，不保留只为迁出代码提供框架的传递依赖。
 
-#### 实施与验收边界
+#### 历史实施与验收记录（保留）
 
-本次交付已按本节规范完成代码迁移、依赖调整、配置装配与旧路径清理；具体实现签名以当前源码和测试为准，后续修改继续遵守本文依赖和已有 HTTP/数据契约。
+迁移任务曾按本节规范完成代码迁移、依赖调整、配置装配与旧路径清理；具体实现签名以当前源码和测试为准，后续修改继续遵守本文依赖和已有 HTTP/数据契约。
 
-本轮已按基础类型与接口 → infrastructure → auth → log → agent → client/admin 调用及 Converter → app 装配与旧实现清理的顺序完成迁移。后续变更仍按依赖方向实施，不允许恢复已删除的旧实现。
+历史迁移按基础类型与接口 → infrastructure → auth → log → agent → client/admin 调用及 Converter → app 装配与旧实现清理的顺序完成。后续变更仍按依赖方向实施，不允许恢复已删除的旧实现。
 
 验收同时覆盖旧实现清理、Maven 无环与显式依赖、Bean 唯一装配、Mapper XML/类型引用、接口字段/权限/错误/SSE 行为，以及各目标规范列出的行为断言。本轮已运行完整 Business `mvn -B clean test`；后续修改配置或架构边界时仍必须重复该验证。
 
-### 当前总体结构（迁移前）
+### 历史总体结构（迁移前）
 
 ```text
 backend/
@@ -72,7 +74,7 @@ backend/
 
 证据：`backend/business/pom.xml`、`backend/agent/main.py`、`backend/agent/app/agent/dependencies.py`。
 
-### Spring Business 当前放置规则（迁移前）
+### 历史 Spring Business 放置规则（迁移前）
 
 - `pojo` 只放数据结构：请求用 DTO，响应用 VO，数据库映射用 Entity。
 - `client/admin` 遵循 Controller → Service → Mapper/Store；Controller 只做绑定、鉴权上下文和响应包装。
@@ -98,7 +100,7 @@ Java agent 统一负责 Python Agent 通信，原 admin 的 ImportAgentGateway �
 
 - common 保留 `Result`、`PageResult`、`BizException`、`ErrorType` 等无业务运行逻辑的基础定义；“多个模块使用”不再是放入 common 的充分理由。
 - common 不承载 Controller、Service、Mapper、Converter、切面、过滤器、定时任务、技术适配器或运行时配置。认证、日志、Redis/限流/存储/邮件按已确认目标迁往 auth、log、infrastructure。
-- `GlobalExceptionHandler` 等 HTTP 异常适配迁入 app 的 Web 适配包，由 app 统一启用；业务模块只依赖基础错误定义，不引用 app 的处理器。详见 [HTTP 异常适配迁移](./error-handling.md#common--app-异常边界目标设计)。
+- `GlobalExceptionHandler` 等 HTTP 异常适配迁入 app 的 Web 适配包，由 app 统一启用；业务模块只依赖基础错误定义，不引用 app 的处理器。详见 [HTTP 异常适配边界](./error-handling.md#common--app-异常边界已实施)。
 - 迁移同时收紧 common 的 POM：删除迁出功能遗留的 Web、AOP、Redis、Security、MyBatis、JWT 等运行时依赖；不能靠 common 继续给消费者隐式提供整套框架。各消费者显式声明实际所需依赖。
 - Result/PageResult 是 common 中的通用响应容器；业务 DTO/VO/Entity 统一放 pojo。Converter 统一模块内目录规范，继续归各消费模块，不集中进 pojo 或另建全局 converter 模块。
 
@@ -190,7 +192,7 @@ Business 的 DTO、VO、Entity 统一放在 pojo 管理，无论只被一个模�
 - `AppConfigurationBindingTest`：断言 Properties、RestTemplate、AgentService、CookieOriginFilter、CORS source 唯一注册及具体 key 值。
 - `SecurityConfigAuthorizationTest`：断言公开、匿名私有、USER、ADMIN、默认拒绝及 401/403 JSON。
 - `CookieOriginFilterTest`：断言 refresh/logout 的允许、缺失、未知 Origin 和非目标路径。
-- `AgentConfigTest`：断言超时、`X-Request-ID` 透传与 SSE 无读超时；`ArchitectureBoundaryTest`：断言下层不依赖 `top.zhaizz.app..`。
+- `AgentConfigTest`：断言超时、`X-Request-ID` 透传与 SSE 无读超时；`ArchitectureBoundaryTest`：断言完整九模块依赖矩阵、`common` 四个基础定义、内部实现包隔离和测试夹具拒绝非法边。
 
 #### 7. Wrong vs Correct
 
@@ -212,7 +214,7 @@ AgentService agentService(RestTemplate restTemplate, ObjectMapper mapper, AgentP
 }
 ```
 
-### 当前模块依赖与配置例外（迁移前）
+### 历史模块依赖与配置例外（迁移前）
 
 | 模块 | 允许依赖/职责 | 当前边界说明 |
 |---|---|---|
@@ -223,16 +225,16 @@ AgentService agentService(RestTemplate restTemplate, ObjectMapper mapper, AgentP
 | `agent` | Spring 到 Python Agent 的代理边界 | 只依赖契约和共享基础能力，不把 Python 实现引入 Java 业务模块 |
 | `app` | 组合根、基础设施适配器、配置装配 | 可组合下层模块，不向下层泄露 Spring 配置类型 |
 
-当前 `ArchitectureBoundaryTest` 主要保护“下层不得依赖 `top.zhaizz.app..`”，不会自动覆盖所有 sibling 依赖（例如 `admin → client`）。新增跨模块 import 时必须同时做人工依赖审查，并为新边界补 ArchUnit 断言。
+历史记录中的边界说明只描述迁移前状态。当前 `ArchitectureBoundaryTest` 已按上方完整矩阵检查所有九模块，并用夹具覆盖 `client → agent`、`common → pojo` 等此前遗漏的边；新增跨模块 import 仍必须同时做人工审查和测试。
 
 配置例外必须按真实源码处理：`client/config/AuthCookieProperties`、`CollectionProgressConfig`、`app/infrastructure/**` 等仍属于消费方或基础设施自身配置；迁移规则只适用于本次列出的 `app.config` 类，不得扩大解释为“所有 `@ConfigurationProperties` 都在 app”。
 
 ### 启动、Profile 与健康检查契约
 
-- 当前仓库实际跟踪的 Business 配置文件只有 `app/src/main/resources/application.yml`；文件头部提到的 local/prod 配置不能视为已存在实现。
+- 当前工作树的 `app/src/main/resources` 包含 `application.yml`、`application-local.yml`、`logback-spring.xml`；Git 跟踪 `application.yml` 和 `logback-spring.xml`，`application-local.yml` 是被忽略的本地 Profile 文件。是否启用某个 Profile 仍以启动参数和配置内容为准，不能把本地文件值当作共享契约。
 - 数据库、Redis、Agent 和 CORS 读取的 key 以 `application.yml` 的占位符为准；文档示例不得改写成未在配置或启动脚本中出现的环境变量名。
 - `at.cors.origins` 当前没有安全默认值；缺失/空白值时应保持 fail closed，并通过配置绑定测试确认启动或请求阶段的失败语义。
-- CORS 绑定类的属性路径是 `at.cors.allowed-origins`，但当前 YAML 占位符写成 `${at.cors.origins}`；这是必须由配置绑定测试裁决的现状偏差，新增环境变量前先统一命名。
+- CORS 绑定类的属性路径是 `at.cors.allowed-origins`，但当前 YAML 占位符写成 `${at.cors.origins}`；现有 `AppConfigurationBindingTest` 使用显式 `at.cors.allowed-origins[0]`，未覆盖该占位符命名偏差。新增环境变量或修改配置前必须先统一命名并补回归测试。
 - `/actuator/health/**` 的公开范围、liveness/readiness 分组和匿名访问权限必须作为一个整体验证；当前 Security 仅显式放行 health 路径，其他 URL 仍由 `anyRequest().denyAll()` 拒绝。
 
 | 变更 | 必须核对 |
@@ -255,7 +257,7 @@ AgentService agentService(RestTemplate restTemplate, ObjectMapper mapper, AgentP
 - `client/admin` 直接依赖 `app.infrastructure`。
 - Python 领域节点直接创建 Redis、httpx 或 LLM 客户端。
 - Controller/Router 内堆积事务、批处理或复杂状态转换。
-- 不得因父 POM 已引入 ArchUnit 就声称边界已有自动保护；必须保留 `ArchitectureBoundaryTest` 并运行 `mvn -B clean test`。
+- 不得只因父 POM 已引入 ArchUnit 就假设边界完整；当前自动保护由 `ArchitectureBoundaryTest` 提供，边界或配置迁移后必须运行 `mvn -B clean test`。
 
 ## Business Auth 模块目标设计
 

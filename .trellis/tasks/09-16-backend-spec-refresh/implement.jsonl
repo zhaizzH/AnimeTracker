@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/index.md","reason":"Backend 规范入口和验证命令来源"}
+{"file":".trellis/spec/backend/directory-structure.md","reason":"模块职责、依赖、目录、Converter、POJO 和资源说明"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"common 基础错误定义与 app HTTP 适配边界"}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"测试、质量门禁、Javadoc 与验证命令"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"跨模块依赖、历史迁移和跨层复用规则"}
