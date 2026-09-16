@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 12
-- **Last Active**: 2026-09-15
+- **Total Sessions**: 13
+- **Last Active**: 2026-09-16
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~288 | Active |
+| `journal-1.md` | ~325 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 13 | 2026-09-16 | 刷新 Backend Trellis 规范 | `d8bb08b` | `main` |
 | 12 | 2026-09-15 | 统一后端 Java 中文注释标点 | `ef8775b` | `main` |
 | 11 | 2026-09-15 | 精简 Java 后端中文注释规范 | `3861752b`, `67b4ed8f` | `main` |
 | 10 | 2026-09-14 | 提交 Business 规范任务代码 | `9a732b22`, `937bdcff` | `codex/business-spec-implementation` |

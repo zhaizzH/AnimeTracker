@@ -286,3 +286,40 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 13: 刷新 Backend Trellis 规范
+<!-- trellis-session: v=2 fp=d0e0a7f5be65cac3 -->
+
+**Date**: 2026-09-16
+**Task**: 刷新 Backend Trellis 规范
+**Branch**: `main`
+
+### Summary
+
+按当前 Java 后端源码、POM、ArchitectureBoundaryTest、资源配置和 CI 更新 Backend 规范，合并同主题文档并保留历史记录
+
+### Main Changes
+
+- 更新模块矩阵、common/app 异常边界、资源清单与 CORS 配置债务说明
+- 补充 2026-09-16 Java 测试、Javadoc 和检查器回归基线
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d8bb08b` | docs(trellis): refresh backend specifications |
+
+### Testing
+
+- [OK] mvn -B test -f backend/business/pom.xml：95 passed
+- [OK] check_javadoc.py：255 files、1658 declarations、0 violations
+- [OK] test_check_javadoc.py：7 passed；Trellis、链接、占位文本和 git diff --check 通过
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 后续修改模块边界或配置时同步更新对应主题文档并重跑质量门禁
