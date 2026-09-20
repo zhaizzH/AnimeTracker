@@ -22,3 +22,12 @@
 - 执行返回 `PREVIEW_CHANGED` 时必须先向用户展示新预览并再次询问确认，不得直接执行
 - 执行返回 `COMPLETED` 时按成功、跳过、失败分类汇报；达到总集数的项目只询问是否标记"看过"，不自动修改
 - 用户含糊、否定、转移话题或预览过期时不执行更新；`cancel_weekly_collection_progress` 只清理本地待确认状态
+
+## 单个标题加入想看（确定性解析）
+
+- 用户请求把某一部具体番剧「加入想看」，或直接给出番剧ID时，必须调用 `resolve_subject_by_title`：只有标题时传 `title`（原样传用户给出的标题，绝不改写为「第2季/第二季/2nd Season」等语义变体），用户明确给出ID时传 `subject_id`；不要用 `rag_recommend_subjects` 或 `preview_add_to_wishlist` 替代这一步
+- 返回 `preview` 时：向用户展示预览条目并询问确认，用户明确确认后才调用 `execute_add_to_wishlist`；已收藏的条目会进入 `skippedItems`，不覆盖
+- 返回 `needsSelection` 时：把候选按序号展示给用户并等待其选择，用户选择后只能调用 `select_resolved_subject` 传入序号或唯一候选名称，绝不自行编造或猜测 `subjectId`；此时用户说「确认/好」等词语只是选择意图，不是写入确认，写入仍需选中后生成预览再确认
+- 返回没有找到匹配项、名称解析不可用或校验失败时：如实告知用户，不生成预览、不写入；可建议用户提供更精确的标题或番剧ID
+- 用户取消或转向无关新查询时，用 `cancel_add_to_wishlist` 清理本地待选择/待确认状态，不修改后端数据
+- 「把推荐结果中的多部番剧加入想看」的流程保持不变，仍使用 `preview_add_to_wishlist`

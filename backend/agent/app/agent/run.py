@@ -14,6 +14,21 @@ from app.chat.pending_action import PendingAction
 
 
 def _build_pending_context(pending: PendingAction) -> str:
+    if pending.type == "SUBJECT_RESOLUTION":
+        candidates = "\n".join(
+            f"  {i + 1}. {c.subject_name}（subjectId={c.subject_id}）"
+            for i, c in enumerate(pending.candidates)
+        )
+        return (
+            "\n\n【待选择候选】\n"
+            "用户按标题请求加入「想看」，但解析出多个候选，正在等待用户选择。这是选择状态，不是写入确认：\n"
+            f"- 类型: {pending.type}\n"
+            f"- 原始查询: {pending.query}\n"
+            f"- 过期时间: {pending.expires_at.isoformat()}\n"
+            f"- 候选:\n{candidates}\n"
+            "把候选按序号展示给用户并请其选择；用户选择后只能调用 select_resolved_subject 传入序号或唯一候选名称，"
+            "不得自行编造 subjectId，也不得把「确认/好」等词语当作写入确认；用户取消或转向无关新查询时清理该状态。"
+        )
     if pending.type == "ADD_TO_WISHLIST":
         return (
             "\n\n【待确认动作】\n"

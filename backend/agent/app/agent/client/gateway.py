@@ -16,6 +16,10 @@ _ALLOWED_TARGETS = ("search_agent", "discover_agent", "recommend_agent")
 # 支持确定性强制路由到 recommend_agent 的待确认动作类型
 RECOMMEND_PENDING_ACTION_TYPES = {"COLLECTION_PROGRESS_UPDATE", "ADD_TO_WISHLIST"}
 
+# 候选选择状态：任何用户回合都确定性交给 recommend_agent 处理选择/取消，
+# 但明确确认词只对 ADD_TO_WISHLIST 生效，不能被当成写入确认。
+SUBJECT_RESOLUTION_PENDING_TYPE = "SUBJECT_RESOLUTION"
+
 # 保守的确认词表: 仅精确匹配的简短肯定,拒绝否定词与含糊长文本
 _CONFIRMATION_PHRASES = {
     "确认", "确定", "是", "是的", "好", "好的", "可以", "行",
@@ -66,7 +70,14 @@ def _is_explicit_recommendation_request(text: str) -> bool:
 def _resolve_forced_pending_route(state: AgentState) -> dict[str, str] | None:
     """存在支持的待确认动作且当前问题为明确确认时,确定性强制路由 recommend_agent。"""
     pending = state.get("pending_action")
-    if pending is None or getattr(pending, "type", None) not in RECOMMEND_PENDING_ACTION_TYPES:
+    pending_type = getattr(pending, "type", None)
+    if pending_type is None:
+        return None
+    # 候选选择状态：任何回合都交给 recommend_agent；确认词不会触发写入，
+    # 因为 execute_add_to_wishlist 只接受 ADD_TO_WISHLIST 待确认动作。
+    if pending_type == SUBJECT_RESOLUTION_PENDING_TYPE:
+        return {"routing": {"route_target": "recommend_agent"}}
+    if pending_type not in RECOMMEND_PENDING_ACTION_TYPES:
         return None
     if not _is_explicit_confirmation(state.get("current_question") or ""):
         return None

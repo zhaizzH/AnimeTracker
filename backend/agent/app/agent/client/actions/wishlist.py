@@ -41,6 +41,43 @@ def _pending_action_from_items(items: list[dict], user: UserInfo) -> WishlistPen
     )
 
 
+def build_wishlist_preview(subjects: list[dict], user: UserInfo, business: BusinessGateway) -> dict:
+    """既有加入想看预览核心：去重、跳过已收藏、生成待确认动作，不写入。
+
+    多个入口复用（推荐结果批量加入、单标题解析后的唯一候选），保证预览→确认
+    的写入边界只有一处实现。返回 ``{"pendingItems": [...], "skippedItems": [...]}``；
+    只有存在待确认条目时才发出 SET 待确认动作。
+    """
+    seen = set()
+    deduped = []
+    for item in subjects:
+        sid = (item or {}).get("subjectId")
+        if sid is None or sid in seen:
+            continue
+        seen.add(sid)
+        deduped.append(item)
+        if len(deduped) >= _MAX_WISHLIST_PREVIEW_ITEMS:
+            break
+
+    pending_items = []
+    skipped_items = []
+    for item in deduped:
+        sid = item["subjectId"]
+        state = _check_collection_state(sid, user, business)
+        if state.get("error"):
+            return {"error": True, "code": state["data"].get("code"),
+                    "message": state["data"].get("message", "检查收藏状态失败")}
+        if state["collected"]:
+            skipped_items.append({"subjectId": sid, "subjectName": item.get("subjectName", ""),
+                                  "existingType": state["type"]})
+        else:
+            pending_items.append({"subjectId": sid, "subjectName": item.get("subjectName", "")})
+
+    if pending_items:
+        emit_pending_action_set(_pending_action_from_items(pending_items, user))
+    return {"pendingItems": pending_items, "skippedItems": skipped_items}
+
+
 def build_wishlist_tools(business: BusinessGateway):
     @tool
     @tool_call_status(display_name="预览加入想看")
@@ -52,34 +89,7 @@ def build_wishlist_tools(business: BusinessGateway):
         err = _require_user(user)
         if err:
             return err
-        seen = set()
-        deduped = []
-        for item in subjects:
-            sid = (item or {}).get("subjectId")
-            if sid is None or sid in seen:
-                continue
-            seen.add(sid)
-            deduped.append(item)
-            if len(deduped) >= _MAX_WISHLIST_PREVIEW_ITEMS:
-                break
-
-        pending_items = []
-        skipped_items = []
-        for item in deduped:
-            sid = item["subjectId"]
-            state = _check_collection_state(sid, user, business)
-            if state.get("error"):
-                return {"error": True, "code": state["data"].get("code"),
-                        "message": state["data"].get("message", "检查收藏状态失败")}
-            if state["collected"]:
-                skipped_items.append({"subjectId": sid, "subjectName": item.get("subjectName", ""),
-                                      "existingType": state["type"]})
-            else:
-                pending_items.append({"subjectId": sid, "subjectName": item.get("subjectName", "")})
-
-        if pending_items:
-            emit_pending_action_set(_pending_action_from_items(pending_items, user))
-        return {"pendingItems": pending_items, "skippedItems": skipped_items}
+        return build_wishlist_preview(subjects, user, business)
 
     @tool
     @tool_call_status(display_name="确认加入想看")
