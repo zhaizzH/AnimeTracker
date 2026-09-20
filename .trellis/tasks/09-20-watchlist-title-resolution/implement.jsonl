@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "Agent 工具注册、待确认动作与 SUBJECT_RESOLUTION 复用、Business /save 权威边界与 gateway 路由契约"}
+{"file": ".trellis/spec/backend/rag-retrieval-contract.md", "reason": "RAG fallback、available/reason 与不可用语义，标题解析回退复用"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Redis 待确认状态 TTL 与收藏权威数据边界"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "跨层写入边界 Agent→Business /save、状态持久化与回归范围"}

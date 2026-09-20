@@ -188,6 +188,81 @@ allowed = resolve_evidence(match.entity_kind, ids, token=token)
 
 最低回归场景：预存旧动作 → `REPLACE` 失败 → 再次确认；断言旧动作不会被执行。
 
+#### Scenario: 单标题「加入想看」确定性解析与 SUBJECT_RESOLUTION 候选状态
+
+##### 1. Scope / Trigger
+
+- 触发：修改 Agent 单标题加入想看链路（`resolve_subject_by_title` / `select_resolved_subject`）、`SUBJECT_RESOLUTION` 待确认状态，或 gateway 对该状态的路由。
+- 目的：保证标题→条目走 Business 优先、RAG 仅在“成功空结果”时回退、权威校验后唯一精确候选才进预览；多候选或歧义进入受控选择状态，绝不把接口异常伪装成无结果，也绝不自动选中相似候选。
+- 边界：只覆盖“加入想看”（type=1，`/collections/{id}/wishlist`）。“加入追番/在看”（type=3）当前 Agent 无写工具，属另一任务。
+
+##### 2. Signatures
+
+- `resolve_subject_by_title(title="", subject_id=None) -> dict`；`select_resolved_subject(choice: int | str) -> dict`（`user`、`pending` 由 `InjectedState` 注入）。
+- `SubjectResolutionPendingAction{type:"SUBJECT_RESOLUTION", user_id, expires_at, query, candidates:[{subjectId,subjectName,matchSource,matchType}]}`，camelCase `by_alias`，复用 Agent Redis 键与 600 秒 TTL。
+- 复用 `BusinessGateway.search_subjects(query,token,size)` → `GET /api/client/subjects/search`（响应 `content[]`，字段 `id/name/nameCn`，无 `active/nsfw`）；`batch_subjects(ids,token,exclude_collected=False)` → `POST /api/client/subjects/batch`（`items[]` 含 `id/type/nsfw/active/name/nameCn`，另有 `missingIds/filteredIds`）。
+- 复用 `app/agent/client/actions/wishlist.py::build_wishlist_preview(subjects,user,business)` 与 `RetrieveSubjectsUseCase.execute(query, mode="search", user)`。
+
+##### 3. Contracts
+
+- 顺序：显式 `subject_id` → 跳过名称搜索但仍 `/batch`；否则 Business `/search`（原始标题，仅去外围空白）→ 归一化唯一精确命中 → 仅“成功且候选为空”才回退 RAG（`mode="search"`，只传 `semantic_query`，不传 `entity_name/entity_kind`）。
+- 归一化只做字符层面：NFKC + casefold + 安全标点当分隔符 + 连续空白折叠 + strip。禁止“第二季/第2季/2nd Season/II”等语义转换；只有真实标题或工具证据 `aliases` 可命中，子串命中不算精确。
+- `/batch` 只保留 `active is True`、`type==2`、`nsfw is False`；`missingIds/filteredIds` 丢弃；`excludeCollected=false`（收藏与否由预览阶段判断，不覆盖既有收藏）。
+- 结果分流：权威校验后 0 → “没有找到匹配项”，不预览不写入；1 且唯一精确 → `build_wishlist_preview`（仍走预览→明确确认→幂等写入）；多个，或“非唯一精确”（含单个歧义/相似候选）→ 保存 `SUBJECT_RESOLUTION`，绝不自动预览。
+- 选择：只接受注入的 `SUBJECT_RESOLUTION`，按 1-based 序号或归一化后唯一名称从服务端候选中选择，模型不能提交任意 `subjectId`；选中后重新 `/batch` 再进预览，状态由 `ADD_TO_WISHLIST` 覆盖（SET/REPLACE 都调用 `save_pending_action` 覆盖同一键）。
+- gateway：`pending.type==SUBJECT_RESOLUTION` 时任何回合确定性路由 `recommend_agent`；确认词只对 `ADD_TO_WISHLIST/COLLECTION_PROGRESS_UPDATE` 触发写入路由，选择状态下的“确认/好”只是选择意图，不得当写入确认。
+
+##### 4. Validation & Error Matrix
+
+| 条件 | 必须行为 |
+|---|---|
+| Business `/search` 超时/5xx/401/坏响应 | 返回错误语义；不回退 RAG；不建状态；不预览 |
+| Business 成功非空但无唯一精确命中 | 保留安全候选进 `SUBJECT_RESOLUTION`；不得当空结果回退 RAG |
+| Business 成功空结果 | 回退 RAG |
+| RAG `available=false` 或异常 | 返回“名称解析不可用”；不伪装无结果；不预览；不建状态 |
+| RAG 多候选或无唯一精确命中 | 作为候选进 `SUBJECT_RESOLUTION`；相似度最高也不自动预览 |
+| `/batch` 过滤后 0 | “没有找到匹配项”，不预览不写入 |
+| 选择时 user 不匹配 / 过期 / 候选已失效 | `CLEAR` 并返回错误 |
+| 选择名称不唯一 / 序号越界 / 无待选择状态 | 返回错误；名称不唯一或越界时保留状态供重选 |
+
+##### 5. Good/Base/Bad Cases
+
+- Good：标题在 Business 唯一精确命中 → `/batch` 通过 → 预览 → 用户明确确认 → 幂等写入，不覆盖既有收藏。
+- Base：多候选 → `SUBJECT_RESOLUTION` → 用户按序号选 → 重新 `/batch` → 预览 → 确认。
+- Bad：把 Business 500 当空结果回退 RAG；把“第2季”归一化成“第二季”自动选中；RAG 相似度最高的单候选直接预览；把选择状态下的“确认”当写入确认。
+
+##### 6. Tests Required
+
+- `tests/agent/test_subject_resolution.py`：归一化仅字符层面（`第二季 != 第2季`）、唯一精确/多命中、`dedup_ids` 拒 bool 与非正数、`/batch` 过滤 `active/type/nsfw` 与基础设施错误、Business 命中不回退 RAG、Business 错误不回退不预览、空结果回退 RAG、RAG 不可用不伪装、非空无精确进 resolution、显式 `subject_id` 跳搜索仍 `/batch`、选择按序号/唯一名/歧义/越界/用户不匹配/过期/已收藏/失效重校验、gateway 对 `SUBJECT_RESOLUTION` 路由、判别联合序列化往返。
+- 运行 `uv run pytest tests/agent` 与 `uv run pytest`（本轮 42 / 313 通过）。
+
+##### 7. Wrong vs Correct
+
+##### Wrong
+
+```python
+rows = business.search_subjects(title, token=token)
+if not rows:                       # 把错误/超时也当成空结果
+    rows = rag_fallback(title)
+picked = max(rows, key=lambda r: r["score"])   # 相似度最高自动选中
+preview_add_to_wishlist([picked])              # 绕过唯一精确与歧义判定
+```
+
+##### Correct
+
+```python
+stage = _business_lookup(title, user, business)
+if stage["error"]:
+    return stage["error"]                       # 基础设施错误：不回退、不预览
+candidates, exact_unique = stage["candidates"], stage["exact_unique"]
+if stage["empty"]:
+    stage = _rag_lookup(title, user, retrieval)  # 仅“成功空结果”回退 RAG
+valid, err = filter_authoritative(ids, business, token)  # active/type2/nsfw，excludeCollected=false
+if len(survivors) == 1 and exact_unique:
+    return build_wishlist_preview(...)           # 预览 → 明确确认
+emit_pending_action_set(_resolution_action(...)) # 多个/歧义 → SUBJECT_RESOLUTION，不自动预览
+```
+
 ### 认证与配置
 
 - Agent 使用共享 `JWT_SECRET` 本地 HS256 验签，避免回调 Spring 形成代理环路。

@@ -323,3 +323,35 @@
 ### Next Steps
 
 - 后续修改模块边界或配置时同步更新对应主题文档并重跑质量门禁
+
+
+## Session 14: 实现 09-16 按标题安全加入想看（Business 优先 + RAG 回退 + SUBJECT_RESOLUTION）
+<!-- trellis-session: v=2 fp=568b57c1639a508d -->
+
+**Date**: 2026-09-20
+**Task**: 实现 09-16 按标题安全加入想看（Business 优先 + RAG 回退 + SUBJECT_RESOLUTION）
+**Branch**: `main`
+
+### Summary
+
+为单标题加入想看补齐确定性解析链路：显式 subjectId 跳搜索仍 /batch；否则 Business /search 首查，仅成功空结果回退 RAG(复用 RetrieveSubjectsUseCase)；/batch(excludeCollected=false) 只留 active/type2/nsfw；唯一精确候选复用 build_wishlist_preview 走预览→确认，多个/歧义进入新增 SUBJECT_RESOLUTION(600s TTL, 绑定 user/query/候选)。gateway 对该状态确定性路由 recommend_agent，确认词只对 ADD_TO_WISHLIST 生效。归一化仅字符层面(第二季≠第2季)。
+
+### Main Changes
+
+- 新增 app/agent/client/actions/subject_resolution.py 与 tests/agent/test_subject_resolution.py；改 pending_action.py(联合新增 SUBJECT_RESOLUTION)、wishlist.py(抽出 build_wishlist_preview)、recommend.py(注册工具)、gateway.py(路由)、run.py(候选上下文)、recommend_agent_prompt.md
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] uv run pytest tests/agent 42 通过；uv run pytest 全量 313 通过；compileall 与 git diff --check 干净
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 代码尚未提交：需切特性分支→提交→set-branch→按需 archive；并已新建 09-20-watchlist-title-resolution 处理追番(在看)写入与路由缺口
