@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "Agent 工具注册、待确认动作、Business batch 权威边界与路由契约"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Redis 待确认状态 TTL、持久化与错误语义"}
+{"file": ".trellis/spec/backend/rag-retrieval-contract.md", "reason": "RAG fallback、available/reason 与 Evidence 权威回查契约"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "跨层数据流、Agent 写操作确认边界与复用检查"}
