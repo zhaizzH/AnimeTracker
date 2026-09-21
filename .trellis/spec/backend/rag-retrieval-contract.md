@@ -25,8 +25,8 @@ RRF 按两路排名计算 `Σ 1/(60+rank)`，每路上限 50，权威回查后�
 
 ### 日期与状态的已知偏差
 
-- Business `backend/business/client/src/main/java/top/zhaizz/client/util/SeasonUtil.java` 使用冬季=1–3 月、春季=4–6 月、夏季=7–9 月、秋季=10–12 月。
-- Python `app/rag/query_planner.py`、`app/rag/retrieval.py`、`app/adapters/redis/subject_index.py` 当前把 spring/summer/autumn/winter 映射为 1/2/3/4。跨层季度条件存在偏差，修复时需一起检查 indexer 数字季度与历史索引，不能单改 Prompt。
+- Business `backend/business/client/src/main/java/top/zhaizz/client/util/SeasonUtil.java` 使用冬季=1–3 月、春季=4–6 月、夏季=7–9 月、秋季=10–12 月；该动漫季约定与 MySQL `QUARTER()` 日历季度一一对应（winter=1 / spring=2 / summer=3 / autumn=4），是跨层唯一权威。
+- 2026-09-21 起 Python 侧季度词表已对齐权威约定，唯一来源为 `app/rag/seasons.py`（`SEASON_QUARTERS` + `season_month_range`）；`retrieval`、`subject_index`、`query_planner`、`jobs/indexer/shadow_eval`、`jobs/importer` 全部引用它，禁止在任何消费方内联第二份数字/月份映射。跨层一致性由 `tests/rag/test_season_alignment.py` 钉住（源码解析 `SeasonUtil.java` + `QUARTER()` 公式 + 六处消费方同值）；改任一端映射前必须先改词表并运行该文件。线上仍运行的旧索引 quarter 属性本来就是 `QUARTER()` 日历值，无需重建。
 - `use_case.py::_infer_air_status` 优先采用 Evidence/详情中的显式 `airStatus`；只有未来首播日期可推断为 UPCOMING，过去日期在缺少权威状态时为 UNKNOWN，不产生 AIRING。不得依据单个首播日期声称作品已完结或仍在播。
 
 ### 配置和 CLI

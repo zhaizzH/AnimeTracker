@@ -27,8 +27,8 @@ def test_shadow_sql_is_version_scoped_and_parameterized():
     assert "v1" == params["index_version"]
     assert "动画" == params["query_text"]
     assert params["year_from"] == 2024
-    assert params["quarter_month_from"] == 7
-    assert params["quarter_month_to"] == 9
+    assert params["quarter_month_from"] == 10
+    assert params["quarter_month_to"] == 12
     assert params["tag_0"] == "战斗"
     assert params["exclude_0"] == 9
     assert "动画" not in sql
@@ -37,10 +37,10 @@ def test_shadow_sql_is_version_scoped_and_parameterized():
 @pytest.mark.parametrize(
     ("quarter", "month_from", "month_to"),
     [
-        ("spring", 1, 3),
-        ("summer", 4, 6),
-        ("autumn", 7, 9),
-        ("winter", 10, 12),
+        ("winter", 1, 3),
+        ("spring", 4, 6),
+        ("summer", 7, 9),
+        ("autumn", 10, 12),
     ],
 )
 def test_shadow_sql_maps_quarter_to_calendar_months(quarter, month_from, month_to):

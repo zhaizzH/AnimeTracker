@@ -690,7 +690,7 @@ rows = vectors.vsim(release["indexVersion"], embedding)
 
 推荐契约：今天/本周/本季请求使用当前时间工具结果生成条件；日程约定 `weekday=0` 为周日、`-1` 为全部。不要直接把 Python `weekday()`（周一为 0）作为 Business 参数。
 
-季度与播出状态存在跨层偏差，详见 [RAG 检索契约](./rag-retrieval-contract.md)。日程、评分和主创描述必须来自本次权威工具结果；工具可调用并不能证明模型已使用正确日期。
+季度映射已跨层对齐（唯一词表 `app/rag/seasons.py`，回归锚 `tests/rag/test_season_alignment.py`）；播出状态推断仍有跨层差异，详见 [RAG 检索契约](./rag-retrieval-contract.md)。日程、评分和主创描述必须来自本次权威工具结果；工具可调用并不能证明模型已使用正确日期。
 
 ### 验证与当前测试缺口
 

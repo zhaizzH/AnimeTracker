@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 
 from app.rag.schemas import RetrievalQuery
+from app.rag.seasons import SEASON_QUARTERS
 
 
 _YEAR = r"(?:18|19|20|21|22)\d{2}"
@@ -24,11 +25,22 @@ _RATING_TOTAL_MIN = re.compile(
     r"(?P<value>\d+)\s*(?:人|票)?\s*(?P<suffix>以上|及以上|起|或更多|\+|>=)?"
 )
 
-_QUARTERS = (
-    ("spring", ("春季", "春番", "第一季度", "一季度", "Q1", "q1")),
-    ("summer", ("夏季", "夏番", "第二季度", "二季度", "Q2", "q2")),
-    ("autumn", ("秋季", "秋番", "第三季度", "三季度", "Q3", "q3")),
-    ("winter", ("冬季", "冬番", "第四季度", "四季度", "Q4", "q4")),
+_SEASON_WORD_MARKERS = {
+    "spring": ("春季", "春番"),
+    "summer": ("夏季", "夏番"),
+    "autumn": ("秋季", "秋番"),
+    "winter": ("冬季", "冬番"),
+}
+_CN_ORDINALS = {1: "一", 2: "二", 3: "三", 4: "四"}
+# “第N季度/几季度/QN”按日历第 N 季度理解，与 SEASON_QUARTERS 的动漫季约定一致
+# （Q1=1-3月=winter … Q4=10-12月=autumn）；序数标记从词表派生，不手写数字映射。
+_QUARTERS = tuple(
+    (
+        season,
+        _SEASON_WORD_MARKERS[season]
+        + (f"第{_CN_ORDINALS[quarter]}季度", f"{_CN_ORDINALS[quarter]}季度", f"Q{quarter}", f"q{quarter}"),
+    )
+    for season, quarter in SEASON_QUARTERS.items()
 )
 _AIR_STATUS = (
     ("UPCOMING", ("即将播出", "未播", "待播")),

@@ -28,6 +28,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.adapters.mysql.import_records import get_engine, sanitize_import_error
+from app.rag.seasons import SEASON_QUARTERS, season_month_range
 from app.shared.observability import log_event
 
 try:
@@ -51,13 +52,6 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
-
-SEASON_MONTHS = {
-    "spring": (1, 3),
-    "summer": (4, 6),
-    "autumn": (7, 9),
-    "winter": (10, 12),
-}
 
 MAX_WORKERS = 10
 MAX_WORKERS_LIMIT = 10
@@ -340,9 +334,9 @@ def parse_season_key(key: str):
         raise ValueError(f"invalid season key: {key}")
     year = int(parts[0])
     season = parts[1].lower()
-    if season not in SEASON_MONTHS:
+    if season not in SEASON_QUARTERS:
         raise ValueError(f"invalid season: {season}")
-    ms, me = SEASON_MONTHS[season]
+    ms, me = season_month_range(season)
     return year, ms, me
 
 

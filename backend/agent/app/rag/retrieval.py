@@ -10,11 +10,11 @@ from typing import Any, Callable, Mapping, Sequence
 from app.shared.observability import log_event
 from app.rag.ports import EmbeddingPort
 from app.rag.schemas import RetrievalQuery
+from app.rag.seasons import SEASON_QUARTERS
 from app.rag.user_profile import UserPreference
 
 
 _REDIS_RESERVED = re.compile(r'([,\.<>\{\}\[\}"\':;!@#$%^&*()\-+=~|\\/])')
-_QUARTERS = {"spring": 1, "summer": 2, "autumn": 3, "winter": 4}
 _MAX_RESULTS = 15
 _REDIS_TAG_RESERVED = re.compile(r'([\.< >\{\}\[\}"\':;!@#$%^&*()\-+=~|\\/])')
 
@@ -517,7 +517,7 @@ class RagRetrievalService:
         if query.year_from is not None or query.year_to is not None:
             parts.append(f"@year:[{query.year_from if query.year_from is not None else '-inf'} {query.year_to if query.year_to is not None else '+inf'}]")
         if query.quarter:
-            value = _QUARTERS[query.quarter]
+            value = SEASON_QUARTERS[query.quarter]
             parts.append(f"@quarter:[{value} {value}]")
         if query.score_min is not None:
             parts.append(f"@score:[{query.score_min} +inf]")
@@ -794,7 +794,7 @@ class RagRetrievalService:
             return False
         if query.quarter is not None:
             quarter = _item_quarter(item)
-            if quarter != _QUARTERS[query.quarter]:
+            if quarter != SEASON_QUARTERS[query.quarter]:
                 return False
 
         if query.air_status is not None:
@@ -966,8 +966,8 @@ def _item_quarter(item: Mapping[str, Any]) -> int | None:
     if raw_quarter is not None:
         if isinstance(raw_quarter, str):
             normalized = raw_quarter.casefold()
-            if normalized in _QUARTERS:
-                return _QUARTERS[normalized]
+            if normalized in SEASON_QUARTERS:
+                return SEASON_QUARTERS[normalized]
         try:
             quarter = int(raw_quarter)
             return quarter if quarter in {1, 2, 3, 4} else None

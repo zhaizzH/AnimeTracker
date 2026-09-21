@@ -29,6 +29,7 @@ from app.adapters.mysql.import_records import get_engine
 from app.adapters.redis.subject_index import RedisSubjectIndex
 from app.rag.retrieval import RagRetrievalService
 from app.rag.schemas import RetrievalQuery
+from app.rag.seasons import season_month_range
 from tests.evals.runner import EvalConfig, evaluate_case, load_golden_dataset
 from tests.evals.schemas import CaseResult, GoldenCase
 
@@ -150,13 +151,7 @@ def build_shadow_sql(query: RetrievalQuery, *, index_version: str, limit: int = 
         params["year_to"] = query.year_to
         where.append("s.air_date <= CONCAT(:year_to, '-12-31')")
     if query.quarter:
-        quarter_bounds = {
-            "spring": (1, 3),
-            "summer": (4, 6),
-            "autumn": (7, 9),
-            "winter": (10, 12),
-        }
-        month_from, month_to = quarter_bounds[query.quarter]
+        month_from, month_to = season_month_range(query.quarter)
         params["quarter_month_from"] = month_from
         params["quarter_month_to"] = month_to
         where.append("MONTH(s.air_date) BETWEEN :quarter_month_from AND :quarter_month_to")

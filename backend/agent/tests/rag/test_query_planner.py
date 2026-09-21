@@ -20,7 +20,7 @@ def test_planner_extracts_year_range_and_quarter_alias():
 
     assert planned.year_from == 2020
     assert planned.year_to == 2022
-    assert planned.quarter == "winter"
+    assert planned.quarter == "autumn"
     assert planned.air_status == "FINISHED"
 
 

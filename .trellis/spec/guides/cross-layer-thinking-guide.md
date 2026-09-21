@@ -96,7 +96,7 @@ React client/admin
 - 按 `JWT role → graph.py 节点 → tools 注册 → Prompt 来源/缓存 → 模型 delta → SSE → shared Hook → client/admin UI` 检查，不从单条自然语言回答推断后端能力。
 - 管理员节点当前没有 rag_*，客户端有；RAG 总开关与 ACTIVE release 又分别影响执行路径。权限边界不能靠提示词绕过。
 - 中文提示词、英文 reasoning 过滤、中文处理状态是不同机制；当前源码只有提示词约束与原始 reasoning 转发。不得把固定状态文本描述成模型原始思考。
-- 季度映射须核对 Java SeasonUtil 与 Python planner/filter；当前两端映射不一致。首播日期也不能证明已经完结。
+- 季度映射两端已对齐：Java `SeasonUtil` 为权威，Python 唯一词表在 `app/rag/seasons.py`；改动任一端后必须运行 `tests/rag/test_season_alignment.py` 核对。首播日期也不能证明已经完结。
 - 详细源码与验证缺口见 [Agent 运行与提示词契约](../backend/agent-guidelines.md#agent-角色提示词与流式输出契约)。
 
 ## 代码复用检查指南

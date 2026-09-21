@@ -217,7 +217,7 @@ class TestEvidenceEnrichment:
             meta_tags=["SF"],
             year_from=2024,
             year_to=2024,
-            quarter="spring",
+            quarter="winter",
             score_min=8.0,
             rating_total_min=1000,
             air_status="FINISHED",

@@ -229,7 +229,7 @@ def _structured_cases(connection: Any, subjects: dict[int, dict[str, Any]], tags
 
     for index, row in enumerate(tags[15:22], 1):
         tag = str(row["name"])
-        add(f"filter_quarter_tag_{index:02d}", {"year_from": 2026, "year_to": 2026, "quarter": "autumn", "meta_tags": [tag]}, "YEAR(s.air_date)=:year AND QUARTER(s.air_date)=:quarter AND EXISTS (SELECT 1 FROM subject_meta_tag smt WHERE smt.subject_id=s.id AND smt.name=:tag AND smt.source_active=1)", {"year": 2026, "quarter": 3, "tag": tag}, "subject.year_quarter_meta_tag.v1", ["subject", "subject_meta_tag"], "年份季度与元标签组合过滤")
+        add(f"filter_quarter_tag_{index:02d}", {"year_from": 2026, "year_to": 2026, "quarter": "autumn", "meta_tags": [tag]}, "YEAR(s.air_date)=:year AND QUARTER(s.air_date)=:quarter AND EXISTS (SELECT 1 FROM subject_meta_tag smt WHERE smt.subject_id=s.id AND smt.name=:tag AND smt.source_active=1)", {"year": 2026, "quarter": 4, "tag": tag}, "subject.year_quarter_meta_tag.v1", ["subject", "subject_meta_tag"], "年份季度与元标签组合过滤")
 
     add("filter_year_01", {"year_from": 2026, "year_to": 2026}, "YEAR(s.air_date)=:year", {"year": 2026}, "subject.year.v1", ["subject"], "年份过滤")
 

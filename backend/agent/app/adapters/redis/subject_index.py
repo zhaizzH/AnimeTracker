@@ -8,6 +8,7 @@ from typing import Any, Mapping, Sequence
 
 from app.entities.enums import EntityKind
 from app.rag.schemas import RetrievalQuery, SubjectProfile
+from app.rag.seasons import SEASON_QUARTERS
 
 
 VECTOR_DIMENSIONS = 1024
@@ -236,7 +237,7 @@ def _vector_filter(query: RetrievalQuery) -> str:
     if query.year_to is not None:
         parts.append(f".year <= {int(query.year_to)}")
     if query.quarter:
-        parts.append(f".quarter == {int({'spring': 1, 'summer': 2, 'autumn': 3, 'winter': 4}[query.quarter])}")
+        parts.append(f".quarter == {int(SEASON_QUARTERS[query.quarter])}")
     if query.score_min is not None:
         parts.append(f".score >= {float(query.score_min):.8g}")
     if query.rating_total_min is not None:
