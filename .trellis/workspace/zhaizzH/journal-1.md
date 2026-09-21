@@ -355,3 +355,37 @@
 ### Next Steps
 
 - 代码尚未提交：需切特性分支→提交→set-branch→按需 archive；并已新建 09-20-watchlist-title-resolution 处理追番(在看)写入与路由缺口
+
+
+## Session 15: 实现 09-20 按标题设置收藏类型(1-5)与写入意图路由
+<!-- trellis-session: v=2 fp=40721320b23a8164 -->
+
+**Date**: 2026-09-21
+**Task**: 实现 09-20 按标题设置收藏类型(1-5)与写入意图路由
+**Branch**: `feat/collection-type-resolution`
+
+### Summary
+
+新增 set_subject_collection/execute_set_collection_type/cancel：复用 09-16 解析链路，预览三态 ADD/NOOP/CHANGE，确认后经 /collections/{id}/save 写目标类型，CHANGE 预览可见不静默覆盖。pending_action 增 SET_COLLECTION_TYPE，SUBJECT_RESOLUTION 增可选 collection_type(默认None向后兼容)并按其分派。gateway 写入意图改为动词+填充词+类型名正则(覆盖'添加到我的追番'插词)并保留否定守卫，纯查询不误触发。抽出共享 check_collection_state，新增 save_collection 网关方法。
+
+### Main Changes
+
+- 新增 collection_type.py/collection_state.py + test_collection_type.py/test_write_intent_routing.py；改 subject_resolution.py(抽 resolve_candidates/finalize_resolution)、wishlist.py、pending_action.py、gateway.py、recommend.py、run.py、ports.py、business_http.py、gateway_prompt.md、recommend_agent_prompt.md
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `62c7086a` | feat(agent): 按标题设置收藏类型(1-5)与写入意图路由 |
+
+### Testing
+
+- [OK] uv run pytest 全量 339 通过；真实服务端到端(test2/userId5,subject110)验证 路由→ADD预览→确认写type2→CHANGE预览→确认写type4→NOOP不写，测试数据已 /remove 清理
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 代码在分支 feat/collection-type-resolution 未合并；如需硬门禁(写入必须匹配确认词而非依赖模型判断)可另开任务

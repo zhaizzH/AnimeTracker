@@ -260,7 +260,77 @@ if stage["empty"]:
 valid, err = filter_authoritative(ids, business, token)  # active/type2/nsfw，excludeCollected=false
 if len(survivors) == 1 and exact_unique:
     return build_wishlist_preview(...)           # 预览 → 明确确认
-emit_pending_action_set(_resolution_action(...)) # 多个/歧义 → SUBJECT_RESOLUTION，不自动预览
+emit_pending_action_set(build_resolution_action(...)) # 多个/歧义 → SUBJECT_RESOLUTION，不自动预览
+```
+
+#### Scenario: 按标题设置收藏类型（/save）与写入意图路由
+
+##### 1. Scope / Trigger
+
+- 触发：修改 Agent“按标题设置/变更收藏类型”链路（`set_subject_collection` / `execute_set_collection_type`）、`SET_COLLECTION_TYPE` 待确认动作、`BusinessGateway.save_collection`，或 gateway 写入意图路由。
+- 边界：写入任意收藏类型 1..5（想看/看过/在看(追番)/搁置/抛弃），经 `POST /api/client/collections/{id}/save`。普通“加入想看”仍走幂等 `/wishlist`（不覆盖）；显式“设为/标记为/改成 <类型>”走 `/save`。
+
+##### 2. Signatures
+
+- `set_subject_collection(collection_type: Literal[1,2,3,4,5], title="", subject_id=None) -> dict`；`execute_set_collection_type() -> dict`（`pending`/`user` 注入）；`cancel_set_collection_type()`。
+- `SetCollectionTypePendingAction{type:"SET_COLLECTION_TYPE", user_id, expires_at, subjectId, subjectName, targetType, currentType(int|None), action("ADD"|"CHANGE")}`，camelCase by_alias，600s TTL。
+- `BusinessGateway.save_collection(subject_id, *, collection_type, token, rate=None, ep_status=None)` → `POST /api/client/collections/{id}/save`，body `{"type","rate","epStatus"}`（对齐 `CollectionUpdateDTO`）。
+- `SubjectResolutionPendingAction.collection_type`（alias `collectionType`，默认 None）：多候选选中后要设置的目标类型；None=回到想看预览（向后兼容）。
+
+##### 3. Contracts
+
+- 解析复用 09-16：`resolve_candidates`（显式 id 跳搜索仍 `/batch`；Business 首查；仅成功空结果回退 RAG；`/batch` 只留 active/type2/nsfw，excludeCollected=false）+ `finalize_resolution`（0 无匹配 / 1 唯一精确预览 / 多或歧义 SUBJECT_RESOLUTION 且携带 collection_type）。
+- `save_collection` 语义（源码 `CollectionServiceImpl.saveOrUpdate`）：条目不存在→404；已收藏且同类型、rate/epStatus 无变化→409；已收藏但类型不同或有变化→UPDATE 覆盖；未收藏→INSERT。`/save` **不做** active/nsfw 安全过滤，安全边界仍由 Agent `/batch` 承担。
+- 预览三态：未收藏→ADD；已在目标类型→NOOP（不发待确认动作、不写入，避免 409）；他类型→CHANGE（必须在预览中展示“当前→目标”，绝不静默覆盖）。
+- 写入只在用户对 ADD/CHANGE 明确确认后由 `execute_set_collection_type` 执行，且只读注入的 `SET_COLLECTION_TYPE`，模型不能自造 subjectId/类型。
+- 路由：写入意图 = 写入动词 + 可选填充词 + 类型名的复合正则（覆盖“添加到我的追番”“把这部设为在看”等插词），保留否定前缀守卫；纯查询（追番进度/追番日程/我在看什么/我收藏了哪些）不得误触发。`SET_COLLECTION_TYPE` 加入 `RECOMMEND_PENDING_ACTION_TYPES`，明确确认可确定性路由 recommend_agent 执行。
+
+##### 4. Validation & Error Matrix
+
+| 条件 | 必须行为 |
+|---|---|
+| `collection_type` 非 1..5 / 非整数 | 工具 schema(Literal) 拒绝；不写入 |
+| 解析基础设施错误 / RAG 不可用 | 返回错误语义；不回退、不预览、不建状态 |
+| 已在目标类型（NOOP） | 不发待确认动作、不写入；如实告知已在该列表 |
+| 他类型（CHANGE） | 预览展示 当前→目标，确认后才 `/save` 覆盖 |
+| `/save` 返回成功(None) | `SAVED`，clear，汇报 ADD/CHANGE |
+| `/save` 409 | `ALREADY_COLLECTED`，clear，不算失败 |
+| `/save` 404 | 报错，clear，不宣称写入 |
+| `/save` 基础设施错误(code 为 None) | 保留待确认动作供重试，不宣称成功 |
+| 未确认 / 取消 | 不写入；cancel 仅 clear |
+
+##### 5. Good/Base/Bad Cases
+
+- Good：标题唯一精确→预览 ADD→确认→`/save` 成功→clear。
+- Base：已在看再“加入追番”→NOOP，不写入、不 409。
+- Bad：把“我在看什么/追番日程”误路由到写入；CHANGE 不在预览展示就覆盖；`/save` 409 当成失败；基础设施不确定却宣称已写入。
+
+##### 6. Tests Required
+
+- `tests/agent/test_collection_type.py`：预览 ADD/NOOP/CHANGE 与状态错误、set 唯一精确/多候选(带 collection_type)/NOOP 清理/显式 id/无匹配、execute 成功/409/404/基础设施保留/无待确认、选择后按 collection_type 分派、SET_COLLECTION_TYPE 与 SUBJECT_RESOLUTION(带/不带 collectionType) 序列化往返、工具 schema 含 collection_type。
+- `tests/agent/test_write_intent_routing.py`：写入短语命中（含插词）、否定不误触发、纯查询不误触发、SET_COLLECTION_TYPE 确认强制路由、非确认不强制。
+- 运行 `uv run pytest tests/agent` 与 `uv run pytest`（本轮 339 通过）。
+
+##### 7. Wrong vs Correct
+
+##### Wrong
+
+```python
+# 直接把“追番/收藏”字样当写入意图，且不预览就覆盖类型
+if "追番" in text or "收藏" in text:
+    business.save_collection(sid, collection_type=3, token=token)  # 静默覆盖、无确认
+```
+
+##### Correct
+
+```python
+if _is_explicit_recommendation_request(text):   # 动词+类型名复合正则，排除查询
+    route = "recommend_agent"
+preview = build_collection_type_preview(sid, name, target, user, business)  # ADD/NOOP/CHANGE
+if preview["action"] == "CHANGE":
+    show_user(f"从{preview['currentType']}改为{target}")   # 变更可见
+# 仅在用户明确确认后：
+result = business.save_collection(sid, collection_type=target, token=token)
 ```
 
 ### 认证与配置

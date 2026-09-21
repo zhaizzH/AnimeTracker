@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 14
-- **Last Active**: 2026-09-20
+- **Total Sessions**: 15
+- **Last Active**: 2026-09-21
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~357 | Active |
+| `journal-1.md` | ~391 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 15 | 2026-09-21 | 实现 09-20 按标题设置收藏类型(1-5)与写入意图路由 | `62c7086a` | `feat/collection-type-resolution` |
 | 14 | 2026-09-20 | 实现 09-16 按标题安全加入想看（Business 优先 + RAG 回退 + SUBJECT_RESOLUTION） | - | `main` |
 | 13 | 2026-09-16 | 刷新 Backend Trellis 规范 | `d8bb08b` | `main` |
 | 12 | 2026-09-15 | 统一后端 Java 中文注释标点 | `ef8775b` | `main` |
