@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/rag-retrieval-contract.md", "reason": "校验季度对齐与检索过滤"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "校验 Python 与 Java/MySQL 季度一致"}

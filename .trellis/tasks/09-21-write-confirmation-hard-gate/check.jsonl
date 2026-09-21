@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "校验硬确认门禁与 nonce 绑定"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "校验写入边界不被绕过"}

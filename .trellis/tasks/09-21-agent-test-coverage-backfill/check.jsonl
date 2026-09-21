@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "校验测试补齐不回归"}
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "校验 SSE/health/路由契约覆盖"}

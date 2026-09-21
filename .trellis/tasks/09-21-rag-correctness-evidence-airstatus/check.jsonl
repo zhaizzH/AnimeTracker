@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/rag-retrieval-contract.md", "reason": "校验 Evidence 完整性与 fail-closed"}
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "校验重复ID拒绝与状态过滤"}

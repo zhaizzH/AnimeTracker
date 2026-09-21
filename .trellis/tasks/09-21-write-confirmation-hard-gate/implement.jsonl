@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "安全写操作/待确认动作持久化失败矩阵/preview_id-nonce"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Agent 写操作确认边界与最低失败路径"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Redis 待确认状态 TTL 与错误语义"}
