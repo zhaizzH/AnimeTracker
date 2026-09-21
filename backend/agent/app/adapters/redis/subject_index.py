@@ -6,6 +6,7 @@ import json
 import math
 from typing import Any, Mapping, Sequence
 
+from app.adapters.redis.command_info import command_info_present
 from app.entities.enums import EntityKind
 from app.rag.schemas import RetrievalQuery, SubjectProfile
 from app.rag.seasons import SEASON_QUARTERS
@@ -95,7 +96,7 @@ class RedisSubjectIndex:
                 info = self._redis.execute_command("COMMAND", "INFO", command)
             except Exception as exc:
                 raise RuntimeError(f"无法探测 Redis Vector Set {command}") from exc
-            if not _command_info_present(info):
+            if not command_info_present(info):
                 raise RuntimeError(f"Redis 未启用 Vector Set {command}；RAG 索引保持关闭")
         return self.vector_key(index_version)
 
@@ -290,14 +291,3 @@ def _parse_vsim_rows(raw: Any) -> list[dict[str, Any]]:
         row.update({"subject_id": subject_id, "id": subject_id, "score": score})
         rows.append(row)
     return rows
-
-
-def _command_info_present(info: Any) -> bool:
-    """Redis returns ``[None]`` for an unknown COMMAND INFO entry."""
-    if not info:
-        return False
-    if isinstance(info, Mapping):
-        return any(item is not None for item in info.values())
-    if isinstance(info, (list, tuple)):
-        return any(item is not None for item in info)
-    return True

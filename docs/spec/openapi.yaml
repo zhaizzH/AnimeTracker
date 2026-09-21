@@ -2887,30 +2887,44 @@ paths:
   /api/client/agent/health:
     get:
       summary: "健康检查"
-      description: "健康检查"
+      description: "分项探测 LLM 配置 / Redis / Business / RAG(Vector Set)，恒返回 HTTP 200，降级在体表达。Authorization 必填来自 Spring 代理层（ClientAgentController + SecurityConfig 的 /api/client/** authenticated）；直连 Agent :8090 的 Python 侧为匿名。"
       parameters:
       - name: "Authorization"
         in: "header"
-        description: ""
+        description: "经 Spring 代理访问时必填；直连 Agent 的 Python 侧为匿名"
         required: true
         schema: {}
       responses:
         "200":
-          description: ""
+          description: "健康报告（HTTP 恒 200；依赖不可用时 status=degraded）"
           content:
             application/json:
               schema:
                 type: "object"
                 properties:
-                  code:
-                    type: "integer"
-                    description: ""
-                  message:
+                  status:
                     type: "string"
-                    description: ""
-                  data:
-                    type: "string"
-                    description: ""
+                    enum: ["ok", "degraded"]
+                    description: "任一分项为 down 时 degraded，否则 ok"
+                  llm_configured:
+                    type: "boolean"
+                    description: "LLM 配置是否可解析"
+                  checks:
+                    type: "object"
+                    description: "分项探测结果，取值恒为有限枚举"
+                    properties:
+                      llm:
+                        type: "string"
+                        enum: ["ok", "down"]
+                      redis:
+                        type: "string"
+                        enum: ["ok", "down"]
+                      business:
+                        type: "string"
+                        enum: ["ok", "down"]
+                      rag:
+                        type: "string"
+                        enum: ["ok", "down", "disabled"]
   /api/client/agent/stream:
     post:
       summary: "Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）"

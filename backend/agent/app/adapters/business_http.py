@@ -27,6 +27,7 @@ class HttpBusinessGateway(BusinessGateway):
         params: dict | None = None,
         token: str | None = None,
         json_body: dict | None = None,
+        timeout_seconds: float | None = None,
     ) -> dict | list | None:
         headers = _build_headers(token)
         try:
@@ -36,7 +37,7 @@ class HttpBusinessGateway(BusinessGateway):
                 params=params,
                 json=json_body,
                 headers=headers,
-                timeout=self._timeout,
+                timeout=timeout_seconds if timeout_seconds is not None else self._timeout,
                 trust_env=False,
             )
             resp.raise_for_status()

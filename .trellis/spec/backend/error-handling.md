@@ -87,6 +87,7 @@
 ### 常见错误
 
 - Controller 返回 HTTP 200，但 body 中塞非 200 错误码。
+  - **例外（有意）**：`GET /api/client/agent/health` 恒返回 200，降级在 body 的 `status`/`checks` 表达。理由：健康检查是诊断端点而非业务响应，仓库无常驻宿主或 k8s probe 消费其状态码（`agent-guidelines.md` 健康检查语义节）；且 Business 不可用会被 Spring `AgentServiceImpl` 映射为 503，Python 若也返 503 会把「Business 抖一下」级联放大为「Agent 被摘除」。新增此类例外必须同样在此登记理由。
 - Python 工具用裸 `except Exception: return {}` 吞掉失败。
 - 把上游完整错误体拼入面向用户的消息。
 - 为局部场景新建另一套响应结构。

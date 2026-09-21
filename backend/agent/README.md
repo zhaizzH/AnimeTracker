@@ -440,7 +440,7 @@ uv run python -m jobs.backfill.main --batch-size 5 --report-json
 | `GET` / `POST /api/client/agent/sessions` | 用户 | 会话列表 / 新建 |
 | `GET /api/client/agent/sessions/{id}/history` | 用户 | 历史消息 |
 | `POST /api/client/agent/sessions/{id}` | 用户 | 删除会话 |
-| `GET /api/client/agent/health` | 用户 | 健康检查（含 LLM 配置校验） |
+| `GET /api/client/agent/health` | 用户（见下） | 健康检查：探测 LLM 配置 / Redis / Business / RAG（Vector Set），恒 200，降级在 body |
 | `POST /api/admin/agent/chat/stream` | 管理员 | 管理员 SSE 流式对话 |
 | `GET` / `POST /api/admin/agent/chat/sessions` | 管理员 | 管理员会话列表 / 新建 |
 | `GET /api/admin/agent/chat/sessions/{id}/history` | 管理员 | 管理员历史消息 |
@@ -452,6 +452,30 @@ uv run python -m jobs.backfill.main --batch-size 5 --report-json
 | `GET /docs` | — | Swagger 文档 |
 
 > 管理端接口要求 JWT 中角色为 `ADMIN`（本地验签 + 角色校验，纵深防御）。管理端前端「Agent 配置」与「Agent 对话」页即对接这些端点。
+
+### 健康检查语义
+
+`GET /api/client/agent/health` **恒返回 HTTP 200**，降级状态在响应体中表达（这是对「HTTP 状态码须与错误码一致」的有意例外——该端点是诊断端点，不是业务响应，且仓库无常驻宿主消费其状态码）：
+
+```json
+{
+  "status": "ok" | "degraded",
+  "llm_configured": true,
+  "checks": {
+    "llm": "ok" | "down",
+    "redis": "ok" | "down",
+    "business": "ok" | "down",
+    "rag": "ok" | "down" | "disabled"
+  }
+}
+```
+
+- `checks` 取值恒为有限枚举，**不含**异常文本、堆栈或上游响应体。
+- 探测**真实触网**：Redis 执行 `PING`、Business 发起 `GET /actuator/health/liveness`、RAG 执行 `COMMAND INFO VADD/VSIM/VREM`。仅 LLM 分项是纯配置判定（无网络端点可探）。
+- 分项并发探测、**不短路**：某一项失败不影响其余分项如实上报。各项 2s 预算、总预算 3s，超时判 `down`。
+- `RAG_ENABLED=false` 时报 `disabled`（**不是** `down`，功能开关关闭不算故障），且不发起 Vector Set 探测。
+- 探 Business **liveness** 而非默认 `/actuator/health`：后者聚合 Business 自身的 MySQL/Redis，会把它自身的就绪度问题错误归因为 Agent 依赖故障。
+- **鉴权为两层有意不一致**：浏览器只经 Spring 代理访问该路径，`ClientAgentController` 必填 `Authorization` + `SecurityConfig` 的 `/api/client/**` `.authenticated()` 强制登录；直连 `:8090`（内部编排探针）则匿名放行。Python 侧保持匿名，`tests/api/test_health.py` 钉住该行为。
 
 ## 测试
 

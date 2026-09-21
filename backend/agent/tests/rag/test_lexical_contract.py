@@ -7,9 +7,8 @@ import json
 from app.entities.enums import EntityKind
 from app.rag.retrieval import RagRetrievalService
 from app.rag.schemas import RetrievalQuery, SubjectProfile
+from app.adapters.redis.command_info import command_info_present
 from app.adapters.redis.subject_index import _vector_filter
-from app.adapters.redis.subject_index import _command_info_present as subject_command_info_present
-from app.adapters.redis.vector_set import _command_info_present as vector_command_info_present
 from jobs.indexer.entity_index import EntityIndexDocument, RedisEntityIndex
 
 
@@ -95,7 +94,7 @@ def test_vector_filter_matches_lowercase_indexed_air_status():
 
 
 def test_unknown_command_info_mapping_is_not_treated_as_supported():
-    assert not subject_command_info_present({"VADD": None})
-    assert not vector_command_info_present({"VADD": None})
-    assert subject_command_info_present({"VADD": {"arity": -5}})
-    assert vector_command_info_present({"VADD": {"arity": -5}})
+    assert not command_info_present({"VADD": None})
+    assert not command_info_present([None])
+    assert command_info_present({"VADD": {"arity": -5}})
+    assert command_info_present([{"arity": -5}])

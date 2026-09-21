@@ -348,8 +348,10 @@ result = business.save_collection(sid, collection_type=target, token=token)
 
 #### 健康检查语义
 
-- Agent `/api/client/agent/health` 当前始终返回 HTTP 200，并只反映 LLM 配置是否可解析；不代表 Redis、Business、RAG 或 MinIO 可用。
+- Agent `/api/client/agent/health` 已实现分项探测（2026-09-21）：`checks` 覆盖 `llm`/`redis`/`business`/`rag`，取值为有限枚举 `ok`/`down`/`disabled`；`RAG_ENABLED=false` 报 `disabled` 而非 `down`。仍**恒返回 HTTP 200**，降级在 body 表达（见 `error-handling.md` 的例外登记）。MinIO 仍不探测——它是 importer 离线依赖，`app/` 零网络调用。
+- 探测**真实触网**且**不短路**：Redis 执行 `PING`、Business 发起 `GET /actuator/health/liveness`（**非**默认 `/actuator/health`，后者聚合 Business 自身 MySQL/Redis，会错误归因）、RAG 执行 `COMMAND INFO VADD/VSIM/VREM`（经 `probe_vector_set_commands`，不依赖 `index_version`）。仅 `llm` 分项是纯配置判定。各项 2s、总预算 3s，超时判 `down`。
 - Business 的 liveness/readiness 配置见 `backend/business/app/src/main/resources/application.yml`；readiness 检查 MySQL 与 Redis，Security 只匿名放行 `/actuator/health` 与 `/actuator/health/**`，其他未显式允许的 URL 仍拒绝；修改健康探针时必须补授权测试。
+- 授权为**两层有意不一致**（不得当作缺陷「修复」）：经 Spring 代理的浏览器路径由 `ClientAgentController` 必填 `Authorization` + `SecurityConfig` 的 `/api/client/**` `.authenticated()` 强制登录；直连 Agent `:8090` 的 Python 侧匿名。`tests/api/test_health.py::test_health_is_anonymous` 钉住该行为。
 - 变更健康检查时必须明确：检查项、HTTP 状态、依赖不可用时的响应、公开字段和是否允许匿名访问。
 
 ### 离线任务

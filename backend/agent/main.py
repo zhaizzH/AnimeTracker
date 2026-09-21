@@ -245,6 +245,14 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.warning("Redis 连接失败,启动继续(会话功能将不可用): %s", repr(exc))
     app.state.store = store
+    app.state.settings = settings
+
+    # health 依赖：另建轻量网关与（可选）RAG Redis 客户端。二者构造无 IO，
+    # 不影响图组装；探测由 health 每次都真实发起。
+    app.state.business_gateway = HttpBusinessGateway(settings.backend_base_url)
+    app.state.rag_redis = (
+        redis.Redis.from_url(settings.effective_rag_redis_url) if settings.rag_enabled else None
+    )
 
     logger.info("初始化托管提示词快照...")
     model_configs = RedisModelConfigRepository(settings.redis_url)

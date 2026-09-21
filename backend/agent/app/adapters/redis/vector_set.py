@@ -14,6 +14,7 @@ from typing import Any, Mapping, Sequence
 
 from redis.exceptions import ResponseError
 
+from app.adapters.redis.command_info import command_info_present
 from app.adapters.redis.subject_index import VECTOR_DIMENSIONS, vector_bytes
 from app.entities.enums import EntityKind
 
@@ -25,6 +26,27 @@ _MAX_MEMBER_LENGTH = 128
 
 class VectorSetUnavailable(RuntimeError):
     """Raised when the connected Redis does not expose Vector Set commands."""
+
+
+def probe_vector_set_commands(
+    redis_client: Any,
+    commands: Sequence[str] = ("VADD", "VSIM", "VREM"),
+) -> None:
+    """Probe Vector Set command availability without a specific index version.
+
+    Unlike :meth:`RedisVectorSet.ensure_version`, this entry point does not call
+    ``validate_version``: health checks cannot know the active ``index_version``
+    (the online version is decided per request by the Business lexical response).
+    It never creates a key or writes data, so it is idempotent and safe to call
+    from a diagnostic endpoint.  A missing command raises ``VectorSetUnavailable``.
+    """
+    for command in commands:
+        try:
+            info = redis_client.execute_command("COMMAND", "INFO", command)
+        except Exception as exc:
+            raise VectorSetUnavailable(f"无法探测 Redis Vector Set {command}") from exc
+        if not command_info_present(info):
+            raise VectorSetUnavailable(f"Redis 未启用 Vector Set {command}；需要 Redis 8+")
 
 
 def validate_version(index_version: str) -> str:
@@ -126,13 +148,7 @@ class RedisVectorSet:
     def ensure_version(self, index_version: str) -> None:
         """Validate the server capability without creating a fake empty index."""
         validate_version(index_version)
-        for command in ("VADD", "VSIM", "VREM"):
-            try:
-                info = self._redis.execute_command("COMMAND", "INFO", command)
-            except Exception as exc:
-                raise VectorSetUnavailable(f"无法探测 Redis Vector Set {command}") from exc
-            if not _command_info_present(info):
-                raise VectorSetUnavailable(f"Redis 未启用 Vector Set {command}；需要 Redis 8+")
+        probe_vector_set_commands(self._redis)
 
     def add(
         self,
@@ -231,14 +247,3 @@ def safe_attributes(
         if key in metadata and metadata[key] is not None:
             attributes[key] = metadata[key]
     return attributes
-
-
-def _command_info_present(info: Any) -> bool:
-    """Redis returns ``[None]`` for an unknown COMMAND INFO entry."""
-    if not info:
-        return False
-    if isinstance(info, Mapping):
-        return any(item is not None for item in info.values())
-    if isinstance(info, (list, tuple)):
-        return any(item is not None for item in info)
-    return True

@@ -4,7 +4,8 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.chat.ports import ChatStore
-from app.config import settings, resolve_llm_provider
+from app.config import settings
+from app.api.health import build_health_report
 from app.api.sse import create_sse_response
 from app.chat.user import UserInfo
 from app.api.schemas.chat import ChatRequest
@@ -98,12 +99,17 @@ def create_chat_router(*, prefix: str, auth_dep, include_health: bool = False) -
 
     if include_health:
         @router.get("/health")
-        async def health():
-            try:
-                resolve_llm_provider(settings)
-                configured = True
-            except ValueError:
-                configured = False
-            return {"status": "ok", "llm_configured": configured}
+        async def health(request: Request):
+            # Intentionally anonymous: browser traffic only reaches this path
+            # through the Spring proxy, which requires a JWT
+            # (ClientAgentController + SecurityConfig).  Direct :8090 callers are
+            # internal orchestration probes.  See spec agent-guidelines.md.
+            state = request.app.state
+            return await build_health_report(
+                settings_obj=getattr(state, "settings", settings),
+                store=getattr(state, "store", None),
+                business=getattr(state, "business_gateway", None),
+                rag_redis=getattr(state, "rag_redis", None),
+            )
 
     return router
