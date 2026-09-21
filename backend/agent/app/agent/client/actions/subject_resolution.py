@@ -340,12 +340,19 @@ def _rag_lookup(title: str, user: UserInfo, retrieval: RetrieveSubjectsUseCase) 
     return {"error": None, "candidates": [], "exact_unique": False, "empty": True}
 
 
-def _resolution_action(user: UserInfo, query: str, survivors: list[dict]) -> SubjectResolutionPendingAction:
+def build_resolution_action(
+    user: UserInfo,
+    query: str,
+    survivors: list[dict],
+    collection_type: int | None = None,
+) -> SubjectResolutionPendingAction:
+    """构造 SUBJECT_RESOLUTION 待选择状态；collection_type 记录选中后要设置的目标类型。"""
     return SubjectResolutionPendingAction(
         type="SUBJECT_RESOLUTION",
         user_id=user.user_id,
         expires_at=datetime.now(timezone.utc) + timedelta(seconds=_RESOLUTION_TTL_SECONDS),
         query=query,
+        collection_type=collection_type,
         candidates=[
             SubjectResolutionCandidate(
                 subject_id=c["subjectId"],
@@ -356,6 +363,103 @@ def _resolution_action(user: UserInfo, query: str, survivors: list[dict]) -> Sub
             for c in survivors
         ],
     )
+
+
+def resolve_candidates(
+    title: str,
+    subject_id: int | None,
+    user: UserInfo,
+    business: BusinessGateway,
+    retrieval: RetrieveSubjectsUseCase,
+) -> dict:
+    """确定性标题解析：显式 ID / Business 首查 / 仅成功空结果回退 RAG / /batch 权威校验。
+
+    返回归一化结果：
+    - ``{"kind": "error", "response": {...}}``：基础设施错误或 RAG 不可用（不回退、不预览）。
+    - ``{"kind": "no_match", "reason": str}``：无唯一有效候选。
+    - ``{"kind": "ok", "survivors": [...], "exact_unique": bool, "query": str}``。
+    """
+    explicit_id = _safe_subject_id(subject_id)
+    if explicit_id is not None:
+        candidates = [{"subjectId": explicit_id, "name": "", "matchSource": "EXPLICIT", "matchType": "EXACT"}]
+        exact_unique = True
+        query = str(explicit_id)
+    else:
+        query = (title or "").strip()
+        if not query:
+            return {"kind": "no_match", "reason": "empty_query"}
+        stage = _business_lookup(query, user, business)
+        if stage["error"] is not None:
+            return {"kind": "error", "response": stage["error"]}
+        candidates, exact_unique = stage["candidates"], stage["exact_unique"]
+        if stage["empty"]:
+            # 只有 Business 成功且空结果才回退 RAG
+            stage = _rag_lookup(query, user, retrieval)
+            if stage["error"] is not None:
+                return {"kind": "error", "response": stage["error"]}
+            candidates, exact_unique = stage["candidates"], stage["exact_unique"]
+
+    ids = dedup_ids([c["subjectId"] for c in candidates])
+    if not ids:
+        return {"kind": "no_match", "reason": "no_results"}
+
+    valid, batch_error = filter_authoritative(ids, business, user.token)
+    if batch_error is not None:
+        return {"kind": "error", "response": batch_error}
+
+    survivors: list[dict] = []
+    seen: set[int] = set()
+    for candidate in candidates:
+        sid = candidate["subjectId"]
+        if sid in seen or sid not in valid:
+            continue
+        seen.add(sid)
+        enriched = dict(candidate)
+        enriched["name"] = _display_name(valid[sid], candidate.get("name", ""))
+        survivors.append(enriched)
+    survivors = survivors[:_MAX_RESOLUTION_CANDIDATES]
+
+    if not survivors:
+        return {"kind": "no_match", "reason": "no_valid_subject"}
+    return {"kind": "ok", "survivors": survivors, "exact_unique": exact_unique, "query": query}
+
+
+def finalize_resolution(outcome: dict, user: UserInfo, *, preview_one, collection_type: int | None) -> dict:
+    """把解析结果落地为：错误 / 无匹配 / 唯一精确预览 / SUBJECT_RESOLUTION 多候选。
+
+    ``preview_one(only, user)`` 由调用方提供（想看或设类型），保证写入边界只有一处入口。
+    调用方在此之前已 emit CLEAR；若唯一候选的预览未产生待确认动作（如已收藏/无需变更），
+    最后的 CLEAR 即为最终状态，不会残留陈旧待确认动作。
+    """
+    if outcome["kind"] == "error":
+        return outcome["response"]
+    if outcome["kind"] == "no_match":
+        return {"resolved": False, "reason": outcome["reason"], "message": "没有找到匹配项"}
+
+    survivors, exact_unique, query = outcome["survivors"], outcome["exact_unique"], outcome["query"]
+    if len(survivors) == 1 and exact_unique:
+        preview = preview_one(survivors[0], user)
+        if isinstance(preview, dict) and preview.get("error"):
+            return preview
+        return {"resolved": True, "matchType": "EXACT", "preview": preview}
+
+    # 多个或歧义候选：只保存 SUBJECT_RESOLUTION，展示候选并暂停，绝不自动预览
+    emit_pending_action_set(build_resolution_action(user, query, survivors, collection_type))
+    return {
+        "resolved": False,
+        "reason": "multiple_candidates",
+        "needsSelection": True,
+        "message": "找到多个可能的番剧，请让用户选择",
+        "candidates": [
+            {
+                "index": i + 1,
+                "subjectId": c["subjectId"],
+                "subjectName": c["name"],
+                "matchSource": c["matchSource"],
+            }
+            for i, c in enumerate(survivors)
+        ],
+    }
 
 
 def _is_expired(expires_at: datetime) -> bool:
@@ -389,79 +493,15 @@ def build_subject_resolution_tools(business: BusinessGateway, retrieval: Retriev
             return err
         # 新的标题解析始终取代任何陈旧的待确认/待选择状态（只清理本地状态，不改业务数据）。
         emit_pending_action_clear()
-
-        explicit_id = _safe_subject_id(subject_id)
-        if explicit_id is not None:
-            candidates = [{"subjectId": explicit_id, "name": "", "matchSource": "EXPLICIT", "matchType": "EXACT"}]
-            exact_unique = True
-            query = str(explicit_id)
-        else:
-            query = (title or "").strip()
-            if not query:
-                return {"resolved": False, "reason": "empty_query", "message": "没有找到匹配项"}
-            stage = _business_lookup(query, user, business)
-            if stage["error"] is not None:
-                return stage["error"]
-            candidates, exact_unique = stage["candidates"], stage["exact_unique"]
-            if stage["empty"]:
-                # 只有 Business 成功且空结果才回退 RAG
-                stage = _rag_lookup(query, user, retrieval)
-                if stage["error"] is not None:
-                    return stage["error"]
-                candidates, exact_unique = stage["candidates"], stage["exact_unique"]
-
-        ids = dedup_ids([c["subjectId"] for c in candidates])
-        if not ids:
-            return {"resolved": False, "reason": "no_results", "message": "没有找到匹配项"}
-
-        valid, batch_error = filter_authoritative(ids, business, user.token)
-        if batch_error is not None:
-            return batch_error
-
-        survivors: list[dict] = []
-        seen: set[int] = set()
-        for candidate in candidates:
-            sid = candidate["subjectId"]
-            if sid in seen or sid not in valid:
-                continue
-            seen.add(sid)
-            enriched = dict(candidate)
-            enriched["name"] = _display_name(valid[sid], candidate.get("name", ""))
-            survivors.append(enriched)
-        survivors = survivors[:_MAX_RESOLUTION_CANDIDATES]
-
-        if not survivors:
-            return {"resolved": False, "reason": "no_valid_subject", "message": "没有找到匹配项"}
-
-        if len(survivors) == 1 and exact_unique:
-            only = survivors[0]
-            preview = build_wishlist_preview(
-                [{"subjectId": only["subjectId"], "subjectName": only["name"]}], user, business
-            )
-            if preview.get("error"):
-                return preview
-            if not preview.get("pendingItems"):
-                # 已收藏或无可确认条目：清理刚才的 CLEAR 之外无需保留状态
-                emit_pending_action_clear()
-            return {"resolved": True, "matchType": "EXACT", "preview": preview}
-
-        # 多个或歧义候选：只保存 SUBJECT_RESOLUTION，展示候选并暂停，绝不自动预览
-        emit_pending_action_set(_resolution_action(user, query, survivors))
-        return {
-            "resolved": False,
-            "reason": "multiple_candidates",
-            "needsSelection": True,
-            "message": "找到多个可能的番剧，请让用户选择",
-            "candidates": [
-                {
-                    "index": i + 1,
-                    "subjectId": c["subjectId"],
-                    "subjectName": c["name"],
-                    "matchSource": c["matchSource"],
-                }
-                for i, c in enumerate(survivors)
-            ],
-        }
+        outcome = resolve_candidates(title, subject_id, user, business, retrieval)
+        return finalize_resolution(
+            outcome,
+            user,
+            preview_one=lambda only, u: build_wishlist_preview(
+                [{"subjectId": only["subjectId"], "subjectName": only["name"]}], u, business
+            ),
+            collection_type=None,
+        )
 
     @tool
     @tool_call_status(display_name="选择候选番剧")
@@ -498,19 +538,30 @@ def build_subject_resolution_tools(business: BusinessGateway, retrieval: Retriev
             return {"error": True, "message": "该候选已不可用，请重新发起请求"}
 
         name = _display_name(valid[candidate.subject_id], candidate.subject_name)
-        preview = build_wishlist_preview(
-            [{"subjectId": candidate.subject_id, "subjectName": name}], user, business
-        )
-        if preview.get("error"):
+        selected = {"subjectId": candidate.subject_id, "subjectName": name}
+        target_type = getattr(pending, "collection_type", None)
+        if target_type is None:
+            # 09-16 想看链路：选中后进入既有加入想看预览
+            preview = build_wishlist_preview(
+                [{"subjectId": candidate.subject_id, "subjectName": name}], user, business
+            )
+            if preview.get("error"):
+                return preview
+            if not preview.get("pendingItems"):
+                # 已收藏或无可确认条目：清理待选择状态，避免陈旧候选被复用
+                emit_pending_action_clear()
+            return {"resolved": True, "selected": selected, "preview": preview}
+
+        # 设类型链路：选中后进入 SET_COLLECTION_TYPE 预览（延迟导入避免模块环）
+        from app.agent.client.actions.collection_type import build_collection_type_preview
+
+        preview = build_collection_type_preview(candidate.subject_id, name, target_type, user, business)
+        if isinstance(preview, dict) and preview.get("error"):
             return preview
-        if not preview.get("pendingItems"):
-            # 已收藏或无可确认条目：清理待选择状态，避免陈旧候选被复用
+        if preview.get("action") == "NOOP":
+            # 已在目标类型、无需写入：清理待选择状态
             emit_pending_action_clear()
-        return {
-            "resolved": True,
-            "selected": {"subjectId": candidate.subject_id, "subjectName": name},
-            "preview": preview,
-        }
+        return {"resolved": True, "selected": selected, "preview": preview}
 
     return [resolve_subject_by_title, select_resolved_subject]
 

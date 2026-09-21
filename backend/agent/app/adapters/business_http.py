@@ -75,6 +75,27 @@ class HttpBusinessGateway(BusinessGateway):
             json_body={"subjectIds": subject_ids, "excludeCollected": exclude_collected},
         )
 
+    def save_collection(
+        self,
+        subject_id: int,
+        *,
+        collection_type: int,
+        token: str | None,
+        rate: int | None = None,
+        ep_status: int | None = None,
+    ) -> dict | list | None:
+        """写入/更新收藏类型。Business DTO 字段为 type(1-5)、rate(0-10)、epStatus(>=0)。
+
+        成功返回 Result<Void>（适配器归一化为 None）；已收藏且无变化返回 409，
+        条目不存在返回 404，均由上层按错误语义解释。
+        """
+        return self.request(
+            "POST",
+            f"/api/client/collections/{subject_id}/save",
+            token=token,
+            json_body={"type": collection_type, "rate": rate, "epStatus": ep_status},
+        )
+
     def search_subjects(self, query: str, *, token: str | None, size: int = 15) -> dict | list | None:
         return self.request(
             "GET",

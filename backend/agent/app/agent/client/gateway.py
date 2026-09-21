@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Any
 
 from langchain.agents import create_agent
@@ -14,10 +15,11 @@ from app.shared.observability import llm_model_name
 _ALLOWED_TARGETS = ("search_agent", "discover_agent", "recommend_agent")
 
 # 支持确定性强制路由到 recommend_agent 的待确认动作类型
-RECOMMEND_PENDING_ACTION_TYPES = {"COLLECTION_PROGRESS_UPDATE", "ADD_TO_WISHLIST"}
+RECOMMEND_PENDING_ACTION_TYPES = {"COLLECTION_PROGRESS_UPDATE", "ADD_TO_WISHLIST", "SET_COLLECTION_TYPE"}
 
 # 候选选择状态：任何用户回合都确定性交给 recommend_agent 处理选择/取消，
-# 但明确确认词只对 ADD_TO_WISHLIST 生效，不能被当成写入确认。
+# 但明确确认词只对写入类待确认动作（ADD_TO_WISHLIST / SET_COLLECTION_TYPE / 进度更新）生效，
+# 选择状态下的“确认”只是选择意图，不能被当成写入确认。
 SUBJECT_RESOLUTION_PENDING_TYPE = "SUBJECT_RESOLUTION"
 
 # 保守的确认词表: 仅精确匹配的简短肯定,拒绝否定词与含糊长文本
@@ -27,16 +29,19 @@ _CONFIRMATION_PHRASES = {
 }
 _NEGATION_MARKERS = ("不", "取消", "算了", "不要", "等等", "别", "否")
 
-_EXPLICIT_RECOMMENDATION_PHRASES = (
-    "加入想看",
-    "加到想看",
-    "添加到想看",
-    "加入愿望单",
-    "添加到愿望单",
-    "帮我收藏",
-    "添加收藏",
-    "收藏这些",
+# 写入意图 = 写入动词 + 可选填充词 + 收藏类型名。自然语言常在动词与类型名之间插词
+# （如“添加到我的追番”“把这部设为在看”），连续短语匹配会漏，因此用正则。
+_WRITE_VERBS = (
+    r"(?:添加到|添加进|添加|标记为|标记成|标记|设置为|设为|设成|改成|改为|加入|加到|放入)"
 )
+_WRITE_FILLER = r"(?:我的|咱的|到|为|成|进|它|他|她|这个|这部|这些|那部)?"
+_WRITE_TARGETS = r"(?:追番|在看|看过|搁置|抛弃|想看|愿望单)"
+_WRITE_INTENT_RE = re.compile(_WRITE_VERBS + _WRITE_FILLER + _WRITE_TARGETS)
+
+# 无类型名但仍是写入意图的旧短语（多指代推荐结果批量收藏）
+_LEGACY_WRITE_PHRASES = ("收藏这些", "帮我收藏", "添加收藏", "开始追番")
+
+_WRITE_NEGATION_MARKERS = ("不要", "别", "取消", "不想", "不")
 
 
 def _is_explicit_confirmation(text: str) -> bool:
@@ -52,18 +57,26 @@ def _is_explicit_confirmation(text: str) -> bool:
     return False
 
 
+def _negated_before(normalized: str, start: int) -> bool:
+    prefix = normalized[max(0, start - 4):start]
+    return any(prefix.endswith(marker) for marker in _WRITE_NEGATION_MARKERS)
+
+
 def _is_explicit_recommendation_request(text: str) -> bool:
+    """识别“写入/修改收藏”的确定性意图，用于强制路由 recommend_agent。
+
+    只匹配 动词+类型名 的复合写入短语；纯查询即使含“追番/在看/收藏”也不匹配。
+    """
     normalized = " ".join((text or "").split())
     if not normalized:
         return False
-    for phrase in _EXPLICIT_RECOMMENDATION_PHRASES:
+    for match in _WRITE_INTENT_RE.finditer(normalized):
+        if not _negated_before(normalized, match.start()):
+            return True
+    for phrase in _LEGACY_WRITE_PHRASES:
         start = normalized.find(phrase)
-        if start < 0:
-            continue
-        prefix = normalized[max(0, start - 4):start]
-        if any(prefix.endswith(marker) for marker in ("不要", "别", "取消", "不想", "不")):
-            continue
-        return True
+        if start >= 0 and not _negated_before(normalized, start):
+            return True
     return False
 
 

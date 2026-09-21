@@ -9,6 +9,7 @@ from app.agent.ports import BusinessGateway
 from app.chat.pending_events import emit_pending_action_clear, emit_pending_action_set
 from app.chat.user import UserInfo
 from app.chat.pending_action import WishlistPendingAction, WishlistPendingItem
+from app.agent.client.actions.collection_state import check_collection_state
 
 _MAX_WISHLIST_PREVIEW_ITEMS = 10
 
@@ -17,19 +18,6 @@ def _require_user(user: UserInfo | None) -> dict | None:
     if user is None:
         return {"error": True, "message": "用户上下文不可用"}
     return None
-
-
-def _check_collection_state(subject_id: int, user: UserInfo, business: BusinessGateway) -> dict:
-    """检查收藏状态；404 视为未收藏（可加入），其他 4xx/5xx 为真实错误。"""
-    data = business.request("GET", f"/api/client/collections/{subject_id}", token=user.token)
-    if isinstance(data, dict) and data.get("error"):
-        if data.get("code") == 404:
-            return {"collected": False, "type": None}
-        return {"error": True, "data": data}
-    # The normalized adapter returns None for an empty successful envelope.
-    # Only an actual collection object means the subject is already collected.
-    collected = isinstance(data, dict)
-    return {"collected": collected, "type": data.get("type") if collected else None}
 
 
 def _pending_action_from_items(items: list[dict], user: UserInfo) -> WishlistPendingAction:
@@ -63,7 +51,7 @@ def build_wishlist_preview(subjects: list[dict], user: UserInfo, business: Busin
     skipped_items = []
     for item in deduped:
         sid = item["subjectId"]
-        state = _check_collection_state(sid, user, business)
+        state = check_collection_state(sid, user, business)
         if state.get("error"):
             return {"error": True, "code": state["data"].get("code"),
                     "message": state["data"].get("message", "检查收藏状态失败")}

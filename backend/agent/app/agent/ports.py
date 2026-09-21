@@ -28,6 +28,15 @@ class BusinessGateway(Protocol):
         token: str | None,
         exclude_collected: bool,
     ) -> dict | list | None: ...
+    def save_collection(
+        self,
+        subject_id: int,
+        *,
+        collection_type: int,
+        token: str | None,
+        rate: int | None = None,
+        ep_status: int | None = None,
+    ) -> dict | list | None: ...
     def search_subjects(
         self,
         query: str,

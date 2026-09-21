@@ -81,3 +81,33 @@ class TestResolveEvidence:
         assert call_args.args[1] == "http://localhost:8080/api/client/evidence/resolve"
         assert call_args.kwargs["json"] == {"entityType": "PERSON", "ids": [7, 8]}
         assert call_args.kwargs["headers"]["Authorization"] == "Bearer test-token"
+
+
+class TestSaveCollection:
+    def test_calls_save_endpoint_with_type_body(self):
+        gw = HttpBusinessGateway("http://localhost:8080")
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"code": 200, "message": "success"}
+        mock_resp.raise_for_status = MagicMock()
+
+        with patch("httpx.request", return_value=mock_resp) as mock_request:
+            result = gw.save_collection(84, collection_type=3, token="test-token")
+
+        # Result<Void> 成功信封无 data，适配器归一化为 None
+        assert result is None
+        call_args = mock_request.call_args
+        assert call_args.args[0] == "POST"
+        assert call_args.args[1] == "http://localhost:8080/api/client/collections/84/save"
+        assert call_args.kwargs["json"] == {"type": 3, "rate": None, "epStatus": None}
+        assert call_args.kwargs["headers"]["Authorization"] == "Bearer test-token"
+
+    def test_passes_optional_rate_and_ep_status(self):
+        gw = HttpBusinessGateway("http://localhost:8080")
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"code": 200, "message": "success"}
+        mock_resp.raise_for_status = MagicMock()
+
+        with patch("httpx.request", return_value=mock_resp) as mock_request:
+            gw.save_collection(7, collection_type=2, token=None, rate=9, ep_status=12)
+
+        assert mock_request.call_args.kwargs["json"] == {"type": 2, "rate": 9, "epStatus": 12}

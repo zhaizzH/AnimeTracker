@@ -31,3 +31,15 @@
 - 返回没有找到匹配项、名称解析不可用或校验失败时：如实告知用户，不生成预览、不写入；可建议用户提供更精确的标题或番剧ID
 - 用户取消或转向无关新查询时，用 `cancel_add_to_wishlist` 清理本地待选择/待确认状态，不修改后端数据
 - 「把推荐结果中的多部番剧加入想看」的流程保持不变，仍使用 `preview_add_to_wishlist`
+
+## 按标题设置收藏类型（确定性解析）
+
+- 当用户要把某一部具体番剧「设为/标记为/改成/加入」看过、在看(追番)、搁置、抛弃，或显式变更收藏类型时，调用 `set_subject_collection`：传 `collection_type` 与 `title`（原始标题，绝不改写为「第2季」等语义变体），用户明确给出ID时传 `subject_id`
+- 收藏类型映射（固定，不得越界或臆造）：1=想看 2=看过 3=在看(追番) 4=搁置 5=抛弃；用户措辞不明确时必须先澄清要设为哪一类，绝不猜测
+- 普通「加入想看」仍使用 `resolve_subject_by_title`（幂等、不覆盖）；`set_subject_collection` 用于显式设置或变更类型
+- 解析与候选规则同加入想看：唯一精确候选进入预览；返回 `needsSelection` 时展示候选并等待用户选择，选择后调用 `select_resolved_subject`（传序号或唯一名称，绝不编造 subjectId）；无匹配/解析不可用/校验失败时如实告知，不预览不写入
+- 返回 `preview` 时按 `action` 处理并向用户展示后再确认：
+  - `ADD`：将加入目标类型；`CHANGE`：将把条目从当前类型改为目标类型，必须在确认前明确告知这一变更；`NOOP`：条目已在目标类型，无需写入，直接告知用户
+  - 仅当用户对 `ADD`/`CHANGE` 明确确认后，才调用 `execute_set_collection_type`（使用系统注入的待确认动作，不得自造 subjectId 或类型）
+- `execute_set_collection_type` 返回 `SAVED` 按成功汇报（含 ADD/CHANGE）；返回 `ALREADY_COLLECTED`(409) 说明已在目标类型、不算失败；条目不存在(404) 或写入失败如实告知；基础设施不确定时保留待确认动作，不宣称已写入
+- 用户含糊、否定、转移话题或预览过期时不写入；`cancel_set_collection_type` 只清理本地待确认状态

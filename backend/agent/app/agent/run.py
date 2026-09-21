@@ -11,6 +11,7 @@ from app.agent.runtime import agent_stream
 from app.chat.event_sink import emit_answer_delta, emit_thinking_delta
 from app.shared.observability import llm_model_name
 from app.chat.pending_action import PendingAction
+from app.agent.client.actions.collection_type import collection_type_label
 
 
 def _build_pending_context(pending: PendingAction) -> str:
@@ -19,11 +20,15 @@ def _build_pending_context(pending: PendingAction) -> str:
             f"  {i + 1}. {c.subject_name}（subjectId={c.subject_id}）"
             for i, c in enumerate(pending.candidates)
         )
+        target = getattr(pending, "collection_type", None)
+        intent = "加入「想看」" if target is None else f"设置为「{collection_type_label(target)}」"
+        target_line = "" if target is None else f"- 选中后目标类型: {collection_type_label(target)}（type={target}）\n"
         return (
             "\n\n【待选择候选】\n"
-            "用户按标题请求加入「想看」，但解析出多个候选，正在等待用户选择。这是选择状态，不是写入确认：\n"
+            f"用户按标题请求{intent}，但解析出多个候选，正在等待用户选择。这是选择状态，不是写入确认：\n"
             f"- 类型: {pending.type}\n"
             f"- 原始查询: {pending.query}\n"
+            f"{target_line}"
             f"- 过期时间: {pending.expires_at.isoformat()}\n"
             f"- 候选:\n{candidates}\n"
             "把候选按序号展示给用户并请其选择；用户选择后只能调用 select_resolved_subject 传入序号或唯一候选名称，"
@@ -36,6 +41,22 @@ def _build_pending_context(pending: PendingAction) -> str:
             f"- 类型: {pending.type}\n"
             f"- 过期时间: {pending.expires_at.isoformat()}\n"
             f"- 条目: {json.dumps([i.model_dump(by_alias=True) for i in pending.items], ensure_ascii=False)}\n"
+        )
+    if pending.type == "SET_COLLECTION_TYPE":
+        change = (
+            f"从「{collection_type_label(pending.current_type)}」改为「{collection_type_label(pending.target_type)}」"
+            if pending.action == "CHANGE"
+            else f"加入「{collection_type_label(pending.target_type)}」"
+        )
+        return (
+            "\n\n【待确认动作】\n"
+            f"用户有待确认的收藏类型设置：把《{pending.subject_name}》{change}。"
+            "执行必须使用系统注入的待确认动作,不得要求用户提供或自行编造 subjectId/类型:\n"
+            f"- 类型: {pending.type}\n"
+            f"- 条目: subjectId={pending.subject_id}（{pending.subject_name}）\n"
+            f"- 变更: {change}（targetType={pending.target_type}, currentType={pending.current_type}）\n"
+            f"- 过期时间: {pending.expires_at.isoformat()}\n"
+            "必须先向用户展示该变更并取得明确确认后才调用 execute_set_collection_type；用户含糊、否定或过期时不写入。"
         )
     preview_id = getattr(pending, "preview_id", None)
     items = getattr(pending, "items", [])

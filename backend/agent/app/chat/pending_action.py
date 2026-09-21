@@ -53,17 +53,40 @@ class SubjectResolutionPendingAction(_AliasCompatModel):
     """多候选标题解析待选择状态：绑定用户、原始查询与权威候选，复用 600 秒 TTL。
 
     该状态只用于让用户在候选中选择，不代表任何写入确认；模型不能提交任意 subjectId。
+    ``collection_type`` 记录选中后要设置的目标收藏类型：None=回到既有想看预览（向后兼容，
+    旧 JSON 缺该字段按 None 解析）；1..5=选中后进入 SET_COLLECTION_TYPE 预览。
     """
 
     type: Literal["SUBJECT_RESOLUTION"]
     user_id: int
     expires_at: datetime
     query: str = ""
+    collection_type: int | None = Field(default=None, alias="collectionType")
     candidates: list[SubjectResolutionCandidate] = Field(default_factory=list)
 
 
+class SetCollectionTypePendingAction(_AliasCompatModel):
+    """按标题设置收藏类型的待确认动作：绑定用户、单条目与目标类型，复用 600 秒 TTL。
+
+    写入经 ``POST /api/client/collections/{id}/save``；``action`` 标明新增(ADD)还是
+    类型变更(CHANGE)，变更必须在预览中对用户可见后才允许确认执行。
+    """
+
+    type: Literal["SET_COLLECTION_TYPE"]
+    user_id: int
+    expires_at: datetime
+    subject_id: int = Field(alias="subjectId")
+    subject_name: str = Field(alias="subjectName")
+    target_type: int = Field(alias="targetType")
+    current_type: int | None = Field(default=None, alias="currentType")
+    action: Literal["ADD", "CHANGE"] = "ADD"
+
+
 PendingAction = Annotated[
-    CollectionProgressPendingAction | WishlistPendingAction | SubjectResolutionPendingAction,
+    CollectionProgressPendingAction
+    | WishlistPendingAction
+    | SubjectResolutionPendingAction
+    | SetCollectionTypePendingAction,
     Field(discriminator="type"),
 ]
 
