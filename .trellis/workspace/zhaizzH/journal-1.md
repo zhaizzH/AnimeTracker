@@ -423,3 +423,25 @@
 ### Next Steps
 
 - 分支 feat/write-confirmation-hard-gate 未合并；DeepSeek 充值后补一次真实 LLM E2E(标记为看过→确认写入→重发非确认不写)；后续按序做 T1 季度对齐→T2 RAG正确性→T4 测试补齐
+
+
+## Session 17: T1 季度/档期映射跨层对齐 + .git 损毁恢复
+<!-- trellis-session: v=2 fp=9661e4493be803a3 -->
+
+**Date**: 2026-09-21
+**Task**: T1 季度/档期映射跨层对齐 + .git 损毁恢复
+**Branch**: `feat/quarter-season-alignment`
+
+### Summary
+
+统一 season 词表到 app/rag/seasons.py(winter=1..autumn=4)，5 处消费方改引用，新增 test_season_alignment.py 跨层回归(62 条)，更新 3 处钉错测试，413 passed 全绿；会话中遭遇 .git 被外部进程(Codex)两轮删除，从回收站按原路径恢复全部 refs/objects 并用 packed-refs 固化分支引用。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `aba377b5` | fix(agent): 季度映射对齐权威动漫季约定(winter=1..autumn=4) |
+
+### Status
+
+[OK] **Completed**

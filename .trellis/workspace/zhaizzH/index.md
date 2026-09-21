@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 16
+- **Total Sessions**: 17
 - **Last Active**: 2026-09-21
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~425 | Active |
+| `journal-1.md` | ~447 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 17 | 2026-09-21 | T1 季度/档期映射跨层对齐 + .git 损毁恢复 | `aba377b5` | `feat/quarter-season-alignment` |
 | 16 | 2026-09-21 | 实现 T3 写入硬确认门禁(write_confirmed)与 action_id 版本绑定 | `01095e23` | `feat/write-confirmation-hard-gate` |
 | 15 | 2026-09-21 | 实现 09-20 按标题设置收藏类型(1-5)与写入意图路由 | `62c7086a` | `feat/collection-type-resolution` |
 | 14 | 2026-09-20 | 实现 09-16 按标题安全加入想看（Business 优先 + RAG 回退 + SUBJECT_RESOLUTION） | - | `main` |
