@@ -389,3 +389,37 @@
 ### Next Steps
 
 - 代码在分支 feat/collection-type-resolution 未合并；如需硬门禁(写入必须匹配确认词而非依赖模型判断)可另开任务
+
+
+## Session 16: 实现 T3 写入硬确认门禁(write_confirmed)与 action_id 版本绑定
+<!-- trellis-session: v=2 fp=b62e34c58a67e8b7 -->
+
+**Date**: 2026-09-21
+**Task**: 实现 T3 写入硬确认门禁(write_confirmed)与 action_id 版本绑定
+**Branch**: `feat/write-confirmation-hard-gate`
+
+### Summary
+
+把三条写链路(wishlist/progress/collection_type)的'明确确认'从提示词级升级为代码级硬门禁：AgentState.write_confirmed 仅由 gateway_router 依当前回合确定性设置(模型不可篡改)，共享守卫 require_confirmed_write 统一校验 用户→类型→用户绑定→TTL→确认标志；非确认回合即使模型调用 execute 也拒写、Business 零调用。Wishlist/SetCollectionType 动作加服务端 action_id(版本失效/trace，非模型回传令牌，默认空兼容旧JSON)。根治 09-20 E2E 观察到的'重发加入请求即被当确认写入'。
+
+### Main Changes
+
+- 新增 write_guard.py + test_write_guard.py；改 state.py/service.py(write_confirmed)、gateway.py(各分支注入标志)、pending_action.py(action_id)、wishlist.py/collection_progress.py/collection_type.py(execute 接守卫)；更新 test_collection_type.py execute 用例传 write_confirmed 并补非确认拒写/他人动作/action_id 用例
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `01095e23` | feat(agent): 写入硬确认门禁(write_confirmed)与动作版本绑定 |
+
+### Testing
+
+- [OK] uv run pytest 全量 351 通过；execute 工具对模型零可见参数；图状态传播实证三场景(写入意图非确认→False、确认+pending→True、重发非确认+pending→False)。完整 LLM E2E 因 DeepSeek 402 余额不足未能跑，待充值补做
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 分支 feat/write-confirmation-hard-gate 未合并；DeepSeek 充值后补一次真实 LLM E2E(标记为看过→确认写入→重发非确认不写)；后续按序做 T1 季度对齐→T2 RAG正确性→T4 测试补齐

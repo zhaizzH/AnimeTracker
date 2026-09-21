@@ -169,10 +169,12 @@ allowed = resolve_evidence(match.entity_kind, ids, token=token)
 1. 预览工具查询权威 Business 数据并生成强类型 `PendingAction`。
 2. `ChatService` 按用户与会话把动作写入 Redis；成功写入后才允许把动作视为可确认。
 3. 用户明确确认后，执行工具只读取 `InjectedState` 中的 action 或 preview ID。
-4. 基础设施错误导致结果不确定时保留动作；`PREVIEW_CHANGED` 必须重新确认。
-5. 取消只清理待确认状态，不修改业务数据。
+4. **确认是代码级硬门禁，不只靠提示词**：`AgentState.write_confirmed` 只由 `gateway_router` 依据当前回合 `_is_explicit_confirmation` 确定性设置，模型无法通过工具参数改写；三条写链路的 `execute_*` 都先过共享守卫 `write_guard.require_confirmed_write`（用户 → 动作类型 → 用户绑定 → TTL → `write_confirmed`），非确认回合即使模型调用 `execute_*` 也一律拒写、Business 零调用。选择状态（`SUBJECT_RESOLUTION`）下的"确认"只是选择意图，不产生写入类动作，因此不会触发写入。
+5. `WishlistPendingAction` 与 `SetCollectionTypePendingAction` 携带服务端生成的 `action_id`（每次 SET/REPLACE 重新生成），用于持久化层版本失效与 trace 关联；它是服务端持有的版本标识，**不是模型回传令牌**，写入判定不依赖模型提供它。`CollectionProgressPendingAction` 继续用 Business 的 `preview_id`。
+6. 基础设施错误导致结果不确定时保留动作；`PREVIEW_CHANGED` 必须重新确认。
+7. 取消只清理待确认状态，不修改业务数据。
 
-参考：`app/agent/client/actions/wishlist.py`、`collection_progress.py`、`app/chat/pending_action.py`。
+参考：`app/agent/client/actions/wishlist.py`、`collection_progress.py`、`collection_type.py`、`write_guard.py`、`app/chat/pending_action.py`。
 
 #### 待确认动作持久化失败矩阵
 
