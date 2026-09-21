@@ -100,8 +100,7 @@ mvn -pl app spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active
 
 # 3. 启动 agent（:8090）
 cd ../agent
-cp .env.example .env        # 填写 LLM_PROVIDER、对应 API Key 与 REDIS_URL
-                            # 注意：需删除模板中已废弃的 RAG_INDEX_ALIAS 行
+cp .env.example .env        # 填写 LLM_PROVIDER、对应 API Key 与 REDIS_URL（模板已与 Settings 对齐，照抄即可）
 uv sync --dev
 uv run uvicorn main:app --reload --port 8090
 ```
@@ -228,6 +227,5 @@ A：托管提示词优先读 Redis（键 `agent:prompt:{key}`，启动时加载�
 
 1. **生产部署形态**：仓库中不存在 Docker Compose、Nginx 或进程守护配置，business 与 agent 的生产启动方式（JVM 参数、uvicorn worker 数、反向代理）无代码依据。`application.yml` 注释提到的 `application-prod.yml` 在 `app/src/main/resources/` 下不存在，生产 profile 的落地方式待确认。
 2. **MinIO 桶的初始化**：`MINIO_BUCKET`（公开封面）与 `MINIO_RAW_BUCKET`（原始快照私有桶）需预先创建，仓库中无桶策略或生命周期配置脚本，权限设置方式待确认。
-3. **`.env.example` 与代码不一致**：模板保留了已被 `app/config.py` 移除的 `RAG_INDEX_ALIAS`（现由 MySQL `search_index_release` 作为唯一激活指针），且注释中的 `FT.*` / RediSearch 描述已过期（现为 Redis 8 Vector Set）。这属于配置模板问题，未在文档任务中修改，建议同步修正。
-4. **管理端细粒度权限**：`at.admin.superadmin-id` 表明当前以超级管理员 ID 做粗粒度控制，角色与权限矩阵未在代码中形成可文档化的规则。
-5. **`jobs/indexer` 门禁阈值**：五份报告（quality / capacity / eval / latency / human）的合格线随数据规模与嵌入额度变化，代码中未固化建议值。
+3. **管理端细粒度权限**：`at.admin.superadmin-id` 表明当前以超级管理员 ID 做粗粒度控制，角色与权限矩阵未在代码中形成可文档化的规则。
+4. **`jobs/indexer` 门禁阈值**：五份报告（quality / capacity / eval / latency / human）的合格线随数据规模与嵌入额度变化，代码中未固化建议值。

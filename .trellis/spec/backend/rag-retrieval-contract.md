@@ -17,11 +17,12 @@
 | 普通用户 / 管理员 | 客户端三个节点注册各自 rag_*；admin 只注册目录/导入/时间工具 | 不得笼统宣称所有 Agent 都有 RAG 工具 |
 | 实体名称 | `entity_name_lookup=None`，有名称即 `entity_resolution_unavailable` | 名称参数和 Prompt 已存在不等于在线名称解析可用；显式 ID 的 Business `/resolve` 已接线 |
 | 查询版本 | lexical 响应 indexVersion 决定 Subject VSIM key | Python 未独立校验响应 profileVersion；MySQL JOIN 和发布 gate 承担对应版本约束 |
-| 收藏画像向量 | `_subject_vector_lookup` 使用配置 `rag_index_version` | 仍可能与 active release 不同，不能把主检索的同版本保证扩大到画像链 |
+| 收藏画像向量 | `_subject_vector_lookup` 在 `rag_enabled` 启动时读取 MySQL `search_index_release` 的 ACTIVE `index_version`，不再使用配置 `rag_index_version` | 已对齐权威指针，但取版本路径与主检索不同（主链经 Business lexical 响应，画像链直读同一张表）；解析失败或无 ACTIVE 时返回 `None` 并告警，个性化降级而非静默 |
 | 工具错误 | use case 返回 available/reason/personalizationNotice；工具 `_items` 保留 `{available:false,reason,items:[]}` | 模型可区分不可用和正常无结果，但仍需真实回放验证回答是否正确解释 |
 | Evidence 重复 ID | `_enrich_evidence` 在 `by_id` 赋值前检测已见 subjectId，命中即整批 fail-closed | 已实现拒绝：`available=false`、`reason=evidence_unavailable`、空候选，日志 `errorType="duplicate_subject_id"`；不再静默后者胜 |
 | 适配器出参校验 | `HttpBusinessGateway.batch_subjects/batch_evidence/resolve_evidence/save_collection` 依赖上游 typed 工具，不自校验 ID/类型 | **backlog（12e）**：纵深校验会改动四方法的出参与错误语义，需先确认与上游 typed 工具的职责划分 |
 | 静默异常分类 | `retrieval.py`、`main.py` 多处 `except Exception` 把不同根因坍缩为单一降级 | **backlog（12f）**：细分类会变更降级语义与 `log_event` errorType，需先定义错误分类契约 |
+| 个性化降级可观测性 | `redis/user_preference.py::load` 对「无收藏」「向量构建失败」「版本不可用」统一返回 `missing=True`，经 `personalizationNotice` 通道对外同形 | **backlog**：版本解析失败已在运维侧以 `logger.warning` 区分（`main._resolve_active_index_version`），但对外仍无法与「用户本就无收藏」区分；改 `personalizationNotice` 会牵动 Prompt 与前端契约，需独立任务 |
 
 RRF 按两路排名计算 `Σ 1/(60+rank)`，每路上限 50，权威回查后最终至多 15 条；当前重排为 `retrieval.py::_rerank` 中的规则分数，没有独立 reranker 模型。查询 Embedding 失败时可继续词法召回，版本获取/索引异常进入 Business fallback；正常空召回不一定触发 fallback。
 
@@ -33,7 +34,7 @@ RRF 按两路排名计算 `Σ 1/(60+rank)`，每路上限 50，权威回查后�
 
 ### 配置和 CLI
 
-- `app/config.py::Settings` 使用 `extra='forbid'`。`.env.example` 仍含已移除的 `RAG_INDEX_ALIAS` 和旧 RediSearch 说明；完整复制旧模板可能触发配置校验错误，应按实际 Settings 核对，不能把 FT.* 作为当前 Vector Set 能力检查。
+- `app/config.py::Settings` 使用 `extra='forbid'`，但 `.env.example` 已于 2026-09-21 与 `Settings` 字段集对齐（删除 `RAG_INDEX_ALIAS`、补齐 `*_MODEL_ROUTE` 与 jobs 透传键、Redis 注释改为 Redis 8 Vector Set），照抄模板可直接启动。模板键 ⊆ 字段集由 `tests/test_env_template_contract.py` 以真实文件为输入钉住。jobs 专用键在 `Settings` 中声明为 `str` 透传字段（仅为容身共享 `.env`），`jobs/*` 仍走 `os.getenv`；不得把 FT.* 作为当前 Vector Set 能力检查。
 - `jobs/indexer/gate.py` 的激活分支读取进程环境 `DB_*`，该 CLI 本身不调用 `load_dotenv()`。执行 `--activate` 前须确认目标进程的数据库配置；不能假设和 `jobs/indexer/main.py` 的 `.env` 自动加载相同。
 
 ## 1. Scope / Trigger

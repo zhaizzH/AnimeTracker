@@ -134,7 +134,9 @@ def _build_agent_dependencies(model_configs, prompts, import_service) -> AgentDe
         preference_provider = RedisUserPreferenceProvider(
             rag_redis,
             business=business,
-            vector_lookup=_subject_vector_lookup(rag_redis),
+            vector_lookup=_subject_vector_lookup(
+                rag_redis, _resolve_active_index_version(settings),
+            ),
         )
     else:
         index = _UnavailableIndex()
@@ -164,12 +166,58 @@ def _build_agent_dependencies(model_configs, prompts, import_service) -> AgentDe
     )
 
 
-def _subject_vector_lookup(rag_redis):
+def _is_valid_index_version(version: Any) -> bool:
+    """与 MySqlReleaseStore.activate() 同族约束：版本串会直接拼进 Redis key。"""
+    return (
+        isinstance(version, str)
+        and bool(version)
+        and ":" not in version
+        and not any(char.isspace() for char in version)
+    )
+
+
+def _resolve_active_index_version(settings_obj=settings, *, store_factory=None) -> str | None:
+    """读取 MySQL `search_index_release` 的 ACTIVE 版本。
+
+    fail-safe：MySQL 不可达、无 ACTIVE release、版本非法都只返回 None 并告警，
+    绝不中断 lifespan 或请求。禁止回退到 `RAG_INDEX_VERSION` 猜测在线版本
+    （spec `rag-retrieval-contract.md`），故此处没有任何配置兜底。
+    """
+    try:
+        if store_factory is None:
+            from sqlalchemy.orm import Session
+
+            from app.adapters.mysql.import_records import get_engine
+            from app.adapters.mysql.release_store import MySqlReleaseStore
+
+            engine = get_engine(
+                settings_obj.db_host,
+                settings_obj.db_port,
+                settings_obj.db_user,
+                settings_obj.db_password,
+                settings_obj.db_name,
+            )
+            store_factory = lambda: MySqlReleaseStore(lambda: Session(engine))  # noqa: E731
+        version = store_factory().active_version()
+    except Exception as exc:
+        logger.warning("RAG active release 版本解析失败，个性化降级: %s", repr(exc))
+        return None
+    if not _is_valid_index_version(version):
+        logger.warning("RAG active release 版本非法: %r，个性化降级", version)
+        return None
+    return version
+
+
+def _subject_vector_lookup(rag_redis, index_version: str | None = None):
     def lookup(subject_id: int):
+        # 版本缺失即无权威版本可用，不得用配置版本猜测；个性化静默降级由
+        # _resolve_active_index_version 的告警日志区分于「用户本就无收藏」。
+        if not _is_valid_index_version(index_version):
+            return None
         try:
             raw = rag_redis.execute_command(
                 "VEMB",
-                f"rag:vectors:SUBJECT:{settings.rag_index_version}",
+                f"rag:vectors:SUBJECT:{index_version}",
                 f"SUBJECT:{int(subject_id)}",
                 "RAW",
             )

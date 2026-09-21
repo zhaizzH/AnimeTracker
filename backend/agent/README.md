@@ -327,11 +327,11 @@ Agent 提示词已更新为只可依据工具返回的证据字段陈述事实�
 |------|--------|------|
 | `RAG_ENABLED` | `false` | 总开关；关闭时检索降级为 business 直接搜索 |
 | `RAG_REDIS_URL` | 空 | 索引专用 Redis（需 Redis 8）；留空则复用 `REDIS_URL` |
-| `RAG_INDEX_VERSION` | `v1` | indexer 构建与卡片向量读取使用的版本；在线查询版本以 Business 响应 `indexVersion` 为准 |
+| `RAG_INDEX_VERSION` | `v1` | indexer 构建使用的版本；在线查询（含画像向量链）的版本以 MySQL `search_index_release` 的 ACTIVE 为准 |
 | `RAG_EMBEDDING_MODEL` | `text-embedding-v4` | 嵌入模型（当前仅支持该值） |
 | `RAG_EMBEDDING_DIM` | `1024` | 向量维度（当前仅支持该值） |
 
-> ⚠️ **`.env.example` 仍包含已移除的 `RAG_INDEX_ALIAS`**。该配置已从 `app/config.py` 删除（Redis alias 不再是激活指针），但模板文件尚未同步。由于 `extra="forbid"`，**照抄模板会导致启动失败**，请手动删除该行。模板中关于「RediSearch / Redis Stack」的注释也已过期，实际依赖为 Redis 8 Vector Set。
+> ✅ `.env.example` 已与 `app/config.py` 对齐：已移除的 `RAG_INDEX_ALIAS` 不再出现在模板中，且模板补齐了 `DEEPSEEK_MODEL_ROUTE` / `DASHSCOPE_MODEL_ROUTE` 与下方 jobs 透传键。**照抄模板即可启动成功**，无需手动删行。模板中的 Redis 注释也已更正为 Redis 8 Vector Set（不再提 RediSearch / Redis Stack）。
 
 ### 数据导入（`jobs/` 使用）
 
@@ -349,7 +349,17 @@ Agent 提示词已更新为只可依据工具返回的证据字段陈述事实�
 | `MINIO_BUCKET` | `anime-tracker` | 公开封面桶 |
 | `MINIO_RAW_BUCKET` | `anime-tracker-private` | 原始 Bangumi 快照私有桶，**必须与 `MINIO_BUCKET` 不同**（启动校验） |
 
-> 上表后两组变量不进入 Agent 的业务逻辑，仅为与 `jobs/` 共用同一 `.env` 而声明。详见 [`jobs/importer/README.md`](jobs/importer/README.md)。
+以下 jobs 专用键在 `Settings` 中声明为 `str` 透传字段（仅为容身共享 `.env`，Agent 不读取；`jobs/*` 继续走 `os.getenv` 自行转换）。声明而非忽略是刻意的：`extra="forbid"` 会对未声明的键直接报错。
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `RAG_PROFILE_VERSION` | `subject-profile-v1` | indexer / importer 质量报告绑定的 profile 版本 |
+| `SEARCH_INDEX_LEASE_SECONDS` | `300` | `search_index_job` 租约时长 |
+| `BACKFILL_BATCH_SIZE` / `BACKFILL_MAX_BATCHES` | `50` / `10` | scheduler 回填批大小与批数上限 |
+| `BUSINESS_BASE_URL` | `http://127.0.0.1:8080` | indexer 影子评估的 `--business-url` 默认值。**与 `BACKEND_BASE_URL` 语义不同**（后者是 Agent 自身回调地址），两者必须保持各自默认值，不要合并 |
+| `RAG_TRUSTED_TAG_MIN_COUNT` | `100` | 可信标签最小出现次数 |
+
+> 上表两组变量不进入 Agent 的业务逻辑，仅为与 `jobs/` 共用同一 `.env` 而声明。详见 [`jobs/importer/README.md`](jobs/importer/README.md)。
 
 ## 离线任务（`jobs/`）
 
@@ -370,7 +380,6 @@ Agent 提示词已更新为只可依据工具返回的证据字段陈述事实�
 ```bash
 cd backend/agent
 cp .env.example .env          # 填写 LLM_PROVIDER、对应 API Key、REDIS_URL、JWT_SECRET
-                              # 并删除模板中已废弃的 RAG_INDEX_ALIAS 行
 uv sync --dev                 # 安装依赖（含 dev 组：pytest / pytest-asyncio / respx）
 uv run uvicorn main:app --reload --port 8090
 ```
@@ -473,7 +482,7 @@ A：`resolve_llm_provider` 在 `lifespan` 阶段就会校验。设置 `LLM_PROVI
 A：`LLM_PROVIDER` 只接受 `deepseek` 或 `dashscope`，且必须配套该供应商的 Key。
 
 **Q：启动报 `Extra inputs are not permitted`？**
-A：`Settings` 使用 `extra="forbid"`，`.env` 中存在未在 `app/config.py` 声明的变量。**最常见的原因是照抄了 `.env.example` 中已废弃的 `RAG_INDEX_ALIAS`**（该配置已从代码移除），删除该行即可。
+A：`Settings` 使用 `extra="forbid"`，`.env` 中存在未在 `app/config.py` 声明的变量（多为变量名拼写错误）。照抄当前 `.env.example` 不会再触发；若此前照抄过旧模板，删除已废弃的 `RAG_INDEX_ALIAS` 行即可。
 
 **Q：启动报 `MINIO_RAW_BUCKET must differ from MINIO_BUCKET`？**
 A：原始快照桶与公开封面桶必须不同名，为 `MINIO_RAW_BUCKET` 另起一个桶名。
@@ -514,8 +523,7 @@ A：这是既有设计，删除会话使用 POST 而非 DELETE。
 
 ## 待补充
 
-1. **`.env.example` 与代码不一致**：模板保留了已被移除的 `RAG_INDEX_ALIAS`，且注释仍描述 RediSearch / Redis Stack（实际已改为 Redis 8 Vector Set）。这属于配置模板问题而非文档问题，未在本次任务中修改，但会直接导致新用户启动失败，建议尽快同步。
-2. **门禁阈值未文档化**：`quality` / `capacity` / `eval` / `latency` / `human` 五份报告的合格线由 `jobs/indexer/gate.py` 解释，但其数值随数据规模与嵌入额度变化，代码与文档中均无建议基准。
+1. **门禁阈值未文档化**：`quality` / `capacity` / `eval` / `latency` / `human` 五份报告的合格线由 `jobs/indexer/gate.py` 解释，但其数值随数据规模与嵌入额度变化，代码与文档中均无建议基准。
 3. **评测框架的使用入口**：`tests/evals/` 提供 metrics / runner / golden case 生成器，`generate_golden_cases.py` 有 `--output` 参数，但评测的整体执行方式（是否仅经 pytest 驱动、是否有独立 CLI）在代码中未见统一入口，待确认。
 4. **旧索引链路退役计划**：`rag_index_job`（旧）与 `search_index_job` + `search_document`（新）并存，`--queue` 默认 `both`；何时收窄为 `search` 并下线旧表未在代码中标注。
 5. **运行期产物未纳入 `.gitignore`**：`jobs/importer/importer.pid` 与 `indexer-remaining.json` 为任务运行时生成，当前未被忽略规则覆盖。

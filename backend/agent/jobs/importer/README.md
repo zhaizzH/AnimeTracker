@@ -45,7 +45,6 @@
 ```bash
 cd backend/agent                 # 必须在 agent 根目录执行（依赖 app.* 包路径）
 cp .env.example .env             # 与 Agent 共用，填写 DB_* / MINIO_* / BANGUMI_*
-                                 # 注意删除模板中已废弃的 RAG_INDEX_ALIAS 行
 uv sync --dev
 
 # 导入 2026 年夏季番，5 并发
@@ -122,7 +121,7 @@ uv run python -m jobs.importer.main --mode sample --limit 100
 | `MINIO_RAW_BUCKET` | `anime-tracker-private` | 原始 Bangumi 快照私有桶，**必须与 `MINIO_BUCKET` 不同**（Agent 启动时校验） |
 | `RAG_INDEX_VERSION` | `v1` | 登记索引任务与写入检索投影时使用的版本标识 |
 
-> ⚠️ `.env.example` 中仍保留已被 `app/config.py` 移除的 `RAG_INDEX_ALIAS`。由于 `Settings` 使用 `extra="forbid"`，若要让 Agent 同时启动，需删除该行（对本工具本身无影响，但两者共用同一个 `.env`）。
+> ✅ `.env.example` 已与 `app/config.py` 对齐，`RAG_INDEX_ALIAS` 不再出现，无需手动删行。模板另含本工具与 scheduler 专用键（`RAG_PROFILE_VERSION` / `SEARCH_INDEX_LEASE_SECONDS` / `BACKFILL_BATCH_SIZE` / `BACKFILL_MAX_BATCHES` / `BUSINESS_BASE_URL` / `RAG_TRUSTED_TAG_MIN_COUNT`），它们在 `Settings` 中声明为 `str` 透传字段以容身共享 `.env`，本工具仍走 `os.getenv` 读取。
 >
 > 若未配置 MinIO，封面将回退为 Bangumi 原始 URL，原始快照不落盘。
 

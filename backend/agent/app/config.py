@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Literal
 
-from pydantic import SecretStr, model_validator
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -68,6 +68,28 @@ class Settings(BaseSettings):
     minio_bucket: str = "anime-tracker"
     minio_raw_bucket: str = "anime-tracker-private"
 
+    # ponytail: jobs(索引器/调度/回填) 专用键，仅为容身共享 .env；Agent 不读取，由 jobs 自行 os.getenv + str→数值转换。
+    # 声明为 str 是刻意的：若声明为 int，`BACKFILL_BATCH_SIZE=abc` 这类只该影响 scheduler 的非法值会变成 Agent 启动失败。
+    rag_profile_version: str = "subject-profile-v1"
+    search_index_lease_seconds: str = "300"
+    backfill_batch_size: str = "50"
+    backfill_max_batches: str = "10"
+    rag_trusted_tag_min_count: str = "100"
+    # 注意：与上方 backend_base_url 语义不同，二者并存，禁止合并。
+    # backend_base_url 是 Agent 自身回调业务后端的地址；business_base_url 是 jobs/indexer/shadow_eval.py 的
+    # --business-url 默认值（索引影子评估直连业务地址）。合并会让其中一方静默走错地址。
+    business_base_url: str = "http://127.0.0.1:8080"
+
+    @field_validator("rag_embedding_dim", mode="before")
+    @classmethod
+    def _accept_dotenv_embedding_dim(cls, value: object) -> object:
+        # dotenv/os.environ 的值恒为字符串；`Literal[1024]` 不做 str→int 转换，
+        # 会让模板里的 RAG_EMBEDDING_DIM=1024 触发 literal_error 导致启动失败。
+        # 仅接受数字字符串，非 1024 的值仍按原契约在启动时被拒绝。
+        if isinstance(value, str) and value.strip().isdigit():
+            return int(value)
+        return value
+
     @model_validator(mode="after")
     def raw_bucket_must_be_private(self) -> "Settings":
         if self.minio_raw_bucket == self.minio_bucket:
@@ -121,7 +143,7 @@ def resolve_llm_provider(s: Settings) -> ResolvedLlmProviderConfig:
                 raise ValueError("LLM_PROVIDER=deepseek 但未配置 DEEPSEEK_API_KEY")
             return ResolvedLlmProviderConfig(
                 provider="deepseek", api_key=SecretStr(s.deepseek_api_key),
-                model=s.deepseek_model, route_model=s.deepseek_model,
+                model=s.deepseek_model, route_model=s.deepseek_model_route,
                 reasoning_effort=s.llm_reasoning_effort, base_url=s.deepseek_base_url,
             )
         # provider == "dashscope"
@@ -129,7 +151,7 @@ def resolve_llm_provider(s: Settings) -> ResolvedLlmProviderConfig:
             raise ValueError("LLM_PROVIDER=dashscope 但未配置 DASHSCOPE_API_KEY")
         return ResolvedLlmProviderConfig(
             provider="dashscope", api_key=SecretStr(s.dashscope_api_key),
-            model=s.dashscope_model, route_model=s.dashscope_model,
+            model=s.dashscope_model, route_model=s.dashscope_model_route,
             reasoning_effort=s.llm_reasoning_effort,
         )
     # LLM_PROVIDER 未配置 → 回退旧 key 判断，打 warning 提示迁移

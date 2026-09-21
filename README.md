@@ -242,7 +242,7 @@ uv sync --dev
 uv run uvicorn main:app --reload --port 8090
 ```
 
-> ⚠️ **模板存在一处已知不一致**：`.env.example` 仍保留已被 `app/config.py` 移除的 `RAG_INDEX_ALIAS`。由于 `Settings` 使用 `extra="forbid"`，直接照抄模板会导致启动报 `Extra inputs are not permitted`。**请从 `.env` 中删除该行**，详情见下方 FAQ。
+> ✅ `.env.example` 已与 `app/config.py` 对齐（已移除的 `RAG_INDEX_ALIAS` 不再出现，并补齐了 route 模型键与 jobs 透传键）。**照抄模板即可启动成功**，无需手动删行。
 
 ### 4. 启动前端双应用 (:5173 / :5174)
 
@@ -332,8 +332,7 @@ curl -X POST http://localhost:8080/api/client/subjects/lexical-search \
 <details>
 <summary><strong>Q: Agent 启动报错 <code>Extra inputs are not permitted</code>？</strong></summary>
 
-**A**: `Settings` 配置模型开启了严格校验（`extra="forbid"`）。请勿在 `.env` 中加入未在 `backend/agent/app/config.py` 中声明的多余环境变量。
-**注意**：当前 `backend/agent/.env.example` 仍包含已废弃的 `RAG_INDEX_ALIAS`（代码中该配置已被移除，改为由 MySQL `search_index_release` 作为唯一激活指针）。照抄模板会直接触发此错误，请删除该行后再启动。
+**A**: `Settings` 配置模型开启了严格校验（`extra="forbid"`）。请勿在 `.env` 中加入未在 `backend/agent/app/config.py` 中声明的多余环境变量（多为变量名拼写错误）。`backend/agent/.env.example` 现已与 `Settings` 字段集对齐，照抄不会再触发；若此前照抄过旧模板，删除已废弃的 `RAG_INDEX_ALIAS` 行即可。
 </details>
 
 <details>
@@ -431,10 +430,9 @@ curl -X POST http://localhost:8080/api/client/subjects/lexical-search \
 
 1. **前端缺少子包 README**：`frontend/`、`frontend/client/`、`frontend/admin/`、`frontend/packages/shared/` 均无 README。按「不随意增删文件」的要求未新建，前端的页面结构、状态管理约定与组件规范暂无文档入口。
 2. **生产部署形态缺失**：仓库中不存在 `deploy/` 目录、`compose.yml` / `compose.prod.yml`、Nginx 配置或进程守护配置。`application.yml` 注释中提到的 `application-prod.yml`（由 `SPRING_PROFILES_ACTIVE=prod` 激活）在 `app/src/main/resources/` 下不存在，生产配置的落地方式待确认。
-3. **`.env.example` 与代码不一致**：模板中的 `RAG_INDEX_ALIAS` 已被移除（改为 MySQL `search_index_release` 唯一指针），模板注释中关于「RediSearch/Redis Stack」的描述也已过期（现为 Redis 8 Vector Set）。这属于代码/配置问题而非文档问题，故未直接修改，建议同步修正模板。
-4. **`.trellis/` 归档任务文档**：`.trellis/tasks/archive/` 下存在两处 README（任务文档索引与历史报告说明）。它们是被版本跟踪的历史审查记录，且自带「不直接删除审查证据」的维护规则，故本次未按模块文档结构重写；如需一并更新请明确指示。
-5. **运行期产物未纳入 `.gitignore`**：`backend/agent/jobs/importer/importer.pid` 与 `backend/agent/indexer-remaining.json` 由任务运行时生成，当前未被忽略规则覆盖（`*.log` 已被忽略）。
-6. **`jobs/indexer` 门禁阈值**：`quality` / `capacity` / `eval` / `latency` / `human` 五份报告的合格线随数据规模与嵌入额度变化，代码中未固化建议值，暂无文档化判读基准。
+3. **`.trellis/` 归档任务文档**：`.trellis/tasks/archive/` 下存在两处 README（任务文档索引与历史报告说明）。它们是被版本跟踪的历史审查记录，且自带「不直接删除审查证据」的维护规则，故本次未按模块文档结构重写；如需一并更新请明确指示。
+4. **运行期产物未纳入 `.gitignore`**：`backend/agent/jobs/importer/importer.pid` 与 `backend/agent/indexer-remaining.json` 由任务运行时生成，当前未被忽略规则覆盖（`*.log` 已被忽略）。
+5. **`jobs/indexer` 门禁阈值**：`quality` / `capacity` / `eval` / `latency` / `human` 五份报告的合格线随数据规模与嵌入额度变化，代码中未固化建议值，暂无文档化判读基准。
 
 ---
 
