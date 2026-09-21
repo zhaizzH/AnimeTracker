@@ -97,7 +97,7 @@ safe = [item for item in safe if self._matches_query_filters(item.evidence or {}
 
 - `RetrievalQuery`: `person_ids`, `character_ids`, `actor_ids`, `relation_subject_ids` 均为最多 50 个正整数；`entity_name` 为最多 48 个可见字符，`entity_kind` 可选值为 `PERSON|CHARACTER|ACTOR|RELATION_SUBJECT`，且不能脱离 `entity_name` 单独使用。
 - `POST /api/client/evidence/resolve`: `{ "entityType": "PERSON|CHARACTER|ACTOR|SUBJECT|RELATION_SUBJECT", "ids": [1, ...] }`；`RELATION_SUBJECT` 沿 `subject_relation` 双向扩展。
-- `BusinessGateway.resolve_evidence(entity_type, entity_ids, *, token) -> dict | list`。
+- `BusinessGateway.resolve_evidence(entity_type, entity_ids, *, token) -> dict | list | None`（无结果时返回 None）。
 - `RedisEntityNameLookup.lookup(entity_name, *, entity_kind, limit) -> list[EntityNameMatch]`；仅作为 Business typed resolver 的兼容边界，不从 Vector Set 读取名称；名称解析失败必须 fail-closed。
 - `plan_retrieval_query(query) -> RetrievalQuery` 只补全带明确标记的中文年份、季度、播出状态、评分和评分人数；显式结构化字段优先。
 
@@ -161,7 +161,7 @@ allowed = resolve_evidence(match.entity_kind, ids, token=token)
 - 运行时只产生 `AgentEvent`，事件类型为 `answer / thinking / function_call / status / end`。
 - `app/api/sse.py` 是序列化单一入口；结束事件必须设置 `is_end=true`。
 - 保持 `text/event-stream`、`Cache-Control: no-cache`、`X-Accel-Buffering: no`。
-- 改事件字段时同步 `schemas/sse.py`、前端 `useAgentChat.ts` 与 `docs/spec/openapi.yaml`。
+- 改事件字段时同步 `schemas/sse.py` 与前端 `useAgentChat.ts`；`docs/spec/openapi.yaml` 的 `/api/client/agent/stream` 当前只有通用透传 schema，未记录事件字段，不能作为该契约的核对依据。
 - 浏览器只请求 Spring 代理路径，不配置或直连 Agent 的 `:8090`。
 
 ### 安全写操作
@@ -202,7 +202,7 @@ allowed = resolve_evidence(match.entity_kind, ids, token=token)
 
 - `resolve_subject_by_title(title="", subject_id=None) -> dict`；`select_resolved_subject(choice: int | str) -> dict`（`user`、`pending` 由 `InjectedState` 注入）。
 - `SubjectResolutionPendingAction{type:"SUBJECT_RESOLUTION", user_id, expires_at, query, candidates:[{subjectId,subjectName,matchSource,matchType}]}`，camelCase `by_alias`，复用 Agent Redis 键与 600 秒 TTL。
-- 复用 `BusinessGateway.search_subjects(query,token,size)` → `GET /api/client/subjects/search`（响应 `content[]`，字段 `id/name/nameCn`，无 `active/nsfw`）；`batch_subjects(ids,token,exclude_collected=False)` → `POST /api/client/subjects/batch`（`items[]` 含 `id/type/nsfw/active/name/nameCn`，另有 `missingIds/filteredIds`）。
+- 复用 `BusinessGateway.search_subjects(query, *, token, size=15)` → `GET /api/client/subjects/search`（响应 `content[]`，字段 `id/name/nameCn`，无 `active/nsfw`）；`batch_subjects(subject_ids, *, token, exclude_collected)` → `POST /api/client/subjects/batch`（`items[]` 含 `id/type/nsfw/active/name/nameCn`，另有 `missingIds/filteredIds`；`exclude_collected` 为 keyword-only 且无默认值）。
 - 复用 `app/agent/client/actions/wishlist.py::build_wishlist_preview(subjects,user,business)` 与 `RetrieveSubjectsUseCase.execute(query, mode="search", user)`。
 
 ##### 3. Contracts
@@ -236,7 +236,7 @@ allowed = resolve_evidence(match.entity_kind, ids, token=token)
 ##### 6. Tests Required
 
 - `tests/agent/test_subject_resolution.py`：归一化仅字符层面（`第二季 != 第2季`）、唯一精确/多命中、`dedup_ids` 拒 bool 与非正数、`/batch` 过滤 `active/type/nsfw` 与基础设施错误、Business 命中不回退 RAG、Business 错误不回退不预览、空结果回退 RAG、RAG 不可用不伪装、非空无精确进 resolution、显式 `subject_id` 跳搜索仍 `/batch`、选择按序号/唯一名/歧义/越界/用户不匹配/过期/已收藏/失效重校验、gateway 对 `SUBJECT_RESOLUTION` 路由、判别联合序列化往返。
-- 运行 `uv run pytest tests/agent` 与 `uv run pytest`（本轮 42 / 313 通过）。
+- 运行 `uv run pytest tests/agent` 与 `uv run pytest`（2026-09-21 复核：78 / 413 通过）。
 
 ##### 7. Wrong vs Correct
 
@@ -311,7 +311,7 @@ emit_pending_action_set(build_resolution_action(...)) # 多个/歧义 → SUBJEC
 
 - `tests/agent/test_collection_type.py`：预览 ADD/NOOP/CHANGE 与状态错误、set 唯一精确/多候选(带 collection_type)/NOOP 清理/显式 id/无匹配、execute 成功/409/404/基础设施保留/无待确认、选择后按 collection_type 分派、SET_COLLECTION_TYPE 与 SUBJECT_RESOLUTION(带/不带 collectionType) 序列化往返、工具 schema 含 collection_type。
 - `tests/agent/test_write_intent_routing.py`：写入短语命中（含插词）、否定不误触发、纯查询不误触发、SET_COLLECTION_TYPE 确认强制路由、非确认不强制。
-- 运行 `uv run pytest tests/agent` 与 `uv run pytest`（本轮 339 通过）。
+- 运行 `uv run pytest tests/agent` 与 `uv run pytest`（2026-09-21 复核：78 / 413 通过）。
 
 ##### 7. Wrong vs Correct
 
@@ -423,8 +423,8 @@ Correct: 同时统计任务状态和 person/character 的 detail_status，并通
 ##### 2. Signatures
 
 - 命令：`python -m jobs.importer.main --mode recent [--resume]`。
-- 扫描源：`BangumiClient.get_calendar() -> list[dict]`。
-- 代理环境变量：`HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY`；只由进程环境注入，不写入日志或任务记录。
+- 扫描源：`BangumiClient.get_calendar() -> list`（`jobs/importer/client.py` 该方法返回注解为裸 `list`，同文件邻居方法的 `list[dict]` 更精确，取值时仍需按实际结构校验）。
+- 代理环境变量：`HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY` 由 `requests` 隐式遵循，importer 代码没有显式读取或校验它们；只由进程环境注入，不写入日志或任务记录。（代码中显式的只有 `BANGUMI_IMAGE_PROXY_URL`。）
 
 ##### 3. Contracts
 
@@ -486,7 +486,7 @@ except Exception as error:
 ##### 2. Signatures
 
 - `run_search_batch(...) -> IndexBatchResult`：批量消费 `search_index_job`，失败任务进入可重试状态。
-- `SearchIndexJobRepository.mark_failed(job_id, error_code, error_message, retry_seconds, claimed_at)`：写入错误码并设置 `next_retry_at`。
+- `SearchIndexJobRepository.mark_failed(job_id, *, error_code, error_message, retry_seconds=0, claimed_at=None) -> bool`：写入错误码并设置 `next_retry_at`。Port 定义（`app/entities/ports.py`）为 `mark_failed(job_id, *, error_code, error_message, retry_seconds) -> None`，无 `claimed_at`；实现（`jobs/indexer/search_repository.py`）更宽，引用时须注明是哪一侧。
 
 ##### 3. Contracts
 
@@ -543,7 +543,7 @@ elif isinstance(error, RedisConnectionError):
 
 ##### 2. Signatures
 
-- `ShadowIndexManager.prepare_switch(version, quality_report_path, gate_passed) -> SwitchPlan`。
+- `ShadowIndexManager.prepare_switch(index_version, *, quality_report_path=None, gate_passed=False, gate_reasons=()) -> SwitchPlan`。
 - `ShadowIndexManager.execute_switch(plan) -> SwitchResult`。
 - `ShadowIndexManager.rollback(previous_version) -> SwitchResult`。
 - `build_capacity_report(sample_bytes, sample_count, catalog_count, redis_used_memory, available_bytes)`。

@@ -42,7 +42,8 @@
 #### SSE 事件与帧边界
 
 - `streamSse` 的请求必须是 POST JSON，携带可选 Bearer 和 `AbortSignal`；响应应为 `text/event-stream`，帧以空行结束，最后一个无换行帧也必须被处理。
-- 事件联合至少包含 `answer`、`thinking`、`function_call`、`status` 与 `end`；`function_call.state` 使用 `start|end|error`，工具状态必须从 running 进入 done/error，不得永久停在 running。
+- 事件 `type` 取值为 `answer`、`thinking`、`function_call`、`status`，不存在 `type=end` 帧；结束由 `is_end=true` 表达。`function_call.state` 当前只有 `start|end`，失败以 `end` + `result=error` 表达；`state=error` 只出现在 `status` 事件上。
+- 工具状态当前只有 running/done（见 [类型安全规范](./component-guidelines.md#类型安全规范)），不得永久停在 running；新增 `error` 状态需先扩展 `ToolStep` 并同步事件处理。
 - `is_end=true` 或明确 end 事件后停止写入；Abort、网络断开和解析失败必须分别保留可重试的用户语义。
 - 当前 `packages/shared/src/sse.ts` 只按单个换行切分、未校验 Content-Type、未 flush 尾帧。`useAgentChat` 未单独处理 status 与 function_call error；含 `content.text` 的其他事件还可能落入正文拼接分支。`is_end` 仅跳过当前事件，没有锁住后续帧。这些是已知债务，新增 SSE 改动必须补 parser、状态机、断开和鉴权失败测试。
 
@@ -51,7 +52,7 @@
 - `packages/shared/src/hooks/useAgentChat.ts` 按收到的 `content.text` 直接累加 thinking；没有翻译、空格修复或中文校验。
 - client 的 `src/components/AgentChat.tsx` 与 admin 的 `src/pages/AgentChat.tsx` 分别渲染折叠区，不能只验证一端。
 - 历史加载只恢复 role/content，不恢复 thinking；刷新后思考区域消失不是翻译成功或服务停止思考的证据。
-- 排查连续英文单词先检查后端 chunk 的 `strip()`，不要先在前端插空格。完整链路见 [Agent 运行与提示词契约](../backend/agent-guidelines.md#agent-角色提示词与流式输出契约)。
+- 排查连续英文单词时先确认模型原始 chunk：后端只丢弃空块与重复 payload，不补也不删空格（`normalized = raw.strip()` 仅用于去重比较，追加的是未处理的 `raw`）；不要先在前端插空格。完整链路见 [Agent 运行与提示词契约](../backend/agent-guidelines.md#agent-角色提示词与流式输出契约)。
 - SSE 的 401/403 当前会进入通用中断分支，没有 Axios 自动刷新，也未区分主动 Abort 与故障；“刷新一次/停止重试”是后续应实现的契约。
 
 #### 服务端写入缓存矩阵
@@ -104,7 +105,7 @@
 
 #### URL 筛选的实现边界
 
-- 当前 client AnimeIndex 仅将 `q/page` 写入 URL；admin Subjects/Logs 的筛选仍主要保存在本地 state。规范中的“可分享筛选”是目标模式，不得当成所有页面的现行事实。
+- 当前 client AnimeIndex（`q/page`）、MyCollections（`tab/page`）与 Schedule（`year/quarter/tab`）已把筛选写入 URL；admin Subjects/Logs 的筛选仍主要保存在本地 state。规范中的“可分享筛选”是目标模式，不得当成所有页面的现行事实。
 - 新增 URL 筛选时必须定义：字段编码、默认值、刷新/返回可恢复性，以及筛选变化时页码归零。
 
 ### 主题状态

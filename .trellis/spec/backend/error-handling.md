@@ -171,7 +171,7 @@ Business 新增 `log` Maven 模块，统一负责操作日志采集、存储、�
 
 证据：`backend/agent/app/shared/observability.py::hash_value/log_event`。`rag.evidence.enriched` 调用中的 `expectedCount/actualCount` 未列入 `_RAG_ALLOWED_FIELDS`，因此当前会被过滤；不能在运维文档中要求从现有日志读取这些字段。
 
-Java `GlobalExceptionHandler` 的部分 warn 仍直接记录 `e.getMessage()`；白名单只约束 Python `log_event`，不自动脱敏其他 logger 或异常堆栈。后续修复应保留可定位错误类别并避免记录原始 SQL/请求敏感值。
+Java `GlobalExceptionHandler` 的 warn 只记录错误码、校验字段数、Content-Type、请求方法和异常类名等非敏感元数据，不记录原始异常消息或 SQL；`e.getMessage()` 只出现在响应体与校验消息映射中，不进入日志。白名单只约束 Python `log_event`，不自动脱敏其他 logger 或异常堆栈，后续修复仍应保留可定位错误类别并避免记录原始 SQL/请求敏感值。
 
 ### 隐私红线
 

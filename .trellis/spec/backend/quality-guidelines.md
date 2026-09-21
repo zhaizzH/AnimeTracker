@@ -31,8 +31,7 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 
 2026-09-10 的历史审计曾因 `tests/agent/test_capability_route.py` 导入缺失符号而收集失败；该测试已按当前 graph/runtime 契约重写。
 
-2026-09-12 最终复核在 `backend/agent` 执行 `\.venv\Scripts\python.exe -m pytest`，结果为 284 passed；运行环境为已有 Agent `.venv`。此前 271 passed 是排除失效测试文件后的历史诊断数，不替代本次结果。
-2026-09-16 本轮 Backend 文档复核在仓库根目录执行 `mvn -B test -f backend/business/pom.xml`，Business reactor 共 95 个测试通过，0 失败、0 错误。随后执行 `python backend/business/tools/check_javadoc.py`，检查 255 个文件、1658 个声明且 0 个违规；`python backend/business/tools/test_check_javadoc.py` 的 7 项回归通过。该记录只覆盖本轮实际执行的 Java 检查，Python 的 284 passed 仍是上面的带日期历史基线。
+2026-09-21 本轮文档复核在 `backend/agent` 执行 `uv run pytest`，结果为 413 passed；Java 侧同轮复跑 `mvn -B test -f backend/business/pom.xml` 为 95 个测试通过、0 失败、0 错误，`check_javadoc.py` 为 255 个文件、1658 个声明、0 个违规，`test_check_javadoc.py` 为 7 项通过。2026-09-12 的 284 passed 与 2026-09-16 的 Java 95/255/1658 仍是带日期的历史基线；此前 271 passed 是排除失效测试文件后的历史诊断数。不得沿用历史通过数。
 
 - Java `app` 模块包含配置迁移回归测试：`AppConfigurationBindingTest`、`SecurityConfigAuthorizationTest`、`CookieOriginFilterTest`、`AgentConfigTest` 与 `ArchitectureBoundaryTest`。
 - Python 已有 importer、indexer gate、shadow eval、release store、容量报告和 RAG 故障矩阵回归用例；任务归档的 2026-09-07 证据为 Agent `268 passed, 1 deselected`、Business `37` tests。该数字是带日期的历史验证，不替代本次变更重新运行测试。

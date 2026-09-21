@@ -19,7 +19,8 @@
 
 - 全新空库初始化入口：`mysql ... < docs/database/db-schema.sql`。
 - 存量库变更入口：必须由评审确认的前向 `ALTER`/回填步骤；不得把完整 Schema 文件当作升级脚本。
-- `docs/database/migration-002-rag-entities.sql` 的旧表兼容列变更使用 `INFORMATION_SCHEMA.COLUMNS` + `PREPARE` 条件执行；MySQL 8.4 不支持 `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`。
+- 仓库当前不提供前向迁移脚本：`docs/database/` 下只有 `db-schema.sql`。历史上的 `migration-002-rag-entities.sql`、`migration-003-search-projection.sql` 已随提交 `f771e48a` 删除，不得再引用或执行。
+- 历史迁移脚本曾用 `INFORMATION_SCHEMA.COLUMNS` + `PREPARE` 条件执行旧表兼容列变更，因为 MySQL 8.4 不支持 `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`；该手法仍是新增前向迁移时的既有参考实现。
 
 ### 3. Contracts
 
@@ -51,7 +52,7 @@
 - 初始化检查：在临时空库执行 Schema，断言关键表、索引和外键存在。
 - 迁移检查：在包含旧数据的临时库执行前向 DDL 与回填，断言旧数据可读、新旧应用兼容。
 - 回滚演练：验证备份可恢复，且失败步骤不会留下不可解释的半迁移状态。
-- MySQL 版本门禁：至少在项目声明的 MySQL 8.0+ 实际小版本（当前验证为 8.4.9）执行空库初始化、旧表前向迁移和二次迁移；断言不出现 1064，且检查 `source_active` 三列与 9 张新增表。
+- MySQL 版本门禁：至少在项目声明的 MySQL 8.0+ 实际小版本（当前验证为 8.4.9）执行空库初始化并断言不出现 1064。历史门禁还包含“旧表前向迁移、二次迁移、`source_active` 三列与 9 张新增表”，但那些断言依赖已删除的 `migration-002`，当前无法复现，不得沿用其结果；`source_active` 如今在 `db-schema.sql` 中出现 17 处，不再只有三列。
 
 ### 7. Wrong vs Correct
 
@@ -112,7 +113,7 @@ DEALLOCATE PREPARE stmt;
 ### 3. Contracts
 
 - 新实体关系写入 `subject_person_credit`；当前 importer 同时调用 `_upsert_credits` 更新旧 `subject_credit`，旧表仍参与索引 Profile 读取。迁移期是兼容双写/读取，不是旧表只读。
-- `credit_type` 只能使用 `PERSON` 或 `ORGANIZATION`；Java `SubjectCredit` 与 Python `CreditType` 必须保持相同字面值。
+- `credit_type` 只能使用 `PERSON` 或 `ORGANIZATION`；Python 侧由 `CreditType` 枚举（`app/entities/enums.py`）强制，Java 侧 `SubjectCredit.creditType` 是裸 `String`（Javadoc 约定），跨语言字面值一致必须由测试和审查保证，编译器不强制。
 - 旧表读取继续使用参数化 SQL，不得因为新增关系表而删除或改写旧查询语义。
 
 ### 4. Validation & Error Matrix
@@ -178,7 +179,7 @@ DEALLOCATE PREPARE stmt;
 
 - `search_document(entity_kind, entity_id, index_version, profile_version, title, aliases, lexical_text, content_hash, source_active, source_fetched_at)`。
 - `search_index_release(index_version, profile_version, status, activated_at, retired_at, active_slot)`。
-- 存量库入口：`docs/database/migration-003-search-projection.sql`；空库入口：`docs/database/db-schema.sql`。
+- 空库入口：`docs/database/db-schema.sql`；存量库前向迁移脚本已移除，当前无独立迁移入口，变更需由评审确认后手工执行 `ALTER`/回填。
 
 ### 3. Contracts
 
@@ -219,7 +220,7 @@ ALTER TABLE search_document ADD COLUMN IF NOT EXISTS lexical_text TEXT;
 #### Correct
 
 ```text
-存量库执行 migration-003；结构不一致先检查 INFORMATION_SCHEMA，再由评审决定 ALTER/回填/回滚。
+存量库结构不一致时先检查 INFORMATION_SCHEMA，再由评审决定 ALTER/回填/回滚；仓库当前不提供前向迁移脚本。
 ```
 
 ## 常见错误

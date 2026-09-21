@@ -11,9 +11,9 @@
 
 - Page 负责路由级数据组合；可复用交互拆到 `components`。
 - client/admin 共同使用且不依赖单一应用路由、全局 CSS 或专属运行时的展示组件才进入 shared；`SubjectCard.tsx` 当前依赖 client 的 `.od-card-img` 样式和 `react-router-dom`，属于待治理的共享边界债务。
-- shared 组件必须在 `packages/shared/package.json` 声明自身运行时依赖，不能依赖消费应用“碰巧”安装的包，也不能假设 client 的全局样式一定存在。
+- shared 组件必须在 `packages/shared/package.json` 声明自身运行时依赖，不能依赖消费应用“碰巧”安装的包，也不能假设 client 的全局样式一定存在。当前存在反向漂移：shared 声明了源码未使用的 `react-markdown`（实际使用方是 client/admin，二者都未声明），而 `SubjectCard.tsx` 使用的 `react-router-dom` 未在 shared 声明；属待治理债务。
 - 复杂状态共享优先 Provider + 自定义 Hook，参考 `AgentChatProvider` 与 `useClientAgentChat`。
-- 路由页面使用 `lazy + Suspense`；fallback 保持接近最终内容宽度，避免布局跳动。
+- 路由页面使用 `lazy + Suspense`（client 全量；admin 除 `AdminLogin` 外，该页是静态导入）；fallback 保持接近最终内容宽度，避免布局跳动。
 - 不把 API URL、鉴权刷新或 SSE 解析复制进页面组件。
 
 ### Props 与渲染
@@ -59,7 +59,7 @@
 - 跨应用/跨页面 API 类型集中在 `packages/shared/src/types/index.ts`。
 - 仅组件内部使用的 props、表单和视图状态留在组件附近。
 - shared API 函数声明精确输入/输出泛型，调用方不重复写响应结构。
-- ID 类型必须按领域核对，不能使用“Java Long 全部转 string”的笼统规则。当前 shared 类型中：Subject/HotSubject/Relation 的业务 ID 多为 `string`；User、Episode、Collection、Tag、Log 等 ID 仍为 `number`；OpenAPI 的 `integer/int64` 不能自动推导前端最终类型。
+- ID 类型必须按领域核对，不能使用“Java Long 全部转 string”的笼统规则。当前 shared 类型中：`SubjectListItem`、`HotItemVO` 的业务 ID 为 `string`；`User`、`Episode`、`Collection`、`Tag`、`Log` 等 ID 仍为 `number`；`RelationVO` 不含独立 ID，只携带 `relatedSubject`；OpenAPI 的 `integer/int64` 不能自动推导前端最终类型。
 - 修改 ID 序列化时必须同时核对 Java VO/DTO、Python schema、OpenAPI 和 `packages/shared/src/types/index.ts`；未完成统一前，保留现有领域映射并为大整数增加边界测试。
 - 状态/角色/收藏类型使用联合类型，例如 `UserRole`、`CollectionType`。
 

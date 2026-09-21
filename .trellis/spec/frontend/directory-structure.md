@@ -24,7 +24,7 @@ frontend/
 
 ## 导入规则
 
-- 应用从 `@shared` 或 `@animetracker/shared` 公共入口导入，不穿透 shared 私有文件。
+- 应用统一从 `@shared` 公共入口导入（Vite alias + tsconfig paths 指向 shared 源码）；`@animetracker/shared` 包名入口当前无人使用，不穿透 shared 私有文件。
 - shared 的 API 在 `src/index.ts` 以 `authApi / subjectsApi / adminUsersApi` 等命名空间导出。
 - client/admin 不互相相对导入。
 - 新共享导出先检查命名冲突；同名动作保持命名空间，不改成扁平 re-export。

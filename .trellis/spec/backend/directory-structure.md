@@ -78,7 +78,7 @@ backend/
 
 - `pojo` 只放数据结构：请求用 DTO，响应用 VO，数据库映射用 Entity。
 - `client/admin` 遵循 Controller → Service → Mapper/Store；Controller 只做绑定、鉴权上下文和响应包装。
-- 外部系统先在消费模块定义 Gateway，实现在 `app.infrastructure`。参考 `ImportAgentGateway` → `HttpImportAgentGateway`。
+- 外部系统先在消费模块定义 Gateway，实现在同一消费模块内。参考 `agent/gateway/ImportAgentGateway` 与 `agent/gateway/HttpImportAgentGateway`（同为 `agent` 模块）；不要放在 `app` 下，`app` 只做组合装配。
 - 只有多个业务模块共享的能力才放 `common`；模块私有端口不要上提。
 - `app` 是组合根，聚合业务模块并承载 MinIO、Resend、Agent HTTP 等适配器，以及本次从旧 `common.config` 迁移的六类 Spring 配置绑定和运行时 Bean 装配；它不是所有领域配置类的唯一所在地。
 
@@ -152,7 +152,7 @@ Business 的 DTO、VO、Entity 统一放在 pojo 管理，无论只被一个模�
 - 错误：ServiceImpl 内维护完整 VO 映射；或把该方法搬到 Converter 后仍在其中调用 Mapper、读取当前用户权限。
 - 正确：Service 查询实体和关联数据并完成业务判断，再调用模块内 Converter 映射输出。
 
-已核实的迁移候选包括 `CollectionServiceImpl.toSimpleVO`、`ClientSubjectServiceImpl.toBatchItemVO` 的字段映射部分、`EvidenceServiceImpl.buildCandidate` 和 `DashboardServiceImpl.trends` 的 VO 组装部分。对应的查询、收藏分类、状态解释和统计口径仍由业务层负责。
+迁移已完成，映射归属现为：`CollectionConverter.toSimpleVO`、`SubjectConverter.toBatchItemVO`、`EvidenceConverter.toCandidate`，以及仍留在 `DashboardServiceImpl.trends` 的 VO 组装部分。对应的查询、收藏分类、状态解释和统计口径仍由业务层负责。
 
 本次实现已逐项核对现有内嵌转换及原 `common.converter.SubjectVoConverter` 的两端使用方，并按本节边界完成迁移；后续修改需继续遵守这些规则。
 
@@ -227,7 +227,7 @@ AgentService agentService(RestTemplate restTemplate, ObjectMapper mapper, AgentP
 
 历史记录中的边界说明只描述迁移前状态。当前 `ArchitectureBoundaryTest` 已按上方完整矩阵检查所有九模块，并用夹具覆盖 `client → agent`、`common → pojo` 等此前遗漏的边；新增跨模块 import 仍必须同时做人工审查和测试。
 
-配置例外必须按真实源码处理：`client/config/AuthCookieProperties`、`CollectionProgressConfig`、`app/infrastructure/**` 等仍属于消费方或基础设施自身配置；迁移规则只适用于本次列出的 `app.config` 类，不得扩大解释为“所有 `@ConfigurationProperties` 都在 app”。
+配置例外必须按真实源码处理：`client/config/AuthCookieProperties`、`CollectionProgressConfig`、`infrastructure` 模块自身的 `MinioConfig`/`MinioProperties` 等仍属于消费方或基础设施自身配置；`app` 模块当前只有 `config`、`filter`、`web` 三个包，MinIO/Resend 实现已迁入 `infrastructure` 模块。迁移规则只适用于本次列出的 `app.config` 类，不得扩大解释为“所有 `@ConfigurationProperties` 都在 app”。
 
 ### 启动、Profile 与健康检查契约
 

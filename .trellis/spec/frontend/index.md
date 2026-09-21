@@ -5,9 +5,9 @@
 ## 开发前检查
 
 1. 判断代码属于用户端、管理端还是两个应用共享的契约/组件。
-2. 涉及 HTTP 时先读 `shared/src/api/http.ts` 与对应命名空间 API。
+2. 涉及 HTTP 时先读 `packages/shared/src/api/http.ts` 与对应命名空间 API。
 3. 涉及登录态时先读 auth store、coordinator、AuthGate 和路由 guard。
-4. 涉及 SSE 时同时核对 Agent 事件 schema 与 `useAgentChat.ts`。
+4. 涉及 SSE 时同时核对 Agent 事件 schema 与 `packages/shared/src/hooks/useAgentChat.ts`。
 5. 新增服务端数据时设计完整 queryKey，并明确 mutation 后失效范围。
 
 ## 规范索引
