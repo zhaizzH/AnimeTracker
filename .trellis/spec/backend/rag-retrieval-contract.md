@@ -19,7 +19,9 @@
 | 查询版本 | lexical 响应 indexVersion 决定 Subject VSIM key | Python 未独立校验响应 profileVersion；MySQL JOIN 和发布 gate 承担对应版本约束 |
 | 收藏画像向量 | `_subject_vector_lookup` 使用配置 `rag_index_version` | 仍可能与 active release 不同，不能把主检索的同版本保证扩大到画像链 |
 | 工具错误 | use case 返回 available/reason/personalizationNotice；工具 `_items` 保留 `{available:false,reason,items:[]}` | 模型可区分不可用和正常无结果，但仍需真实回放验证回答是否正确解释 |
-| Evidence 重复 ID | 字典按 subjectId 覆盖，随后比较 ID 集合与安全字段 | 尚未拒绝重复合法 ID，应补唯一性校验 |
+| Evidence 重复 ID | `_enrich_evidence` 在 `by_id` 赋值前检测已见 subjectId，命中即整批 fail-closed | 已实现拒绝：`available=false`、`reason=evidence_unavailable`、空候选，日志 `errorType="duplicate_subject_id"`；不再静默后者胜 |
+| 适配器出参校验 | `HttpBusinessGateway.batch_subjects/batch_evidence/resolve_evidence/save_collection` 依赖上游 typed 工具，不自校验 ID/类型 | **backlog（12e）**：纵深校验会改动四方法的出参与错误语义，需先确认与上游 typed 工具的职责划分 |
+| 静默异常分类 | `retrieval.py`、`main.py` 多处 `except Exception` 把不同根因坍缩为单一降级 | **backlog（12f）**：细分类会变更降级语义与 `log_event` errorType，需先定义错误分类契约 |
 
 RRF 按两路排名计算 `Σ 1/(60+rank)`，每路上限 50，权威回查后最终至多 15 条；当前重排为 `retrieval.py::_rerank` 中的规则分数，没有独立 reranker 模型。查询 Embedding 失败时可继续词法召回，版本获取/索引异常进入 Business fallback；正常空召回不一定触发 fallback。
 
@@ -82,7 +84,7 @@ python -m jobs.indexer.gate `
 - **Gate 阈值**：coverage ≥ 99.5%、Recall@20 ≥ 0.85、MRR@10 ≥ 0.90、nDCG@10 ≥ 0.75、Evidence completeness = 100%、Redis P95 < 250 ms、hydrated P95 < 500 ms、容量利用率 ≤ 60%、人工检查 ≥ 20 且严重错误为 0、正式 eval 必须为 `RELEASE_CANDIDATE` 且 120/120 通过。
 - **激活边界**：先完成 MySQL/Redis 双 shadow，再生成五份报告，gate 通过后在 MySQL 事务中激活；Redis alias 不得参与发布。
 - **功能开关边界**：release `ACTIVE` 只表示索引可供查询；`RAG_ENABLED=false` 时不得把索引发布描述为 Agent RAG 已默认启用。
-- **Evidence 权威性**：候选必须先经过 Business 权威回查，再经过 Evidence API；Evidence 超时、错误、缺项、非法 ID、inactive 或 NSFW 时返回 `available=false` 和空候选。重复合法 ID 的拒绝尚待实现，见本页缺口表。
+- **Evidence 权威性**：候选必须先经过 Business 权威回查，再经过 Evidence API；Evidence 超时、错误、缺项、非法 ID、inactive 或 NSFW 时返回 `available=false` 和空候选。重复合法 ID 时同样整批拒绝（日志 `errorType="duplicate_subject_id"`），绝不静默取后者。
 - **灰度确认**：启用 RAG 后至少观察 24 小时，记录观察起止时间、版本、成功率/错误率、延迟、Evidence 完整率和告警结果；没有原始指标时只能记录“人工确认通过”，不得补写数值。
 - **回滚**：异常时先关闭 RAG 功能开关，再通过 MySQL release store 切回已通过 gate 的旧版本；保留新旧投影，禁止 Redis-only 回滚。
 - **清理**：回滚窗口结束前不得删除旧 `search_document` 版本或 Vector Set；删除索引、Vector Set 或表必须另起确认与迁移记录。

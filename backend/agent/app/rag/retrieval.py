@@ -8,6 +8,7 @@ import re
 from typing import Any, Callable, Mapping, Sequence
 
 from app.shared.observability import log_event
+from app.rag.air_status import infer_air_status
 from app.rag.ports import EmbeddingPort
 from app.rag.schemas import RetrievalQuery
 from app.rag.seasons import SEASON_QUARTERS
@@ -675,6 +676,18 @@ class RagRetrievalService:
                 return [], False
             if subject_id <= 0:
                 return [], False
+            if subject_id in by_id:
+                # A duplicate legal ID means Business returned two
+                # self-contradictory rows for the same Subject.  The dict
+                # would silently keep the last one and the key-set check
+                # below would still pass, so reject the whole batch here.
+                log_event(
+                    "rag.evidence.enriched",
+                    success=False,
+                    errorType="duplicate_subject_id",
+                    duplicateSubjectId=subject_id,
+                )
+                return [], False
             by_id[subject_id] = row
         expected_ids = {candidate.subject_id for candidate in candidates}
         if by_id.keys() != expected_ids:
@@ -799,8 +812,11 @@ class RagRetrievalService:
 
         if query.air_status is not None:
             status = str(item.get("airStatus") or item.get("air_status") or "").upper()
-            if not status:
-                status = _infer_air_status_name(item.get("airDate") or item.get("air_date"))
+            if status not in {"UPCOMING", "AIRING", "FINISHED"}:
+                # Only the conservative inference is allowed to fill a missing
+                # or non-authoritative status; an explicit ``UNKNOWN`` must not
+                # be treated as an authoritative value.
+                status = infer_air_status(item.get("airDate") or item.get("air_date"))
             if status != query.air_status:
                 return False
 
@@ -984,14 +1000,6 @@ def _item_quarter(item: Mapping[str, Any]) -> int | None:
 def _has_textual_intent(query: RetrievalQuery) -> bool:
     """Whether ranking should be allowed to reorder a structured result set."""
     return bool(query.semantic_query or query.keywords)
-
-
-def _infer_air_status_name(value: Any) -> str:
-    try:
-        parsed = date.fromisoformat(str(value)[:10])
-    except (TypeError, ValueError):
-        return ""
-    return "UPCOMING" if parsed > date.today() else "FINISHED"
 
 
 def _preference_score(candidate: RetrievalCandidate, preference: Mapping[int | str, float] | UserPreference | None) -> float:

@@ -180,6 +180,10 @@ class TestEvidenceEnrichment:
                 "score": 8.5,
                 "ratingTotal": 1500,
                 "airDate": "2024-01-01",
+                # The authority SQL computes airStatus and it is what this
+                # filter must consume; the conservative date-based fallback
+                # deliberately refuses to infer FINISHED.
+                "airStatus": "FINISHED",
             },
             {
                 "subjectId": 2,
@@ -190,6 +194,7 @@ class TestEvidenceEnrichment:
                 "score": 8.5,
                 "ratingTotal": 1500,
                 "airDate": "2024-01-01",
+                "airStatus": "FINISHED",
             },
         ]
 
@@ -293,6 +298,50 @@ class TestEvidenceEnrichment:
         assert result.available is False
         assert result.items == []
         assert result.reason == "evidence_unavailable"
+
+    def test_enrich_duplicate_subject_id_is_fail_closed(self):
+        """Evidence 对同一合法 ID 返回两行时，整批拒绝且两行都不进上下文。"""
+
+        def mock_authority(ids, token=None, exclude_collected=False):
+            return [
+                {"id": 1, "name": "One", "type": 2, "nsfw": False, "active": True},
+                {"id": 2, "name": "Two", "type": 2, "nsfw": False, "active": True},
+            ]
+
+        # Two self-contradictory rows for the same legal subjectId.  The old
+        # dict assignment silently kept the last one and the key-set
+        # completeness check still passed, so the wrong row became authority.
+        def duplicate_evidence(ids, token=None):
+            return [
+                {"subjectId": 1, "type": 2, "nsfw": False, "active": True, "summary": "first row"},
+                {"subjectId": 1, "type": 2, "nsfw": False, "active": True, "summary": "second row"},
+                {"subjectId": 2, "type": 2, "nsfw": False, "active": True, "summary": "other subject"},
+            ]
+
+        service = RagRetrievalService(
+            index=MockIndex(lambda expr, limit=50: [{"subject_id": 1}, {"subject_id": 2}]),
+            embeddings=MockEmbeddings(),
+            authority_lookup=mock_authority,
+            business_search=lambda q, token=None: [],
+            evidence_lookup=duplicate_evidence,
+        )
+        result = service.retrieve(RetrievalQuery(keywords=["test"]), token=None)
+        assert result.available is False
+        assert result.items == []
+        assert result.reason == "evidence_unavailable"
+
+        # ``result.items`` is empty, so asserting on it would be vacuous.  Call
+        # the fail-closed boundary directly to prove that no candidate leaves it
+        # carrying either contradictory row, and that the input candidates are
+        # not mutated in place.
+        candidates = [
+            RetrievalCandidate(subject_id=1, retrieval_score=1.0, retrieval_reason="lexical"),
+            RetrievalCandidate(subject_id=2, retrieval_score=0.5, retrieval_reason="lexical"),
+        ]
+        safe, ok = RagRetrievalService._enrich_evidence(candidates, None, duplicate_evidence)
+        assert ok is False
+        assert safe == []
+        assert all(candidate.evidence is None for candidate in candidates)
 
     def test_enrich_non_numeric_subject_id_is_fail_closed(self):
         """Evidence 返回非法 subjectId 时，不应让解析异常穿透。"""

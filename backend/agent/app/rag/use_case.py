@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal, Mapping
 
+from app.rag.air_status import infer_air_status
 from app.rag.retrieval import RagRetrievalService, RetrievalCandidate
 from app.rag.query_planner import plan_retrieval_query
 from app.rag.schemas import RetrievalQuery
@@ -47,7 +48,7 @@ class RetrieveSubjectsUseCase:
         evidence = candidate.evidence if isinstance(candidate.evidence, Mapping) else {}
         title = str(details.get("nameCn") or details.get("name") or candidate.title)
         air_date = evidence.get("airDate") or details.get("airDate")
-        air_status = _infer_air_status(
+        air_status = infer_air_status(
             air_date,
             evidence.get("airStatus") or details.get("airStatus"),
         )
@@ -76,29 +77,6 @@ class RetrieveSubjectsUseCase:
             "retrievalReason": candidate.retrieval_reason,
             "sourceRefs": source_refs,
         }
-
-
-def _infer_air_status(air_date: Any, explicit_status: Any = None) -> str:
-    """输出可信播出状态；单个首播日期不足以证明已完结。"""
-    normalized = str(explicit_status or "").upper()
-    if normalized in {"UPCOMING", "AIRING", "FINISHED"}:
-        return normalized
-    parsed = _parse_date(air_date)
-    if parsed is None:
-        return "UNKNOWN"
-    today = datetime.today().date()
-    if parsed > today:
-        return "UPCOMING"
-    return "UNKNOWN"
-
-
-def _parse_date(value: Any):
-    if value is None:
-        return None
-    try:
-        return datetime.fromisoformat(str(value)[:10]).date()
-    except (TypeError, ValueError):
-        return None
 
 
 def _parse_datetime(value: Any) -> datetime | None:
