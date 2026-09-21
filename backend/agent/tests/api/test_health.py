@@ -21,6 +21,17 @@ from tests.api.conftest import NoopBusiness, NoopStore, fake_settings
 
 HEALTH_PATH = "/api/client/agent/health"
 ENUM_VALUES = {"ok", "down", "disabled"}
+
+
+class _FakeResponse:
+    """Minimal successful ``httpx`` response stand-in for monkeypatched calls."""
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self):
+        return {"status": "UP"}
+
 _SENSITIVE = (
     "redis://",
     "Bearer ",
@@ -241,7 +252,38 @@ def test_llm_not_configured_is_down_without_network(make_client):
     assert body["checks"]["llm"] == "down"
     assert body["llm_configured"] is False
     assert body["status"] == "degraded"
+    # The standing gateway stand-in never touches httpx, so this only proves a
+    # real gateway was not substituted in.  The load-bearing assertion lives in
+    # ``test_llm_not_configured_makes_no_request_through_real_gateway``, which
+    # mounts a real gateway and observes what actually reaches httpx.
     assert probed == []
+
+
+def test_llm_not_configured_makes_no_request_through_real_gateway(make_client):
+    """AC7: with a real ``HttpBusinessGateway`` mounted, the LLM=down path still
+    issues no HTTP call (it is a pure configuration check)."""
+    calls: list[tuple] = []
+
+    def record(method, url, **kwargs):
+        calls.append((method, url))
+        return _FakeResponse()
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(httpx, "request", record)
+        with make_client(
+            business=HttpBusinessGateway("http://localhost:8080"),
+            settings_obj=fake_settings(llm_configured=False),
+        ) as client:
+            response = client.get(HEALTH_PATH)
+
+    body = response.json()
+    assert body["checks"]["llm"] == "down"
+    assert body["status"] == "degraded"
+    # Only the Business probe may reach the network; the LLM check never does.
+    assert len(calls) == 1, f"expected only the business probe, got {calls}"
+    method, url = calls[0]
+    assert method == "GET"
+    assert url.endswith("/actuator/health/liveness")
 
 
 def test_llm_down_does_not_block_other_probes(make_client):
