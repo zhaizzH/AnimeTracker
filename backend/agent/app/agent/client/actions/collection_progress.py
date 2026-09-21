@@ -12,6 +12,7 @@ from app.chat.pending_events import (
 )
 from app.chat.user import UserInfo
 from app.chat.pending_action import CollectionProgressPendingAction
+from app.agent.client.actions.write_guard import require_confirmed_write
 
 
 def _require_user(user: UserInfo | None) -> dict | None:
@@ -48,11 +49,17 @@ def build_collection_progress_tools(business: BusinessGateway):
     @tool_call_status(display_name="确认本周追番进度更新")
     def execute_weekly_collection_progress(
             preview_id: Annotated[str, InjectedState("pending_preview_id")],
-            user: Annotated[UserInfo | None, InjectedState("user")] = None) -> dict:
-        """确认并执行已预览的追番进度更新。preview_id 由系统从待确认动作注入，不要自行编造。"""
-        err = _require_user(user)
-        if err:
-            return err
+            user: Annotated[UserInfo | None, InjectedState("user")] = None,
+            pending: Annotated[CollectionProgressPendingAction | None, InjectedState("pending_action")] = None,
+            write_confirmed: Annotated[bool, InjectedState("write_confirmed")] = False) -> dict:
+        """确认并执行已预览的追番进度更新。preview_id 由系统从待确认动作注入，不要自行编造；
+        仅当用户在当前回合明确确认（服务端 write_confirmed 标志）时才写入，否则拒绝。"""
+        gate = require_confirmed_write(
+            user=user, pending=pending, expected_type="COLLECTION_PROGRESS_UPDATE",
+            write_confirmed=write_confirmed,
+        )
+        if gate is not None:
+            return gate
         data = business.request("POST", f"/api/client/collections/progress-preview/{preview_id}/execute",
                                 token=user.token)
         if data.get("error"):

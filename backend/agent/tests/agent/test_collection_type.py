@@ -211,7 +211,7 @@ def test_execute_success_saves_and_clears() -> None:
     business = FakeBusiness(save_result=None)
     execute = build_collection_type_tools(business, FakeRetrieval())[1]
 
-    result, event = _run(execute.func, pending=_set_action(), user=_USER)
+    result, event = _run(execute.func, pending=_set_action(), user=_USER, write_confirmed=True)
 
     assert result["state"] == "SAVED"
     assert business.save_calls == [(84, 3)]
@@ -222,7 +222,7 @@ def test_execute_409_reports_already_collected() -> None:
     business = FakeBusiness(save_result={"error": True, "code": 409, "message": "该条目已收藏"})
     execute = build_collection_type_tools(business, FakeRetrieval())[1]
 
-    result, event = _run(execute.func, pending=_set_action(), user=_USER)
+    result, event = _run(execute.func, pending=_set_action(), user=_USER, write_confirmed=True)
 
     assert result["state"] == "ALREADY_COLLECTED"
     assert event.operation == "CLEAR"
@@ -232,7 +232,7 @@ def test_execute_404_clears_and_errors() -> None:
     business = FakeBusiness(save_result={"error": True, "code": 404, "message": "条目不存在"})
     execute = build_collection_type_tools(business, FakeRetrieval())[1]
 
-    result, event = _run(execute.func, pending=_set_action(), user=_USER)
+    result, event = _run(execute.func, pending=_set_action(), user=_USER, write_confirmed=True)
 
     assert result.get("error") is True
     assert event.operation == "CLEAR"
@@ -242,7 +242,7 @@ def test_execute_infra_error_keeps_pending() -> None:
     business = FakeBusiness(save_result={"error": True, "message": "后端服务超时"})  # code 为 None
     execute = build_collection_type_tools(business, FakeRetrieval())[1]
 
-    result, event = _run(execute.func, pending=_set_action(), user=_USER)
+    result, event = _run(execute.func, pending=_set_action(), user=_USER, write_confirmed=True)
 
     assert result.get("error") is True and result.get("retryable") is True
     assert event is None                          # 结果不确定：保留待确认动作供重试
@@ -252,6 +252,28 @@ def test_execute_without_pending_errors() -> None:
     execute = build_collection_type_tools(FakeBusiness(), FakeRetrieval())[1]
     result, _ = _run(execute.func, pending=None, user=_USER)
     assert result.get("error") is True
+
+
+def test_execute_refuses_without_confirmation_turn() -> None:
+    # 硬门禁：有待确认动作但当前回合非明确确认（write_confirmed 默认 False）→ 拒写
+    business = FakeBusiness(save_result=None)
+    execute = build_collection_type_tools(business, FakeRetrieval())[1]
+
+    result, event = _run(execute.func, pending=_set_action(), user=_USER)
+
+    assert result.get("error") is True
+    assert business.save_calls == []            # Business 未收到任何写请求
+    assert event is None                        # 未清理，保留待确认动作
+
+
+def test_execute_refuses_other_users_action() -> None:
+    business = FakeBusiness(save_result=None)
+    execute = build_collection_type_tools(business, FakeRetrieval())[1]
+
+    result, event = _run(execute.func, pending=_set_action(user_id=999), user=_USER, write_confirmed=True)
+
+    assert result.get("error") is True
+    assert business.save_calls == []
 
 
 # --------------------------------------------------------------------------- #
@@ -289,6 +311,22 @@ def test_set_collection_action_roundtrips() -> None:
     parsed = parse_pending_action_json(action.model_dump_json(by_alias=True))
     assert parsed.type == "SET_COLLECTION_TYPE"
     assert parsed.target_type == 3 and parsed.current_type == 1 and parsed.action == "CHANGE"
+
+
+def test_preview_generates_action_id() -> None:
+    business = FakeBusiness()
+    _, event = _run(build_collection_type_preview, 84, "X", 3, _USER, business)
+    assert event.action.action_id != ""
+
+
+def test_legacy_json_without_action_id_defaults_empty() -> None:
+    action = _set_action()
+    legacy = action.model_dump(by_alias=True)
+    legacy.pop("actionId")
+    import json as _json
+    parsed = parse_pending_action_json(_json.dumps(legacy, default=str))
+    assert parsed.type == "SET_COLLECTION_TYPE"
+    assert parsed.action_id == ""
 
 
 def test_resolution_collection_type_roundtrips_and_defaults_none() -> None:

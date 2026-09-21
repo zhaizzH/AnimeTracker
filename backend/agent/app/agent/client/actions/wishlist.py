@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
+import secrets
+
 from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 
@@ -10,6 +12,7 @@ from app.chat.pending_events import emit_pending_action_clear, emit_pending_acti
 from app.chat.user import UserInfo
 from app.chat.pending_action import WishlistPendingAction, WishlistPendingItem
 from app.agent.client.actions.collection_state import check_collection_state
+from app.agent.client.actions.write_guard import require_confirmed_write
 
 _MAX_WISHLIST_PREVIEW_ITEMS = 10
 
@@ -26,6 +29,7 @@ def _pending_action_from_items(items: list[dict], user: UserInfo) -> WishlistPen
         user_id=user.user_id,
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
         items=[WishlistPendingItem(subject_id=i["subjectId"], subject_name=i.get("subjectName", "")) for i in items],
+        action_id=secrets.token_hex(8),
     )
 
 
@@ -83,14 +87,17 @@ def build_wishlist_tools(business: BusinessGateway):
     @tool_call_status(display_name="确认加入想看")
     def execute_add_to_wishlist(
             pending: Annotated[WishlistPendingAction | None, InjectedState("pending_action")],
-            user: Annotated[UserInfo | None, InjectedState("user")] = None) -> dict:
+            user: Annotated[UserInfo | None, InjectedState("user")] = None,
+            write_confirmed: Annotated[bool, InjectedState("write_confirmed")] = False) -> dict:
         """确认把预览过的番剧加入「想看」。只处理系统待确认动作中的条目，不接受模型自造列表；
+        仅当用户在当前回合明确确认（服务端 write_confirmed 标志）时才写入，否则拒绝；
         每项由 Business 幂等接口保证不覆盖已有收藏。"""
-        err = _require_user(user)
-        if err:
-            return err
-        if pending is None or pending.type != "ADD_TO_WISHLIST":
-            return {"error": True, "message": "没有待确认的加入想看动作"}
+        gate = require_confirmed_write(
+            user=user, pending=pending, expected_type="ADD_TO_WISHLIST",
+            write_confirmed=write_confirmed,
+        )
+        if gate is not None:
+            return gate
         succeeded, skipped, failed = [], [], []
         infra_error = False
         for item in pending.items:

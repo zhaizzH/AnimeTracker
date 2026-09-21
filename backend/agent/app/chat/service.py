@@ -62,6 +62,7 @@ class ChatService:
                 "session_id": session_id,
                 "pending_action": pending_action,
                 "pending_preview_id": getattr(pending_action, "preview_id", None),
+                "write_confirmed": False,
             }
             return state
 

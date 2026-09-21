@@ -12,11 +12,14 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Literal
 
+import secrets
+
 from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 
 from app.agent.client.actions.collection_state import check_collection_state, require_user
 from app.agent.client.actions.subject_resolution import finalize_resolution, resolve_candidates
+from app.agent.client.actions.write_guard import require_confirmed_write
 from app.agent.middleware import tool_call_status
 from app.agent.ports import BusinessGateway
 from app.chat.pending_action import SetCollectionTypePendingAction
@@ -71,6 +74,7 @@ def build_collection_type_preview(
         target_type=target_type,
         current_type=current,
         action=action,
+        action_id=secrets.token_hex(8),
     ))
     result = {
         "action": action,
@@ -120,14 +124,17 @@ def build_collection_type_tools(business: BusinessGateway, retrieval: RetrieveSu
     @tool_call_status(display_name="确认设置收藏类型")
     def execute_set_collection_type(
             pending: Annotated[SetCollectionTypePendingAction | None, InjectedState("pending_action")] = None,
-            user: Annotated[UserInfo | None, InjectedState("user")] = None) -> dict:
+            user: Annotated[UserInfo | None, InjectedState("user")] = None,
+            write_confirmed: Annotated[bool, InjectedState("write_confirmed")] = False) -> dict:
         """确认把预览过的番剧设置为目标收藏类型。只处理系统注入的待确认动作，不接受模型自造参数；
+        仅当用户在当前回合明确确认（服务端 write_confirmed 标志）时才写入，否则拒绝。
         写入由 Business /save 完成，已收藏且无变化会返回 409 并如实告知。"""
-        err = require_user(user)
-        if err:
-            return err
-        if pending is None or getattr(pending, "type", None) != "SET_COLLECTION_TYPE":
-            return {"error": True, "message": "没有待确认的收藏类型设置动作"}
+        gate = require_confirmed_write(
+            user=user, pending=pending, expected_type="SET_COLLECTION_TYPE",
+            write_confirmed=write_confirmed,
+        )
+        if gate is not None:
+            return gate
         result = business.save_collection(
             pending.subject_id, collection_type=pending.target_type, token=user.token
         )

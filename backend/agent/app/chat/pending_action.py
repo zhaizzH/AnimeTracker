@@ -36,6 +36,8 @@ class WishlistPendingAction(_AliasCompatModel):
     user_id: int
     expires_at: datetime
     items: list[WishlistPendingItem] = Field(default_factory=list)
+    # 服务端生成的动作版本号：用于持久化层替换失效与 trace 关联；默认空兼容旧 JSON。
+    action_id: str = Field(default="", alias="actionId")
 
 
 class SubjectResolutionCandidate(_AliasCompatModel):
@@ -80,6 +82,8 @@ class SetCollectionTypePendingAction(_AliasCompatModel):
     target_type: int = Field(alias="targetType")
     current_type: int | None = Field(default=None, alias="currentType")
     action: Literal["ADD", "CHANGE"] = "ADD"
+    # 服务端生成的动作版本号：用于持久化层替换失效与 trace 关联；默认空兼容旧 JSON。
+    action_id: str = Field(default="", alias="actionId")
 
 
 PendingAction = Annotated[

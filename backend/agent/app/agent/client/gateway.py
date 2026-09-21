@@ -134,11 +134,13 @@ def _resolve_routing_result(raw_payload: Any) -> dict[str, str]:
 
 def build_gateway_router(dependencies: AgentDependencies):
     def gateway_router(state: AgentState) -> dict[str, Any]:
+        # 服务端确定性判定“当前回合是否明确确认写入”；模型无法通过工具参数改写此标志。
+        confirmed = _is_explicit_confirmation(state.get("current_question") or "")
         forced = _resolve_forced_pending_route(state)
         if forced is not None:
-            return forced
+            return {**forced, "write_confirmed": confirmed}
         if _is_explicit_recommendation_request(state.get("current_question") or ""):
-            return {"routing": {"route_target": "recommend_agent"}}
+            return {"routing": {"route_target": "recommend_agent"}, "write_confirmed": confirmed}
         llm = dependencies.llm_factory.create(slot=AgentChatModelSlot.CLIENT_ROUTE)
         model_name = llm_model_name(llm)
         agent = create_agent(
@@ -152,6 +154,6 @@ def build_gateway_router(dependencies: AgentDependencies):
             provider=dependencies.llm_factory.provider,
             model=model_name,
         )
-        return {"routing": _resolve_routing_result(result.payload)}
+        return {"routing": _resolve_routing_result(result.payload), "write_confirmed": confirmed}
 
     return gateway_router
