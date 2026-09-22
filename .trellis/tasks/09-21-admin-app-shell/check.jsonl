@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "核对项：菜单/用户菜单等交互元素是否提供可读 label，退出登录禁用态与文案是否符合可访问性要求，路由懒加载约定是否保持"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "核对项：主题状态与 shared store 是否单一事实来源、刷新后是否保持，且未引入第二个主题状态源"}

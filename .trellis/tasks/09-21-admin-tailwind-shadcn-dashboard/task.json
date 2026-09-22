@@ -1,0 +1,31 @@
+{
+  "id": "admin-tailwind-shadcn-dashboard",
+  "name": "admin-tailwind-shadcn-dashboard",
+  "title": "admin 迁移到 Tailwind + shadcn 并落地 dashboard-5",
+  "description": "为 frontend/admin 引入 Tailwind + shadcn 地基（与 AntD 共存），注册 @efferd registry，落地 dashboard-5 及其 app-shell-5 依赖，并把 block 的卡片/图表接入 adminDashboardApi 真实数据。",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "zhaizzH",
+  "assignee": "zhaizzH",
+  "createdAt": "2026-09-21",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "09-21-admin-ui-foundation",
+    "09-21-admin-app-shell",
+    "09-21-admin-dashboard-block",
+    "09-21-admin-pages-migration"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

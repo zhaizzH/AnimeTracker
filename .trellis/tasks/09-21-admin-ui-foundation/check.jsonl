@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "核对项：shared 是否已无 antd 运行时引用且依赖声明自洽；AuthGate 改造后 role/aria-live/aria-busy 可访问性语义与 od-* 类名是否原样保留；副作用是否仍在 effect 或用户事件中"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "核对项：typecheck / 受影响 workspace 的 test / build 三项是否实际通过，且分包体积未因引入 Tailwind 与 radix 而显著劣化"}

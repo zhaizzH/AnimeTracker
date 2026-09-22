@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "前端总纲：确认 admin/client/packages/shared 的归属边界与合并前路径对照，迁移改动不得跨越client与admin互不导入源码的约束"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "直接决定本次迁移的三条硬约束：UI 基础（admin 改用 shadcn 需修订第29行）、暗色支持（D5 推翻第33行 light-only）、shared 必须声明自身运行时依赖且不得依赖消费应用包（第14行，AuthGate 拆分与 SubjectCard 去 antd 的依据）"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "看板与各页面迁移后必须沿用既有 TanStack Query 的 queryKey 组织与 mutation 失效范围约定，不得因换 UI 而改变数据层契约"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "门禁执行范围与分包约定：typecheck 为 CI 强制项，路由/依赖/构建配置变更必须跑 build，manualChunks 白名单需随 recharts 与 radix 调整"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "npm workspaces 与代码归属规则，用于确认新引入的 components/ui 目录、@/ 别名与共享组件下沉位置的正确归属"}

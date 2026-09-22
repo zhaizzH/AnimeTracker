@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "核对项：7 页 + guards 是否已无 antd 导入；表单控件是否提供 aria-label 或关联标签；异步内容三态齐备；guards.tsx 副作用是否已移出 render 且有测试覆盖；spec 修订是否与实现一致"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "核对项：Users 防重复切换、Import 轮询与失效 effect、AgentConfig staleTime 与失效范围、Logs 筛选与分页重置等数据层行为在迁移后是否逐项等价"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "核对项：typecheck / test / build 实际通过，且构建产物中 antd 与 echarts chunk 已消失、分包体积未显著劣化"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "核对项：无跨 app 源码导入、共享能力确实落在 packages/shared、整体门禁按变更范围执行完毕"}

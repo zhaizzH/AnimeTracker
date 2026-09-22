@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "主题切换需与 shared useThemeStore / resolveMode 的状态管理约定对齐，避免 next-themes 与现有 store 形成两套互相打架的主题状态；同时确认认证状态读取方式不变"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "第29/33行的 UI 基础与暗色条目：本子任务启用暗色即推翻第33行，需记录待修订；同时约束外壳组件的职责边界与路由页 lazy+Suspense 约定"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "确认 app-shell-5 落地文件在 admin/src 下的归属（components 与 layouts 的划分），以及 ClientLayout/AdminLayout 的既有组织方式"}

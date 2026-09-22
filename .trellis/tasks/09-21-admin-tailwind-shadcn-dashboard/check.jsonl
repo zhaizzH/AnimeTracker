@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "核对项：admin 页面不再直接用 antd、shared 无运行时 antd 依赖、可访问性语义（role/aria-live/label）在迁移后保留、loading/empty/error 三态齐备、副作用不在 render 阶段触发（guards.tsx 债务）"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "核对项：typecheck/test/build 三项门禁实际通过，且产物中已不含 antd 与 echarts chunk"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "核对项：client 与 admin 未互相导入源码，共享能力确实落在 packages/shared 而非复制；spec 修订与实际实现一致"}

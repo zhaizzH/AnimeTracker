@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "本子任务同时是规范修订方：第14行 shared 依赖声明规则、第29行 UI 基础（需区分 admin shadcn 与 client AntD）、第33行暗色说明均需改写；第「副作用与当前债务」段记录的 guards.tsx render 阶段触发通知正是 R8 要修正的对象"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "逐页迁移必须保留既有 Query / mutation / 失效范围约定：Users 的防重复切换、Import 的 3000ms 轮询与失效 effect、AgentConfig 的 staleTime: Infinity 与配置失效，均属数据层契约不得因换 UI 而改变"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "清理阶段的核心门禁：移除 antd/echarts 后必须确认产物不含对应 chunk，manualChunks 白名单需随 recharts 与 radix 调整；typecheck/test/build 三项执行"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "更新 admin 页面与路由清单的依据，以及确认 pages/components/layouts 的归属规则不因迁移而漂移"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "总纲层面的 admin 技术栈描述与关键约束（client 与 admin 不互相导入源码），修订时需与各分册保持一致"}

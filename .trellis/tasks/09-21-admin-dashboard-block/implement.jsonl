@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "看板 9 张卡片的数据层契约：必须沿用既有 queryKey 组织与 mutation 失效范围，不得因换 UI 而改变数据层约定；含 loading/error/empty 三态与 queryKey 设计规则"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "第29/33行 UI 基础与暗色条目约束看板组件的渲染约定；异步内容必须显式渲染 loading/empty/error（AC4 的规范来源）；列表 key 需使用稳定业务 ID（热榜与各分布列表）"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "验证门禁与分包约定：删除 charts.tsx 与引入 recharts 会影响分包，build 必须执行并对比体积"}

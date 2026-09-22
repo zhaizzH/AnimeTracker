@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "本子任务的两条核心依据：第14行「shared 组件必须声明自身运行时依赖、不得依赖消费应用碰巧安装的包」是拆分 AuthGate 与修正 SubjectCard/react-router-dom 声明的直接规范来源；第29/33行是后续需要修订的 UI 基础与暗色条目"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "npm workspaces 归属规则：确认新引入的 admin/src/components/ui、admin/src/lib 与 shared 新增 useAuthStatus 的正确落位，且 client 与 admin 不互相导入源码"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "本阶段的验证门禁：typecheck 为 CI 强制项，且因引入依赖与改动构建配置，build 必须执行；同时决定 admin 的 manualChunks 白名单如何随新依赖扩展"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "前端总纲的合并前路径对照与关键约束，用于确认本次地基改动未越过 shared/client/admin 的边界"}
