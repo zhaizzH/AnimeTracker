@@ -83,7 +83,8 @@ export default function Dashboard() {
         </Col>
         <Col span={12}>
           <Card title="热门 Top 10">
-            <ol>
+            {/* Tailwind preflight 重置了 ol 的 list-style 与 padding，需显式还原：pl-10 = 原有 UA 的 40px 缩进 */}
+            <ol className="list-decimal pl-10">
               {ht.data?.map((h: HotItemVO) => (
                 <li key={h.id}>
                   {h.nameCn ?? h.name}（{h.collectionCount} 收藏）

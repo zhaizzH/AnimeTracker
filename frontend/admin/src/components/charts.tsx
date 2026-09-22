@@ -13,7 +13,8 @@ interface BarProps {
 export function BarChart({ title, data }: BarProps) {
   return (
     <>
-      <h3>{title}</h3>
+      {/* Tailwind preflight 把 h3 的 font-size 重置为 inherit，需还原 UA 的 1.17em */}
+      <h3 className="text-[1.17em]">{title}</h3>
       <ReactEChartsCore
         echarts={echarts}
         style={{ height: 260 }}
@@ -35,7 +36,8 @@ interface LineProps {
 export function LineChart({ title, x, series }: LineProps) {
   return (
     <>
-      <h3>{title}</h3>
+      {/* Tailwind preflight 把 h3 的 font-size 重置为 inherit，需还原 UA 的 1.17em */}
+      <h3 className="text-[1.17em]">{title}</h3>
       <ReactEChartsCore
         echarts={echarts}
         style={{ height: 260 }}
