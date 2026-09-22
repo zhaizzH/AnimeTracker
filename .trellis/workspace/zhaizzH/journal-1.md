@@ -487,3 +487,47 @@
 ### Next Steps
 
 - 09-21-admin-app-shell（阶段 C）需先补 design.md + implement.md 再 start
+
+
+## Session 19: 完成 Admin app-shell 外壳迁移
+<!-- trellis-session: v=2 fp=74115f932ddbaa92 -->
+
+**Date**: 2026-09-22
+**Task**: 完成 Admin app-shell 外壳迁移
+**Branch**: `feat/admin-shadcn-migration`
+
+### Summary
+
+完成 AdminLayout app-shell 迁移：接入 7 路由侧栏、共享认证用户菜单与登出、共享主题切换；移除 Admin 入口的 AntD ConfigProvider 与 reset.css；补回归测试并通过 admin tests、typecheck、build。已归档 09-21-admin-app-shell。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9a91355` | feat(admin): 迁移 AdminLayout 到 app-shell |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 20: 完成 admin app-shell 布局迁移
+<!-- trellis-session: v=2 fp=5d0918ac9eded7fa -->
+
+**Date**: 2026-09-22
+**Task**: 完成 admin app-shell 布局迁移
+**Branch**: `feat/admin-shadcn-migration`
+
+### Summary
+
+完成 AdminLayout app-shell 迁移：新增侧栏导航、用户菜单、主题切换和退出流程；移除 AdminLayout 入口的 AntD ConfigProvider/reset.css；补充 6 项布局回归测试。typecheck、admin 测试与 client/admin 构建均通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9a91355d` | feat(admin): 迁移 AdminLayout 到 app-shell |
+
+### Status
+
+[OK] **Completed**

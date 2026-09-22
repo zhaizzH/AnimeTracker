@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 18
+- **Total Sessions**: 20
 - **Last Active**: 2026-09-22
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~489 | Active |
+| `journal-1.md` | ~533 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,8 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 20 | 2026-09-22 | 完成 admin app-shell 布局迁移 | `9a91355d` | `feat/admin-shadcn-migration` |
+| 19 | 2026-09-22 | 完成 Admin app-shell 外壳迁移 | `9a91355` | `feat/admin-shadcn-migration` |
 | 18 | 2026-09-22 | admin 地基：Tailwind+shadcn 接入与 shared 去 antd | `412edad7`, `4b3a3aed`, `93c818fd`, `0f0212cf` | `feat/admin-shadcn-migration` |
 | 17 | 2026-09-21 | T1 季度/档期映射跨层对齐 + .git 损毁恢复 | `aba377b5` | `feat/quarter-season-alignment` |
 | 16 | 2026-09-21 | 实现 T3 写入硬确认门禁(write_confirmed)与 action_id 版本绑定 | `01095e23` | `feat/write-confirmation-hard-gate` |
