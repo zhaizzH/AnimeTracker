@@ -1,10 +1,17 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import path from 'node:path';
 
 export default defineConfig({
-  plugins: [react()],
-  resolve: { alias: { '@shared': path.resolve(__dirname, '../packages/shared/src') } },
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    // Vite 的别名匹配要求 importee 等于键或以 `<key>/` 开头，因此 `@` 不会误匹配 `@shared`。
+    alias: {
+      '@shared': path.resolve(__dirname, '../packages/shared/src'),
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   server: { port: 5174, proxy: { '/api': { target: 'http://localhost:8080', changeOrigin: true } } },
   build: {
     // Framework chunks stay below 560 kB minified and 186 kB gzip; larger regressions still warn.
