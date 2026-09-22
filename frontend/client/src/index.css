@@ -9,6 +9,7 @@
   --od-ink: #23261F;                                    /* 主文字 */
   --od-ink-2: #6E7266;                                  /* 次文字 */
   --od-ink-3: #A2A69A;                                  /* 三级文字 */
+  --od-warning: #B58A3C;                                /* 警告色，与 antdTheme.colorWarning 一致 */
   --od-line: #ECE9E1;                                   /* 分割线 */
   --od-line-2: #E3E0D7;                                 /* 深一档分割线 */
   --od-shadow: 0 10px 30px rgba(35, 38, 31, 0.08);      /* 卡片阴影 */
@@ -29,6 +30,7 @@
   --od-ink: #EDEBE4;
   --od-ink-2: #B4B8AE;
   --od-ink-3: #868A80;
+  --od-warning: #D6A85A;                                /* 与 antdThemeDark.colorWarning 一致 */
   --od-line: #2E332A;
   --od-line-2: #3A3F34;
   --od-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
@@ -591,29 +593,64 @@ body {
 }
 .od-auth-gate .auth-gate__brand {
   margin-bottom: 24px;
-  color: var(--od-ink);
-  font-family: var(--od-serif);
+  color: var(--od-ink) !important;
+  font-family: var(--od-serif) !important;
   font-size: 26px;
   font-weight: 700;
   letter-spacing: 0.02em;
 }
-.od-auth-gate.auth-gate--checking .ant-spin {
-  margin: 8px 0 20px;
+/* 尺寸/布局由 shared 内联兜底，这里只负责主题色与动画（暗色下需覆盖内联值） */
+.od-auth-gate .auth-gate__spinner {
+  border-color: var(--od-line-2) !important;
+  border-top-color: var(--od-cyan) !important;
+  animation: auth-gate-spin 0.8s linear infinite !important;
 }
-.od-auth-gate .ant-typography,
-.od-auth-gate .ant-result-title {
-  color: var(--od-ink);
+@keyframes auth-gate-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .od-auth-gate .auth-gate__spinner { animation: none !important; }
+}
+.od-auth-gate .auth-gate__icon {
+  color: var(--od-warning) !important;
+}
+.od-auth-gate .auth-gate__title,
+.od-auth-gate .auth-gate__subtitle {
+  color: var(--od-ink) !important;
   text-wrap: pretty;
 }
-.od-auth-gate .ant-typography-secondary,
-.od-auth-gate .ant-result-subtitle {
-  color: var(--od-ink-2);
+.od-auth-gate .auth-gate__subtitle {
+  color: var(--od-ink-2) !important;
 }
-.od-auth-gate .ant-typography:last-child {
+.od-auth-gate .auth-gate__title {
+  margin: 0 0 12px;
+}
+.od-auth-gate .auth-gate__subtitle {
   margin-bottom: 0;
 }
 .od-auth-gate .auth-gate__result {
   padding: 0;
+}
+/* 原为 antd <Button type="primary">，改用原生 button 后需补齐等价主按钮视觉 */
+.od-auth-gate .auth-gate__retry {
+  margin-top: 20px;
+  padding: 0 22px;
+  height: 38px;
+  border: 1px solid var(--od-cyan) !important;
+  border-radius: 10px;
+  background: var(--od-cyan) !important;
+  color: #FFFFFF !important;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 160ms ease-out;
+}
+.od-auth-gate .auth-gate__retry:hover {
+  opacity: 0.88;
+}
+.od-auth-gate .auth-gate__retry:focus-visible {
+  outline: 2px solid var(--od-cyan);
+  outline-offset: 2px;
 }
 @keyframes od-auth-gate-in {
   from { opacity: 0; transform: translateY(6px); }

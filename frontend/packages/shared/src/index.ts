@@ -11,6 +11,7 @@ export * from './sse';
 export { antdTheme, antdThemeDark } from './theme';
 export { useBootstrapAuth } from './hooks/useBootstrapAuth';
 export { AuthGate } from './components/AuthGate';
+export { useAuthStatus } from './hooks/useAuthStatus';
 export { bootstrapAuth, retryBootstrapAuth, refreshWithLock, publishSessionAvailable, publishSignedOut, completeLogout } from './auth/coordinator';
 export { useAgentChat } from './hooks/useAgentChat';
 export type { ChatMsg, ToolStep } from './hooks/useAgentChat';
