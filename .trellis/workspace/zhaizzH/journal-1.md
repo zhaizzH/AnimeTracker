@@ -445,3 +445,45 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 18: admin 地基：Tailwind+shadcn 接入与 shared 去 antd
+<!-- trellis-session: v=2 fp=a6b546d962d22e44 -->
+
+**Date**: 2026-09-22
+**Task**: admin 地基：Tailwind+shadcn 接入与 shared 去 antd
+**Branch**: `feat/admin-shadcn-migration`
+
+### Summary
+
+完成 admin-ui-foundation 子任务（父任务 09-21-admin-tailwind-shadcn-dashboard 的阶段 A+B）：admin 接入 Tailwind v4 + shadcn/ui 地基与 @efferd 命名空间，shared 拆分 AuthGate 消除 antd 运行时依赖，并完成 preflight 破坏的就地补偿。
+
+### Main Changes
+
+- admin 接入 Tailwind v4 CSS-first + @tailwindcss/vite，新增 @/ → ./src 别名（vite+tsconfig 双侧，保留 @shared），components.json 注册 @efferd registry，落地 24 个 shadcn 组件与 cn()/toast 封装
+- shared 新增 useAuthStatus() headless 登录态，AuthGate 改为 UI 无关实现（保留全部 auth-gate*/od-* 类名与 ARIA 语义），SubjectCard 弃用 theme.useToken() 改引 --od-* 变量修复暗色回归
+- 实测证伪「调整 Tailwind 引入顺序可避免 preflight 覆盖」：antd reset.css 仅 3.6KB 且不含 h1-h6/ul/ol 规则；改为就地补偿（charts.tsx h3 补 text-[1.17em]、Dashboard ol 补 list-decimal pl-10）
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `412edad7` | feat(admin): 接入 Tailwind v4 与 shadcn/ui 地基，注册 @efferd 命名空间 |
+| `4b3a3aed` | fix(shared): 拆分 AuthGate 逻辑，去除 antd 运行时依赖 |
+| `93c818fd` | fix(admin): Tailwind preflight 破坏处就地补偿 |
+| `0f0212cf` | docs(trellis): admin UI 迁移父任务与 4 个子任务的规划产物 |
+
+### Testing
+
+- [OK] npm run typecheck：shared/client/admin 三 workspace 通过
+- [OK] npm test -w @animetracker/shared 6/6；npm test -w client 7/7
+- [OK] npm run build：三 workspace 成功（admin 2367 modules）
+- [OK] Playwright 实测 client 登录态三态（checking / retryable-error / 正常）无回归；SubjectCard light/dark 逐值对齐
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 09-21-admin-app-shell（阶段 C）需先补 design.md + implement.md 再 start
