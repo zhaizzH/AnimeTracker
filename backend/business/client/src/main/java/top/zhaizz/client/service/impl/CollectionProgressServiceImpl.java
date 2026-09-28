@@ -1,6 +1,5 @@
 package top.zhaizz.client.service.impl;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import top.zhaizz.client.model.ProgressPreviewSnapshot;
 import top.zhaizz.client.model.ProgressPreviewStatus;
@@ -32,20 +31,42 @@ import java.util.UUID;
  * 收藏进度预览服务实现
  */
 @Service
-@RequiredArgsConstructor
 public class CollectionProgressServiceImpl implements CollectionProgressService {
-
-    /** 收藏进度预览快照的有效期 */
+    /**
+     * 收藏进度预览快照的有效期
+     */
     private static final Duration PREVIEW_TTL = Duration.ofMinutes(10);
 
-    /** 收藏进度计算器 */
+    /**
+     * 收藏进度计算器
+     */
     private final CollectionProgressCalculator calculator;
-    /** 收藏进度快照存储 */
+    /**
+     * 收藏进度快照存储
+     */
     private final ProgressPreviewStore store;
-    /** 单条收藏进度执行器 */
+    /**
+     * 单条收藏进度执行器
+     */
     private final CollectionProgressItemExecutor itemExecutor;
-    /** 用于计算时间的时钟，便于测试 */
+    /**
+     * 用于计算时间的时钟，便于测试
+     */
     private final Clock clock;
+
+    /**
+     * 注入进度计算器、快照存储、单项执行器与时钟
+     * @param calculator 提供进度候选计算的组件，由 Spring 容器提供
+     * @param store 负责快照持久化与执行锁的存储，由 Spring 容器提供
+     * @param itemExecutor 负责单项独立事务更新的执行器，由 Spring 容器提供
+     * @param clock 用于生成可测试时间戳的时钟，由 Spring 容器提供
+     */
+    public CollectionProgressServiceImpl(final CollectionProgressCalculator calculator, final ProgressPreviewStore store, final CollectionProgressItemExecutor itemExecutor, final Clock clock) {
+        this.calculator = calculator;
+        this.store = store;
+        this.itemExecutor = itemExecutor;
+        this.clock = clock;
+    }
 
     /** {@inheritDoc} */
     @Override

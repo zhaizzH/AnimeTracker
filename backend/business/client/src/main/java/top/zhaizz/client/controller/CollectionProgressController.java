@@ -1,6 +1,5 @@
 package top.zhaizz.client.controller;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,11 +15,19 @@ import top.zhaizz.pojo.vo.collection.CollectionProgressPreviewVO;
  */
 @RestController
 @RequestMapping("/api/client/collections")
-@RequiredArgsConstructor
 public class CollectionProgressController {
-
-    /** 收藏进度业务服务 */
+    /**
+     * 收藏进度业务服务
+     */
     private final CollectionProgressService collectionProgressService;
+
+    /**
+     * 注入收藏进度业务服务
+     * @param collectionProgressService 负责预览生成与执行的服务，由 Spring 容器提供
+     */
+    public CollectionProgressController(final CollectionProgressService collectionProgressService) {
+        this.collectionProgressService = collectionProgressService;
+    }
 
     /**
      * 生成当前登录用户本周追番进度预览

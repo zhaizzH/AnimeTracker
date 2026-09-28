@@ -1,6 +1,5 @@
 package top.zhaizz.client.service.impl;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import top.zhaizz.client.converter.UserConverter;
@@ -20,15 +19,31 @@ import java.time.LocalDateTime;
  * 用户信息服务实现
  */
 @Service
-@RequiredArgsConstructor
 public class ClientUserServiceImpl implements ClientUserService {
-
-    /** 用户数据 Mapper */
+    /**
+     * 用户数据 Mapper
+     */
     private final UserMapper userMapper;
-    /** 密码哈希编解码器 */
+    /**
+     * 密码哈希编解码器
+     */
     private final PasswordEncoder passwordEncoder;
-    /** 认证会话存储 */
+    /**
+     * 认证会话存储
+     */
     private final AuthSessionStore sessionStore;
+
+    /**
+     * 注入用户 Mapper、密码编解码器与会话存储
+     * @param userMapper 提供用户记录读写的 Mapper，由 Spring 容器提供
+     * @param passwordEncoder 用于校验旧密码与编码新密码的编解码器，由 Spring 容器提供
+     * @param sessionStore 用于在改密后撤销全部会话的存储，由 Spring 容器提供
+     */
+    public ClientUserServiceImpl(final UserMapper userMapper, final PasswordEncoder passwordEncoder, final AuthSessionStore sessionStore) {
+        this.userMapper = userMapper;
+        this.passwordEncoder = passwordEncoder;
+        this.sessionStore = sessionStore;
+    }
 
     /** {@inheritDoc} */
     @Override

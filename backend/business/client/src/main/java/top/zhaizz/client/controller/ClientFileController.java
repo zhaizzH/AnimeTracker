@@ -1,6 +1,5 @@
 package top.zhaizz.client.controller;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -17,11 +16,19 @@ import top.zhaizz.infrastructure.storage.ImageStorageGateway;
  */
 @RestController
 @RequestMapping("/api/client/files")
-@RequiredArgsConstructor
 public class ClientFileController {
-
-    /** 图片存储网关 */
+    /**
+     * 图片存储网关
+     */
     private final ImageStorageGateway imageStorageGateway;
+
+    /**
+     * 注入图片存储网关
+     * @param imageStorageGateway 负责图片上传与分类存储的网关，由 Spring 容器提供
+     */
+    public ClientFileController(final ImageStorageGateway imageStorageGateway) {
+        this.imageStorageGateway = imageStorageGateway;
+    }
 
     /**
      * 上传当前用户的头像

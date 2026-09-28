@@ -3,7 +3,6 @@ package top.zhaizz.client.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -34,13 +33,25 @@ import java.util.Objects;
  * 收藏服务实现
  */
 @Service
-@RequiredArgsConstructor
 public class CollectionServiceImpl implements CollectionService {
-
-    /** 收藏数据 Mapper */
+    /**
+     * 收藏数据 Mapper
+     */
     private final CollectionMapper collectionMapper;
-    /** 条目数据 Mapper */
+    /**
+     * 条目数据 Mapper
+     */
     private final SubjectMapper subjectMapper;
+
+    /**
+     * 注入收藏与条目数据 Mapper
+     * @param collectionMapper 提供收藏记录读写与分页的 Mapper，由 Spring 容器提供
+     * @param subjectMapper 用于校验条目存在的 Mapper，由 Spring 容器提供
+     */
+    public CollectionServiceImpl(final CollectionMapper collectionMapper, final SubjectMapper subjectMapper) {
+        this.collectionMapper = collectionMapper;
+        this.subjectMapper = subjectMapper;
+    }
 
     /** {@inheritDoc} */
     @Override

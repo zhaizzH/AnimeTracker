@@ -1,7 +1,6 @@
 package top.zhaizz.client.service;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,11 +18,19 @@ import java.time.LocalDateTime;
  * 独立 @Service 避免同类内部调用绕过 Spring 代理，确保每部番剧 REQUIRES_NEW 独立事务、允许部分成功
  */
 @Service
-@RequiredArgsConstructor
 public class CollectionProgressItemExecutor {
-
-    /** 收藏数据 Mapper */
+    /**
+     * 收藏数据 Mapper
+     */
     private final CollectionMapper collectionMapper;
+
+    /**
+     * 注入收藏数据 Mapper
+     * @param collectionMapper 提供收藏进度条件更新的 Mapper，由 Spring 容器提供
+     */
+    public CollectionProgressItemExecutor(final CollectionMapper collectionMapper) {
+        this.collectionMapper = collectionMapper;
+    }
 
     /**
      * 单项进度更新：SQL 再次约束 userId/subjectId/type=3/原进度，确认后并发修改不被覆盖

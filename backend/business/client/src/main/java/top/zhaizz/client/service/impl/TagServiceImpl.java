@@ -1,6 +1,5 @@
 package top.zhaizz.client.service.impl;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import top.zhaizz.client.converter.SubjectConverter;
 import top.zhaizz.client.mapper.SubjectMapper;
@@ -20,13 +19,25 @@ import java.util.stream.Collectors;
  * 标签服务实现
  */
 @Service
-@RequiredArgsConstructor
 public class TagServiceImpl implements TagService {
-
-    /** 条目标签关系 Mapper */
+    /**
+     * 条目标签关系 Mapper
+     */
     private final SubjectTagMapper subjectTagMapper;
-    /** 条目数据 Mapper */
+    /**
+     * 条目数据 Mapper
+     */
     private final SubjectMapper subjectMapper;
+
+    /**
+     * 注入条目标签关系与条目数据 Mapper
+     * @param subjectTagMapper 提供标签计数与条目关联查询的 Mapper，由 Spring 容器提供
+     * @param subjectMapper 提供按标签筛选条目 ID 的 Mapper，由 Spring 容器提供
+     */
+    public TagServiceImpl(final SubjectTagMapper subjectTagMapper, final SubjectMapper subjectMapper) {
+        this.subjectTagMapper = subjectTagMapper;
+        this.subjectMapper = subjectMapper;
+    }
 
     /** {@inheritDoc} */
     @Override

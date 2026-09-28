@@ -2,7 +2,6 @@ package top.zhaizz.client.controller;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.client.service.TagService;
@@ -18,12 +17,20 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/client/tags")
-@RequiredArgsConstructor
 @Validated
 public class TagController {
-
-    /** 标签查询服务 */
+    /**
+     * 标签查询服务
+     */
     private final TagService tagService;
+
+    /**
+     * 注入标签查询服务
+     * @param tagService 提供标签列表与标签下条目分页的服务，由 Spring 容器提供
+     */
+    public TagController(final TagService tagService) {
+        this.tagService = tagService;
+    }
 
     /**
      * 获取标签列表

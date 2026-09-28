@@ -1,6 +1,5 @@
 package top.zhaizz.client.service.impl;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import top.zhaizz.client.mapper.EvidenceMapper;
 import top.zhaizz.client.model.*;
@@ -14,16 +13,27 @@ import top.zhaizz.pojo.vo.evidence.EvidenceCandidateVO;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/** 证据回查服务实现 */
+/**
+ * 证据回查服务实现
+ */
 @Service
-@RequiredArgsConstructor
 public class EvidenceServiceImpl implements EvidenceService {
-
-    /** 证据批量请求允许的最大条数 */
+    /**
+     * 证据批量请求允许的最大条数
+     */
     private static final int MAX_BATCH_SIZE = 50;
-
-    /** 证据数据 Mapper */
+    /**
+     * 证据数据 Mapper
+     */
     private final EvidenceMapper evidenceMapper;
+
+    /**
+     * 注入证据数据 Mapper
+     * @param evidenceMapper 提供条目、别名、标签、主创、角色与关联查询的 Mapper，由 Spring 容器提供
+     */
+    public EvidenceServiceImpl(final EvidenceMapper evidenceMapper) {
+        this.evidenceMapper = evidenceMapper;
+    }
 
     /** {@inheritDoc} */
     @Override

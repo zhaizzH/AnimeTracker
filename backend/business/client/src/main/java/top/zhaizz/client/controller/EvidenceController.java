@@ -1,7 +1,6 @@
 package top.zhaizz.client.controller;
 
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,11 +19,19 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/client/evidence")
-@RequiredArgsConstructor
 public class EvidenceController {
-
-    /** 证据查询服务 */
+    /**
+     * 证据查询服务
+     */
     private final EvidenceService evidenceService;
+
+    /**
+     * 注入证据查询服务
+     * @param evidenceService 提供条目与实体维度的安全证据回查服务，由 Spring 容器提供
+     */
+    public EvidenceController(final EvidenceService evidenceService) {
+        this.evidenceService = evidenceService;
+    }
 
     /**
      * 回查条目的安全证据与来源信息

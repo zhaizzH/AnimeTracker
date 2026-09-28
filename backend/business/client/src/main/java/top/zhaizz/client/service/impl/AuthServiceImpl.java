@@ -1,7 +1,6 @@
 package top.zhaizz.client.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,34 +28,68 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-/** 保留注册、登录资格、邮箱验证和密码重置业务，委托 auth 管理凭据 */
+/**
+ * 保留注册、登录资格、邮箱验证和密码重置业务，委托 auth 管理凭据
+ */
 @Service
-@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
-    /** 账户持久化查询与更新入口 */
+    /**
+     * 账户持久化查询与更新入口
+     */
     private final UserMapper userMapper;
-    /** 密码哈希校验和编码器，不处理明文存储 */
+    /**
+     * 密码哈希校验和编码器，不处理明文存储
+     */
     private final PasswordEncoder passwordEncoder;
-    /** 登录失败计数与业务验证码清理入口 */
+    /**
+     * 登录失败计数与业务验证码清理入口
+     */
     private final RedisUtil redisUtil;
-    /** 仅接收已校验身份的凭据签发能力 */
+    /**
+     * 仅接收已校验身份的凭据签发能力
+     */
     private final AuthTokenService tokenService;
-    /** 邮箱及密码重置验证码业务 */
+    /**
+     * 邮箱及密码重置验证码业务
+     */
     private final VerificationService verificationService;
-    /** 刷新凭据原子消费与会话撤销入口 */
+    /**
+     * 刷新凭据原子消费与会话撤销入口
+     */
     private final AuthSessionStore sessionStore;
-
-    /** 登录失败次数阈值，达到后拒绝登录 */
-        /** 允许连续登录失败的最大次数 */
+    /**
+     * 允许连续登录失败的最大次数，达到后拒绝登录
+     */
     @Value("${jwt.max-login-fails}")
     private int maxLoginFails;
-    /** 登录失败计数窗口，单位分钟 */
-        /** 登录失败计数窗口时长，单位分钟 */
+    /**
+     * 登录失败计数窗口时长，单位分钟
+     */
     @Value("${jwt.login-fail-window-minutes}")
     private long loginFailWindowMinutes;
 
-    /** 账户更新时间和首次登录时间使用的 UTC 时钟 */
+    /**
+     * 账户更新时间和首次登录时间使用的 UTC 时钟
+     */
     private Clock clock = Clock.systemUTC();
+
+    /**
+     * 注入认证相关依赖
+     * @param userMapper 提供账户查询与写入的 Mapper，由 Spring 容器提供
+     * @param passwordEncoder 用于校验与编码密码的编解码器，由 Spring 容器提供
+     * @param redisUtil 提供登录失败计数与验证码清理的 Redis 工具，由 Spring 容器提供
+     * @param tokenService 负责签发访问与刷新凭据的服务，由 Spring 容器提供
+     * @param verificationService 负责邮箱与密码重置验证码业务的服务，由 Spring 容器提供
+     * @param sessionStore 负责刷新凭据消费与会话撤销的存储，由 Spring 容器提供
+     */
+    public AuthServiceImpl(final UserMapper userMapper, final PasswordEncoder passwordEncoder, final RedisUtil redisUtil, final AuthTokenService tokenService, final VerificationService verificationService, final AuthSessionStore sessionStore) {
+        this.userMapper = userMapper;
+        this.passwordEncoder = passwordEncoder;
+        this.redisUtil = redisUtil;
+        this.tokenService = tokenService;
+        this.verificationService = verificationService;
+        this.sessionStore = sessionStore;
+    }
 
     /**
      * 创建默认 USER 账户并发送邮箱验证码

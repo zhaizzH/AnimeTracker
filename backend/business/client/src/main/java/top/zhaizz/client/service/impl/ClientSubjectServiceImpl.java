@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import top.zhaizz.client.converter.SubjectConverter;
@@ -50,9 +49,7 @@ import java.util.stream.Collectors;
  * 番剧查询服务实现
  */
 @Service
-@RequiredArgsConstructor
 public class ClientSubjectServiceImpl implements ClientSubjectService {
-
     /**
      * 排序参数到列/字段的白名单
      */
@@ -62,14 +59,36 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
             "air_date", Subject::getAirDate,
             "rank", Subject::getRank,
             "collection_total", Subject::getCollectionTotal);
-    /** 条目数据 Mapper */
+    /**
+     * 条目数据 Mapper
+     */
     private final SubjectMapper subjectMapper;
-    /** 条目标签关系 Mapper */
+    /**
+     * 条目标签关系 Mapper
+     */
     private final SubjectTagMapper subjectTagMapper;
-    /** 条目关联关系 Mapper */
+    /**
+     * 条目关联关系 Mapper
+     */
     private final SubjectRelationMapper subjectRelationMapper;
-    /** 收藏数据 Mapper */
+    /**
+     * 收藏数据 Mapper
+     */
     private final CollectionMapper collectionMapper;
+
+    /**
+     * 注入条目查询相关 Mapper
+     * @param subjectMapper 提供条目查询与分页的 Mapper，由 Spring 容器提供
+     * @param subjectTagMapper 提供条目标签关系查询的 Mapper，由 Spring 容器提供
+     * @param subjectRelationMapper 提供条目关联关系查询的 Mapper，由 Spring 容器提供
+     * @param collectionMapper 提供用户收藏查询的 Mapper，由 Spring 容器提供
+     */
+    public ClientSubjectServiceImpl(final SubjectMapper subjectMapper, final SubjectTagMapper subjectTagMapper, final SubjectRelationMapper subjectRelationMapper, final CollectionMapper collectionMapper) {
+        this.subjectMapper = subjectMapper;
+        this.subjectTagMapper = subjectTagMapper;
+        this.subjectRelationMapper = subjectRelationMapper;
+        this.collectionMapper = collectionMapper;
+    }
 
     /** {@inheritDoc} */
     @Override

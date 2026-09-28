@@ -1,7 +1,6 @@
 package top.zhaizz.client.controller;
 
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.client.service.ClientSubjectService;
 import top.zhaizz.client.service.EpisodeService;
@@ -27,13 +26,25 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/client/subjects")
-@RequiredArgsConstructor
 public class SubjectController {
-
-    /** 用户端条目查询服务 */
+    /**
+     * 用户端条目查询服务
+     */
     private final ClientSubjectService clientSubjectService;
-    /** 分集查询服务 */
+    /**
+     * 分集查询服务
+     */
     private final EpisodeService episodeService;
+
+    /**
+     * 注入条目查询服务与分集查询服务
+     * @param clientSubjectService 提供条目列表、搜索与详情查询的服务，由 Spring 容器提供
+     * @param episodeService 提供条目分集查询的服务，由 Spring 容器提供
+     */
+    public SubjectController(final ClientSubjectService clientSubjectService, final EpisodeService episodeService) {
+        this.clientSubjectService = clientSubjectService;
+        this.episodeService = episodeService;
+    }
 
     /**
      * 获取番剧列表

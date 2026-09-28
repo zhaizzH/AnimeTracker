@@ -1,6 +1,5 @@
 package top.zhaizz.client.service;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 
@@ -9,12 +8,23 @@ import top.zhaizz.client.config.AuthCookieProperties;
 
 import java.time.Duration;
 
-/** RefreshCookieService 业务服务 */
+/**
+ * RefreshCookieService 业务服务
+ */
 @Service
-@RequiredArgsConstructor
 public class RefreshCookieService {
-    /** refresh Cookie 配置 */
+    /**
+     * refresh Cookie 配置
+     */
     private final AuthCookieProperties properties;
+
+    /**
+     * 注入 refresh Cookie 配置
+     * @param properties 提供 Cookie 名称、路径、Secure 与 SameSite 的配置组件，由 Spring 容器提供
+     */
+    public RefreshCookieService(final AuthCookieProperties properties) {
+        this.properties = properties;
+    }
 
     /**
      * 将 refresh token 按配置写入响应 Cookie

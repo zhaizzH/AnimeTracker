@@ -2,7 +2,6 @@ package top.zhaizz.client.controller;
 
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.client.service.ClientUserService;
 import top.zhaizz.client.service.RefreshCookieService;
@@ -22,15 +21,31 @@ import top.zhaizz.pojo.vo.user.UserVO;
  */
 @RestController
 @RequestMapping("/api/client/me")
-@RequiredArgsConstructor
 public class UserController {
-
-    /** 用户端用户服务 */
+    /**
+     * 用户端用户服务
+     */
     private final ClientUserService clientUserService;
-    /** 验证码与邮箱验证服务 */
+    /**
+     * 验证码与邮箱验证服务
+     */
     private final VerificationService verificationService;
-    /** refresh Cookie 写入与清理服务 */
+    /**
+     * refresh Cookie 写入与清理服务
+     */
     private final RefreshCookieService refreshCookieService;
+
+    /**
+     * 注入用户服务、验证码服务与刷新 Cookie 服务
+     * @param clientUserService 提供个人信息查询与更新的服务，由 Spring 容器提供
+     * @param verificationService 提供邮箱修改验证码校验的服务，由 Spring 容器提供
+     * @param refreshCookieService 负责 refresh Cookie 清理的服务，由 Spring 容器提供
+     */
+    public UserController(final ClientUserService clientUserService, final VerificationService verificationService, final RefreshCookieService refreshCookieService) {
+        this.clientUserService = clientUserService;
+        this.verificationService = verificationService;
+        this.refreshCookieService = refreshCookieService;
+    }
 
     /**
      * 获取当前登录用户信息

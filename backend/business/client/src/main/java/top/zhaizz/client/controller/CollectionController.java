@@ -1,7 +1,6 @@
 package top.zhaizz.client.controller;
 
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.client.service.CollectionService;
 import top.zhaizz.common.result.PageResult;
@@ -21,11 +20,19 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/client/collections")
-@RequiredArgsConstructor
 public class CollectionController {
-
-    /** 用户收藏业务服务 */
+    /**
+     * 用户收藏业务服务
+     */
     private final CollectionService collectionService;
+
+    /**
+     * 注入用户收藏业务服务
+     * @param collectionService 提供收藏增删改查与进度更新的服务，由 Spring 容器提供
+     */
+    public CollectionController(final CollectionService collectionService) {
+        this.collectionService = collectionService;
+    }
 
     /**
      * 获取当前登录用户收藏列表

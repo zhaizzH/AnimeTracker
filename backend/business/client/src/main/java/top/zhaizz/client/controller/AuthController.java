@@ -3,7 +3,6 @@ package top.zhaizz.client.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.pojo.dto.auth.IssuedAuthSession;
 import top.zhaizz.client.service.AuthService;
@@ -18,15 +17,30 @@ import top.zhaizz.auth.security.JwtAuthenticationFilter;
 import top.zhaizz.pojo.dto.auth.*;
 import top.zhaizz.pojo.vo.auth.LoginVO;
 
-/** AuthController HTTP 控制器 */
+/**
+ * AuthController HTTP 控制器
+ */
 @RestController
 @RequestMapping("/api/client/auth")
-@RequiredArgsConstructor
 public class AuthController {
-    /** 用户认证业务服务 */
+    /**
+     * 用户认证业务服务
+     */
     private final AuthService authService;
-    /** refresh Cookie 写入与清理服务 */
+    /**
+     * refresh Cookie 写入与清理服务
+     */
     private final RefreshCookieService refreshCookieService;
+
+    /**
+     * 注入认证业务服务与刷新 Cookie 服务
+     * @param authService 处理注册、登录、令牌轮换等的认证服务，由 Spring 容器提供
+     * @param refreshCookieService 负责 refresh Cookie 写入与清理的服务，由 Spring 容器提供
+     */
+    public AuthController(final AuthService authService, final RefreshCookieService refreshCookieService) {
+        this.authService = authService;
+        this.refreshCookieService = refreshCookieService;
+    }
 
     /**
      * 注册账户并发送邮箱验证码

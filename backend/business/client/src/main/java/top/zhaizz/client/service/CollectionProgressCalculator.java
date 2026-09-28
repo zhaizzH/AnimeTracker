@@ -1,6 +1,5 @@
 package top.zhaizz.client.service;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import top.zhaizz.client.mapper.CollectionMapper;
 import top.zhaizz.client.model.CollectionProgressCandidate;
@@ -14,11 +13,19 @@ import java.util.Objects;
  * 本周追番进度候选项纯计算
  */
 @Component
-@RequiredArgsConstructor
 public class CollectionProgressCalculator {
-
-    /** 数据查询 Mapper */
+    /**
+     * 数据查询 Mapper
+     */
     private final CollectionMapper mapper;
+
+    /**
+     * 注入数据查询 Mapper
+     * @param mapper 提供进度候选聚合查询的 Mapper，由 Spring 容器提供
+     */
+    public CollectionProgressCalculator(final CollectionMapper mapper) {
+        this.mapper = mapper;
+    }
 
     /**
      * 根据用户收藏和日期范围计算收藏进度条目
