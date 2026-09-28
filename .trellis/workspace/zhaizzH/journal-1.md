@@ -531,3 +531,37 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 21: 完成后端 Lombok 移除：9 模块手写化并移除依赖
+<!-- trellis-session: v=2 fp=45963754c4ada0d2 -->
+
+**Date**: 2026-09-28
+**Task**: 完成后端 Lombok 移除：9 模块手写化并移除依赖
+**Branch**: `feat/admin-dashboard-block`
+
+### Summary
+
+将 backend/business 全部 9 个 Java 模块的 Lombok 注解替换为手写等价 Java，并移除父 POM、9 个子 POM 与 README 的 Lombok 依赖。本会话清理 common 残留注解、迁移 pojo/vo(35)、pojo/entity(20)、client(30)、admin(11) 及 agent/app/auth/log/infrastructure 残余 12 个文件，共 108 个文件。验证：mvn clean test 110/0/0（基线 95）、9 模块签名零漂移（224 类）、2149 个生成方法体中仅 4 处纯格式化差异、check_javadoc 3717 声明 0 违规、backend/business 零 Lombok 引用、OpenAPI 与 DB schema 未改动。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f6889656` | refactor(common): 清除残留 @Getter/@Setter 注解 |
+| `35ec185c` | refactor(pojo): 移除 Lombok 并显式声明访问器与构建器 |
+| `df4b30a6` | refactor(client): 移除 Lombok 并显式声明构造器与访问器 |
+| `899ad4fd` | refactor(admin): 用显式构造器替换 @RequiredArgsConstructor |
+| `a1ce540e` | refactor(agent): 移除 Lombok 并显式声明构造器 |
+| `5facc913` | refactor(app): 移除 @Data 并显式声明配置属性访问器 |
+| `7a5c009b` | refactor(auth): 移除 Lombok 并显式声明访问器与构造器 |
+| `b5719366` | refactor(log): 用显式构造器替换 @RequiredArgsConstructor |
+| `04993c51` | refactor(infrastructure): 移除 Lombok 并显式声明访问器 |
+| `cac31e3f` | test(后端): 补充 Lombok 迁移后的 JSON 往返回归测试 |
+| `6683a3c6` | chore(构建): 从父 POM 与 README 移除 Lombok 依赖 |
+| `c5f3f2cb` | docs(规范): 移除已失效的 Lombok 生成成员 Javadoc 豁免 |
+| `8d6da209` | docs(任务): 记录 Lombok 移除完成状态与验证证据 |
+
+### Status
+
+[OK] **Completed**
