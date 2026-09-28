@@ -1,12 +1,10 @@
 package top.zhaizz.common.exception;
 
-import lombok.Getter;
 import top.zhaizz.common.constant.ErrorType;
 
 /**
  * 业务异常基类，包含 code 和 message
  */
-@Getter
 public class BizException extends RuntimeException {
 
     /** 统一响应或异常的状态码 */

@@ -7,8 +7,6 @@ import java.util.List;
  *
  * @param <T> 承载的数据类型
  */
-@Getter
-@Setter
 public class PageResult<T> {
 
     /** 当前页记录列表 */

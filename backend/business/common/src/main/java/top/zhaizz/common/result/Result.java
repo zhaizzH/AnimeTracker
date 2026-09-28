@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  *
  * @param <T> 承载的数据类型
  */
-@Getter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Result<T> {
 
