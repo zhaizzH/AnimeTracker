@@ -1,7 +1,6 @@
 package top.zhaizz.agent.controller;
 
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -20,11 +19,18 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/client/agent")
-@RequiredArgsConstructor
 public class ClientAgentController {
 
     /** 负责转发 Agent 请求的服务 */
     private final AgentService agentService;
+
+    /**
+     * 创建用户端 Agent 控制器
+     * @param agentService 负责转发 Agent 请求的服务
+     */
+    public ClientAgentController(final AgentService agentService) {
+        this.agentService = agentService;
+    }
 
     /**
      * 健康检查
