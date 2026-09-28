@@ -207,7 +207,7 @@ Java 声明统一使用 `/** ... */` Javadoc，采用中文说明。不得用普
 | pojo 的 DTO/VO/Entity 全部字段 | 必须使用字段上方 Javadoc，不以注解 message 或行尾注释代替 |
 | record 组件 | 在 record 的 Javadoc 中使用 `@param` 逐一说明 |
 
-Lombok/编译器生成的构造器、访问器不要求手工重写来添加注释；需要说明的数据语义放在字段或类型上。手写测试代码同样遵循声明格式，测试方法说明验证的场景与预期。
+后端已移除 Lombok，所有构造器、访问器、`equals`/`hashCode`/`toString` 均为手写声明，一律按上表补齐 Javadoc；不再存在"生成成员豁免"这一例外。字段的数据语义同时写在字段 Javadoc 上。手写测试代码同样遵循声明格式，测试方法说明验证的场景与预期。
 
 Javadoc 紧邻声明，放在注解之前。方法体内的步骤、算法理由仍使用普通行注释，因为方法体中的 `/** ... */` 不会成为声明文档；不能将所有 `//` 机械替换成 Javadoc。这里区分注释用途，不豁免任何类型、字段或手写方法的声明说明。
 
@@ -353,7 +353,7 @@ python backend/business/tools/check_javadoc.py
 python backend/business/tools/test_check_javadoc.py
 ```
 
-`check_javadoc.py` 使用 JDK 21 语法树遍历全部 Java 源码（含测试和工具，排除 target），检查类型、手写构造器、字段、方法、record 组件的声明文档，以及参数顺序、返回标签、中文摘要和已知机械模板。继承文档只允许出现在显式覆盖的方法上。随后读取 app 的 Surefire 报告中实际构建类路径，运行 JDK `javadoc -private -Xdoclint:all,-missing -Werror`，校验 HTML、标签语法和引用；缺失检查由前一阶段执行，避免 Lombok 生成成员导致误报。任一阶段失败都返回非零。
+`check_javadoc.py` 使用 JDK 21 语法树遍历全部 Java 源码（含测试和工具，排除 target），检查类型、手写构造器、字段、方法、record 组件的声明文档，以及参数顺序、返回标签、中文摘要和已知机械模板。继承文档只允许出现在显式覆盖的方法上。随后读取 app 的 Surefire 报告中实际构建类路径，运行 JDK `javadoc -private -Xdoclint:all,-missing -Werror`，校验 HTML、标签语法和引用；缺失检查由前一阶段执行，`-missing` 在 doclint 阶段关闭以避免重复报错。任一阶段失败都返回非零。
 
 结果写入 `backend/business/target/javadoc-check/coverage.txt` 与 `doclint.txt`；HTML 文档和参数文件也位于该临时目录。`clean` 会清理报告，交付记录需保存日期、命令和结果摘要。检查器回归覆盖中文和 record、私有构造器和枚举、参数/返回错配、继承限制、模板及损坏源码。
 
