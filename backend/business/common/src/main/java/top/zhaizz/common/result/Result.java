@@ -1,7 +1,6 @@
 package top.zhaizz.common.result;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.Getter;
 
 /**
  * 统一响应体 {code, message, data}
@@ -79,5 +78,29 @@ public class Result<T> {
      */
     public static <T> Result<T> error(int code, String message, T data) {
         return new Result<>(code, message, data);
+    }
+
+    /**
+     * 获取统一响应或异常的状态码
+     * @return 响应状态码
+     */
+    public int getCode() {
+        return this.code;
+    }
+
+    /**
+     * 获取统一响应的状态说明
+     * @return 向调用方展示的提示消息
+     */
+    public String getMessage() {
+        return this.message;
+    }
+
+    /**
+     * 获取统一响应承载的业务数据
+     * @return 附加响应数据；无数据时为 {@code null}
+     */
+    public T getData() {
+        return this.data;
     }
 }

@@ -49,4 +49,20 @@ public class BizException extends RuntimeException {
         this.code = errorType.getCode();
         this.data = data;
     }
+
+    /**
+     * 获取统一响应或异常的状态码
+     * @return 创建异常时由错误类型提供的状态码
+     */
+    public int getCode() {
+        return this.code;
+    }
+
+    /**
+     * 获取统一响应承载的业务数据
+     * @return 附加数据；未提供时为 {@code null}
+     */
+    public Object getData() {
+        return this.data;
+    }
 }

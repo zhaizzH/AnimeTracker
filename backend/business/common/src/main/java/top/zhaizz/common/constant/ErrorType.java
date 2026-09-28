@@ -78,4 +78,20 @@ public enum ErrorType {
         this.code = code;
         this.message = message;
     }
+
+    /**
+     * 获取错误或响应使用的状态码
+     * @return 与 HTTP 状态一致的状态码
+     */
+    public int getCode() {
+        return this.code;
+    }
+
+    /**
+     * 获取错误码对应的默认提示消息
+     * @return 默认业务提示，枚举常量定义时为非空字面量
+     */
+    public String getMessage() {
+        return this.message;
+    }
 }
