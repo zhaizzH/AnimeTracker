@@ -2,7 +2,6 @@ package top.zhaizz.app.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -29,7 +28,6 @@ import java.io.IOException;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
     /** JWT 请求认证过滤器 */
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -39,6 +37,21 @@ public class SecurityConfig {
     private final CorsConfigurationSource corsConfigurationSource;
     /** 应用共用的 JSON 序列化器 */
     private final ObjectMapper objectMapper;
+
+    /**
+     * 创建安全配置，注入过滤链所需的过滤器与序列化器
+     * @param jwtAuthenticationFilter JWT 请求认证过滤器
+     * @param cookieOriginFilter Cookie 请求来源校验过滤器
+     * @param corsConfigurationSource CORS 配置源
+     * @param objectMapper 应用共用的 JSON 序列化器
+     */
+    public SecurityConfig(final JwtAuthenticationFilter jwtAuthenticationFilter, final CookieOriginFilter cookieOriginFilter,
+                          final CorsConfigurationSource corsConfigurationSource, final ObjectMapper objectMapper) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.cookieOriginFilter = cookieOriginFilter;
+        this.corsConfigurationSource = corsConfigurationSource;
+        this.objectMapper = objectMapper;
+    }
 
     /**
      * 配置无状态 JWT 安全过滤链；未显式匹配的 URL 默认拒绝
