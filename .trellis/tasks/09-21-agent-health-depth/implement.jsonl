@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "健康检查五要素(检查项/HTTP状态/降级响应/公开字段/匿名决策)、RAG Vector Set 能力约定、故障矩阵覆盖要求、新增 env 需同步 config.py 与 .env.example"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "恒 200 + body 降级是对:89 的有意例外；:80-83 客户端可见信息红线；:166-172 log_event 字段白名单；:90 禁止裸 except 吞失败"}
+{"file": ".trellis/spec/backend/rag-retrieval-contract.md", "reason": "Vector Set 命令能力(VADD/VSIM/VREM)与版本约束；RAG_ENABLED 关闭语义；ensure_version 的版本依赖缺口"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "app/adapters 既有适配器位；app/api 路由与 schemas 放置边界"}

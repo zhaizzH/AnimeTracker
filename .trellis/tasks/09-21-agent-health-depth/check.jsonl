@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "校验健康检查五要素齐备、匿名决策已记录、授权测试存在"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "校验恒 200 例外已登记、无敏感信息泄露、无裸 except 吞失败"}

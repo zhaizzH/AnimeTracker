@@ -10,7 +10,8 @@
 - SSE 序列化 **零测试**：`app/api/sse.py` + `app/api/schemas/sse.py`（事件联合 answer/thinking/function_call/status/end、`is_end`、`exclude_none`）无用例。
 - health 端点 **零测试**：`app/api/chat.py:99-107`（恒 200 + `llm_configured`）。
 - streaming pending 持久化失败 **未测**：`tests/agent/test_streaming.py` 只覆盖 `on_answer_completed` 失败；`on_pending_action` 失败分支(`streaming.py:165-180`，"待确认动作保存失败，请重试")无用例——正是 spec 矩阵(`agent-guidelines.md:184-189`)点名的最低回归。
-- gateway LLM 路由 **未测**：`_resolve_routing_result`(`gateway.py:114-132`，JSON 解析/空内容/非法 route_target→ValueError) 与 `build_gateway_router` 完整路径无用例（现仅测 `_resolve_forced_pending_route`/`_is_explicit_confirmation`）。
+- gateway LLM 路由 **未测**：`_resolve_routing_result`(`gateway.py:114-132`，JSON 解析/空内容/非法 route_target→ValueError) 无用例。
+  - 更正（本会话核实）：`build_gateway_router` 的**确定性分支已被测试**——`tests/agent/test_write_guard.py:85-107` 经 `_router()` 覆盖 `write_confirmed` true/false 两例；`_resolve_forced_pending_route` / `_is_explicit_confirmation` 另在 `tests/agent/test_subject_resolution.py:443-459`、`tests/agent/test_capability_route.py:36-38` 有覆盖。**真正缺口仅是 `_resolve_routing_result` 本身及其 LLM 调用路径**（现测试均以 `llm_factory=None` 绕过 LLM），故本任务只需补该函数的替身模型用例，不重复覆盖既有确定性分支。
 - Evidence 重复 ID **未测**：与 T2 相关，若 T2 未覆盖则在此补。
 
 ## Requirements
@@ -19,7 +20,7 @@
 2. SSE：各事件类型序列化字段（type/content/is_end/meta）、END 事件 `is_end=true`、`exclude_none` 行为、`text/event-stream` 分帧。
 3. health：LLM 可解析/不可解析两种返回；恒 200；字段稳定。
 4. streaming：`on_pending_action` 保存失败时发出 status 错误事件并仍安全发送 end；不宣称动作已持久化。
-5. gateway：`_resolve_routing_result` 对合法/非法 payload 的行为；`gateway_router` 在明确写入意图/待确认动作/普通 LLM 路由三分支的确定性走向（LLM 用替身）。
+5. gateway：`_resolve_routing_result` 对合法/非法 payload 的行为（JSON 解析成功、空内容、非法 `route_target` 抛 `ValueError`），LLM 用替身注入。**不重复覆盖**已测的确定性分支（`write_confirmed` true/false、`_resolve_forced_pending_route`、`_is_explicit_confirmation`）。
 6. Evidence 重复 ID：若 T2 未覆盖，补 fail-closed 用例。
 
 ## Acceptance Criteria
@@ -27,6 +28,7 @@
 - [ ] 上述 6 类各有对应测试并纳入 `uv run pytest`，全绿。
 - [ ] pending 持久化失败路径断言：发出 status 错误 + 安全 end + 不宣称已持久化（对齐 spec 最低回归）。
 - [ ] gateway LLM 路由测试用替身模型，不依赖真实 LLM；覆盖非法 route_target 抛错。
+- [ ] 已核实的事实标注与实际一致：`build_gateway_router` 确定性分支、`_resolve_forced_pending_route`、`_is_explicit_confirmation` 已有覆盖，本任务不重复补测（见 Background 更正条）。
 - [ ] 不改变被测生产代码行为（纯补测）；若补测暴露真实缺陷，记录并转对应任务，不在本任务内顺手改逻辑。
 
 ## Out of Scope

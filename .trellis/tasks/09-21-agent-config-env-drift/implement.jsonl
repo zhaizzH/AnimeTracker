@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/rag-retrieval-contract.md", "reason": "版本一致性契约(禁止用 RAG_INDEX_VERSION 猜测在线版本)、画像链缺口行、模板漂移行、无 ACTIVE release 的降级行为"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "MySQL search_index_release 为唯一 active release 事实；Agent 数据访问边界"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "app/adapters 为 MySQL 适配器既有位；main.py lifespan 组装的装配边界"}
+{"file": ".trellis/spec/backend/index.md", "reason": "后端质量门禁与 2026-09-21 复核基线(413 passed)"}
