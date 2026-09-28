@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend scope and module boundaries for all Java Business modules"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Java declaration Javadoc rules and reproducible checks for handwritten members"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "MyBatis/entity persistence and JavaBeans mapping constraints"}
+{"file": ".trellis/tasks/09-28-backend-lombok-removal/research/lombok-usage-and-compatibility.md", "reason": "Exact source inventory and compatibility hazards including constructors, builders, JavaBeans, Jackson, MyBatis, equality and logging"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Nine-module Java Business scope and module responsibilities"}

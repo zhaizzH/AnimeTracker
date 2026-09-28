@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend module coverage and no-contract-change boundaries"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Javadoc and Java quality validation requirements"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Verify entity accessors and persistence mappings remain compatible"}
+{"file": ".trellis/tasks/09-28-backend-lombok-removal/research/lombok-usage-and-compatibility.md", "reason": "Review migrated behavior against source inventory and regression obligations"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Confirm no cross-module boundary or app-layer regression"}
