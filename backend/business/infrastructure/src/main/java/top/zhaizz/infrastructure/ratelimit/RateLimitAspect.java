@@ -1,6 +1,5 @@
 package top.zhaizz.infrastructure.ratelimit;
 
-import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -17,11 +16,18 @@ import java.lang.reflect.Method;
  */
 @Aspect
 @Component
-@RequiredArgsConstructor
 public class RateLimitAspect {
 
     /** 逐条规则计数与配额判断入口 */
     private final RateLimiter rateLimiter;
+
+    /**
+     * 创建限流切面，注入规则计数入口
+     * @param rateLimiter 逐条规则计数与配额判断入口
+     */
+    public RateLimitAspect(final RateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
+    }
 
     /**
      * 依次计数所有可解析规则，全部通过后调用业务方法

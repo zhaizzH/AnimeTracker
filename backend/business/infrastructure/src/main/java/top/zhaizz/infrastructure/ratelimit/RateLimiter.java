@@ -1,6 +1,5 @@
 package top.zhaizz.infrastructure.ratelimit;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import top.zhaizz.infrastructure.redis.RedisUtil;
 
@@ -11,11 +10,18 @@ import java.util.concurrent.TimeUnit;
  * <p>成功尝试也计数，是否重置由业务调用方决定
  */
 @Component
-@RequiredArgsConstructor
 public class RateLimiter {
 
     /** 执行计数及删除操作的 Redis 能力 */
     private final RedisUtil redisUtil;
+
+    /**
+     * 创建限流器，注入 Redis 计数能力
+     * @param redisUtil 执行计数及删除操作的 Redis 能力
+     */
+    public RateLimiter(final RedisUtil redisUtil) {
+        this.redisUtil = redisUtil;
+    }
 
     /**
      * 计数当前尝试并检查固定窗口配额
