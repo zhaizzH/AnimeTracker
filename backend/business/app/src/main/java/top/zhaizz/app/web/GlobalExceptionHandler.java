@@ -4,7 +4,8 @@ import top.zhaizz.common.exception.BizException;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,9 +33,11 @@ import java.util.Map;
  * <p>
  * 统一返回 {code, message, data}，异常按范围从小到大逐级匹配，兜底未知异常 500
  */
-@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /** 当前类的日志记录器 */
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
      * 处理业务异常 — 将 BizException.code 映射为 HTTP 状态码

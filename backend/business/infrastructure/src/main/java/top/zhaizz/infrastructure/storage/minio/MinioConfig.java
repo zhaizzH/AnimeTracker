@@ -4,8 +4,8 @@ import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.SetBucketPolicyArgs;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,14 +14,23 @@ import org.springframework.context.annotation.Configuration;
  * MinIO 客户端配置与桶自动初始化
  * <p>启动时自动检查并创建 Bucket，设置公开读策略</p>
  */
-@Slf4j
 @Configuration
-@RequiredArgsConstructor
 @EnableConfigurationProperties(MinioProperties.class)
 public class MinioConfig {
 
+    /** 当前类的日志记录器 */
+    private static final Logger log = LoggerFactory.getLogger(MinioConfig.class);
     /** MinIO 连接与目标存储桶配置 */
     private final MinioProperties properties;
+
+    /**
+     * 创建 MinIO 配置
+     *
+     * @param properties MinIO 连接与目标存储桶配置
+     */
+    public MinioConfig(MinioProperties properties) {
+        this.properties = properties;
+    }
 
     /**
      * 按配置创建 MinIO 客户端

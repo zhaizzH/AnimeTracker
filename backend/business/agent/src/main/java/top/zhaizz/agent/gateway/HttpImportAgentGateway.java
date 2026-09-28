@@ -1,6 +1,7 @@
 package top.zhaizz.agent.gateway;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -14,8 +15,9 @@ import top.zhaizz.common.exception.BizException;
 import top.zhaizz.pojo.dto.imprt.ImportRunDTO;
 
 /** 通过 HTTP 触发 Python Agent 导入任务的网关实现 */
-@Slf4j
 public class HttpImportAgentGateway implements ImportAgentGateway {
+    /** 当前类的日志记录器 */
+    private static final Logger log = LoggerFactory.getLogger(HttpImportAgentGateway.class);
     /** 用于普通 Agent 请求的 HTTP 客户端 */
     private final RestTemplate restTemplate;
     /** Agent 服务的基础 URL */

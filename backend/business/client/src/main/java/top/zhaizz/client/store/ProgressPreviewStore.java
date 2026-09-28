@@ -2,8 +2,8 @@ package top.zhaizz.client.store;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import top.zhaizz.client.model.ProgressPreviewSnapshot;
 import top.zhaizz.client.model.ProgressPreviewStatus;
@@ -21,10 +21,10 @@ import java.util.concurrent.TimeUnit;
  * 收藏进度预览 Redis 快照与执行锁
  */
 @Component
-@RequiredArgsConstructor
-@Slf4j
 public class ProgressPreviewStore {
 
+    /** 当前类的日志记录器 */
+    private static final Logger log = LoggerFactory.getLogger(ProgressPreviewStore.class);
     /** 收藏进度预览快照的有效期 */
     private static final Duration PREVIEW_TTL = Duration.ofMinutes(10);
     /** 收藏进度执行锁的有效期（秒） */
@@ -34,6 +34,17 @@ public class ProgressPreviewStore {
     private final RedisUtil redisUtil;
     /** 用于序列化和反序列化 JSON */
     private final ObjectMapper objectMapper;
+
+    /**
+     * 创建收藏进度预览存储
+     *
+     * @param redisUtil Redis 访问工具
+     * @param objectMapper 用于序列化和反序列化 JSON
+     */
+    public ProgressPreviewStore(RedisUtil redisUtil, ObjectMapper objectMapper) {
+        this.redisUtil = redisUtil;
+        this.objectMapper = objectMapper;
+    }
 
     /**
      * 保存预览快照，TTL 由调用方指定

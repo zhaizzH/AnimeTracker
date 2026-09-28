@@ -2,7 +2,8 @@ package top.zhaizz.agent.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -30,9 +31,10 @@ import java.util.function.Consumer;
 /**
  * HTTP Agent 服务：转发请求到 Python agent，统一归类上游错误
  */
-@Slf4j
 public class AgentServiceImpl implements AgentService {
 
+    /** 当前类的日志记录器 */
+    private static final Logger log = LoggerFactory.getLogger(AgentServiceImpl.class);
     /** 用于普通 Agent 请求的 HTTP 客户端 */
     private final RestTemplate restTemplate;
     /** 用于序列化和反序列化 JSON */

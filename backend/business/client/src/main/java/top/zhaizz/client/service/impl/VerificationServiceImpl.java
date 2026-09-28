@@ -1,7 +1,7 @@
 package top.zhaizz.client.service.impl;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.zhaizz.infrastructure.email.EmailGateway;
@@ -21,11 +21,11 @@ import java.util.concurrent.TimeUnit;
 /**
  * 邮箱验证服务实现
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class VerificationServiceImpl implements VerificationService {
 
+    /** 当前类的日志记录器 */
+    private static final Logger log = LoggerFactory.getLogger(VerificationServiceImpl.class);
     /** Redis 访问工具 */
     private final RedisUtil redisUtil;
     /** 用户数据 Mapper */
@@ -34,6 +34,22 @@ public class VerificationServiceImpl implements VerificationService {
     private final EmailGateway emailGateway;
     /** 限流器 */
     private final RateLimiter rateLimiter;
+
+    /**
+     * 创建邮箱验证服务实现
+     *
+     * @param redisUtil Redis 访问工具
+     * @param userMapper 用户数据 Mapper
+     * @param emailGateway 邮件发送网关
+     * @param rateLimiter 限流器
+     */
+    public VerificationServiceImpl(RedisUtil redisUtil, UserMapper userMapper,
+                                   EmailGateway emailGateway, RateLimiter rateLimiter) {
+        this.redisUtil = redisUtil;
+        this.userMapper = userMapper;
+        this.emailGateway = emailGateway;
+        this.rateLimiter = rateLimiter;
+    }
 
     /** 验证码有效期（分钟） */
     private static final long CODE_TTL_MINUTES = 5;

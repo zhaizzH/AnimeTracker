@@ -1,8 +1,8 @@
 package top.zhaizz.log.aspect;
 
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -19,11 +19,20 @@ import java.time.LocalDateTime;
 /** 采集动作、身份与耗时等审计元数据，不记录请求正文或原始异常消息 */
 @Aspect
 @Component
-@RequiredArgsConstructor
-@Slf4j
 public class OperationLogAspect {
+    /** 当前类的日志记录器 */
+    private static final Logger log = LoggerFactory.getLogger(OperationLogAspect.class);
     /** 操作日志存储入口，写入异常只产生安全告警 */
     private final OperationLogMapper operationLogMapper;
+
+    /**
+     * 创建操作日志切面
+     *
+     * @param operationLogMapper 操作日志存储入口
+     */
+    public OperationLogAspect(OperationLogMapper operationLogMapper) {
+        this.operationLogMapper = operationLogMapper;
+    }
 
     /**
      * 执行业务方法，并在成功或失败后旁路记录操作日志

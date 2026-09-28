@@ -4,8 +4,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.lang.NonNull;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,11 +20,11 @@ import java.io.IOException;
 /**
  * 提取 Authorization 凭据，通过 JWT 和白名单双重检查后建立请求身份
  */
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    /** 当前类的日志记录器 */
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     /** 访问令牌签名、过期与身份声明校验入口 */
     private final JwtTokenProvider jwtTokenProvider;
     /** 访问凭据白名单查询入口 */
@@ -33,6 +33,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String AUTHORIZATION_HEADER = "Authorization";
     /** 必须精确匹配的 Bearer 认证前缀 */
     public static final String BEARER_PREFIX = "Bearer ";
+
+    /**
+     * 创建 JWT 认证过滤器
+     *
+     * @param jwtTokenProvider 访问令牌签名、过期与身份声明校验入口
+     * @param redisUtil 访问凭据白名单查询入口
+     */
+    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, RedisUtil redisUtil) {
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.redisUtil = redisUtil;
+    }
 
     /**
      * JWT 与 Redis 白名单均通过时建立身份，否则保持未认证并继续过滤链
