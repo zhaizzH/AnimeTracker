@@ -3,7 +3,6 @@ package top.zhaizz.log.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import top.zhaizz.log.mapper.OperationLogMapper;
@@ -15,12 +14,21 @@ import top.zhaizz.pojo.entity.OperationLog;
 
 /** 使用同一参数化条件完成日志分页和统计，防止筛选口径分叉 */
 @Service
-@RequiredArgsConstructor
 public class LogQueryServiceImpl implements LogQueryService {
     /** 日志分页与存储访问入口 */
     private final OperationLogMapper operationLogMapper;
     /** 完整筛选结果的聚合访问入口 */
     private final LogStatsMapper logStatsMapper;
+
+    /**
+     * 创建日志查询服务，注入分页与统计访问入口
+     * @param operationLogMapper 日志分页与存储访问入口
+     * @param logStatsMapper 完整筛选结果的聚合访问入口
+     */
+    public LogQueryServiceImpl(final OperationLogMapper operationLogMapper, final LogStatsMapper logStatsMapper) {
+        this.operationLogMapper = operationLogMapper;
+        this.logStatsMapper = logStatsMapper;
+    }
 
     /** {@inheritDoc} */
     @Override
