@@ -1,7 +1,5 @@
 package top.zhaizz.auth.security;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -11,8 +9,6 @@ import java.util.List;
 /**
  * 封装 Spring Security 身份主体与单项业务角色，不携带密码或令牌
  */
-@Getter
-@AllArgsConstructor
 public class UserPrincipal implements Authentication {
 
     /** 认证成功的用户 ID，作为 principal 返回 */
@@ -93,5 +89,33 @@ public class UserPrincipal implements Authentication {
     @Override
     public String getName() {
         return String.valueOf(userId);
+    }
+
+    /**
+     * 获取认证成功的用户 ID
+     * @return 作为 principal 返回的用户 ID
+     */
+    public Long getUserId() {
+        return this.userId;
+    }
+
+    /**
+     * 获取不带 ROLE_ 前缀的业务角色
+     * @return 用于鉴权的角色名
+     */
+    public String getRole() {
+        return this.role;
+    }
+
+    /**
+     * 创建携带认证状态的完整身份
+     * @param userId 认证成功的用户 ID
+     * @param role 不带 ROLE_ 前缀的业务角色
+     * @param authenticated 是否已由过滤器完成认证
+     */
+    public UserPrincipal(final Long userId, final String role, final boolean authenticated) {
+        this.userId = userId;
+        this.role = role;
+        this.authenticated = authenticated;
     }
 }

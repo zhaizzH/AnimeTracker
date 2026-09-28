@@ -1,6 +1,5 @@
 package top.zhaizz.auth.security;
 
-import lombok.RequiredArgsConstructor;
 import top.zhaizz.pojo.dto.auth.ConsumedRefreshSession;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.stereotype.Component;
@@ -14,12 +13,19 @@ import java.util.concurrent.TimeUnit;
 
 /** Redis 中 access/refresh 会话的索引与撤销操作 */
 @Component
-@RequiredArgsConstructor
 public class AuthSessionStore {
     /** 刷新索引兜底寿命，单位天，避免自然过期后残留摘要永久累积 */
     private static final long REFRESH_INDEX_TTL_DAYS = Duration.ofDays(30).toDays();
     /** 会话摘要、凭据和用户索引的 Redis 访问入口 */
     private final RedisUtil redis;
+
+    /**
+     * 创建会话存储，注入 Redis 访问入口
+     * @param redis 会话摘要、凭据和用户索引的 Redis 访问入口
+     */
+    public AuthSessionStore(final RedisUtil redis) {
+        this.redis = redis;
+    }
 
     /**
      * 保存刷新凭据摘要并登记用户索引

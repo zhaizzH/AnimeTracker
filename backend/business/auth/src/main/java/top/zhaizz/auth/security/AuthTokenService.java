@@ -4,7 +4,6 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.util.HexFormat;
 import java.util.concurrent.TimeUnit;
-import lombok.RequiredArgsConstructor;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -16,7 +15,6 @@ import top.zhaizz.pojo.dto.auth.AuthTokens;
 
 /** 为已通过业务校验的身份签发凭据，并维护会话绝对寿命及 Redis 白名单 */
 @Service
-@RequiredArgsConstructor
 public class AuthTokenService {
     /** JWT 签名与访问凭据生成器 */
     private final JwtTokenProvider jwtTokenProvider;
@@ -37,6 +35,18 @@ public class AuthTokenService {
     private Clock clock = Clock.systemUTC();
     /** 用于生成不可预测刷新凭据的安全随机源 */
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+    /**
+     * 创建令牌服务，注入生成器、Redis 与会话存储；寿命字段由 Spring 注入
+     * @param jwtTokenProvider JWT 签名与访问凭据生成器
+     * @param redis 访问凭据白名单的 Redis 访问入口
+     * @param sessionStore 刷新凭据与撤销索引存储
+     */
+    public AuthTokenService(final JwtTokenProvider jwtTokenProvider, final RedisUtil redis, final AuthSessionStore sessionStore) {
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.redis = redis;
+        this.sessionStore = sessionStore;
+    }
 
     /**
      * 签发访问与刷新凭据；刷新保留原始登录起点并截断剩余寿命
