@@ -54,20 +54,71 @@ Two gaps found while executing `implement.md` step 1. Both are user-approved:
 | # | Workstream | Status |
 |---|---|---|
 | 1 | Baseline recorded | done |
-| 2 | Delombok cleanup pipeline | not started |
-| 3 | Signature-equivalence check (`javap` before/after) | toolchain verified, snapshots pending |
-| 4 | Javadoc for all migrated members | not started |
-| 5 | `@Slf4j` → explicit SLF4J; POM/README dependency removal | not started |
-| 6 | Characterization regression tests (R6) | not started |
+| 2 | Delombok cleanup pipeline (`backend/business/tools/delombok_clean.py`) | done |
+| 3 | Signature-equivalence check (`backend/business/tools/sig_compare.py` + `target/sig-before/`) | done; tooling built, baselines captured for all 9 modules (224 classes) |
+| 4 | Javadoc for all migrated members | in progress — see per-module state below |
+| 5 | `@Slf4j` → explicit SLF4J | **done** (10/10 classes) |
+| 5b | POM/README Lombok dependency removal | not started (9 POMs still declare it) |
+| 6 | Characterization regression tests (R6) | partial — 1 of ~3 planned files written |
 | 7 | Full verification | not started |
+
+### Per-module migration state
+
+Counts are files that still contain an `import lombok` line.
+
+| Module | Remaining | Notes |
+|---|---:|---|
+| `common` | 0 | done, committed `06d747ea` |
+| `agent` | 2 | `@Slf4j` done and committed; remaining 2 files carry other Lombok annotations |
+| `app` | 3 | `@Slf4j` done and committed; 3 files carry other Lombok annotations |
+| `auth` | 3 | `@Slf4j` done and committed; 3 files carry other Lombok annotations |
+| `log` | 1 | `@Slf4j` done and committed; 1 file carries `@RequiredArgsConstructor` |
+| `infrastructure` | 3 | `@Slf4j` done and committed; 3 files carry other Lombok annotations |
+| `admin` | 11 | not started |
+| `client` | 30 | not started |
+| `pojo` | 56 | in progress: `dto` 1 left, `vo` 35 left, `entity` 20 left |
+| **Total** | **111** | down from 150 |
+
+### In-flight agents (stopped; no resumable handle)
+
+Three `trellis-implement` subagents were mid-flight on the `pojo` subpackages when the session ended. They were addressed by the names `pojo-entity`, `pojo-vo`, `pojo-dto`. **They are not resumable across sessions** — a new session must re-dispatch (either fresh agents or direct work). Treat each file's on-disk state as authoritative; the per-module counts above were measured from disk, not from agent reports.
+
+### Resume instructions
+
+1. Re-dispatch `pojo/entity` (20 files) and `pojo/vo` (35 files); `pojo/dto` needs only its last file verified. The reference expansion for every file is at `target/dl-clean/top/zhaizz/pojo/...` — regenerate with `delombok` + `delombok_clean.py` if `target/` was cleaned.
+2. Continue with `client` (30), `admin` (11), then the residual annotation work in `agent`, `app`, `auth`, `log`, `infrastructure`.
+3. Only after every source file is Lombok-free: remove the dependency from the parent POM and all 9 child POMs, plus the `backend/business/README.md` dependency row. Per `implement.md`, this is the final migration stage.
+4. Then finish workstream 6 and run workstream 7.
 
 ### Verification evidence log
 
 | Check | Command | Result |
 |---|---|---|
-| Baseline tests | `mvn -B clean test -f backend/business/pom.xml` | 95/0/0, BUILD SUCCESS |
+| Baseline tests | `mvn -B clean test -f backend/business/pom.xml` | 95/0/0, BUILD SUCCESS, 9/9 modules |
 | Javadoc scale probe | `CheckJavadoc` over full delombok output | 3503 declarations, 2042 violations |
 | Signature tooling | `javap -p -classpath pojo/target/classes ...CollectionProgressExecutionVO` | works; full accessor/constructor/builder surface visible |
+| `common` module | `sig_compare.py common` + `CheckJavadoc` | signatures identical; 0 violations |
+| `@Slf4j` batch | `CheckJavadoc` after all 10 replacements | 255 files, 1806 declarations, 0 violations |
+
+### Commits made under this task
+
+| Commit | Scope |
+|---|---|
+| `5bf38f96` | task planning artifacts + baseline |
+| `ffc86a32` | `delombok_clean.py` |
+| `06d747ea` | `common` module migration + `sig_compare.py` |
+| `e681f59f` | 10 × `@Slf4j` → explicit SLF4J loggers |
+
+### Uncommitted at session end
+
+- `pojo/pom.xml` — Lombok dependency removed and `spring-boot-starter-test` added (needed to give `pojo` its first test source).
+- `pojo/src/main/java/**` — agent-produced `dto` work (and any partial `vo`/`entity` work), unreviewed.
+- `pojo/src/test/` — untracked; contains `DataSemanticsTest.java` (written, not yet compiled or run).
+- The 5 unrelated pre-existing dirty files under `.trellis/tasks/09-21-admin-dashboard-block/` and `frontend/` remain untouched, as R5 requires.
+
+### Known caveat for the next session
+
+`digest(pojo agent work)` is unverified: the `pojo` module has never been compiled since expansion began, because three agents were writing it concurrently. The first action after agents stop should be a `pojo` compile plus `sig_compare.py pojo`, before any further migration.
 
 ## Out of Scope
 
