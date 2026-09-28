@@ -113,7 +113,6 @@ converter/    # 实体 ⇄ DTO/VO 转换
 |------|------|------|
 | MyBatis-Plus | `3.5.5` | ORM |
 | JJWT | `0.12.3` | JWT 签名与验签 |
-| Lombok | `1.18.30` | 代码简化（`provided`） |
 | MinIO | `8.5.7` | 对象存储 |
 | Resend Java | `3.1.0` | 邮件验证 |
 | ArchUnit | `1.5.0` | 模块边界守卫，已在 `app` 模块落地测试 |
