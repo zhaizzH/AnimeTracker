@@ -2,7 +2,6 @@ package top.zhaizz.admin.controller;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,12 +22,21 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/admin/dashboard")
-@RequiredArgsConstructor
 @Validated
 public class AdminDashboardController {
 
-    /** 管理员仪表盘统计服务 */
+    /**
+     * 管理员仪表盘统计服务
+     */
     private final DashboardService dashboardService;
+
+    /**
+     * 创建运营看板控制器并注入统计服务
+     * @param dashboardService 管理员仪表盘统计服务
+     */
+    public AdminDashboardController(final DashboardService dashboardService) {
+        this.dashboardService = dashboardService;
+    }
 
     /**
      * 看板总览，管理后台进入看板页时加载核心运营指标

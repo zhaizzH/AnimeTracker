@@ -1,7 +1,6 @@
 package top.zhaizz.admin.controller;
 
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.admin.service.ImportService;
 import top.zhaizz.log.constant.OperationLogConstants;
@@ -18,11 +17,20 @@ import top.zhaizz.pojo.vo.imprt.ImportStatusVO;
  */
 @RestController
 @RequestMapping("/api/admin/import")
-@RequiredArgsConstructor
 public class ImportController {
 
-    /** 导入业务服务 */
+    /**
+     * 导入业务服务
+     */
     private final ImportService importService;
+
+    /**
+     * 创建番剧导入控制器并注入导入业务服务
+     * @param importService 导入业务服务
+     */
+    public ImportController(final ImportService importService) {
+        this.importService = importService;
+    }
 
     /**
      * 运行番剧导入，供管理后台手动触发数据同步

@@ -1,7 +1,6 @@
 package top.zhaizz.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.zhaizz.admin.converter.SubjectConverter;
@@ -25,13 +24,26 @@ import java.util.List;
  * 番剧管理服务实现
  */
 @Service
-@RequiredArgsConstructor
 public class AdminSubjectServiceImpl implements AdminSubjectService {
 
-    /** 条目数据 Mapper */
+    /**
+     * 条目数据 Mapper
+     */
     private final AdminSubjectMapper subjectMapper;
-    /** 条目标签关系 Mapper */
+    /**
+     * 条目标签关系 Mapper
+     */
     private final AdminSubjectTagMapper subjectTagMapper;
+
+    /**
+     * 创建番剧管理服务实现并注入条目与标签 Mapper
+     * @param subjectMapper 条目数据 Mapper
+     * @param subjectTagMapper 条目标签关系 Mapper
+     */
+    public AdminSubjectServiceImpl(final AdminSubjectMapper subjectMapper, final AdminSubjectTagMapper subjectTagMapper) {
+        this.subjectMapper = subjectMapper;
+        this.subjectTagMapper = subjectTagMapper;
+    }
 
     /** {@inheritDoc} */
     @Override

@@ -3,7 +3,6 @@ package top.zhaizz.admin.controller;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.admin.service.AdminUserService;
@@ -20,12 +19,21 @@ import top.zhaizz.pojo.vo.user.UserVO;
  */
 @RestController
 @RequestMapping("/api/admin/users")
-@RequiredArgsConstructor
 @Validated
 public class AdminUserController {
 
-    /** 管理员用户管理服务 */
+    /**
+     * 管理员用户管理服务
+     */
     private final AdminUserService adminUserService;
+
+    /**
+     * 创建用户管理控制器并注入用户管理服务
+     * @param adminUserService 管理员用户管理服务
+     */
+    public AdminUserController(final AdminUserService adminUserService) {
+        this.adminUserService = adminUserService;
+    }
 
     /**
      * 分页查看所有注册用户（不返回密码字段），管理后台用户列表加载时触发

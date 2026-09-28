@@ -2,7 +2,6 @@ package top.zhaizz.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import top.zhaizz.admin.constant.ImportConstants;
@@ -26,12 +25,25 @@ import java.util.Objects;
  * 番剧导入服务实现 — 触发转发至 Python Agent；状态与记录直接查库
  */
 @Service
-@RequiredArgsConstructor
 public class ImportServiceImpl implements ImportService {
-    /** Python Agent 导入通信网关 */
+    /**
+     * Python Agent 导入通信网关
+     */
     private final ImportAgentGateway importAgentGateway;
-    /** 导入记录 Mapper */
+    /**
+     * 导入记录 Mapper
+     */
     private final ImportRecordMapper importRecordMapper;
+
+    /**
+     * 创建番剧导入服务实现并注入导入网关与记录 Mapper
+     * @param importAgentGateway Python Agent 导入通信网关
+     * @param importRecordMapper 导入记录 Mapper
+     */
+    public ImportServiceImpl(final ImportAgentGateway importAgentGateway, final ImportRecordMapper importRecordMapper) {
+        this.importAgentGateway = importAgentGateway;
+        this.importRecordMapper = importRecordMapper;
+    }
 
     /** {@inheritDoc} */
     @Override

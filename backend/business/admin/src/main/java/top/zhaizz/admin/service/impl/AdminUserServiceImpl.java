@@ -2,7 +2,6 @@ package top.zhaizz.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import top.zhaizz.admin.converter.UserConverter;
@@ -22,18 +21,33 @@ import java.util.stream.Collectors;
  * 用户管理服务实现
  */
 @Service
-@RequiredArgsConstructor
 public class AdminUserServiceImpl implements AdminUserService {
 
-    /** 用户数据 Mapper */
+    /**
+     * 用户数据 Mapper
+     */
     private final AdminUserMapper userMapper;
-    /** 认证会话存储 */
+    /**
+     * 认证会话存储
+     */
     private final AuthSessionStore sessionStore;
 
     // 超级管理员账号 ID
-    /** 受保护的超级管理员标识 */
+    /**
+     * 受保护的超级管理员标识
+     */
     @Value("${at.admin.superadmin-id}")
     private long superadminId;
+
+    /**
+     * 创建用户管理服务实现并注入用户 Mapper 与会话存储
+     * @param userMapper 用户数据 Mapper
+     * @param sessionStore 认证会话存储
+     */
+    public AdminUserServiceImpl(final AdminUserMapper userMapper, final AuthSessionStore sessionStore) {
+        this.userMapper = userMapper;
+        this.sessionStore = sessionStore;
+    }
 
     /** {@inheritDoc} */
     @Override

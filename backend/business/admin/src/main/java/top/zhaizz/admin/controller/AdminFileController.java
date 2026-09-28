@@ -1,6 +1,5 @@
 package top.zhaizz.admin.controller;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -17,11 +16,20 @@ import top.zhaizz.infrastructure.storage.ImageStorageGateway;
  */
 @RestController
 @RequestMapping("/api/admin/files")
-@RequiredArgsConstructor
 public class AdminFileController {
 
-    /** 图片存储网关 */
+    /**
+     * 图片存储网关
+     */
     private final ImageStorageGateway imageStorageGateway;
+
+    /**
+     * 创建管理端图片上传入口并注入存储网关
+     * @param imageStorageGateway 图片存储网关
+     */
+    public AdminFileController(final ImageStorageGateway imageStorageGateway) {
+        this.imageStorageGateway = imageStorageGateway;
+    }
 
     /**
      * 上传番剧封面

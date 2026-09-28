@@ -1,7 +1,6 @@
 package top.zhaizz.admin.controller;
 
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,12 +15,21 @@ import top.zhaizz.pojo.vo.log.LogVO;
  */
 @RestController
 @RequestMapping("/api/admin/logs")
-@RequiredArgsConstructor
 @Validated
 public class AdminLogController {
 
-    /** 管理员日志查询服务 */
+    /**
+     * 管理员日志查询服务
+     */
     private final AdminLogService adminLogService;
+
+    /**
+     * 创建日志查询控制器并注入日志查询服务
+     * @param adminLogService 管理员日志查询服务
+     */
+    public AdminLogController(final AdminLogService adminLogService) {
+        this.adminLogService = adminLogService;
+    }
 
     /**
      * 分页查询操作/登录日志并返回当前筛选条件的全量聚合统计，管理后台日志页筛选查询时触发

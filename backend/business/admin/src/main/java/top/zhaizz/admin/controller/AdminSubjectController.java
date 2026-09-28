@@ -1,7 +1,6 @@
 package top.zhaizz.admin.controller;
 
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import top.zhaizz.admin.service.AdminSubjectService;
@@ -17,12 +16,21 @@ import top.zhaizz.pojo.vo.subject.SubjectDetailVO;
  */
 @RestController
 @RequestMapping("/api/admin/subjects")
-@RequiredArgsConstructor
 @Validated
 public class AdminSubjectController {
 
-    /** 管理员条目维护服务 */
+    /**
+     * 管理员条目维护服务
+     */
     private final AdminSubjectService adminSubjectService;
+
+    /**
+     * 创建番剧管理控制器并注入条目维护服务
+     * @param adminSubjectService 管理员条目维护服务
+     */
+    public AdminSubjectController(final AdminSubjectService adminSubjectService) {
+        this.adminSubjectService = adminSubjectService;
+    }
 
     /**
      * 创建新番剧，管理后台新建表单提交时触发

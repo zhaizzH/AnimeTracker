@@ -1,6 +1,5 @@
 package top.zhaizz.admin.service.impl;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import top.zhaizz.admin.mapper.DashboardMapper;
 import top.zhaizz.admin.service.DashboardService;
@@ -21,19 +20,32 @@ import java.util.stream.Collectors;
  * 运营看板服务实现
  */
 @Service
-@RequiredArgsConstructor
 public class DashboardServiceImpl implements DashboardService {
 
-    /** 仪表盘统计 Mapper */
+    /**
+     * 仪表盘统计 Mapper
+     */
     private final DashboardMapper dashboardMapper;
 
-    /** {@inheritDoc} */
+    /**
+     * 创建运营看板服务实现并注入统计 Mapper
+     * @param dashboardMapper 仪表盘统计 Mapper
+     */
+    public DashboardServiceImpl(final DashboardMapper dashboardMapper) {
+        this.dashboardMapper = dashboardMapper;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public DashboardOverviewVO overview() {
         return dashboardMapper.overview();
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<TrendPointVO> trends(int days) {
         int d = Math.min(Math.max(days, 1), 90);
@@ -64,7 +76,9 @@ public class DashboardServiceImpl implements DashboardService {
         return rows.stream().collect(Collectors.toMap(DailyCountVO::getStatDate, DailyCountVO::getCnt, (a, b) -> a));
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public CollectionStatsVO collectionStats() {
         CollectionStatsVO vo = new CollectionStatsVO();
@@ -73,7 +87,9 @@ public class DashboardServiceImpl implements DashboardService {
         return vo;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public SubjectStatsVO subjectStats() {
         SubjectStatsVO vo = new SubjectStatsVO();
@@ -84,7 +100,9 @@ public class DashboardServiceImpl implements DashboardService {
         return vo;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<HotSubjectVO> hot(int limit) {
         return dashboardMapper.hotSubjects(Math.min(Math.max(limit, 1), 50));
