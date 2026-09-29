@@ -23,13 +23,16 @@ CI 当前未强制 Vitest 和 build；不要在 spec 中把它们描述为已启
 - client 有首页、Agent Markdown 与浮层交互测试。
 - admin 的首个测试位于 `src/guards.test.tsx`，覆盖 `RequireAdmin` 的未登录跳转、非管理员拒绝和管理员放行。
 - Vitest 使用 jsdom；浏览器能力 shim 位于 `client/src/test/matchMedia.ts`。
+- admin 的 `vitest.setup.ts` 已注册 `@testing-library/jest-dom/vitest`，并补齐 radix-ui 在 jsdom 下必需的最小 polyfill（`hasPointerCapture`/`setPointerCapture`/`releasePointerCapture`/`scrollIntoView` 与 `ResizeObserver`）。新增用到 radix 原语的测试直接复用，不要重复定义。
+- 测试中 mock 的查询必须在 `render` 之前完成赋值：多数页面在首次 effect 就会取数，render 后再改 mock 不会触发重取。
 - 新增关键 guard、mutation、SSE 或管理写操作时补最小测试，不以现有稀疏覆盖为标准。
 - thinking 的语言、空格与历史恢复需跨 shared Hook、client/admin 展示和 Python runtime 核对；现有 UI/Prompt 静态测试不能证明真实模型遵循语言指令。源码核对见 [Agent 运行与提示词契约](../backend/agent-guidelines.md#agent-角色提示词与流式输出契约)。
 
 ## 构建与运行时事实
 
 - client 开发端口为 5173，admin 为 5174；两个 Vite 配置都把 `/api` 代理到 Business `:8080`，并通过 `@shared` 指向 shared 源码。
-- client 额外预打包常用 React、Ant Design、Query、Axios、Zustand 依赖；两个应用都使用显式 manual chunks，`chunkSizeWarningLimit` 为 560 kB（仅警告，不是硬失败阈值）。
+- client 额外预打包常用 React、Ant Design、Query、Axios、Zustand 依赖；admin 的分包规则为 `vendor-react`（React 运行时）、`vendor-data`（TanStack/axios/zustand）、`vendor-ui`（radix-ui/sonner）。两个应用都使用显式 manual chunks，`chunkSizeWarningLimit` 为 560 kB（仅警告，不是硬失败阈值）。
+- admin 已完全去除 Ant Design 与 ECharts 运行时依赖；图表使用 recharts（随 Dashboard 懒加载 chunk 走，不单独拆包）。若构建产物出现 `vendor-antd*` chunk，说明新代码重新引入了 Ant Design，应视为回归。
 - 根 `npm test` 必须实际遍历 workspaces；共享出口、认证、HTTP/SSE 变更至少同时检查 client/admin 消费方。
 
 ## 管理端守卫测试约定

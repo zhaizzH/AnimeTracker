@@ -4,10 +4,10 @@
 
 ```text
 frontend/
-├── client/                    # 用户端 React，Vite :5173
+├── client/                    # 用户端 React，Vite :5173（Ant Design + `od-*` 样式）
 │   └── src/{pages,components,layouts,test}
-├── admin/                     # 管理端 React，Vite :5174
-│   └── src/{pages,components,layouts}
+├── admin/                     # 管理端 React，Vite :5174（shadcn/ui + Tailwind）
+│   └── src/{pages,components,components/ui,layouts,lib}
 └── packages/shared/           # @animetracker/shared
     └── src/{api,auth,components,hooks,store,types}
 ```
@@ -25,13 +25,21 @@ frontend/
 ## 导入规则
 
 - 应用统一从 `@shared` 公共入口导入（Vite alias + tsconfig paths 指向 shared 源码）；`@animetracker/shared` 包名入口当前无人使用，不穿透 shared 私有文件。
+- `@` 别名指向各应用自己的 `src`（admin 已在 `vite.config.mts` 与 tsconfig 中配置）。Vite 的别名匹配要求 importee 等于键或以 `<key>/` 开头，因此 `@` 不会误匹配 `@shared`。
 - shared 的 API 在 `src/index.ts` 以 `authApi / subjectsApi / adminUsersApi` 等命名空间导出。
 - client/admin 不互相相对导入。
 - 新共享导出先检查命名冲突；同名动作保持命名空间，不改成扁平 re-export。
 - 资源和全局样式保留在所有者应用，除非两个应用确实共用同一视觉契约。
 
+## admin 页面与路由
+
+- 页面：`Dashboard`、`Users`、`Subjects`、`Import`、`Logs`、`AgentConfig`、`AgentChat`、`AdminLogin`。
+- 除 `AdminLogin` 静态导入外，其余页面在 `router.tsx` 中 `lazy` + Suspense。
+- `AdminLogin` 用独立的 `AdminLoginShell` 布局；其余页共享 `AdminLayout`。
+
 ## 参考
 
 - client 入口：`frontend/client/src/main.tsx`、`router.tsx`
 - admin 入口：`frontend/admin/src/main.tsx`、`router.tsx`
+- admin UI primitives：`frontend/admin/src/components/ui`
 - shared 出口：`frontend/packages/shared/src/index.ts`
