@@ -9,3 +9,12 @@ if (typeof Element !== 'undefined') {
   proto.releasePointerCapture ??= () => {};
   proto.scrollIntoView ??= () => {};
 }
+
+// radix 的 Select/RadioGroup 尺寸测量依赖 ResizeObserver。
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+}
