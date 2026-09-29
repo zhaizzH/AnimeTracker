@@ -11,14 +11,15 @@ type AuthState = {
 const authState = vi.hoisted(() => ({
   current: { status: 'unauthenticated' } as AuthState,
 }));
-const messageError = vi.hoisted(() => vi.fn());
+const toastError = vi.hoisted(() => vi.fn());
 
 vi.mock('@shared', () => ({
   useAuthStore: (selector: (state: AuthState) => unknown) => selector(authState.current),
 }));
 
-vi.mock('antd', () => ({
-  message: { error: messageError },
+vi.mock('@/lib/toast', () => ({
+  toastError,
+  toastSuccess: vi.fn(),
 }));
 
 function LoginPage() {
@@ -48,7 +49,7 @@ function TestApp() {
 
 beforeEach(() => {
   authState.current = { status: 'unauthenticated' };
-  messageError.mockReset();
+  toastError.mockReset();
 });
 
 afterEach(cleanup);
@@ -68,7 +69,7 @@ describe('RequireAdmin', () => {
 
     render(<TestApp />);
 
-    expect(messageError).toHaveBeenCalledWith('无管理权限');
+    expect(toastError).toHaveBeenCalledWith('无管理权限');
     expect(screen.getByRole('heading', { name: '管理端登录' })).not.toBeNull();
     expect(screen.queryByText('受保护内容')).toBeNull();
   });
@@ -80,6 +81,16 @@ describe('RequireAdmin', () => {
 
     expect(screen.getByText('受保护内容')).not.toBeNull();
     expect(screen.queryByRole('heading', { name: '管理端登录' })).toBeNull();
-    expect(messageError).not.toHaveBeenCalled();
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
+  it('重渲染不会重复提示无权限（副作用已移出 render）', () => {
+    authState.current = { status: 'authenticated', user: { role: 'USER' } };
+
+    const { rerender } = render(<TestApp />);
+    rerender(<TestApp />);
+    rerender(<TestApp />);
+
+    expect(toastError).toHaveBeenCalledTimes(1);
   });
 });

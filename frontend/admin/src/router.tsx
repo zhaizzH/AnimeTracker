@@ -1,10 +1,10 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
-import { Spin } from 'antd';
+import { Skeleton } from './components/ui/skeleton';
 import { AdminLayout } from './layouts/AdminLayout';
 import { RequireAdmin } from './guards';
 import AdminLogin from './pages/AdminLogin';
-const withLoading = (el: React.ReactNode) => <Suspense fallback={<Spin style={{ display: 'block', margin: 40 }} />}>{el}</Suspense>;
+const withLoading = (el: React.ReactNode) => <Suspense fallback={<Skeleton className="mx-auto my-10 h-8 w-24" aria-hidden />}>{el}</Suspense>;
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Subjects = lazy(() => import('./pages/Subjects'));
 const Users = lazy(() => import('./pages/Users'));
