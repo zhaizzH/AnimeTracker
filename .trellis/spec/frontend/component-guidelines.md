@@ -21,6 +21,8 @@
 - Props 使用显式 interface/type；children 使用 `ReactNode`。
 - 有限状态使用联合类型，不用自由字符串，例如 role、collection type、stream status。
 - 异步内容显式渲染 loading、empty、error/disabled 状态。
+- 多张卡片共享同一批 query 时，状态按卡片独立渲染，不提升为整页门控；复合卡片需同时考虑其全部依赖的 loading/error（参考 `admin/src/components/dashboard/card-state.tsx`）。
+- 统计值 `0` 是有效业务数据，不得以 truthiness 判断为空态。
 - 列表 key 使用稳定业务 ID；聊天临时消息才使用本地生成 ID。
 - 由用户输入触发的异步操作要阻止空值、重复提交和未就绪状态。
 

@@ -1,99 +1,85 @@
-import { Card, Col, Row, Segmented, Statistic } from 'antd';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { adminDashboardApi, type HotItemVO } from '@shared';
-import { BarChart, LineChart } from '../components/charts';
+import { adminDashboardApi } from '@shared';
+import { AudienceMix } from '@/components/dashboard/audience-mix';
+import { BrowserShare } from '@/components/dashboard/browser-share';
+import { OnlineNow } from '@/components/dashboard/online-now';
+import { TopCountries } from '@/components/dashboard/top-countries';
+import { TopPages } from '@/components/dashboard/top-pages';
+import { TopReferrers } from '@/components/dashboard/top-referrers';
+import { TrafficSourcesChart } from '@/components/dashboard/traffic-sources-chart';
+import { VisitorsChart } from '@/components/dashboard/visitors-chart';
+import { WebVitals } from '@/components/dashboard/web-vitals';
+import { toCompositeCardState } from '@/components/dashboard/card-state';
 
 export default function Dashboard() {
   const [days, setDays] = useState(30);
   const ov = useQuery({ queryKey: ['dash', 'overview'], queryFn: adminDashboardApi.overview });
-  const tr = useQuery({ queryKey: ['dash', 'trends', days], queryFn: () => adminDashboardApi.trends(days) });
+  const tr = useQuery({
+    queryKey: ['dash', 'trends', days],
+    queryFn: () => adminDashboardApi.trends(days),
+  });
   const cs = useQuery({ queryKey: ['dash', 'cs'], queryFn: adminDashboardApi.collectionStats });
   const ss = useQuery({ queryKey: ['dash', 'ss'], queryFn: adminDashboardApi.subjectStats });
   const ht = useQuery({ queryKey: ['dash', 'hot'], queryFn: () => adminDashboardApi.hot(10) });
 
-  const cards: Array<[string, number | undefined]> = [
-    ['用户总数', ov.data?.userCount],
-    ['番剧总数', ov.data?.subjectCount],
-    ['收藏总数', ov.data?.collectionCount],
-    ['今日新增用户', ov.data?.todayNewUsers],
-    ['今日新增收藏', ov.data?.todayNewCollections],
-    ['今日登录', ov.data?.todayLogins],
-  ];
+  // 导入卡片同时依赖 overview 与 subjectStats：任一失败即失败，任一加载即加载。
+  const importState = toCompositeCardState(
+    [
+      { isLoading: ov.isLoading, isError: ov.isError },
+      { isLoading: ss.isLoading, isError: ss.isError },
+    ],
+    false,
+  );
+
   return (
-    <div>
-      <Row gutter={[16, 16]}>
-        {cards.map(([label, value]) => (
-          <Col span={4} key={label}>
-            <Card>
-              <Statistic title={label} value={value ?? 0} loading={ov.isLoading} />
-            </Card>
-          </Col>
-        ))}
-      </Row>
-      <Card style={{ marginTop: 16 }} title="趋势">
-        <Segmented
-          value={days}
-          onChange={(v) => setDays(v as number)}
-          options={[
-            { label: '7天', value: 7 },
-            { label: '30天', value: 30 },
-            { label: '90天', value: 90 },
-          ]}
-        />
-        <LineChart
-          title="每日新增"
-          x={(tr.data ?? []).map((t) => t.date)}
-          series={[
-            { name: '用户', data: (tr.data ?? []).map((t) => t.newUsers) },
-            { name: '收藏', data: (tr.data ?? []).map((t) => t.newCollections) },
-            { name: '登录', data: (tr.data ?? []).map((t) => t.logins) },
-          ]}
-        />
-      </Card>
-      <Row gutter={16} style={{ marginTop: 16 }}>
-        <Col span={12}>
-          <Card>
-            <BarChart
-              title="收藏类型分布"
-              data={(cs.data?.types ?? []).map((t) => ({
-                label: ['想看', '看过', '在看', '搁置', '抛弃'][t.type - 1] ?? String(t.type),
-                value: t.count,
-              }))}
-            />
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card>
-            <BarChart
-              title="评分分布"
-              data={(ss.data?.scoreCounts ?? []).map((r) => ({ label: String(r.rate), value: r.count }))}
-            />
-          </Card>
-        </Col>
-      </Row>
-      <Row gutter={16} style={{ marginTop: 16 }}>
-        <Col span={12}>
-          <Card>
-            <BarChart
-              title="季度条目数"
-              data={(ss.data?.seasons ?? []).map((s) => ({ label: s.seasonKey, value: s.count }))}
-            />
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card title="热门 Top 10">
-            {/* Tailwind preflight 重置了 ol 的 list-style 与 padding，需显式还原：pl-10 = 原有 UA 的 40px 缩进 */}
-            <ol className="list-decimal pl-10">
-              {ht.data?.map((h: HotItemVO) => (
-                <li key={h.id}>
-                  {h.nameCn ?? h.name}（{h.collectionCount} 收藏）
-                </li>
-              ))}
-            </ol>
-          </Card>
-        </Col>
-      </Row>
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <VisitorsChart
+        days={days}
+        isError={tr.isError}
+        isLoading={tr.isLoading}
+        onDaysChange={setDays}
+        points={tr.data}
+      />
+      <OnlineNow
+        isError={ov.isError}
+        isLoading={ov.isLoading}
+        todayLogins={ov.data?.todayLogins}
+        todayNewCollections={ov.data?.todayNewCollections}
+        todayNewUsers={ov.data?.todayNewUsers}
+      />
+      <TopPages isError={ht.isError} isLoading={ht.isLoading} items={ht.data} />
+      <TopCountries
+        isError={ss.isError}
+        isLoading={ss.isLoading}
+        seasons={ss.data?.seasons}
+      />
+      <TrafficSourcesChart
+        isError={cs.isError}
+        isLoading={cs.isLoading}
+        types={cs.data?.types}
+      />
+      <AudienceMix
+        isError={cs.isError}
+        isLoading={cs.isLoading}
+        ratings={cs.data?.ratings}
+      />
+      <BrowserShare
+        isError={ss.isError}
+        isLoading={ss.isLoading}
+        scoreCounts={ss.data?.scoreCounts}
+      />
+      <TopReferrers
+        importStatuses={ss.data?.importStatuses}
+        isError={ss.isError}
+        isLoading={ss.isLoading}
+      />
+      <WebVitals
+        importCount={ov.data?.importCount}
+        importFailed={ss.data?.importStat.importFailed}
+        importSucceeded={ss.data?.importStat.importSucceeded}
+        state={importState}
+      />
     </div>
   );
 }
