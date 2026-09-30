@@ -15,6 +15,8 @@
 - queryFn 调用 shared API 命名空间，不在 Hook 内重复 axios 配置。
 - 条件请求使用 `enabled`，参考 SubjectDetail 的 ID 与 CollectionActions 的登录态。
 - 全局默认 `retry: 1`、`refetchOnWindowFocus: false`；单页面按真实需要覆写轮询/staleTime。
+- 用 `useEffect` 把 query 数据回填到受控表单/state 时，门控必须只放行**首次到达**的数据；不能用“当前输入值是否为空”当判据，否则用户把字段清空后，下一次后台刷新会把它填回去。参考 `admin/src/pages/AgentConfig.tsx` 的 `cfgInitialized`（等价 antd `Form` 的 `initialValues` 语义）。
+- 回填 effect 的依赖数组不要包含自己的写入结果，否则会形成“回填 → 触发 effect → 再回填”的覆盖循环；门控状态本身要能终止这个循环。
 
 ### 自定义 Hook
 

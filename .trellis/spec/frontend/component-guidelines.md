@@ -36,6 +36,13 @@
 - 深色模式由 client `Shell` 同步 `html.dark` 与 `color-scheme`。
 - admin 已支持暗色（`next-themes` + Tailwind `dark:` 变体 + `@custom-variant`），其 `index.css` 中共享 AntD reset 的遗留注释已不再对应实际实现。
 
+### UI 原语契约（admin）
+
+- `admin/src/components/ui/*` 是本仓库自己维护的 shadcn 派生代码，**不是**可随意上手的上游产物。改动 instance 渲染路径的原语（`button.tsx`、`badge.tsx`、`breadcrumb.tsx`）时必须显式 `React.forwardRef`，其余原语（如 `input.tsx`、`textarea.tsx`）是普通函数组件，不要为了“统一”给它们加 ref。
+- 判据不是“是否导出了 ref 类型”，而是“消费方是否真的传 ref”。当前取消确认弹窗都写成 `<AlertDialogTrigger asChild><Button …/></AlertDialogTrigger>`（`AgentConfig`/`Subjects`/`Users`），而 `AlertDialogTrigger` 必须拿到子节点的 DOM ref 才能定位锚点，所以按钮必须前向 ref。
+- 新增任何 `<X asChild>` 组合（radix `Slot`）时，先确认 `<X>` 的子节点能把 ref 落到真实 DOM；否则改用 `<Button onClick>` 手动受控，或把 asChild 放到真正的前向 ref 组件上。
+- 该 ref 链在 jsdom 下不报错也不告警：未前向 ref 时 radix 只是拿不到锚点，jsdom 没有真实布局，测试仍会通过。因此**功能正常不等于契约成立**，判定只能靠读源码或真实浏览器。
+
 ### 可访问性
 
 - 图标按钮提供可读 label/tooltip，输入框提供 `aria-label` 或关联标签。

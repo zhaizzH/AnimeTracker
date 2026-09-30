@@ -15,7 +15,7 @@
 | 主题 | 内容 |
 |---|---|
 | [目录结构](./directory-structure.md) | npm workspaces 与代码归属 |
-| [组件与类型](./component-guidelines.md) | 组件职责、样式、可访问性、类型所有权与 HTTP 类型边界 |
+| [组件与类型](./component-guidelines.md) | 组件职责、样式、UI 原语契约（admin）、可访问性、类型所有权与 HTTP 类型边界 |
 | [Hook 与状态](./hook-guidelines.md) | Query、mutation、SSE、认证、Zustand 与 URL 状态 |
 | [质量门禁](./quality-guidelines.md) | typecheck、Vitest、构建与审查 |
 
