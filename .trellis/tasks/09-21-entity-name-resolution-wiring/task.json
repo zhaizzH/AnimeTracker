@@ -18,7 +18,10 @@
   "commit": null,
   "pr_url": null,
   "subtasks": [],
-  "children": [],
+  "children": [
+    "09-29-business-entity-name-resolve",
+    "09-29-agent-entity-name-wiring"
+  ],
   "parent": null,
   "relatedFiles": [],
   "notes": "",

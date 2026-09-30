@@ -1,2 +1,3 @@
 {"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "SSE 契约/健康检查语义/持久化失败矩阵/路由"}
 {"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "测试基线与验证清单"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "SSE wire 契约的三端对照事实（研究 §2 已核）；补测须对齐真实帧格式而非文档描述"}

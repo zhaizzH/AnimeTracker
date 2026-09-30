@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "校验 fail-closed 全链、名称不落 Vector Set/SQL、docstring 与行为一致"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "校验适配器未越界、未新增跨层依赖、无 Vector Set 名称查询"}

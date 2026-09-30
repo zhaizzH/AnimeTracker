@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": ":98-110 名称解析契约（48 字符、四值 kind、fail-closed、不得拼接 SQL/不得从 Vector Set 读名）、:117-121 解析故障与无匹配区分、:152-157 Correct 示例"}
+{"file": ".trellis/spec/backend/rag-retrieval-contract.md", "reason": ":18 名称解析缺口行；Evidence 权威边界"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "app/adapters 适配器放置边界；组合根 main.py 装配边界"}
+{"file": ".trellis/tasks/09-21-entity-name-resolution-wiring/research/entity-name-resolution-facts.md", "reason": "父任务调研：retrieval 链路已实现、main.py 两处 None、RedisEntityNameLookup 死代码、既有测试测的是死代码契约"}

@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": ":98-110 名称解析契约（48 字符、四值 kind、fail-closed、不得拼接 SQL/不得从 Vector Set 读名）、:117-121 解析故障与无匹配区分、:152-157 Correct 示例"}
+{"file": ".trellis/spec/backend/rag-retrieval-contract.md", "reason": ":18 名称解析缺口行；Evidence 权威边界"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "db-schema 既有 name 列与索引；参数绑定、禁止拼接 SQL"}
+{"file": ".trellis/spec/backend/index.md", "reason": "三端契约载体：openapi.yaml + Spring Controller + Python Router + shared"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "跨层事实来源；新端点契约须冻结并同步 openapi"}
+{"file": ".trellis/tasks/09-21-entity-name-resolution-wiring/research/entity-name-resolution-facts.md", "reason": "父任务调研：Business 无名称解析能力、数据层已就绪、安全边界参照 EvidenceMapper.xml:122-171、SecurityConfig.java:71"}

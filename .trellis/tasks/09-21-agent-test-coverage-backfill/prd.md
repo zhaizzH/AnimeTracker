@@ -2,41 +2,59 @@
 
 ## Goal
 
-为已确认的测试盲区补自动化测试，使写入进度链路、SSE wire 契约、健康端点、pending 持久化失败、gateway LLM 路由与 Evidence 重复 ID 不再能静默回归。
+为剩余 3 处测试盲区补自动化测试：`collection_progress` 工具、SSE wire 序列化、`_resolve_routing_result` 路由解析。使这三处不再能静默回归。
 
-## Background（已核实的盲区）
+## 重设计说明（2026-09-29 复核）
 
-- `collection_progress.py` **零测试**：`PREVIEW_CHANGED`→`emit_pending_action_replace`(`:66-69`)、404/409 清理(`:58-62`)、COMPLETED 分类均未测。
-- SSE 序列化 **零测试**：`app/api/sse.py` + `app/api/schemas/sse.py`（事件联合 answer/thinking/function_call/status/end、`is_end`、`exclude_none`）无用例。
-- health 端点 **零测试**：`app/api/chat.py:99-107`（恒 200 + `llm_configured`）。
-- streaming pending 持久化失败 **未测**：`tests/agent/test_streaming.py` 只覆盖 `on_answer_completed` 失败；`on_pending_action` 失败分支(`streaming.py:165-180`，"待确认动作保存失败，请重试")无用例——正是 spec 矩阵(`agent-guidelines.md:184-189`)点名的最低回归。
-- gateway LLM 路由 **未测**：`_resolve_routing_result`(`gateway.py:114-132`，JSON 解析/空内容/非法 route_target→ValueError) 无用例。
-  - 更正（本会话核实）：`build_gateway_router` 的**确定性分支已被测试**——`tests/agent/test_write_guard.py:85-107` 经 `_router()` 覆盖 `write_confirmed` true/false 两例；`_resolve_forced_pending_route` / `_is_explicit_confirmation` 另在 `tests/agent/test_subject_resolution.py:443-459`、`tests/agent/test_capability_route.py:36-38` 有覆盖。**真正缺口仅是 `_resolve_routing_result` 本身及其 LLM 调用路径**（现测试均以 `llm_factory=None` 绕过 LLM），故本任务只需补该函数的替身模型用例，不重复覆盖既有确定性分支。
-- Evidence 重复 ID **未测**：与 T2 相关，若 T2 未覆盖则在此补。
+原 PRD 列 6 类盲区。复核代码后发现 3 类**已由其它任务落地**，本任务范围收窄：
+
+| 原盲区 | 现状 | 证据 |
+|---|---|---|
+| health 端点 | ✅ 已覆盖 | `tests/api/test_health.py`（agent-health-depth 交付） |
+| Evidence 重复 ID | ✅ 已覆盖 | `tests/rag/test_evidence_contract.py:302`（rag-correctness 交付） |
+| streaming pending 持久化失败 | ✅ 已覆盖 | `tests/agent/test_streaming.py:38`（断言 status error + 安全 end + 不宣称已持久化） |
+| collection_progress | ❌ 仍缺 | `tests/` 零引用 |
+| SSE 序列化 | ❌ 仍缺 | `tests/` 零引用 `app.api.sse` / `app.api.schemas.sse` |
+| `_resolve_routing_result` | ❌ 仍缺 | `tests/` 零引用；既有 gateway 测试均以 `llm_factory=None` 绕过 |
+
+## Background（已核实的剩余盲区）
+
+- `app/agent/client/actions/collection_progress.py`（90 行）**零测试**，三处未覆盖分支：
+  - `preview_weekly_collection_progress`：`user is None` 早退（`:24-26`）；`previewId` 存在时 `emit_pending_action_set`（`:36-37`）。
+  - `execute_weekly_collection_progress`：写入门禁拒绝路径（`require_confirmed_write`）；404 与「409 + 重新生成」→ `emit_pending_action_clear`（`:58-62`）；`COMPLETED` → clear；`PREVIEW_CHANGED` → `emit_pending_action_replace`（`:66-69`）；`PREVIEW_CHANGED` 但无 `previewId` → 不动（隐含分支）。
+  - `cancel_weekly_collection_progress`：`emit_pending_action_clear`。
+- `app/api/sse.py`（37 行）+ `app/api/schemas/sse.py`（37 行）**零测试**：
+  - `serialize_agent_event` 各 `AgentEventType` → `MessageType` 映射；END 事件走 `is_end=True` 且 content 为空的特化分支。
+  - `serialize_sse` 的 `exclude_none=True`（`None` 字段不得出现在 wire 上）与 `data: ...\n\n` 分帧。
+  - `create_sse_response` 的 `media_type` 与 `Cache-Control`/`Connection`/`X-Accel-Buffering` 头。
+- `app/agent/client/gateway.py::_resolve_routing_result`（`:114-132`）**零测试**。既有 gateway 测试（`test_write_guard.py`、`test_capability_route.py`）覆盖的是 `build_gateway_router` 的**确定性分支**（`write_confirmed`、`_resolve_forced_pending_route`、`_is_explicit_confirmation`），本函数及其 LLM 调用路径从未被执行。
+  - 7 条判定（`design.md` 记录实现形状）：非 mapping / messages 空 / 末条 content 空 / JSON 非法 / `route_target` 缺失 / `route_target` 非法（不在 `("search_agent","discover_agent","recommend_agent")`）/ 合法 → `{"route_target": target}`。
+  - `extract_text` 支持 content 块列表（模型返回多块时的路径）。
 
 ## Requirements
 
-1. collection_progress：预览生成 pending、执行 COMPLETED 分类、`PREVIEW_CHANGED`→REPLACE、404/409→clear、基础设施错误保留动作。
-2. SSE：各事件类型序列化字段（type/content/is_end/meta）、END 事件 `is_end=true`、`exclude_none` 行为、`text/event-stream` 分帧。
-3. health：LLM 可解析/不可解析两种返回；恒 200；字段稳定。
-4. streaming：`on_pending_action` 保存失败时发出 status 错误事件并仍安全发送 end；不宣称动作已持久化。
-5. gateway：`_resolve_routing_result` 对合法/非法 payload 的行为（JSON 解析成功、空内容、非法 `route_target` 抛 `ValueError`），LLM 用替身注入。**不重复覆盖**已测的确定性分支（`write_confirmed` true/false、`_resolve_forced_pending_route`、`_is_explicit_confirmation`）。
-6. Evidence 重复 ID：若 T2 未覆盖，补 fail-closed 用例。
+1. `collection_progress`：补上列「Background」逐条分支的测试。`BusinessGateway` 用替身（记录 `request` 调用）；pending 事件发射断言经既有 stub 机制（参考 `tests/agent/test_streaming.py`、`tests/agent/test_write_guard.py` 的 stub 方式）。
+2. SSE 序列化：`serialize_agent_event` 覆盖 answer/thinking/function_call/status 四类 + END；`serialize_sse` 覆盖 `exclude_none` 与分帧；`create_sse_response` 覆盖 media_type 与三个头，并断言 body 可被 `async for` 逐帧消费。
+3. `_resolve_routing_result`：参数化覆盖上列 7 条判定；合法用例断言返回 `{"route_target": ...}`，非法用例断言 `ValueError` 且消息可辨识（`pytest.raises(..., match=...)`）。
+4. 纯补测，**不改生产代码**。若补测暴露真实缺陷，记录并转新任务。
 
 ## Acceptance Criteria
 
-- [ ] 上述 6 类各有对应测试并纳入 `uv run pytest`，全绿。
-- [ ] pending 持久化失败路径断言：发出 status 错误 + 安全 end + 不宣称已持久化（对齐 spec 最低回归）。
-- [ ] gateway LLM 路由测试用替身模型，不依赖真实 LLM；覆盖非法 route_target 抛错。
-- [ ] 已核实的事实标注与实际一致：`build_gateway_router` 确定性分支、`_resolve_forced_pending_route`、`_is_explicit_confirmation` 已有覆盖，本任务不重复补测（见 Background 更正条）。
-- [ ] 不改变被测生产代码行为（纯补测）；若补测暴露真实缺陷，记录并转对应任务，不在本任务内顺手改逻辑。
+- [ ] `tests/agent/test_collection_progress.py` 覆盖 Background 列出全部分支，绿。
+- [ ] `tests/api/test_sse_serialization.py` 覆盖四类事件 + END + `exclude_none` + 分帧 + 响应头，绿。
+- [ ] `tests/agent/test_gateway_routing_result.py` 覆盖 7 条判定，绿。
+- [ ] `uv run pytest` 全绿（当前基线 **516 passed**），实际数字记录在完成说明。
+- [ ] 断言覆盖到分支而非仅行：每类至少有「正常」与「异常/边界」各一例。
+- [ ] `git diff` 仅新增测试文件，`app/` 零改动。
 
 ## Out of Scope
 
-- 不追求 100% 覆盖；只补上述已确认盲区。
-- 不在本任务修改生产逻辑（缺陷转 T2/T3 或新任务）。
+- 不追求覆盖率数字；只补上述三处已确认盲区。
+- 不重复补测 health / Evidence 重复 ID / streaming 持久化失败（已覆盖）。
+- 不覆盖 `build_gateway_router` 确定性分支（已覆盖）。
+- 不修改 `app/` 生产逻辑。
 
 ## Notes
 
-- 轻量-中等任务：可 PRD-only 直接 `task.py start`；若补测过程发现需要改生产代码，另记并转相应任务。
-- 与 T2/T3 有交叠（Evidence 重复 ID、pending 持久化失败）——先做 T2/T3 时若已覆盖则此处跳过，避免重复。
+- 轻量-中等任务：PRD-only 可直接 `task.py start`。
+- 原 PRD 的 Background/Requirements 6 类已按上表收窄；`implement.jsonl`/`check.jsonl` 需相应重载 spec 上下文。

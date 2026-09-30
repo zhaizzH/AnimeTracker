@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "校验三端对照表完整、未同步项全部登记为债务、未改运行时行为"}
+{"file": ".trellis/spec/backend/index.md", "reason": "校验 openapi.yaml 与 Spring/Python/shared 逐项一致，或差异已登记"}
