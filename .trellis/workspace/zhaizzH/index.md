@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 21
-- **Last Active**: 2026-09-28
+- **Total Sessions**: 22
+- **Last Active**: 2026-09-29
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~567 | Active |
+| `journal-1.md` | ~595 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 22 | 2026-09-29 | admin 全页面迁移到 shadcn 并移除 Ant Design | `c2b2332c`, `0a35e7a6`, `41e14990`, `2ca1e5b8`, `5e63ffd3`, `ca612f1c`, `1b9e7be2` | `feat/backend-lombok-removal` |
 | 21 | 2026-09-28 | 完成后端 Lombok 移除：9 模块手写化并移除依赖 | `f6889656`, `35ec185c`, `df4b30a6`, `899ad4fd`, `a1ce540e`, `5facc913`, `7a5c009b`, `b5719366`, `04993c51`, `cac31e3f`, `6683a3c6`, `c5f3f2cb`, `8d6da209` | `feat/admin-dashboard-block` |
 | 20 | 2026-09-22 | 完成 admin app-shell 布局迁移 | `9a91355d` | `feat/admin-shadcn-migration` |
 | 19 | 2026-09-22 | 完成 Admin app-shell 外壳迁移 | `9a91355` | `feat/admin-shadcn-migration` |

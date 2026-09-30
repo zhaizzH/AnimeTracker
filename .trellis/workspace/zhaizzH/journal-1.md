@@ -565,3 +565,31 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 22: admin 全页面迁移到 shadcn 并移除 Ant Design
+<!-- trellis-session: v=2 fp=7598ac2ff429c596 -->
+
+**Date**: 2026-09-29
+**Task**: admin 全页面迁移到 shadcn 并移除 Ant Design
+**Branch**: `feat/backend-lombok-removal`
+
+### Summary
+
+完成 09-21-admin-pages-migration 阶段 E–G：Import/Logs/Subjects/AgentConfig/AgentChat 五个页面从 Ant Design 迁移到 shadcn/ui + Tailwind，逐页测试验证并保留全部既有契约（Import 3000ms 轮询与失效 effect、Logs 4 卡口径与 action 回填 setPage(1)、Subjects 6 个筛选维度、AgentConfig staleTime Infinity、AgentChat 流式交互与思考折叠）。顺带修三个真实 bug：ui/button.tsx 缺 forwardRef 导致 AlertDialogTrigger asChild 传入 ref 失败；AgentConfig 配置刷新会覆盖用户正在编辑的表单值；react-markdown 被 client/admin import 却未在任何 package.json 声明，npm install 修剪后构建直接失败。阶段 F 删除 admin 的 antd/echarts/echarts-for-react，vite manualChunks 改为 vendor-react/vendor-data/vendor-ui，产物无 antd chunk。阶段 G 更新 4 份前端 spec。typecheck/test/build 全绿：client 6 + shared 7 + admin 55 = 68 passed。父链任务 09-21-admin-tailwind-shadcn-dashboard 4/4 完成并归档。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c2b2332c` | refactor(admin): Import 迁移到 shadcn，保留轮询与失效 effect |
+| `0a35e7a6` | refactor(admin): Logs 迁移到 shadcn，保留筛选与分页语义 |
+| `41e14990` | refactor(admin): Subjects 迁移到 shadcn，保留 6 个筛选维度与表单校验 |
+| `2ca1e5b8` | refactor(admin): AgentConfig 迁移到 shadcn，修正配置刷新覆盖用户编辑 |
+| `5e63ffd3` | refactor(admin): AgentChat 迁移到 shadcn，保留流式交互 |
+| `ca612f1c` | chore(admin): 移除 antd/echarts 依赖，声明 react-markdown |
+| `1b9e7be2` | docs(spec): 更新前端规范以反映 admin 已脱离 Ant Design |
+
+### Status
+
+[OK] **Completed**
