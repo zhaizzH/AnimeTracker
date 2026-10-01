@@ -593,3 +593,38 @@
 ### Status
 
 [OK] **Completed**
+
+## Session — 09-21-agent-test-coverage-backfill 测试盲区补齐
+
+### Summary
+
+补 3 处此前零测试覆盖的 Agent 盲区，`uv run pytest` 由 516 → **585 passed**（+69，6 xfailed）。
+
+先复核代码发现原任务 6 类盲区中 health / Evidence 重复 ID / streaming 持久化失败已被其它任务落地，范围收窄为 3 类真盲区：
+
+- `tests/api/test_sse_serialization.py`（16 passed）：五类事件 → wire `type` 映射、`end` 以 `is_end=true` 表达（`MessageType` 枚举不含 `end`，默认 `type="answer"`）、`exclude_none` 剔除空字段、`data: ` 前缀 + `\n\n` 分帧、`ensure_ascii=False`、响应头（`text/event-stream`/`no-cache`/`keep-alive`/`X-Accel-Buffering`）、逐帧消费。
+- `tests/agent/test_gateway_routing_result.py`（29 passed, 4 xfailed）：`_resolve_routing_result` 全部 5 个 `raise` 点与合法路径；含 `extract_text` 的 content 块列表形态。
+- `tests/agent/test_collection_progress.py`（24 passed, 2 xfailed）：13 个分支点，含写入门禁拒绝矩阵（5 例，断言 Business 零调用）、404/409 清理与 409 非「重新生成」保留、COMPLETED/PREVIEW_CHANGED/无 previewId 三分支、既有动作不被误清。
+
+**补测暴露 2 处真实缺陷**，按任务「纯补测不改生产代码」约束未修复，以 `xfail(strict=True)` 钉住并转新任务：
+
+1. `gateway.py:129` — JSON 为标量/数组（`"x"`/`123`/`true`/`["a"]`）时 `(data or {}).get` 抛 `AttributeError` 而非 `ValueError`；调用方 `:157` 无本地捕获，异常穿透图执行层，与其余 4 条判定语义不一致。→ `09-29-gateway-scalar-json-attributeerror`
+2. `collection_progress.py:44,65` — 裸调 `data.get`；`HttpBusinessGateway.request` 在 Java 成功但 `data` 为 null 时显式 `return None`（`business_http.py:68`）。**同目录其它 5 个模块均用 `isinstance(data, dict) and data.get(...)` 守卫**，仅此处遗漏。→ `09-29-collection-progress-none-guard`
+
+选用 `xfail(strict=True)` 而非普通 `xfail`：缺陷被修复后用例会变红，强制清理标记，避免「已修但标记留存」或「标记被忽略后无人回归」。
+
+spec 同步：`agent-guidelines.md` 新增「Gateway 路由结果解析」与「Business 响应守卫」两节（含两处已知缺陷条、守卫写法对照表、SSE 帧格式与 `end` 语义澄清）；`quality-guidelines.md` 更新测试基线至 585 并登记 `xfail(strict)` 的登记约定。
+
+`app/`、`business/`、`frontend/` 零改动，仅新增 3 个测试文件。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `57aa95b0` | chore(trellis): 重设计任务板并归档三个已完成任务 |
+| `07e05385` | test(agent): 补齐 SSE 序列化、gateway 路由解析与 collection_progress 测试 |
+
+### Status
+
+[OK] **Completed** — 任务已归档；2 处缺陷转 `09-29-*` 新任务待修
+
