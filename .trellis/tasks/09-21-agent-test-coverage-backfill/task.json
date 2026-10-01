@@ -22,5 +22,7 @@
   "parent": null,
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "description": "补齐剩余 3 处测试盲区：collection_progress 工具分支、SSE wire 序列化(app/api/sse.py + schemas/sse.py)、_resolve_routing_result 路由解析。health/Evidence 重复ID/streaming 持久化失败已被其它任务覆盖，本任务不重复。"
+  }
 }

@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "校验 fail-closed 语义保持、xfail(strict) 转绿、spec 已知缺陷措辞已移除"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "校验 uv run pytest 全绿且无残留 xfail"}

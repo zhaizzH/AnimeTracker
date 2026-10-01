@@ -40,12 +40,28 @@
 
 ## Acceptance Criteria
 
-- [ ] `tests/agent/test_collection_progress.py` 覆盖 Background 列出全部分支，绿。
-- [ ] `tests/api/test_sse_serialization.py` 覆盖四类事件 + END + `exclude_none` + 分帧 + 响应头，绿。
-- [ ] `tests/agent/test_gateway_routing_result.py` 覆盖 7 条判定，绿。
-- [ ] `uv run pytest` 全绿（当前基线 **516 passed**），实际数字记录在完成说明。
-- [ ] 断言覆盖到分支而非仅行：每类至少有「正常」与「异常/边界」各一例。
-- [ ] `git diff` 仅新增测试文件，`app/` 零改动。
+- [x] `tests/agent/test_collection_progress.py` 覆盖 Background 列出全部分支，绿。（24 passed, 2 xfailed）
+- [x] `tests/api/test_sse_serialization.py` 覆盖四类事件 + END + `exclude_none` + 分帧 + 响应头，绿。（16 passed）
+- [x] `tests/agent/test_gateway_routing_result.py` 覆盖 7 条判定，绿。（29 passed, 4 xfailed）
+- [x] `uv run pytest` 全绿（基线 **516 passed**），实际数字记录在完成说明。（**585 passed, 6 xfailed**）
+- [x] 断言覆盖到分支而非仅行：每类至少有「正常」与「异常/边界」各一例。
+- [x] `git diff` 仅新增测试文件，`app/` 零改动。
+
+## 补测暴露的真实缺陷（转新任务，本任务内不改生产代码）
+
+按 R4/Out of Scope，以下两处**未**在实现中修复，仅以 `xfail(strict=True)` 钉住：
+
+1. **`_resolve_routing_result` 对标量/数组 JSON 抛 `AttributeError`**（`app/agent/client/gateway.py:129`）
+   - 触发：模型返回 `"x"`、`123`、`true`、`["a"]` 等非对象 JSON。
+   - 现状：`(data or {}).get(...)` 直接调用；`data` 为 str/int/bool/list 时抛 `AttributeError`。
+   - 影响：`AttributeError` 非 `ValueError` 子类；调用方 `:157` 无本地捕获，异常穿透到图执行层，与其它 4 条判定（均 `ValueError`）语义不一致。
+   - 测试：`tests/agent/test_gateway_routing_result.py::test_scalar_or_array_json_should_raise_value_error`（4 例 xfail）。
+
+2. **`collection_progress` 缺 `isinstance` 守卫，None 响应崩溃**（`app/agent/client/actions/collection_progress.py:44,65`）
+   - 触发：Business 成功但 `data` 为 null → `business_http.py:68` 显式 `return None`。
+   - 现状：裸调 `data.get(...)` → `AttributeError`。
+   - 影响：**同目录其它 5 个模块均用 `isinstance(data, dict) and data.get(...)` 守卫**（`collection_state.py:24`、`collection_type.py:141`、`subject_resolution.py:157,266,442,548,559`、`wishlist.py:107`、`collections.py:76`），仅 `collection_progress.py` 遗漏。
+   - 测试：`test_preview_none_response_should_not_emit_and_not_crash`、`test_execute_none_response_should_not_crash`（2 例 xfail）。
 
 ## Out of Scope
 

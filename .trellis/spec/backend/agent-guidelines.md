@@ -163,6 +163,23 @@ allowed = resolve_evidence(match.entity_kind, ids, token=token)
 - 保持 `text/event-stream`、`Cache-Control: no-cache`、`X-Accel-Buffering: no`。
 - 改事件字段时同步 `schemas/sse.py` 与前端 `useAgentChat.ts`；`docs/spec/openapi.yaml` 的 `/api/client/agent/stream` 当前只有通用透传 schema，未记录事件字段，不能作为该契约的核对依据。
 - 浏览器只请求 Spring 代理路径，不配置或直连 Agent 的 `:8090`。
+- **wire 帧格式（不得凭 spec 文字推断）**：每帧只有 `data:` 行、`\n\n` 分帧、类型在 JSON 内部的 `type` 字段；不使用 `event:`/`id:`/`retry:` 行。
+- **`end` 事件不是 `type` 枚举值**：`MessageType` 只有 `answer/thinking/function_call/status`；结束帧为 `type="answer"`（默认值）+ `is_end=true` + 空 `content`。spec 文字或任务描述中写「五值联合（含 end）」是不准确的，实现以 `app/api/sse.py:10-11` 为准。
+- `exclude_none=True` 使每帧字段集随事件类型变化；前端因此必须把 `content` 子字段视为可选。`meta={}` 会保留，`meta=None` 被剔除。
+- 帧格式回归由 `tests/api/test_sse_serialization.py` 钉住（帧形态、`exclude_none`、`end` 语义、响应头、逐帧消费）。
+
+### Gateway 路由结果解析
+
+- `gateway.py::_resolve_routing_result` 是结构化路由结果的唯一解析入口；`route_target` 必须属于 `("search_agent", "discover_agent", "recommend_agent")`，否则**抛错而非静默回退默认路由**——路由错误会导致幻觉工具调用。
+- 解析顺序（`tests/agent/test_gateway_routing_result.py` 逐条钉住）：非 mapping → `messages` 空 → 末条 content 空 → JSON 非法 → `route_target` 缺失/非法。前四条与末条均 `ValueError`。
+- `extract_text`（`runtime.py:27`）统一处理「字符串 content」与「content 块列表」两种模型返回形态；无 `text` 项时返回空串。
+- **已知缺陷**：JSON 为标量/数组（`"x"`/`123`/`true`/`["a"]`）时 `(data or {}).get` 抛 `AttributeError` 而非 `ValueError`；调用方无本地捕获，异常穿透图执行层。修复时保持 4 条 `xfail(strict=True)` 用例转绿。
+
+### Business 响应守卫
+
+- `HttpBusinessGateway.request` 返回类型为 `dict | list | None`：Java 成功响应缺 `data` 时**显式 `return None`**（`business_http.py:68`）。
+- 消费方一律以 `if isinstance(data, dict) and data.get("error")` 守卫，**不得裸调 `response.get(...)`**。既有守卫见 `collection_state.py:24`、`collection_type.py:141`、`subject_resolution.py`（5 处）、`wishlist.py:107`、`collections.py:76`。
+- **已知缺陷**：`collection_progress.py:44,65` 缺该守卫，None 响应抛 `AttributeError`。修复时保持 2 条 `xfail(strict=True)` 用例转绿。
 
 ### 安全写操作
 

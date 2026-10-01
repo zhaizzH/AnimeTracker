@@ -31,7 +31,7 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 
 2026-09-10 的历史审计曾因 `tests/agent/test_capability_route.py` 导入缺失符号而收集失败；该测试已按当前 graph/runtime 契约重写。
 
-2026-09-21 本轮文档复核在 `backend/agent` 执行 `uv run pytest`，结果为 413 passed；Java 侧同轮复跑 `mvn -B test -f backend/business/pom.xml` 为 95 个测试通过、0 失败、0 错误，`check_javadoc.py` 为 255 个文件、1658 个声明、0 个违规，`test_check_javadoc.py` 为 7 项通过。2026-09-12 的 284 passed 与 2026-09-16 的 Java 95/255/1658 仍是带日期的历史基线；此前 271 passed 是排除失效测试文件后的历史诊断数。不得沿用历史通过数。
+2026-09-21 本轮文档复核在 `backend/agent` 执行 `uv run pytest`，结果为 413 passed；2026-09-29 复核为 **585 passed, 6 xfailed**（基线从 516 提升，新增 SSE 序列化、gateway 路由解析、collection_progress 三类用例；6 个 xfailed 为已登记的已知缺陷）。Java 侧同轮复跑 `mvn -B test -f backend/business/pom.xml` 为 95 个测试通过、0 失败、0 错误，`check_javadoc.py` 为 255 个文件、1658 个声明、0 个违规，`test_check_javadoc.py` 为 7 项通过。2026-09-12 的 284 passed 与 2026-09-16 的 Java 95/255/1658 仍是带日期的历史基线；此前 271 passed 是排除失效测试文件后的历史诊断数。不得沿用历史通过数。
 
 - Java `app` 模块包含配置迁移回归测试：`AppConfigurationBindingTest`、`SecurityConfigAuthorizationTest`、`CookieOriginFilterTest`、`AgentConfigTest` 与 `ArchitectureBoundaryTest`。
 - Python 已有 importer、indexer gate、shadow eval、release store、容量报告和 RAG 故障矩阵回归用例；任务归档的 2026-09-07 证据为 Agent `268 passed, 1 deselected`、Business `37` tests。该数字是带日期的历史验证，不替代本次变更重新运行测试。
@@ -46,6 +46,7 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 
 - Java 已补充登录、刷新和注销编排单测，以及认证存储/绝对寿命、导入错误分类和 Converter 边界回归；仍缺收藏进度事务、管理写操作和完整 Controller 集成回归。SSE 控制器单测不替代真实代理集成。
 - Python 已有 Agent 图路由、SSE 持久化失败单测，但尚无 SSE 断开、真实 Redis/Business/Embedding 集成、灰度告警采集、importer 锁/恢复和 scheduler 重叠场景的完整自动化覆盖。
+- **`xfail(strict=True)` 是已知缺陷的登记方式**：严格模式在缺陷被修复后会让用例失败，强制清理标记，避免「缺陷已修但标记留存」或「标记被忽略后无人回归」。当前 6 处标记与对应缺陷见 `agent-guidelines.md` 的 SSE/Gateway/Business 响应守卫三节。
 - 当前测试基线只能证明列出的配置与指标用例通过，不能替代上述高风险路径；新改动必须按风险补测试。
 
 ### Scenario: RAG 发布完成与灰度质量证据
