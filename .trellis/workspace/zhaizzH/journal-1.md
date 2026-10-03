@@ -88,7 +88,7 @@
 
 | Hash | Message |
 |------|---------|
-| `59d5a88` | feat: 全量完善 README.md 相关文档与实施计划 |
+| `c11b806` | feat: 全量完善 README.md 相关文档与实施计划 |
 
 ### Status
 
@@ -111,7 +111,7 @@
 | Hash | Message |
 |------|---------|
 | `f0add0d9` | feat(rag): complete v1 release gate and activation |
-| `c1e1453a` | feat(rag): 完善Bangumi混合检索门禁 |
+| `e256113b` | feat(rag): 完善Bangumi混合检索门禁 |
 
 ### Status
 
@@ -133,8 +133,8 @@
 
 | Hash | Message |
 |------|---------|
-| `2eceefbc` | 完成 RAG v1 发布门禁与激活 |
-| `5ee0072b` | 整理 Bangumi RAG 会话日志 |
+| `23f322b3` | 完成 RAG v1 发布门禁与激活 |
+| `eef1561e` | 整理 Bangumi RAG 会话日志 |
 
 ### Status
 
@@ -160,7 +160,7 @@
 
 | Hash | Message |
 |------|---------|
-| `4f02607c` | docs(spec): 按当前源码更新项目开发规范 |
+| `6a5d61e6` | docs(spec): 按当前源码更新项目开发规范 |
 
 ### Testing
 
@@ -191,7 +191,7 @@
 
 | Hash | Message |
 |------|---------|
-| `f8c915b3` | fix: 修复 Agent 运行时与测试报告问题 |
+| `cdbfa3d4` | fix: 修复 Agent 运行时与测试报告问题 |
 
 ### Status
 
@@ -213,7 +213,7 @@
 
 | Hash | Message |
 |------|---------|
-| `9a732b22` | fix(business): 完成规范复核缺陷修复与文档校验 |
+| `0a9e69b5` | fix(business): 完成规范复核缺陷修复与文档校验 |
 
 ### Status
 
@@ -235,8 +235,8 @@
 
 | Hash | Message |
 |------|---------|
-| `9a732b22` | fix(business): 完成规范复核缺陷修复与文档校验 |
-| `937bdcff` | chore(trellis): 归档规范复核修复并记录验证 |
+| `0a9e69b5` | fix(business): 完成规范复核缺陷修复与文档校验 |
+| `2e8ad93c` | chore(trellis): 归档规范复核修复并记录验证 |
 
 ### Status
 
@@ -258,8 +258,8 @@
 
 | Hash | Message |
 |------|---------|
-| `3861752b` | docs(java): 规范自然中文注释 |
-| `67b4ed8f` | docs(java): 补齐注释规范示例 |
+| `65f265f5` | docs(java): 规范自然中文注释 |
+| `41751ca9` | docs(java): 补齐注释规范示例 |
 
 ### Status
 
@@ -281,7 +281,7 @@
 
 | Hash | Message |
 |------|---------|
-| `ef8775b` | style(java): 统一后端中文注释标点 |
+| `0347bc4` | style(java): 统一后端中文注释标点 |
 
 ### Status
 
@@ -376,7 +376,7 @@
 
 | Hash | Message |
 |------|---------|
-| `62c7086a` | feat(agent): 按标题设置收藏类型(1-5)与写入意图路由 |
+| `344f534d` | feat(agent): 按标题设置收藏类型(1-5)与写入意图路由 |
 
 ### Testing
 
@@ -410,7 +410,7 @@
 
 | Hash | Message |
 |------|---------|
-| `01095e23` | feat(agent): 写入硬确认门禁(write_confirmed)与动作版本绑定 |
+| `0562df8d` | feat(agent): 写入硬确认门禁(write_confirmed)与动作版本绑定 |
 
 ### Testing
 
@@ -440,7 +440,7 @@
 
 | Hash | Message |
 |------|---------|
-| `aba377b5` | fix(agent): 季度映射对齐权威动漫季约定(winter=1..autumn=4) |
+| `007c4a06` | fix(agent): 季度映射对齐权威动漫季约定(winter=1..autumn=4) |
 
 ### Status
 
@@ -468,10 +468,10 @@
 
 | Hash | Message |
 |------|---------|
-| `412edad7` | feat(admin): 接入 Tailwind v4 与 shadcn/ui 地基，注册 @efferd 命名空间 |
-| `4b3a3aed` | fix(shared): 拆分 AuthGate 逻辑，去除 antd 运行时依赖 |
-| `93c818fd` | fix(admin): Tailwind preflight 破坏处就地补偿 |
-| `0f0212cf` | docs(trellis): admin UI 迁移父任务与 4 个子任务的规划产物 |
+| `08ef7948` | feat(admin): 接入 Tailwind v4 与 shadcn/ui 地基，注册 @efferd 命名空间 |
+| `3fc9fe67` | fix(shared): 拆分 AuthGate 逻辑，去除 antd 运行时依赖 |
+| `59348271` | fix(admin): Tailwind preflight 破坏处就地补偿 |
+| `f73e0174` | docs(trellis): admin UI 迁移父任务与 4 个子任务的规划产物 |
 
 ### Testing
 
@@ -504,7 +504,7 @@
 
 | Hash | Message |
 |------|---------|
-| `9a91355` | feat(admin): 迁移 AdminLayout 到 app-shell |
+| `4ba7302` | feat(admin): 迁移 AdminLayout 到 app-shell |
 
 ### Status
 
@@ -526,7 +526,7 @@
 
 | Hash | Message |
 |------|---------|
-| `9a91355d` | feat(admin): 迁移 AdminLayout 到 app-shell |
+| `4ba73029` | feat(admin): 迁移 AdminLayout 到 app-shell |
 
 ### Status
 
@@ -548,19 +548,19 @@
 
 | Hash | Message |
 |------|---------|
-| `f6889656` | refactor(common): 清除残留 @Getter/@Setter 注解 |
-| `35ec185c` | refactor(pojo): 移除 Lombok 并显式声明访问器与构建器 |
-| `df4b30a6` | refactor(client): 移除 Lombok 并显式声明构造器与访问器 |
-| `899ad4fd` | refactor(admin): 用显式构造器替换 @RequiredArgsConstructor |
-| `a1ce540e` | refactor(agent): 移除 Lombok 并显式声明构造器 |
-| `5facc913` | refactor(app): 移除 @Data 并显式声明配置属性访问器 |
-| `7a5c009b` | refactor(auth): 移除 Lombok 并显式声明访问器与构造器 |
-| `b5719366` | refactor(log): 用显式构造器替换 @RequiredArgsConstructor |
-| `04993c51` | refactor(infrastructure): 移除 Lombok 并显式声明访问器 |
-| `cac31e3f` | test(后端): 补充 Lombok 迁移后的 JSON 往返回归测试 |
-| `6683a3c6` | chore(构建): 从父 POM 与 README 移除 Lombok 依赖 |
-| `c5f3f2cb` | docs(规范): 移除已失效的 Lombok 生成成员 Javadoc 豁免 |
-| `8d6da209` | docs(任务): 记录 Lombok 移除完成状态与验证证据 |
+| `690de064` | refactor(common): 清除残留 @Getter/@Setter 注解 |
+| `ef248cf0` | refactor(pojo): 移除 Lombok 并显式声明访问器与构建器 |
+| `a392c93f` | refactor(client): 移除 Lombok 并显式声明构造器与访问器 |
+| `313f46cd` | refactor(admin): 用显式构造器替换 @RequiredArgsConstructor |
+| `667bd8a2` | refactor(agent): 移除 Lombok 并显式声明构造器 |
+| `a09b11d9` | refactor(app): 移除 @Data 并显式声明配置属性访问器 |
+| `9429a0b0` | refactor(auth): 移除 Lombok 并显式声明访问器与构造器 |
+| `b02431af` | refactor(log): 用显式构造器替换 @RequiredArgsConstructor |
+| `256d2630` | refactor(infrastructure): 移除 Lombok 并显式声明访问器 |
+| `f2642b76` | test(后端): 补充 Lombok 迁移后的 JSON 往返回归测试 |
+| `522f6ad2` | chore(构建): 从父 POM 与 README 移除 Lombok 依赖 |
+| `e2fb74a8` | docs(规范): 移除已失效的 Lombok 生成成员 Javadoc 豁免 |
+| `d983bfc6` | docs(任务): 记录 Lombok 移除完成状态与验证证据 |
 
 ### Status
 
@@ -582,13 +582,13 @@
 
 | Hash | Message |
 |------|---------|
-| `c2b2332c` | refactor(admin): Import 迁移到 shadcn，保留轮询与失效 effect |
-| `0a35e7a6` | refactor(admin): Logs 迁移到 shadcn，保留筛选与分页语义 |
-| `41e14990` | refactor(admin): Subjects 迁移到 shadcn，保留 6 个筛选维度与表单校验 |
-| `2ca1e5b8` | refactor(admin): AgentConfig 迁移到 shadcn，修正配置刷新覆盖用户编辑 |
-| `5e63ffd3` | refactor(admin): AgentChat 迁移到 shadcn，保留流式交互 |
-| `ca612f1c` | chore(admin): 移除 antd/echarts 依赖，声明 react-markdown |
-| `1b9e7be2` | docs(spec): 更新前端规范以反映 admin 已脱离 Ant Design |
+| `2faddc55` | refactor(admin): Import 迁移到 shadcn，保留轮询与失效 effect |
+| `056acfa3` | refactor(admin): Logs 迁移到 shadcn，保留筛选与分页语义 |
+| `40003f1f` | refactor(admin): Subjects 迁移到 shadcn，保留 6 个筛选维度与表单校验 |
+| `7d3c878a` | refactor(admin): AgentConfig 迁移到 shadcn，修正配置刷新覆盖用户编辑 |
+| `78378fa9` | refactor(admin): AgentChat 迁移到 shadcn，保留流式交互 |
+| `1b909fda` | chore(admin): 移除 antd/echarts 依赖，声明 react-markdown |
+| `80b3c4d8` | docs(spec): 更新前端规范以反映 admin 已脱离 Ant Design |
 
 ### Status
 
@@ -621,8 +621,8 @@ spec 同步：`agent-guidelines.md` 新增「Gateway 路由结果解析」与「
 
 | Hash | Message |
 |------|---------|
-| `57aa95b0` | chore(trellis): 重设计任务板并归档三个已完成任务 |
-| `07e05385` | test(agent): 补齐 SSE 序列化、gateway 路由解析与 collection_progress 测试 |
+| `4c70abbf` | chore(trellis): 重设计任务板并归档三个已完成任务 |
+| `4c9a65ba` | test(agent): 补齐 SSE 序列化、gateway 路由解析与 collection_progress 测试 |
 
 ### Status
 

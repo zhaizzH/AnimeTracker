@@ -11,7 +11,7 @@
 ## Dependencies
 
 - `09-21-admin-ui-foundation` 已于 2026-09-22 完成并归档（`task.json` status=completed）；Tailwind/shadcn、`@efferd` registry、toast 与 `@/` 别名均已具备。
-- `09-21-admin-app-shell` 已于 2026-09-22 完成并归档（commit `9a91355d`）；Dashboard 将渲染在现有 AppShell 内。
+- `09-21-admin-app-shell` 已于 2026-09-22 完成并归档（commit `4ba73029`）；Dashboard 将渲染在现有 AppShell 内。
 - 本子任务是父任务 Dashboard 阶段的实现目标；`09-21-admin-pages-migration` 仍处 planning，且不属于本子任务范围。
 
 ## Requirements

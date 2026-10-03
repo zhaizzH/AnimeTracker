@@ -50,7 +50,7 @@ CI 当前执行 Java `mvn -B test`、Python `uv run pytest` 和前端 typecheck�
 - `uv run pytest`（`backend/agent`）：413 passed；2026-09-12 的 284 passed 为历史基线
 - `python backend/business/tools/check_javadoc.py`：255 个 Java 文件、1658 个声明、0 个违规；`test_check_javadoc.py`：7 项通过
 - `app/src/main/resources` 当前包含 `application.yml`、`application-local.yml`、`logback-spring.xml`；配置与 Profile 说明不能只引用公共配置文件
-- `docs/database/` 当前只有 `db-schema.sql`；历史迁移脚本 `migration-002-rag-entities.sql`、`migration-003-search-projection.sql` 已随提交 `f771e48a` 删除
+- `docs/database/` 当前只有 `db-schema.sql`；历史迁移脚本 `migration-002-rag-entities.sql`、`migration-003-search-projection.sql` 已随提交 `f9b8fd39` 删除
 
 ## 合并前路径对照
 

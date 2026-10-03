@@ -19,7 +19,7 @@
 
 - 全新空库初始化入口：`mysql ... < docs/database/db-schema.sql`。
 - 存量库变更入口：必须由评审确认的前向 `ALTER`/回填步骤；不得把完整 Schema 文件当作升级脚本。
-- 仓库当前不提供前向迁移脚本：`docs/database/` 下只有 `db-schema.sql`。历史上的 `migration-002-rag-entities.sql`、`migration-003-search-projection.sql` 已随提交 `f771e48a` 删除，不得再引用或执行。
+- 仓库当前不提供前向迁移脚本：`docs/database/` 下只有 `db-schema.sql`。历史上的 `migration-002-rag-entities.sql`、`migration-003-search-projection.sql` 已随提交 `f9b8fd39` 删除，不得再引用或执行。
 - 历史迁移脚本曾用 `INFORMATION_SCHEMA.COLUMNS` + `PREPARE` 条件执行旧表兼容列变更，因为 MySQL 8.4 不支持 `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`；该手法仍是新增前向迁移时的既有参考实现。
 
 ### 3. Contracts

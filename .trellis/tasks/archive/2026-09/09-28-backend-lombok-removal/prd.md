@@ -111,11 +111,11 @@ All nine modules are Lombok-free in source, build, and docs. The migration reuse
 
 | Commit | Scope |
 |---|---|
-| `5bf38f96` | task planning artifacts + baseline |
-| `ffc86a32` | `delombok_clean.py` |
-| `06d747ea` | `common` module migration + `sig_compare.py` |
-| `e681f59f` | 10 × `@Slf4j` → explicit SLF4J loggers |
-| `ce662912` | progress ledger update |
+| `2485afeb` | task planning artifacts + baseline |
+| `8c6fd811` | `delombok_clean.py` |
+| `1611f0e2` | `common` module migration + `sig_compare.py` |
+| `592a003e` | 10 × `@Slf4j` → explicit SLF4J loggers |
+| `a1639527` | progress ledger update |
 | (final) | remaining 8 modules + POM/README cleanup + regression tests + spec update |
 
 ### Untouched pre-existing worktree changes

@@ -124,7 +124,7 @@ BUILD SUCCESS
 - 已修复 `backend/agent/jobs/importer/main.py`：日历请求失败现在抛出异常，由主流程将记录置为 `FAILED`，保留 checkpoint 和累计计数，不再伪造完成；新增回归测试 `tests/jobs/importer/test_recent_failure.py`。
 - 使用可用代理 `http://127.0.0.1:7897` 执行 `--mode recent --resume` 成功：日历去重后 113 条，数据库已有条目 113/113，无缺失；`import_record=9` 最终为 `COMPLETED`、`success_count=111`、`failure_count=0`、`skipped_count=90`、checkpoint `offset=113`。
 - 原日志中的“跳过关联条目”仍是关联目标不在当前本地集合的非致命警告，不代表主条目导入失败；当前日历条目集合与数据库集合差集为空。
-- 验证：导入器测试 26 passed，Python compileall 通过，`git diff --check` 通过；修复提交为 `7da6006`。
+- 验证：导入器测试 26 passed，Python compileall 通过，`git diff --check` 通过；修复提交为 `0fde902`。
 
 ## 2026-09-06 recent 导入后实体索引复核
 
