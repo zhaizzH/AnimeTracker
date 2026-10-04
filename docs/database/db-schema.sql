@@ -149,51 +149,34 @@ CREATE TABLE `subject_meta_tag`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '条目官方标签表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Table structure for subject_credit
+-- Table structure for job
 -- ----------------------------
-DROP TABLE IF EXISTS `subject_credit`;
-CREATE TABLE `subject_credit`  (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主创关联 ID',
-  `subject_id` bigint NOT NULL COMMENT '条目 ID',
-  `bangumi_person_id` int NULL DEFAULT NULL COMMENT 'Bangumi 人物 ID',
-  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '主创或组织名称',
-  `role` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '职责',
-  `credit_type` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'PERSON 或 ORGANIZATION',
-  `sort_order` int NOT NULL DEFAULT 0 COMMENT '来源排序',
-  `source_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT '上游是否仍然活跃',
-  `created_at` datetime NOT NULL COMMENT '创建时间',
-  `updated_at` datetime NOT NULL COMMENT '更新时间',
-  PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_subject_credit`(`subject_id` ASC, `name` ASC, `role` ASC) USING BTREE,
-  INDEX `idx_credit_name_role`(`name` ASC, `role` ASC) USING BTREE,
-  CONSTRAINT `fk_credit_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '条目主创表' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Table structure for rag_index_job
--- ----------------------------
-DROP TABLE IF EXISTS `rag_index_job`;
-CREATE TABLE `rag_index_job`  (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '索引任务 ID',
-  `subject_id` bigint NOT NULL COMMENT '条目 ID',
-  `index_version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '索引版本',
-  `content_hash` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '档案内容哈希',
-  `embedding_provider` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Embedding 供应商',
-  `embedding_model` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Embedding 模型',
-  `embedding_dimensions` int NOT NULL COMMENT '向量维度',
-  `status` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'PENDING' COMMENT '任务状态',
+-- 统一任务队列表：ENTITY_DETAIL（实体详情回填）/ SEARCH_INDEX（通用双投影索引）/ RAG_INDEX（Subject 兼容索引）。
+-- 差异元数据（embedding 元组、source_id、checkpoint、content_hash）放 payload_json；content_hash 提升为列供幂等比对。
+DROP TABLE IF EXISTS `job`;
+CREATE TABLE `job`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '任务 ID',
+  `type` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '任务类型: ENTITY_DETAIL/SEARCH_INDEX/RAG_INDEX',
+  `entity_kind` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '实体类型: SUBJECT/EPISODE/PERSON/CHARACTER',
+  `entity_id` bigint NOT NULL COMMENT '本地实体 ID',
+  `index_version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '索引版本（ENTITY_DETAIL 为空串）',
+  `content_hash` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '档案内容哈希（幂等比对；ENTITY_DETAIL 可为空）',
+  `status` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'PENDING' COMMENT '任务状态: PENDING/CLAIMED/RUNNING/COMPLETED/FAILED/ABANDONED/TOMBSTONE',
   `attempts` int NOT NULL DEFAULT 0 COMMENT '尝试次数',
+  `max_attempts` int NOT NULL DEFAULT 5 COMMENT '最大尝试次数',
+  `next_retry_at` datetime NULL DEFAULT NULL COMMENT '下次重试时间',
   `last_error_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '最近错误码',
   `last_error_message` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '脱敏后的最近错误信息',
-  `next_retry_at` datetime NULL DEFAULT NULL COMMENT '下次重试时间',
-  `indexed_at` datetime NULL DEFAULT NULL COMMENT '完成索引时间',
+  `payload_json` json NULL COMMENT '差异元数据: embedding_provider/model/dimensions, profile_version, source_id, checkpoint 等',
+  `claimed_at` datetime NULL DEFAULT NULL COMMENT '认领时间',
+  `finished_at` datetime NULL DEFAULT NULL COMMENT '完成时间（索引完成/回填完成）',
   `created_at` datetime NOT NULL COMMENT '创建时间',
   `updated_at` datetime NOT NULL COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_rag_job_subject_version`(`subject_id` ASC, `index_version` ASC) USING BTREE,
-  INDEX `idx_rag_job_status_retry`(`status` ASC, `next_retry_at` ASC) USING BTREE,
-  CONSTRAINT `fk_rag_job_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'RAG 索引任务表' ROW_FORMAT = Dynamic;
+  UNIQUE INDEX `uk_job`(`type` ASC, `entity_kind` ASC, `entity_id` ASC, `index_version` ASC) USING BTREE,
+  INDEX `idx_job_status_retry`(`status` ASC, `next_retry_at` ASC) USING BTREE,
+  INDEX `idx_job_entity`(`entity_kind` ASC, `entity_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '统一任务队列表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for subject_tag
@@ -447,18 +430,23 @@ CREATE TABLE `character_alias`  (
 -- Table structure for subject_person_credit
 -- ----------------------------
 DROP TABLE IF EXISTS `subject_person_credit`;
+-- 主创关系单表：person_id 已解析填 FK（name 为 NULL）；未解析 person_id 为 NULL + name 存占位名。
+-- dedup_key 生成列保证两种行都能唯一去重。
 CREATE TABLE `subject_person_credit`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '关联ID',
   `subject_id` bigint NOT NULL COMMENT '条目ID',
-  `person_id` bigint NOT NULL COMMENT '人物ID',
+  `person_id` bigint NULL DEFAULT NULL COMMENT '人物ID（未解析为 NULL）',
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '占位名（person_id 为 NULL 时填）',
+  `credit_type` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'PERSON' COMMENT 'PERSON 或 ORGANIZATION',
   `role` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '职责（如导演、脚本）',
   `relation` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'MAIN' COMMENT '关系类型: MAIN=主要, SUB=次要',
   `sort_order` int NOT NULL DEFAULT 0 COMMENT '来源排序',
+  `dedup_key` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci GENERATED ALWAYS AS (concat_ws('#', `subject_id`, `role`, ifnull(`person_id`, 0), ifnull(`name`, ''))) VIRTUAL COMMENT '去重键',
   `source_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT '上游是否仍然活跃',
   `created_at` datetime NOT NULL COMMENT '创建时间',
   `updated_at` datetime NOT NULL COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_subject_person_credit`(`subject_id` ASC, `person_id` ASC, `role` ASC) USING BTREE,
+  UNIQUE INDEX `uk_subject_person_credit`(`dedup_key` ASC) USING BTREE,
   INDEX `idx_spc_person`(`person_id` ASC) USING BTREE,
   INDEX `idx_spc_subject_active`(`subject_id` ASC, `source_active` ASC) USING BTREE,
   CONSTRAINT `fk_spc_subject` FOREIGN KEY (`subject_id`) REFERENCES `subject` (`id`) ON DELETE CASCADE,
@@ -510,59 +498,4 @@ CREATE TABLE `character_actor`  (
   CONSTRAINT `fk_ca_person` FOREIGN KEY (`person_id`) REFERENCES `person` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '角色-声优关联表（限定于特定作品）' ROW_FORMAT = Dynamic;
 
--- ----------------------------
--- Table structure for entity_detail_job
--- ----------------------------
-DROP TABLE IF EXISTS `entity_detail_job`;
-CREATE TABLE `entity_detail_job`  (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '任务ID',
-  `entity_kind` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '实体类型: PERSON/CHARACTER',
-  `entity_id` bigint NOT NULL COMMENT '本地实体ID',
-  `source_id` int NOT NULL COMMENT 'Bangumi 上游ID',
-  `status` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'PENDING' COMMENT '任务状态: PENDING/CLAIMED/RUNNING/COMPLETED/FAILED/ABANDONED',
-  `attempts` int NOT NULL DEFAULT 0 COMMENT '尝试次数',
-  `max_attempts` int NOT NULL DEFAULT 5 COMMENT '最大尝试次数',
-  `next_retry_at` datetime NULL DEFAULT NULL COMMENT '下次重试时间',
-  `last_error_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '最近错误码',
-  `last_error_message` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '脱敏后的最近错误信息',
-  `checkpoint_json` json NULL COMMENT '回填断点 JSON',
-  `source_hash` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '完成时的来源数据哈希',
-  `claimed_at` datetime NULL DEFAULT NULL COMMENT '认领时间',
-  `completed_at` datetime NULL DEFAULT NULL COMMENT '完成时间',
-  `created_at` datetime NOT NULL COMMENT '创建时间',
-  `updated_at` datetime NOT NULL COMMENT '更新时间',
-  PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_entity_detail_job`(`entity_kind` ASC, `entity_id` ASC) USING BTREE,
-  INDEX `idx_edj_status_retry`(`status` ASC, `next_retry_at` ASC) USING BTREE,
-  INDEX `idx_edj_source`(`entity_kind` ASC, `source_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '实体详情渐进回填任务表' ROW_FORMAT = Dynamic;
 
--- ----------------------------
--- Table structure for search_index_job
--- ----------------------------
-DROP TABLE IF EXISTS `search_index_job`;
-CREATE TABLE `search_index_job`  (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '索引任务ID',
-  `entity_kind` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '实体类型: SUBJECT/EPISODE/PERSON/CHARACTER',
-  `entity_id` bigint NOT NULL COMMENT '本地实体ID',
-  `index_version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '索引版本',
-  `profile_version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'v1' COMMENT '档案模板版本',
-  `content_hash` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '档案内容哈希',
-  `embedding_provider` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'dashscope' COMMENT 'Embedding 供应商',
-  `embedding_model` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Embedding 模型',
-  `embedding_dimensions` int NOT NULL COMMENT '向量维度',
-  `status` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'PENDING' COMMENT '任务状态: PENDING/CLAIMED/COMPLETED/FAILED/TOMBSTONE',
-  `attempts` int NOT NULL DEFAULT 0 COMMENT '尝试次数',
-  `max_attempts` int NOT NULL DEFAULT 5 COMMENT '最大尝试次数',
-  `last_error_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '最近错误码',
-  `last_error_message` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '脱敏后的最近错误信息',
-  `next_retry_at` datetime NULL DEFAULT NULL COMMENT '下次重试时间',
-  `claimed_at` datetime NULL DEFAULT NULL COMMENT '认领时间',
-  `indexed_at` datetime NULL DEFAULT NULL COMMENT '完成索引时间',
-  `created_at` datetime NOT NULL COMMENT '创建时间',
-  `updated_at` datetime NOT NULL COMMENT '更新时间',
-  PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_search_index_job`(`entity_kind` ASC, `entity_id` ASC, `index_version` ASC) USING BTREE,
-  INDEX `idx_sij_status_retry`(`status` ASC, `next_retry_at` ASC) USING BTREE,
-  INDEX `idx_sij_entity`(`entity_kind` ASC, `entity_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '通用搜索索引任务表' ROW_FORMAT = Dynamic;

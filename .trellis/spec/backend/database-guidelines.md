@@ -99,62 +99,62 @@ DEALLOCATE PREPARE stmt;
 - 多步写入在 Service 声明事务；每项独立提交可参考 `CollectionProgressItemExecutor` 的 `REQUIRES_NEW`。
 - 并发幂等写入依赖唯一约束并处理冲突，参考 `CollectionServiceImpl.addToWishlistIfAbsent`。
 
-## Scenario: 新旧主创关系映射兼容
+## Scenario: 主创关系单表（subject_person_credit）
 
 ### 1. Scope / Trigger
 
-- 触发：新增 `person`/`subject_person_credit` 关系，或维护已有 `subject_credit` 存量数据。
+- 触发：新增或维护 `person`/`subject_person_credit` 主创关系。
+- 历史：旧兼容表 `subject_credit` 已于任务 10-04-db-schema-slim 合并删除，不得再引用。
 
 ### 2. Signatures
 
-- 新关系表：`subject_person_credit(subject_id, person_id, role, relation, source_active)`。
-- 旧兼容表：`subject_credit(subject_id, bangumi_person_id, name, role, credit_type, source_active)`。
+- 单表：`subject_person_credit(subject_id, person_id NULL, name NULL, credit_type, role, relation, sort_order, source_active)`。
+- `person_id` 已解析时填 FK 且 `name` 为 NULL；未解析时 `person_id` 为 NULL 且 `name` 存占位名。
 
 ### 3. Contracts
 
-- 新实体关系写入 `subject_person_credit`；当前 importer 同时调用 `_upsert_credits` 更新旧 `subject_credit`，旧表仍参与索引 Profile 读取。迁移期是兼容双写/读取，不是旧表只读。
-- `credit_type` 只能使用 `PERSON` 或 `ORGANIZATION`；Python 侧由 `CreditType` 枚举（`app/entities/enums.py`）强制，Java 侧 `SubjectCredit.creditType` 是裸 `String`（Javadoc 约定），跨语言字面值一致必须由测试和审查保证，编译器不强制。
-- 旧表读取继续使用参数化 SQL，不得因为新增关系表而删除或改写旧查询语义。
+- 所有主创关系只写 `subject_person_credit`；importer 对未解析到 `person` 表的 credit 写 `name` 占位行，待 backfill 解析后回填 `person_id` 并清 `name`。
+- `credit_type` 只能使用 `PERSON` 或 `ORGANIZATION`；Python 侧由 `CreditType` 枚举（`app/entities/enums.py`）强制。
+- Profile/索引摘要读取走单表 `LEFT JOIN person`：`IFNULL(person.name, spc.name)` 取展示名。
 
 ### 4. Validation & Error Matrix
 
 | 条件 | 处理 |
 |---|---|
-| 新实体/关系查询 | 使用新关系表和本地外键 ID |
-| 存量旧主创读取 | 保留 `subject_credit` 兼容路径 |
-| `credit_type` 非 `PERSON|ORGANIZATION` | 拒绝写入并记录契约错误 |
-| 新旧字段混写 | 阻止发布，先补齐 Entity/枚举/测试 |
+| `credit_type` 非 `PERSON\|ORGANIZATION` | 拒绝写入并记录契约错误 |
+| `person_id` 与 `name` 同时非 NULL 或同时 NULL | 拒绝写入（不变式：恰好其一非 NULL，ORGANIZATION 行例外允许 name 占位） |
+| 引用已删除的 `subject_credit` | 阻止发布，改为单表查询 |
 
 ### 5. Good/Base/Bad Cases
 
-- Good：新关系使用 `subject_person_credit`，并保留 `jobs/importer/repository.py::_upsert_credits` 的旧表同步，旧查询与 Profile 构建仍可读取 `subject_credit`。
-- Base：仅需要旧数据展示时，通过参数化 SQL 读取旧表。
-- Bad：把 `subject_credit.credit_type` 的 `ORGANIZATION` 写成新关系的 `relation=MAIN`。
+- Good：已解析 credit 写 `person_id` FK，摘要经 `LEFT JOIN person` 读名。
+- Base：未解析 credit 写 `name` 占位行，摘要读 `IFNULL(person.name, spc.name)`。
+- Bad：新建第二张 credit 表，或把 `credit_type=ORGANIZATION` 写成 `relation=MAIN`。
 
 ### 6. Tests Required
 
-- Java 编译/映射检查：`SubjectCredit` 的表名和字段映射存在。
-- Python 单测：`CreditType` 仅接受两个数据库字面值，`SubjectCredit` 可实例化。
-- 导入器 SQL 契约测试：旧 `subject_credit` 读取路径仍存在，新关系写入不替换旧表查询。
+- Python 单测：`CreditType` 仅接受两个数据库字面值。
+- 导入器契约测试：未解析 credit 写占位行；解析后回填清 `name`。
+- 摘要 SQL 测试：`person_id` 行与 `name` 占位行产出一致格式 `role：name`。
 
 ### 7. Wrong vs Correct
 
 #### Wrong
 
 ```text
-把旧 subject_credit 行直接当作 subject_person_credit，或删除旧表读取以“清理重复模型”。
+为兼容旧查询新建 subject_credit 影子表，或双写两张 credit 表。
 ```
 
 #### Correct
 
 ```text
-新关系写 subject_person_credit；当前 importer 继续更新 subject_credit 并供旧查询/Profile 读取，待独立迁移验证后再停写或移除。
+单表写入；占位行与 FK 行由 credit_type/person_id/name 三列表达，摘要单查询兼容两种行。
 ```
 
 ## Python 离线任务
 
 - importer 将标准化和持久化分开，参考 `jobs/importer/normalize.py` 与 `repository.py`。
-- 导入用 MySQL `GET_LOCK` 保证单实例，并维护 import record、进度和 PID 文件。
+- 导入用 Redis 锁保证单实例（键 `animetracker:import:lock`，`SET NX EX` + Lua compare-and-del 释放），并维护 import record、进度和 PID 文件；运行中进度计数在 Redis（`animetracker:import:{record_id}:done`），终态一次性回写 import_record。
 - indexer 同时维护两类任务：旧 `rag_index_job` 仅承担 Subject 兼容队列，新 `search_index_job` 承担 SUBJECT/EPISODE/PERSON/CHARACTER 通用双投影；迁移窗口内不得误删旧队列表。`jobs/indexer/gate.py` 缺报告时必须 fail closed。
 - 每条 `search_index_job` 必须成组绑定 `index_version`、`profile_version` 与 `content_hash`；MySQL lexical shadow 和 Redis Vector Set 任一写入失败都不得确认任务完成，tombstone 使用 `VREM`。
 - 清理先生成计划并校验确认摘要，参考 `jobs/importer/cleanup.py`。

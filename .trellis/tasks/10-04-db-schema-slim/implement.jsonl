@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "MySQL/Redis 适配层规范,R1-R6 全部涉及"}
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "agent job/worker 编码规范,R2/R4/R5 改动 job 层"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "错误处理与脱敏规范,job 错误列与导入失败路径"}

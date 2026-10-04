@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "验证 schema 变更符合数据库规范"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "验收质量门"}
