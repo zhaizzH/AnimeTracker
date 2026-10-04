@@ -156,12 +156,15 @@ AnimeTracker/
 │   └── package.json
 ├── backend/
 │   ├── business/                 # Spring Boot 多模块业务工程 (Java 21, 端口 :8080)
-│   │   ├── common/               # 公共基础：Result、异常、鉴权、限流、对象存储端口
+│   │   ├── common/               # 统一结果与错误基础 (Result、ErrorType、BizException)
 │   │   ├── pojo/                 # Entity 实体类、DTO 数据传输对象、VO 视图对象
+│   │   ├── infrastructure/       # 共享平台实现 (MinIO 存储、Resend 邮件、Redis、限流)
+│   │   ├── auth/                 # 认证会话 (JWT 签发/验签、刷新会话 store)
+│   │   ├── log/                  # 操作审计 (@OperationLog 注解、AOP、清理任务)
 │   │   ├── client/               # 用户端核心业务 API (番剧检索、收藏、进度、Evidence、个人中心)
 │   │   ├── admin/                # 管理端业务 API (仪表盘、条目管理、用户管理、审计日志)
 │   │   ├── agent/                # Agent 代理转发模块 (对前端封装 Agent 调用接口)
-│   │   └── app/                  # Spring Boot 启动模块、配置类、Security 与 Infrastructure 适配器
+│   │   └── app/                  # Spring Boot 启动模块、配置类、Security 与过滤器
 │   └── agent/                    # AI Agent 智能体微服务 (FastAPI + LangGraph, 端口 :8090)
 │       ├── main.py               # FastAPI 服务入口
 │       ├── pyproject.toml / uv.lock # Python 依赖定义
@@ -235,11 +238,16 @@ cd backend/agent
 # 配置环境变量 (填写 LLM_PROVIDER、API_KEY 与 REDIS_URL)
 cp .env.example .env
 
-# 使用 uv 同步虚拟环境依赖
+# 使用 uv 同步虚拟环境依赖（生成 backend/agent/.venv）
 uv sync --dev
 
-# 启动 Agent API 服务
+# 启动 Agent API 服务（uv run 自动使用 .venv，无需手动激活）
 uv run uvicorn main:app --reload --port 8090
+
+# 如需手动激活虚拟环境（可选）：
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+# Windows cmd/Git Bash: source .venv/Scripts/activate
+# Linux/macOS: source .venv/bin/activate
 ```
 
 > ✅ `.env.example` 已与 `app/config.py` 对齐（已移除的 `RAG_INDEX_ALIAS` 不再出现，并补齐了 route 模型键与 jobs 透传键）。**照抄模板即可启动成功**，无需手动删行。
@@ -416,6 +424,7 @@ curl -X POST http://localhost:8080/api/client/subjects/lexical-search \
 - 📘 [后端开发与架构规范](docs/conventions/backend-conventions.md)
 - 🗄️ [数据库建表脚本 (db-schema.sql)](docs/database/db-schema.sql)
 - 📑 [OpenAPI 3.0 接口规范定义 (openapi.yaml)](docs/spec/openapi.yaml)
+- 🖥️ [前端总览](frontend/README.md)
 - 🖥️ [Spring Boot 业务服务详细文档](backend/business/README.md)
 - 🤖 [FastAPI + LangGraph Agent 架构文档](backend/agent/README.md)
 - 📥 [Bangumi 数据导入器设计说明](backend/agent/jobs/importer/README.md)
@@ -428,7 +437,7 @@ curl -X POST http://localhost:8080/api/client/subjects/lexical-search \
 
 以下事项在本次文档核对时无法仅从代码确定，需维护者确认后补齐：
 
-1. **前端缺少子包 README**：`frontend/`、`frontend/client/`、`frontend/admin/`、`frontend/packages/shared/` 均无 README。按「不随意增删文件」的要求未新建，前端的页面结构、状态管理约定与组件规范暂无文档入口。
+1. **前端子包 README**：`frontend/` 已新增总览 README；`client/`、`admin/`、`packages/shared/` 三个子包的细粒度文档（页面结构、状态管理约定、组件规范）待补。
 2. **生产部署形态缺失**：仓库中不存在 `deploy/` 目录、`compose.yml` / `compose.prod.yml`、Nginx 配置或进程守护配置。`application.yml` 注释中提到的 `application-prod.yml`（由 `SPRING_PROFILES_ACTIVE=prod` 激活）在 `app/src/main/resources/` 下不存在，生产配置的落地方式待确认。
 3. **`.trellis/` 归档任务文档**：`.trellis/tasks/archive/` 下存在两处 README（任务文档索引与历史报告说明）。它们是被版本跟踪的历史审查记录，且自带「不直接删除审查证据」的维护规则，故本次未按模块文档结构重写；如需一并更新请明确指示。
 4. **运行期产物未纳入 `.gitignore`**：`backend/agent/jobs/importer/importer.pid` 与 `backend/agent/indexer-remaining.json` 由任务运行时生成，当前未被忽略规则覆盖（`*.log` 已被忽略）。

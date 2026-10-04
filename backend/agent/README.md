@@ -483,7 +483,7 @@ uv run python -m jobs.backfill.main --batch-size 5 --report-json
 uv run pytest
 ```
 
-pytest 配置在 `pyproject.toml`（`pythonpath = ["."]`、`asyncio_mode = "auto"`）。截至本次文档核对共 268 个 `def test_` 用例，覆盖：
+pytest 配置在 `pyproject.toml`（`pythonpath = ["."]`、`asyncio_mode = "auto"`）。截至本次文档核对共 468 个 `def test_` 用例，覆盖：
 
 | 目录 | 覆盖范围 |
 |------|----------|

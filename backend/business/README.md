@@ -28,38 +28,49 @@
 
 ## 模块结构
 
-Maven 父子多模块保持六个模块。依赖方向如下：
+Maven 父子多模块共 **9 个模块**。依赖方向如下：
 
 ```text
-app → {admin, client, agent, common}
-admin → {common, pojo}
-client → {common, pojo}
-agent → common → pojo
+app            → {common, pojo, infrastructure, auth, log, admin, client, agent}
+admin          → {common, pojo, agent, auth, infrastructure, log}
+client         → {common, pojo, infrastructure, auth, log}
+agent          → {common, pojo, log}
+auth           → {common, pojo, infrastructure}
+log            → {auth, pojo}
+infrastructure → {common}
+common         → （无内部依赖）
+pojo           → （无内部依赖）
 ```
 
 ```
 business/
-├── pom.xml          # 父 POM（依赖 / 插件版本统一管理）
-├── common/          # 共享平台能力与多业务模块共用的外部端口
-├── pojo/            # 共享 entity / dto / vo 数据模型
-├── admin/           # 管理端 Controller → Service → Mapper/Store 与管理端 Gateway 端口
-├── client/          # 用户端 Controller → Service → Mapper/Store 与用户端 Gateway 端口
-├── agent/           # Python Agent 代理：Controller → AgentService → AgentServiceImpl
-└── app/             # Spring Boot 组合根、配置类、安全策略与 infrastructure 适配器
+├── pom.xml            # 父 POM（依赖 / 插件版本统一管理）
+├── common/            # 统一结果（Result/PageResult）、错误（ErrorType/BizException）
+├── pojo/              # 共享 entity / dto / vo 数据模型
+├── infrastructure/    # 共享平台实现：email / ratelimit / redis / storage（MinIO）
+├── auth/              # 认证会话：security、JWT/会话 store、util
+├── log/               # 操作审计：@OperationLog 注解、AOP aspect、OperationLogMapper、清理任务
+├── agent/             # Python Agent 代理：Controller → AgentService，ImportAgentGateway 端口 + HTTP 实现
+├── client/            # 用户端 Controller → Service → Mapper/Store
+├── admin/             # 管理端 Controller → Service → Mapper/Store
+└── app/               # Spring Boot 组合根、配置类、安全策略、filter 与 web 配置
 ```
 
 ### 各模块职责
 
 | 模块 | artifactId | 职责 |
 |------|-----------|------|
-| common | `animetracker-common` | 统一响应、异常、JWT/Redis、操作审计、限流和共享外部端口（含 `OperationLogMapper`） |
+| common | `animetracker-common` | 统一响应 `Result` / `PageResult`、错误码枚举 `ErrorType`、业务异常 `BizException` |
 | pojo | `animetracker-pojo` | 共享 entity、dto、vo 数据模型 |
-| admin | `animetracker-admin` | 管理端 Controller → Service → Mapper/Store；持有 `ImportAgentGateway` 端口 |
-| client | `animetracker-client` | 用户端 Controller → Service → Mapper/Store；持有 `EmailGateway` 端口 |
-| agent | `animetracker-agent` | `ClientAgentController` / `AdminAgentController` → AgentService，代理 Python Agent |
-| app | `animetracker-app` | 启动、配置绑定（`app.config`）、安全策略和 `infrastructure` 下的 MinIO、Resend、导入 HTTP 实现 |
+| infrastructure | `animetracker-infrastructure` | 外部能力实现：MinIO 对象存储、Resend 邮件网关、Redis 工具、限流器 |
+| auth | `animetracker-auth` | JWT 签发/验签、刷新会话 store（`AuthSessionStore` / `AuthTokenService`）、安全工具 |
+| log | `animetracker-log` | 操作审计：`@OperationLog` 注解、`OperationLogAspect`、`OperationLogMapper`、`LogStatsMapper.xml`、日志清理任务 |
+| agent | `animetracker-agent` | `ClientAgentController` / `AdminAgentController` → AgentService 代理 Python Agent；`ImportAgentGateway` 端口与 `HttpImportAgentGateway` 实现 |
+| client | `animetracker-client` | 用户端 Controller → Service → Mapper/Store |
+| admin | `animetracker-admin` | 管理端 Controller → Service → Mapper/Store |
+| app | `animetracker-app` | 启动入口、配置绑定（`app.config`）、安全策略、`CookieOriginFilter` 与 web 配置 |
 
-外部端口由消费者模块定义，运行时实现由 `app.infrastructure` 装配：共享 `common.storage.ImageStorageGateway` 的 MinIO 实现在 `app.infrastructure.storage.minio`；`client.gateway.EmailGateway` 的 Resend 实现在 `app.infrastructure.email`；`admin.gateway.ImportAgentGateway` 的 HTTP 实现在 `app.infrastructure.agent`。
+`ImportAgentGateway` 端口定义在 `agent` 模块的 `top.zhaizz.agent.gateway`，由 `admin` 的 `ImportServiceImpl` 消费，HTTP 实现 `HttpImportAgentGateway` 同置于 `agent` 模块。对象存储、邮件等共享能力统一由 `infrastructure` 模块提供。
 
 ### Controller 清单
 
@@ -81,7 +92,7 @@ business/
 
 ## 分层约定
 
-`admin` 与 `client` 统一采用 Controller → Service → Mapper/Store 分层。entity↔vo/dto 转换中复杂或可复用的部分集中到 converter 包，简单映射可在 service 内完成；controller 不承载转换逻辑：
+`admin` 与 `client` 统一采用 Controller → Service → Mapper/Store 分层（`agent` 代理模块为 Controller → Service → Gateway 端口）。entity↔vo/dto 转换中复杂或可复用的部分集中到 converter 包，简单映射可在 service 内完成；controller 不承载转换逻辑：
 
 ```
 controller/   # 参数绑定 + SecurityUtil 取身份 + 调 service（无业务逻辑、无 SQL）
@@ -101,7 +112,7 @@ converter/    # 实体 ⇄ DTO/VO 转换
 ### 错误拦截
 
 - 错误码 = HTTP 状态码，统一 `ErrorType` 枚举 + `BizException`；Service 层 `throw new BizException(ErrorType.X, "中文消息")`。
-- 安全层 401/403 走 app 模块的 `SecurityConfig.writeJson`；业务异常 / 参数校验走 `GlobalExceptionHandler`。
+- 安全层 401/403 走 app 模块的 `SecurityConfig.writeJson`；业务异常 / 参数校验走 `app.web.GlobalExceptionHandler`；刷新/退出请求的 Origin 校验由 `auth` 模块的 `CookieOriginFilter` 实现。
 - 响应体统一 `{code, message, data}`；禁止向客户端透传内部细节（resourcePath、SQL、堆栈）。
 - `DataIntegrityViolationException` → 409，方法级鉴权失败 → 403，未知异常 → 500。
 
@@ -146,7 +157,7 @@ java -jar app/target/animetracker-app-*.jar --spring.profiles.active=local
 |------|------|
 | `at.datasource.host` / `port` / `database` / `username` / `password` | MySQL 连接（默认库名 `anime_tracker`） |
 | `at.data.redis.host` / `port` / `password` / `database` | Redis 连接（默认 database=1） |
-| `at.jwt.secret` / `expiration` / `refresh-expiration` / `max-session-expiration` | JWT 签名密钥与有效期；**必须与 Agent 的 `JWT_SECRET` 一致** |
+| `jwt.secret` / `jwt.expiration` / `jwt.refresh-expiration` / `jwt.max-session-expiration`（另有 `jwt.max-login-fails` / `jwt.login-fail-window-minutes`） | JWT 签名密钥与有效期；**`jwt.secret` 必须与 Agent 的 `JWT_SECRET` 一致** |
 | `at.auth.refresh-cookie.secure` | 刷新 Cookie 是否启用 Secure，默认 `true`；由环境变量 `AT_AUTH_COOKIE_SECURE` 覆盖 |
 | `minio.host` / `port`、`at.minio.access-key` / `secret-key` / `bucket` | 对象存储 |
 | `at.resend.api-key` / `send-email` | 邮件验证服务 |
@@ -233,10 +244,11 @@ business 的 `agent` 模块会把请求代理到 `http://${at.agent.host}:${at.a
 
 | 模块 | XML 文件 |
 |------|---------|
-| admin | `AdminLogMapper.xml`、`DashboardMapper.xml` |
+| admin | `DashboardMapper.xml` |
 | client | `CollectionMapper.xml`、`EvidenceMapper.xml`、`SubjectMapper.xml`、`SubjectTagMapper.xml` |
+| log | `LogStatsMapper.xml` |
 
-> common 的 `OperationLogMapper` 使用 MyBatis-Plus 注解方式，无 XML 文件。
+> `OperationLogMapper` 位于 `log` 模块，使用 MyBatis-Plus 注解方式，无 XML 文件；`log` 模块另有 `LogStatsMapper.xml`（统计 SQL）。
 
 脚本包含 23 张表：
 
@@ -252,21 +264,22 @@ business 的 `agent` 模块会把请求代理到 `http://${at.agent.host}:${at.a
 mvn test
 ```
 
-当前共 11 个测试类：
+当前共 31 个测试类，按模块分布：
 
-| 测试 | 覆盖范围 |
-|------|---------|
-| `app/.../architecture/ArchitectureBoundaryTest` | 模块边界与分层依赖约束（ArchUnit） |
-| `app/.../config/AppConfigurationBindingTest` | 配置绑定 |
-| `app/.../config/AgentConfigTest` | Agent 地址与超时配置 |
-| `app/.../config/MyBatisEntityAliasTest` | MyBatis 实体别名解析 |
-| `app/.../security/CookieOriginFilterTest` | 刷新/退出请求的 Origin 校验 |
-| `securitytest/SecurityConfigAuthorizationTest` | 安全策略与授权规则 |
-| `client/.../controller/EvidenceControllerTest` | Evidence 接口行为 |
-| `client/.../service/impl/EvidenceServiceImplTest` | Evidence 组装逻辑 |
-| `client/.../service/impl/ClientSubjectServiceLexicalTest` | 词法检索服务 |
-| `client/.../mapper/EvidenceMapperSqlCompatibilityTest` | Evidence SQL 兼容性 |
-| `client/.../mapper/SubjectMapperLexicalSqlCompatibilityTest` | 词法检索 SQL 兼容性 |
+| 模块 | 测试 | 覆盖范围 |
+|------|------|---------|
+| app | `architecture/ArchitectureBoundaryTest` | 模块边界与分层依赖约束（ArchUnit） |
+| app | `config/AppConfigurationBindingTest`、`AgentConfigTest`、`MyBatisEntityAliasTest` | 配置绑定、Agent 地址/超时、实体别名解析 |
+| app | `security/CookieOriginFilterTest`、`securitytest/SecurityConfigAuthorizationTest` | 刷新/退出 Origin 校验、安全策略与授权规则 |
+| auth | `AuthSessionStoreTest`、`AuthTokenServiceTest` | 刷新会话存储与令牌签发 |
+| client | `EvidenceControllerTest`、`EvidenceServiceImplTest`、`AuthServiceImplTest`、`ClientSubjectServiceLexicalTest` | Evidence 接口与组装、认证服务、词法检索服务 |
+| client | `EvidenceMapperSqlCompatibilityTest`、`SubjectMapperLexicalSqlCompatibilityTest` | SQL 兼容性 |
+| client | `CollectionConverterTest`、`SubjectVoConverterTest`、`ProgressPreviewSnapshotJsonTest` | 转换器与进度预览快照序列化 |
+| admin | `SubjectVoConverterTest` | 管理端 VO 转换 |
+| agent | `AdminAgentControllerTest`、`ClientAgentControllerTest`、`HttpImportAgentGatewayTest` | Agent 代理控制器与导入网关 |
+| infrastructure | `MinioGatewayTest`、`RateLimiterTest`、`RedisUtilTest`、`ResendGatewayTest` | MinIO、限流、Redis、Resend 网关 |
+| log | `OperationLogAspectTest`、`LogQueryServiceImplTest`、`OperationLogCleanupTaskTest` | 审计切面、查询、清理任务 |
+| pojo | `BuilderDefaultsTest`、`DataSemanticsTest` | VO 构建默认值与数据语义 |
 
 父 POM 已引入 `spring-boot-starter-test`、`spring-security-test`、`h2` 与 `archunit-junit5`。Agent 侧测试位于 [`../agent/tests/`](../agent/tests/)。
 

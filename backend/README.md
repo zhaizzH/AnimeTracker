@@ -59,12 +59,15 @@
 ```
 backend/
 ├── business/     # Spring Boot 多模块工程（Java 21，端口 8080）
-│   ├── common/   # 公共基础：Result/异常/JWT/Redis/安全/MinIO 端口、操作审计、限流
-│   ├── pojo/     # 实体 / DTO / VO（dto、vo 按领域子包分包，共 20 个实体）
-│   ├── admin/    # 管理端：条目 CRUD、用户管理、数据导入、仪表盘统计、操作日志
-│   ├── client/   # 用户端：浏览/搜索、认证、收藏、标签、剧集进度、Evidence、词法检索
-│   ├── agent/    # Agent 代理模块（转发至 Python Agent）
-│   └── app/      # 启动模块：配置类、安全策略、Infrastructure 适配器，Spring Boot 入口
+│   ├── common/          # 统一结果（Result/PageResult）与错误（ErrorType/BizException）
+│   ├── pojo/            # 实体 / DTO / VO（dto、vo 按领域子包分包，共 20 个实体）
+│   ├── infrastructure/  # 共享平台实现：MinIO 存储、Resend 邮件、Redis、限流
+│   ├── auth/            # 认证会话：JWT 签发/验签、刷新会话 store
+│   ├── log/             # 操作审计：@OperationLog 注解、AOP、Mapper、清理任务
+│   ├── agent/           # Agent 代理模块（转发至 Python Agent）
+│   ├── admin/           # 管理端：条目 CRUD、用户管理、数据导入、仪表盘统计、操作日志
+│   ├── client/          # 用户端：浏览/搜索、认证、收藏、标签、剧集进度、Evidence、词法检索
+│   └── app/             # 启动模块：配置类、安全策略、filter/web 配置，Spring Boot 入口
 └── agent/        # AI Agent（FastAPI + LangGraph，端口 8090，v3.0.0）
     ├── main.py       # FastAPI 入口，注册 client / admin / import 路由
     ├── pyproject.toml
@@ -176,7 +179,7 @@ uv run python -m jobs.indexer.gate --index-version v1 --report-dir ./reports --a
 
 | 文档 | 内容 |
 |------|------|
-| [`business/README.md`](business/README.md) | 多模块架构、模块职责、分层约定、配置、测试 |
+| [`business/README.md`](business/README.md) | 九模块架构、模块职责、分层约定、配置、测试 |
 | [`agent/README.md`](agent/README.md) | LangGraph 状态图、SSE 协议、RAG 与证据链、托管提示词、`.env` 配置、接口清单 |
 | [`agent/jobs/importer/README.md`](agent/jobs/importer/README.md) | 导入模式、并发模型、断点续传、`.env` 配置、写入表 |
 
@@ -184,9 +187,9 @@ uv run python -m jobs.indexer.gate --index-version v1 --report-dir ./reports --a
 
 ## 认证会话部署
 
-business 通过 Redis 保存轮换刷新会话，响应只返回短期 Access Token；刷新凭据写入 `at_refresh` HttpOnly Cookie（路径 `/api/client/auth`，SameSite=Lax）。
+business 通过 Redis 保存轮换刷新会话（`auth` 模块的 `AuthSessionStore`），响应只返回短期 Access Token；刷新凭据写入 `at_refresh` HttpOnly Cookie（路径 `/api/client/auth`，SameSite=Lax）。
 
-- 有效期：Access Token 默认 30 分钟，刷新会话空闲 7 天、绝对上限 30 天（配置项见 `application.yml` 的 `jwt.*`）。
+- 有效期：Access Token 默认 30 分钟，刷新会话空闲 7 天、绝对上限 30 天（配置项见 `application.yml` 的 `jwt.*`，含 `jwt.max-login-fails` 登录失败限流）。
 - 撤销场景：退出登录、改密、重置密码、禁用账户和角色变更。
 - Cookie 默认启用 Secure（`at.auth.refresh-cookie.secure` ← `AT_AUTH_COOKIE_SECURE`，默认 `true`）；本地 HTTP 开发环境才显式设为 `false`，并确保 `at.cors.allowed-origins` 使用实际前端 Origin。
 - 刷新与退出接口会校验 Origin（由 `CookieOriginFilter` 实现，另有对应测试）。
@@ -205,7 +208,7 @@ A：`JWT_SECRET` 与 business 的 `jwt.secret` 不一致。两者默认值都是
 A：这是告警而非致命错误，服务会继续启动，但会话与历史消息功能不可用。修复 Redis 地址后重启即可。
 
 **Q：`mvn test` 现在跑哪些用例？**
-A：business 已有 11 个测试类，覆盖架构边界（ArchUnit）、安全配置、Cookie Origin 过滤、配置绑定、MyBatis 实体别名、Evidence 服务与 Mapper、词法与 Evidence SQL 兼容性。Agent 侧的有效测试位于 [`agent/tests/`](agent/tests/)。
+A：business 现有 31 个测试类，按模块分布（详见 [`business/README.md`](business/README.md) 的测试一节）：架构边界（ArchUnit）、安全与 Cookie Origin、配置绑定、认证会话、Evidence 服务与 Mapper、词法检索、审计日志、infrastructure 网关、pojo 数据语义等。Agent 侧共 468 个 pytest 用例，位于 [`agent/tests/`](agent/tests/)。
 
 **Q：词法检索报错或返回空？**
 A：`POST /api/client/subjects/lexical-search` 依赖 `search_document` 表的 `ngram` FULLTEXT 投影与 `search_index_release` 中的激活版本。若尚未运行 `jobs/indexer` 构建并激活索引，该接口没有可召回的数据。
