@@ -126,6 +126,9 @@ backend/business/app/src/main/resources/application-local.yml
 
 # AI Agent local env
 backend/agent/.env
+# 导入子进程运行时产物（PID/日志），绝不入库
+backend/agent/jobs/importer/importer.pid
+backend/agent/jobs/importer/import.log
 backend/agent/agent.db*
 backend/agent/.pytest-work/
 backend/agent/.pytest-tmp*/
