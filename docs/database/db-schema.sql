@@ -431,7 +431,9 @@ CREATE TABLE `character_alias`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `subject_person_credit`;
 -- 主创关系单表：person_id 已解析填 FK（name 为 NULL）；未解析 person_id 为 NULL + name 存占位名。
--- dedup_key 生成列保证两种行都能唯一去重。
+-- dedup_key 生成列保证两种行都能唯一去重；用 sha2 定长哈希而非明文拼接，避免生成列
+-- 变成隐式长度约束（明文拼接理论上限约 360 字符，严格模式下会报 1406 并回滚整个事务），
+-- 同时消除分隔符歧义。
 CREATE TABLE `subject_person_credit`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '关联ID',
   `subject_id` bigint NOT NULL COMMENT '条目ID',
@@ -441,7 +443,7 @@ CREATE TABLE `subject_person_credit`  (
   `role` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '职责（如导演、脚本）',
   `relation` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'MAIN' COMMENT '关系类型: MAIN=主要, SUB=次要',
   `sort_order` int NOT NULL DEFAULT 0 COMMENT '来源排序',
-  `dedup_key` varchar(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci GENERATED ALWAYS AS (concat_ws('#', `subject_id`, `role`, ifnull(`person_id`, 0), ifnull(`name`, ''))) VIRTUAL COMMENT '去重键',
+  `dedup_key` char(64) CHARACTER SET ascii COLLATE ascii_bin GENERATED ALWAYS AS (sha2(concat_ws('#', `subject_id`, `role`, ifnull(`person_id`, 0), ifnull(`name`, '')), 256)) VIRTUAL COMMENT '去重键（(subject_id,role,person_id,name) 的 sha256 十六进制）',
   `source_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT '上游是否仍然活跃',
   `created_at` datetime NOT NULL COMMENT '创建时间',
   `updated_at` datetime NOT NULL COMMENT '更新时间',

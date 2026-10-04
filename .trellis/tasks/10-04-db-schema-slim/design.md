@@ -19,7 +19,10 @@ credit_type varchar(16) NOT NULL DEFAULT 'PERSON',  -- PERSON / ORGANIZATION
 UNIQUE KEY uk_spc (subject_id, role, COALESCE(person_id, 0), COALESCE(name, ''))
 ```
 
-MySQL 唯一键不允许表达式？8.0 支持 functional index；保守做法加生成列 `dedup_key varchar(320) GENERATED ALWAYS AS (concat_ws('#', subject_id, role, ifnull(person_id,0), ifnull(name,''))) STORED` + 唯一键。
+MySQL 唯一键不允许表达式？8.0 支持 functional index；保守做法加生成列 `dedup_key` + 唯一键。
+
+> **实现期修订**：生成列必须是 `VIRTUAL` 而非 `STORED`（STORED 生成列引用 FK 列时 MySQL 禁止 `ON DELETE CASCADE`）。最终形态为
+> `dedup_key char(64) GENERATED ALWAYS AS (sha2(concat_ws('#', subject_id, role, ifnull(person_id,0), ifnull(name,'')), 256)) VIRTUAL`——用 sha2 定长哈希而非明文拼接，避免生成列变成隐式长度约束（明文拼接理论上限约 360 字符，严格模式下超长报 1406 并回滚整个 subject 事务），同时消除分隔符歧义。已在 MySQL 8.4.9 实测：重复被唯一键拦截，255 字符占位名可正常插入。
 
 **数据流变更**
 - importer `repository.py:670-698`：删 subject_credit 双写，未解析 person 的 credit 写 name 占位行

@@ -11,7 +11,9 @@
 - [x] 其余不动；search_index_release 保留
 - 已提交 `4afa38be`；临时库验证 20 表建成、dedup_key 与 job 唯一键生效
 - 两个坑：① STORED 生成列引用 FK 列时禁止 ON DELETE CASCADE → 改用 VIRTUAL
-  ② dedup_key 定长 varchar(191)（原 384 超 utf8mb4 索引 3072 字节上限）
+  ② dedup_key 曾用定长 varchar(191)（原 384 超 utf8mb4 索引字节上限）；复核后改为
+     `char(64) GENERATED ALWAYS AS (sha2(concat_ws('#', subject_id, role, ifnull(person_id,0), ifnull(name,'')), 256))`，
+     消除隐式长度约束（明文拼接理论上限约 360 字符，严格模式会报 1406 回滚整个事务）与分隔符歧义
 
 ### 2. Python 侧 credit 合并（R1） ✅
 - [x] `jobs/importer/repository.py`：删 subject_credit 双写；未解析 credit 写 name 占位

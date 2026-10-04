@@ -70,6 +70,18 @@ cd backend/business && mvn -q -o test-compile
 5. **credit 占位行无提升路径**：`person_id IS NULL` 的行不会被 backfill 回填，靠下次 full import 写 FK 行 + stale-mark 自愈（spec 已按实际行为改写）。
 6. **`SEARCH_INDEX` 的 lease 回收写入 `FAILED`+`NULL` 表示耗尽**，与 `mark_failed` 的 `ABANDONED` 终态不一致（功能上由 `attempts < max_attempts` 兜住，属一致性问题）。
 
+## 待开任务：`jobs/backfill --pause` 对 PENDING 任务无效（既有缺陷，非本分支引入）
+
+**用户已决定：本次只记录，另开任务处理。**
+
+- 位置：`backend/agent/jobs/backfill/repository.py:231-251` `pause()` 与 `:127-137` claim 谓词
+- 现象：`pause()` 把 PENDING/FAILED 行的 `next_retry_at` 设为一年后（docstring 明写「暂停所有 PENDING 任务（…next_retry_at 远未来）」），但 claim 的 **PENDING 分支完全不看 `next_retry_at`**，所以被暂停的 PENDING 详情任务照常被领取。`--resume`（`:253-272`）对 PENDING 同为空操作。
+- 影响：`--pause`（CLI 帮助文字「暂停所有待处理任务」，`jobs/backfill/main.py:35`）只拦得住 FAILED 行，运维用它停 backfill 不生效。
+- 测试为何没暴露：`tests/jobs/backfill/test_backfill.py:153-163` 只断言「发出了 UPDATE」，未验证 claim 行为。
+- 修复方向：claim 的 PENDING 分支加 `AND (next_retry_at IS NULL OR next_retry_at <= :now)`。安全——正常 PENDING 行的 `next_retry_at` 本就是 NULL（`enqueue` 不写该列），只有被 `pause()` 设过远期时间的行会被挡住。补一条「pause 后 claim 返回空」的用例。
+- 注意：**不要**顺手把 FAILED 分支的 `IS NULL` 也去掉——`resume()` 依赖它（见 spec「claim 谓词里的 `next_retry_at IS NULL` 按 type 而异」）。
+- 历史：旧 `entity_detail_job` 的谓词形状相同，属历史遗留。
+
 ## 复核（trellis-check）修复摘要
 
 复核发现 3 个「应修」，均已修复并补护栏测试（详见 [`implement.md`](implement.md) 的「复核发现与修复」段）：
