@@ -288,6 +288,47 @@ class TestTombstoneBatch:
         assert jobs[0].entity_kind == EntityKind.SUBJECT
 
 
+class TestTypeScopeIsolation:
+    """合并成单 `job` 表后，凡是按集合筛选的语句都必须限定 `type='SEARCH_INDEX'`。
+
+    没有 type 条件的 UPDATE/SELECT 会误伤 RAG_INDEX / ENTITY_DETAIL 的任务。
+    `WHERE id=:id` 的语句是安全的——id 只取自本 type 的 claim 结果（见 spec
+    「针对 job 表的每条 SQL 必须带 type= 或 id= 作用域」）。
+    """
+
+    def test_claim_predicate_is_scoped(self):
+        session = _FakeSession()
+        _make_repo(session=session).claim_batch(10, index_version="v1")
+        sql = next(s for s, _ in session.calls if "FOR UPDATE SKIP LOCKED" in s)
+        assert "type='SEARCH_INDEX'" in sql
+
+    def test_lease_recovery_is_scoped(self):
+        session = _FakeSession()
+        _make_repo(session=session).claim_batch(10, index_version="v1")
+        sql = next(s for s, _ in session.calls if "LEASE_EXPIRED" in s)
+        assert "type='SEARCH_INDEX'" in sql
+
+    def test_pending_count_is_scoped(self):
+        session = _FakeSession()
+        _make_repo(session=session).pending_count("v1")
+        sql = next(s for s, _ in session.calls if "COUNT(*)" in s)
+        assert "type='SEARCH_INDEX'" in sql
+
+    def test_tombstone_batch_is_scoped(self):
+        session = _FakeSession()
+        _make_repo(session=session).tombstone_batch("v1", 10)
+        sql = next(s for s, _ in session.calls if "FOR UPDATE SKIP LOCKED" in s)
+        assert "type='SEARCH_INDEX'" in sql
+
+    def test_enqueue_lookup_is_scoped(self):
+        session = _FakeSession()
+        _make_repo(session=session).enqueue(
+            EntityKind.PERSON, 42, "v1", "a" * 64,
+        )
+        sql = next(s for s, _ in session.calls if "SELECT id, content_hash, status" in s)
+        assert "type='SEARCH_INDEX'" in sql
+
+
 class TestSanitizeMessage:
     def test_strips_control_chars(self):
         assert "\x00" not in _sanitize_message("hello\x00world")

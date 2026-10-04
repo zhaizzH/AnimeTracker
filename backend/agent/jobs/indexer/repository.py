@@ -11,7 +11,6 @@ from sqlalchemy import text
 
 MAX_ATTEMPTS = 5
 RUNNING_LEASE_SECONDS = 15 * 60
-JOB_TYPE = "RAG_INDEX"
 
 
 @dataclass(frozen=True)

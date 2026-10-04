@@ -5,6 +5,12 @@ import java.time.LocalDateTime;
 
 /**
  * 条目-人物主创关联实体
+ *
+ * <p>主创关系单表：已解析到 {@code person} 表时 {@code personId} 填 FK 且 {@code name} 为
+ * NULL；未解析时 {@code personId} 为 NULL 且 {@code name} 存占位名。
+ *
+ * <p>表上的 {@code dedup_key} 是 VIRTUAL 生成列，仅供唯一索引去重，故意不映射为字段
+ * —— 映射后 MyBatis-Plus 的 insert 会尝试写入生成列并报错。
  */
 @TableName("subject_person_credit")
 public class SubjectPersonCredit {
@@ -15,8 +21,14 @@ public class SubjectPersonCredit {
     /** 条目ID */
     private Long subjectId;             // 条目ID
 
-    /** 人物ID */
-    private Long personId;              // 人物ID
+    /** 人物ID（未解析上游人物时为 NULL，此时用 name 存占位名） */
+    private Long personId;              // 人物ID（未解析为 NULL）
+
+    /** 占位名（personId 为 NULL 时填） */
+    private String name;                // 占位名（personId 为 NULL 时填）
+
+    /** 主创类型: PERSON=个人, ORGANIZATION=公司/组合 */
+    private String creditType;          // 主创类型: PERSON 或 ORGANIZATION
 
     /** 职责（如导演、脚本） */
     private String role;                // 职责（如导演、脚本）
@@ -58,10 +70,26 @@ public class SubjectPersonCredit {
 
     /**
      * 获取人物ID
-     * @return 人物ID；未持久化或未提供时为 {@code null}
+     * @return 人物ID；**未解析上游人物时非空集合语义下为 {@code null}**，此时用 {@link #getName()} 的占位名
      */
     public Long getPersonId() {
         return this.personId;
+    }
+
+    /**
+     * 获取占位名
+     * @return 占位名；仅当 personId 为 {@code null} 时有值，已解析行返回 {@code null}
+     */
+    public String getName() {
+        return this.name;
+    }
+
+    /**
+     * 获取主创类型: PERSON=个人, ORGANIZATION=公司/组合
+     * @return 主创类型；未持久化或未提供时为 {@code null}
+     */
+    public String getCreditType() {
+        return this.creditType;
     }
 
     /**
@@ -130,10 +158,26 @@ public class SubjectPersonCredit {
 
     /**
      * 替换人物ID
-     * @param personId 人物ID，可为 {@code null}
+     * @param personId 人物ID，可为 {@code null}（未解析上游人物）
      */
     public void setPersonId(final Long personId) {
         this.personId = personId;
+    }
+
+    /**
+     * 替换占位名
+     * @param name 占位名，可为 {@code null}（已解析行应传 {@code null}）
+     */
+    public void setName(final String name) {
+        this.name = name;
+    }
+
+    /**
+     * 替换主创类型: PERSON=个人, ORGANIZATION=公司/组合
+     * @param creditType 主创类型，可为 {@code null}
+     */
+    public void setCreditType(final String creditType) {
+        this.creditType = creditType;
     }
 
     /**
@@ -204,6 +248,12 @@ public class SubjectPersonCredit {
         final Object thisPersonId = this.getPersonId();
         final Object otherPersonId = other.getPersonId();
         if (thisPersonId == null ? otherPersonId != null : !thisPersonId.equals(otherPersonId)) return false;
+        final Object thisName = this.getName();
+        final Object otherName = other.getName();
+        if (thisName == null ? otherName != null : !thisName.equals(otherName)) return false;
+        final Object thisCreditType = this.getCreditType();
+        final Object otherCreditType = other.getCreditType();
+        if (thisCreditType == null ? otherCreditType != null : !thisCreditType.equals(otherCreditType)) return false;
         final Object thisSortOrder = this.getSortOrder();
         final Object otherSortOrder = other.getSortOrder();
         if (thisSortOrder == null ? otherSortOrder != null : !thisSortOrder.equals(otherSortOrder)) return false;
@@ -248,6 +298,10 @@ public class SubjectPersonCredit {
         result = result * PRIME + (hashSubjectId == null ? 43 : hashSubjectId.hashCode());
         final Object hashPersonId = this.getPersonId();
         result = result * PRIME + (hashPersonId == null ? 43 : hashPersonId.hashCode());
+        final Object hashName = this.getName();
+        result = result * PRIME + (hashName == null ? 43 : hashName.hashCode());
+        final Object hashCreditType = this.getCreditType();
+        result = result * PRIME + (hashCreditType == null ? 43 : hashCreditType.hashCode());
         final Object hashSortOrder = this.getSortOrder();
         result = result * PRIME + (hashSortOrder == null ? 43 : hashSortOrder.hashCode());
         final Object hashSourceActive = this.getSourceActive();
@@ -269,6 +323,6 @@ public class SubjectPersonCredit {
      */
     @Override
     public String toString() {
-        return "SubjectPersonCredit(id=" + this.getId() + ", subjectId=" + this.getSubjectId() + ", personId=" + this.getPersonId() + ", role=" + this.getRole() + ", relation=" + this.getRelation() + ", sortOrder=" + this.getSortOrder() + ", sourceActive=" + this.getSourceActive() + ", createdAt=" + this.getCreatedAt() + ", updatedAt=" + this.getUpdatedAt() + ")";
+        return "SubjectPersonCredit(id=" + this.getId() + ", subjectId=" + this.getSubjectId() + ", personId=" + this.getPersonId() + ", name=" + this.getName() + ", creditType=" + this.getCreditType() + ", role=" + this.getRole() + ", relation=" + this.getRelation() + ", sortOrder=" + this.getSortOrder() + ", sourceActive=" + this.getSourceActive() + ", createdAt=" + this.getCreatedAt() + ", updatedAt=" + this.getUpdatedAt() + ")";
     }
 }
