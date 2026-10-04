@@ -47,11 +47,31 @@
 - [x] `OperationLogConstants` 删除对应两个常量
 - 未改 `operation_log` 表结构（R3 明确不动）；`db-schema.sql` 的 action 列注释同步保留原样以免与生产库 drift
 
-### 7. 重建执行（R7） ⏸ 未执行（用户决定：先出 runbook）
-- [ ] mysqldump 备份 user/user_collection/operation_log + 整库
-- [ ] 新 schema 建库 → 恢复三表 → 部署 → full import
-- [ ] 对账：person/character/credit/search_document 计数、credit 摘要抽样 diff
+### 7. 重建执行（R7） 🟡 本地已执行至索引重建，因网络受阻
+- [x] mysqldump 备份 user/user_collection/operation_log + 整库，并**实测可还原**（逐表行数一致）
+- [x] 新 schema 建库（DROP + CREATE + db-schema.sql）→ 20 表
+- [x] 恢复用户三表 → AC7 通过
+- [x] 部署：本地运行直接用工作区新代码
+- [x] 导入：`--mode season --key 2026-autumn` → 136 条，COMPLETED（用户选择先小范围验证链路，未跑 full）
+- [ ] 索引重建：**受阻于网络**（`dashscope.aliyuncs.com` 被 fake-IP DNS 解析到 `198.18.0.19`，TLS 失败）→ 42 个任务 `EMBEDDING_UNAVAILABLE/attempts=1`，可重试，网络恢复后重跑即可接上
+- [ ] backfill（`ENTITY_DETAIL` 4080 个 PENDING）
 - runbook： [`runbook-r7.md`](runbook-r7.md)
+
+#### 对账结果
+
+| AC | 结果 |
+|---|---|
+| AC1 `SHOW TABLES` | ✅ 20 张，4 张旧 job/credit 表已消失 |
+| AC2 credit 摘要 | ✅ 98 个重叠 `bangumi_id` 中 97 个逐字符一致；唯一差异 `622288` 经集合差确认为**上游超集**（旧 146 条 ⊆ 新 150 条，`仅旧有=0`），非迁移丢失 |
+| AC6 operation_log | ✅ SUBJECT_CREATE/UPDATE 行数 = 0 |
+| AC7 用户三表 | ✅ user 2 / user_collection 12 / operation_log 74，与基线一致 |
+| AC4 并发锁 / AC5 无周期写 | ✅ 运行中 `subject_count` 保持 0 而 `success_count` 递增，终态一次性写 136 |
+
+#### R7 实测发现的 3 个问题（已写入 runbook）
+
+1. **`db-schema.sql` 不能在存量库上执行** —— 按字母序 DROP，`person`（L335）早于 `person_alias`（L394），旧 FK 导致 `ERROR 3730`，库留在半迁移状态。正确做法是整库 `DROP DATABASE` + `CREATE DATABASE` 后执行（脚本本就要求空库）。
+2. **AC2 必须按 `bangumi_id` 比对** —— `subject.id` 是自增、重灌后重新分配，按 local id 比对会得出"131/136 全不一致"的假结果。
+3. **备份还原必须带 `--default-character-set=utf8mb4`（客户端侧）** —— 否则多字节文本在客户端默认字符集（GBK）下错位出 `\`，被当作客户端命令，报出极具误导性的 `ERROR 2005 Unknown MySQL server host '<乱码>'` / `Unknown command '\''`。**看起来像备份损坏，实则备份完好。**
 
 ## 验证结果（2026-10-04）
 
