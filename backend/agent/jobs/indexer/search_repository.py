@@ -1,8 +1,7 @@
-"""通用 search_index_job 仓储实现。
+"""通用 SEARCH_INDEX 任务仓储实现（统一 job 表）。
 
 支持 SUBJECT/EPISODE/PERSON/CHARACTER 多实体类型的索引任务管理。
-与旧 rag_index_job (仅 Subject) 共存；新实体走 search_index_job，
-Subject 仍可通过旧 repository 处理以保持向后兼容。
+type='SEARCH_INDEX'；embedding 元组与 profile_version 存 payload_json。
 """
 
 from __future__ import annotations
@@ -16,8 +15,7 @@ from typing import Any, Callable
 from sqlalchemy import text
 
 from app.entities.enums import EntityKind, JobStatus
-from app.entities.models import SearchIndexJob
-
+from jobs.job_payload import decode as _decode_payload, encode as _encode_payload
 
 MAX_ATTEMPTS = 5
 RUNNING_LEASE_SECONDS = 15 * 60
@@ -43,10 +41,9 @@ class ClaimedJob:
 
 
 class SearchIndexJobRepositoryImpl:
-    """search_index_job 的 MySQL 实现。
+    """job 表（type=SEARCH_INDEX）的 MySQL 实现。
 
-    遵循 claim/lease/complete/fail/tombstone 生命周期，
-    与 IndexJobRepository (rag_index_job) 模式一致。
+    遵循 claim/lease/complete/fail/tombstone 生命周期。
     """
 
     def __init__(
@@ -77,11 +74,17 @@ class SearchIndexJobRepositoryImpl:
         if not content_hash:
             raise ValueError("content_hash 不能为空")
         now = _datetime_seconds(self._now())
+        payload = _encode_payload({
+            "embedding_provider": "dashscope",
+            "embedding_model": embedding_model,
+            "embedding_dimensions": embedding_dimensions,
+            "profile_version": profile_version,
+        })
         with self._session.begin():
             existing = self._session.execute(
                 text(
-                    "SELECT id, content_hash, status FROM search_index_job "
-                    "WHERE entity_kind=:kind AND entity_id=:entity_id AND index_version=:version"
+                    "SELECT id, content_hash, status FROM job "
+                    "WHERE type='SEARCH_INDEX' AND entity_kind=:kind AND entity_id=:entity_id AND index_version=:version"
                 ),
                 {"kind": str(entity_kind), "entity_id": entity_id, "version": index_version},
             ).mappings().first()
@@ -94,33 +97,26 @@ class SearchIndexJobRepositoryImpl:
                 # hash 变化：重新入队
                 self._session.execute(
                     text(
-                        "UPDATE search_index_job SET content_hash=:hash, profile_version=:pv, "
-                        "embedding_model=:model, embedding_dimensions=:dims, "
+                        "UPDATE job SET content_hash=:hash, payload_json=:payload, "
                         "status='PENDING', attempts=0, last_error_code=NULL, last_error_message=NULL, "
-                        "next_retry_at=NULL, claimed_at=NULL, indexed_at=NULL, updated_at=:now "
+                        "next_retry_at=NULL, claimed_at=NULL, finished_at=NULL, updated_at=:now "
                         "WHERE id=:id"
                     ),
-                    {
-                        "id": int(existing["id"]), "hash": content_hash, "pv": profile_version,
-                        "model": embedding_model, "dims": embedding_dimensions, "now": now,
-                    },
+                    {"id": int(existing["id"]), "hash": content_hash, "payload": payload, "now": now},
                 )
                 return JobStatus.PENDING
 
             self._session.execute(
                 text(
-                    "INSERT INTO search_index_job "
-                    "(entity_kind, entity_id, index_version, profile_version, content_hash, "
-                    "embedding_provider, embedding_model, embedding_dimensions, status, attempts, "
-                    "max_attempts, created_at, updated_at) "
-                    "VALUES (:kind, :entity_id, :version, :pv, :hash, "
-                    "'dashscope', :model, :dims, 'PENDING', 0, "
-                    ":max_attempts, :now, :now)"
+                    "INSERT INTO job "
+                    "(type, entity_kind, entity_id, index_version, content_hash, payload_json, "
+                    "status, attempts, max_attempts, created_at, updated_at) "
+                    "VALUES ('SEARCH_INDEX', :kind, :entity_id, :version, :hash, :payload, "
+                    "'PENDING', 0, :max_attempts, :now, :now)"
                 ),
                 {
                     "kind": str(entity_kind), "entity_id": entity_id, "version": index_version,
-                    "pv": profile_version, "hash": content_hash, "model": embedding_model,
-                    "dims": embedding_dimensions, "max_attempts": MAX_ATTEMPTS, "now": now,
+                    "hash": content_hash, "payload": payload, "max_attempts": MAX_ATTEMPTS, "now": now,
                 },
             )
             return JobStatus.PENDING
@@ -138,13 +134,13 @@ class SearchIndexJobRepositoryImpl:
             # 回收过期 lease
             self._session.execute(
                 text(
-                    "UPDATE search_index_job SET "
+                    "UPDATE job SET "
                     "status=CASE WHEN attempts >= max_attempts THEN 'FAILED' ELSE 'PENDING' END, "
                     "last_error_code='LEASE_EXPIRED', "
                     "last_error_message='search index worker lease expired', "
                     "next_retry_at=CASE WHEN attempts >= max_attempts THEN NULL ELSE :now END, "
                     "updated_at=:now "
-                    "WHERE index_version=:version AND status='CLAIMED' "
+                    "WHERE type='SEARCH_INDEX' AND index_version=:version AND status='CLAIMED' "
                     "AND updated_at <= :lease_before"
                 ),
                 {
@@ -155,11 +151,11 @@ class SearchIndexJobRepositoryImpl:
             )
             rows = self._session.execute(
                 text(
-                    "SELECT id, entity_kind, entity_id, index_version, profile_version, "
-                    "content_hash, embedding_provider, embedding_model, embedding_dimensions, attempts "
-                    "FROM search_index_job WHERE index_version=:version AND "
+                    # next_retry_at IS NULL 的 FAILED 行是终态，不可再领（见 repository.py 同款谓词）。
+                    "SELECT id, entity_kind, entity_id, index_version, content_hash, payload_json, attempts "
+                    "FROM job WHERE type='SEARCH_INDEX' AND index_version=:version AND "
                     "(status='PENDING' OR (status='FAILED' AND attempts < max_attempts "
-                    "AND (next_retry_at IS NULL OR next_retry_at <= :now))) "
+                    "AND next_retry_at <= :now)) "
                     "ORDER BY id LIMIT :limit FOR UPDATE SKIP LOCKED"
                 ),
                 {"version": index_version, "now": now, "limit": capped},
@@ -171,27 +167,12 @@ class SearchIndexJobRepositoryImpl:
                 attempts = int(row["attempts"]) + 1
                 self._session.execute(
                     text(
-                        "UPDATE search_index_job SET status='CLAIMED', attempts=:attempts, "
+                        "UPDATE job SET status='CLAIMED', attempts=:attempts, "
                         "claimed_at=:now, next_retry_at=NULL, updated_at=:now WHERE id=:id"
                     ),
                     {"id": job_id, "attempts": attempts, "now": now},
                 )
-                jobs.append(
-                    ClaimedJob(
-                        id=job_id,
-                        entity_kind=EntityKind(str(row["entity_kind"])),
-                        entity_id=int(row["entity_id"]),
-                        index_version=str(row["index_version"]),
-                        profile_version=str(row["profile_version"]),
-                        content_hash=str(row["content_hash"]),
-                        embedding_provider=str(row["embedding_provider"]),
-                        embedding_model=str(row["embedding_model"]),
-                        embedding_dimensions=int(row["embedding_dimensions"]),
-                        attempts=attempts,
-                        status=JobStatus.CLAIMED,
-                        claimed_at=now,
-                    )
-                )
+                jobs.append(_claimed_job(row, attempts, now))
         return jobs
 
     def mark_completed(self, job_id: int, *, claimed_at: datetime | None = None) -> bool:
@@ -200,7 +181,7 @@ class SearchIndexJobRepositoryImpl:
         with self._session.begin():
             result = self._session.execute(
                 text(
-                    "UPDATE search_index_job SET status='COMPLETED', indexed_at=:now, "
+                    "UPDATE job SET status='COMPLETED', finished_at=:now, "
                     "last_error_code=NULL, last_error_message=NULL, updated_at=:now "
                     "WHERE id=:id AND status='CLAIMED' "
                     "AND (:claimed_at IS NULL OR claimed_at=:claimed_at)"
@@ -222,7 +203,7 @@ class SearchIndexJobRepositoryImpl:
         now = _datetime_seconds(self._now())
         with self._session.begin():
             row = self._session.execute(
-                text("SELECT attempts, max_attempts FROM search_index_job WHERE id=:id AND status='CLAIMED'"),
+                text("SELECT attempts, max_attempts FROM job WHERE id=:id AND status='CLAIMED'"),
                 {"id": job_id},
             ).mappings().first()
             if row is None:
@@ -235,7 +216,7 @@ class SearchIndexJobRepositoryImpl:
                 next_retry = now + timedelta(seconds=retry_seconds or min(3600, 2**attempts * 30))
             result = self._session.execute(
                 text(
-                    "UPDATE search_index_job SET status=:status, last_error_code=:code, "
+                    "UPDATE job SET status=:status, last_error_code=:code, "
                     "last_error_message=:message, next_retry_at=:retry_at, updated_at=:now "
                     "WHERE id=:id AND status='CLAIMED' "
                     "AND (:claimed_at IS NULL OR claimed_at=:claimed_at)"
@@ -254,12 +235,11 @@ class SearchIndexJobRepositoryImpl:
         with self._session.begin():
             self._session.execute(
                 text(
-                    "INSERT INTO search_index_job "
-                    "(entity_kind, entity_id, index_version, profile_version, content_hash, "
-                    "embedding_provider, embedding_model, embedding_dimensions, status, attempts, "
-                    "max_attempts, created_at, updated_at) "
-                    "VALUES (:kind, :entity_id, :version, '', '', "
-                    "'dashscope', '', 0, 'TOMBSTONE', 0, :max_attempts, :now, :now) "
+                    "INSERT INTO job "
+                    "(type, entity_kind, entity_id, index_version, content_hash, payload_json, "
+                    "status, attempts, max_attempts, created_at, updated_at) "
+                    "VALUES ('SEARCH_INDEX', :kind, :entity_id, :version, '', '{}', "
+                    "'TOMBSTONE', 0, :max_attempts, :now, :now) "
                     "ON DUPLICATE KEY UPDATE status='TOMBSTONE', content_hash='', "
                     "updated_at=:now, last_error_code=NULL, last_error_message=NULL"
                 ),
@@ -317,8 +297,8 @@ class SearchIndexJobRepositoryImpl:
         with self._session.begin():
             row = self._session.execute(
                 text(
-                    "SELECT COUNT(*) AS cnt FROM search_index_job "
-                    "WHERE index_version=:version AND status IN ('PENDING', 'FAILED')"
+                    "SELECT COUNT(*) AS cnt FROM job "
+                    "WHERE type='SEARCH_INDEX' AND index_version=:version AND status IN ('PENDING', 'FAILED')"
                 ),
                 {"version": index_version},
             ).mappings().first()
@@ -332,9 +312,8 @@ class SearchIndexJobRepositoryImpl:
         with self._session.begin():
             rows = self._session.execute(
                 text(
-                    "SELECT id, entity_kind, entity_id, index_version, profile_version, "
-                    "content_hash, embedding_provider, embedding_model, embedding_dimensions, attempts "
-                    "FROM search_index_job WHERE index_version=:version AND status='TOMBSTONE' "
+                    "SELECT id, entity_kind, entity_id, index_version, content_hash, payload_json, attempts "
+                    "FROM job WHERE type='SEARCH_INDEX' AND index_version=:version AND status='TOMBSTONE' "
                     "ORDER BY id LIMIT :limit FOR UPDATE SKIP LOCKED"
                 ),
                 {"version": index_version, "limit": min(limit, 50)},
@@ -344,29 +323,31 @@ class SearchIndexJobRepositoryImpl:
                 job_id = int(row["id"])
                 self._session.execute(
                     text(
-                        "UPDATE search_index_job SET status='CLAIMED', attempts=attempts + 1, "
+                        "UPDATE job SET status='CLAIMED', attempts=attempts + 1, "
                         "claimed_at=:now, updated_at=:now WHERE id=:id AND status='TOMBSTONE'"
                     ),
                     {"id": job_id, "now": now},
                 )
-                jobs.append(
-                    ClaimedJob(
-                        id=job_id,
-                        entity_kind=EntityKind(str(row["entity_kind"])),
-                        entity_id=int(row["entity_id"]),
-                        index_version=str(row["index_version"]),
-                        profile_version=str(row["profile_version"]),
-                        content_hash="",
-                        embedding_provider=str(row["embedding_provider"]),
-                        embedding_model=str(row["embedding_model"]),
-                        embedding_dimensions=int(row["embedding_dimensions"]),
-                        attempts=int(row["attempts"]) + 1,
-                        status=JobStatus.CLAIMED,
-                        claimed_at=now,
-                    )
-                )
+                jobs.append(_claimed_job(row, int(row["attempts"]) + 1, now))
         return jobs
 
+
+def _claimed_job(row, attempts: int, now: datetime) -> ClaimedJob:
+    payload = _decode_payload(row["payload_json"]) if "payload_json" in row else {}
+    return ClaimedJob(
+        id=int(row["id"]),
+        entity_kind=EntityKind(str(row["entity_kind"])),
+        entity_id=int(row["entity_id"]),
+        index_version=str(row["index_version"]),
+        profile_version=str(payload.get("profile_version") or ""),
+        content_hash=str(row["content_hash"]),
+        embedding_provider=str(payload.get("embedding_provider") or "dashscope"),
+        embedding_model=str(payload.get("embedding_model") or ""),
+        embedding_dimensions=int(payload.get("embedding_dimensions") or 0),
+        attempts=attempts,
+        status=JobStatus.CLAIMED,
+        claimed_at=now,
+    )
 
 def _sanitize_message(message: str) -> str:
     """移除控制字符和敏感凭据。"""

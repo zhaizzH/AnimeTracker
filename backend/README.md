@@ -60,7 +60,7 @@
 backend/
 ├── business/     # Spring Boot 多模块工程（Java 21，端口 8080）
 │   ├── common/          # 统一结果（Result/PageResult）与错误（ErrorType/BizException）
-│   ├── pojo/            # 实体 / DTO / VO（dto、vo 按领域子包分包，共 20 个实体）
+│   ├── pojo/            # 实体 / DTO / VO（dto、vo 按领域子包分包，共 17 个实体）
 │   ├── infrastructure/  # 共享平台实现：MinIO 存储、Resend 邮件、Redis、限流
 │   ├── auth/            # 认证会话：JWT 签发/验签、刷新会话 store
 │   ├── log/             # 操作审计：@OperationLog 注解、AOP、Mapper、清理任务
@@ -92,9 +92,8 @@ backend/
 mysql -u root -p -e "CREATE DATABASE anime_tracker DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 mysql -u root -p anime_tracker < ../docs/database/db-schema.sql
 
-# 1b. 已有数据的存量库：改用版本化前向迁移（先备份）
-mysql -u root -p anime_tracker < ../docs/database/migration-002-rag-entities.sql
-mysql -u root -p anime_tracker < ../docs/database/migration-003-search-projection.sql
+# 1b. 已有数据的存量库：不要执行 db-schema.sql（它是全量 DDL，会 DROP 重建 user 等表）
+#     结构变更需评审后手工 ALTER；涉及删表合并时走重建流程，详见 ../docs/README.md
 
 # 2. 启动 business（:8080）
 cd business
@@ -157,7 +156,7 @@ curl -X POST "http://localhost:8080/api/admin/agent/import/run?mode=recent" \
   -H "Authorization: Bearer <admin-access-token>"
 ```
 
-等价于在 Agent 侧直接调用 `POST /api/admin/agent/import/run`，Agent 会以子进程方式启动 `jobs/importer/main.py`，并通过 MySQL 锁与 PID 文件保证单实例。
+等价于在 Agent 侧直接调用 `POST /api/admin/agent/import/run`，Agent 会以子进程方式启动 `jobs/importer/main.py`，并通过 Redis 锁与 PID 文件保证单实例。
 
 ### 命令行导入与构建索引
 

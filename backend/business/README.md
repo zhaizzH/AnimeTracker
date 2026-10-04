@@ -82,7 +82,7 @@ business/
 
 ### pojo 分包
 
-- `entity` 扁平存放，共 20 个实体：番剧域 `Subject`、`Episode`、`SubjectAlias`、`SubjectMetaTag`、`SubjectCredit`、`SubjectRelation`、`SubjectTag`；用户域 `User`、`UserCollection`、`OperationLog`；实体域 `Person`、`PersonAlias`、`Character`、`CharacterAlias`、`SubjectPersonCredit`、`SubjectCharacter`、`CharacterActor`；任务域 `ImportRecord`、`EntityDetailJob`、`SearchIndexJob`。
+- `entity` 扁平存放，共 17 个实体：番剧域 `Subject`、`Episode`、`SubjectAlias`、`SubjectMetaTag`、`SubjectRelation`、`SubjectTag`；用户域 `User`、`UserCollection`、`OperationLog`；实体域 `Person`、`PersonAlias`、`Character`、`CharacterAlias`、`SubjectPersonCredit`、`SubjectCharacter`、`CharacterActor`；任务域 `ImportRecord`。
 - `dto` 按 7 个领域子包分包：`auth` / `collection` / `evidence` / `imprt` / `log` / `subject` / `user`。
 - `vo` 按 9 个领域子包分包：`auth` / `collection` / `dashboard` / `evidence` / `imprt` / `log` / `subject` / `tag` / `user`。
 - `import` 是 Java 关键字，故导入相关包统一命名为 `imprt`。
@@ -149,7 +149,7 @@ java -jar app/target/animetracker-app-*.jar --spring.profiles.active=local
 - `application-local.yml` —— 本地开发覆盖（数据源、Redis、JWT、MinIO、Resend、Agent 地址、CORS）。该文件已被 `.gitignore` 忽略，可安全填写真实密钥。
 - `logback-spring.xml` —— 结构化 JSON 日志格式。
 
-数据库结构不使用 Flyway（`spring.sql.init.mode: never`）。新环境手动执行 [`../../docs/database/db-schema.sql`](../../docs/database/db-schema.sql)；存量库按顺序执行 [`migration-002-rag-entities.sql`](../../docs/database/migration-002-rag-entities.sql) 与 [`migration-003-search-projection.sql`](../../docs/database/migration-003-search-projection.sql)。
+数据库结构不使用 Flyway（`spring.sql.init.mode: never`）。新环境手动执行 [`../../docs/database/db-schema.sql`](../../docs/database/db-schema.sql)；仓库当前不提供前向迁移脚本（历史 `migration-002` / `migration-003` 已删除），存量库结构变更需经评审后手工执行 `ALTER` / 回填。
 
 ### 需配置的关键项
 
@@ -250,13 +250,13 @@ business 的 `agent` 模块会把请求代理到 `http://${at.agent.host}:${at.a
 
 > `OperationLogMapper` 位于 `log` 模块，使用 MyBatis-Plus 注解方式，无 XML 文件；`log` 模块另有 `LogStatsMapper.xml`（统计 SQL）。
 
-脚本包含 23 张表：
+脚本包含 20 张表：
 
-- **原有业务表（12）**：`user`、`user_collection`、`subject`、`episode`、`subject_alias`、`subject_meta_tag`、`subject_credit`、`subject_relation`、`subject_tag`、`import_record`、`operation_log`、`rag_index_job`
-- **migration-002 新增实体与关系表（9）**：`person`、`character`、`person_alias`、`character_alias`、`subject_person_credit`、`subject_character`、`character_actor`、`entity_detail_job`、`search_index_job`
-- **migration-003 新增检索投影表（2）**：`search_document`、`search_index_release`
+- **番剧与用户基础表（10）**：`user`、`user_collection`、`subject`、`episode`、`subject_alias`、`subject_meta_tag`、`subject_relation`、`subject_tag`、`import_record`、`operation_log`
+- **实体与关系表（7）**：`person`、`character`、`person_alias`、`character_alias`、`subject_person_credit`、`subject_character`、`character_actor`
+- **任务与检索投影表（3）**：`job`（统一任务队列，`type` 区分 `ENTITY_DETAIL` / `SEARCH_INDEX` / `RAG_INDEX`）、`search_document`、`search_index_release`
 
-其中 `import_record`、实体与关系表、`entity_detail_job`、`search_index_job` 由 Agent 侧 `jobs/` 写入；`search_document` 与 `search_index_release` 由 `jobs/indexer` 维护；`rag_index_job` 为旧索引任务队列。business 对这些表均不直接写入。
+其中 `import_record`、实体与关系表与 `job` 表由 Agent 侧 `jobs/` 写入；`search_document` 与 `search_index_release` 由 `jobs/indexer` 维护。business 对这些表均不直接写入。
 
 ## 测试
 
@@ -318,4 +318,4 @@ A：确认 MinIO 已启动且 `at.minio.bucket` 对应的桶已存在。multipar
 1. **`application-prod.yml` 缺失**：`application.yml` 头部注释说明生产环境通过 `SPRING_PROFILES_ACTIVE=prod` 并由 `application-prod.yml` 从环境变量读取密钥，但该文件在 `app/src/main/resources/` 下不存在，生产 profile 的组织方式待确认。
 2. **管理端细粒度权限**：`at.admin.superadmin-id` 表明当前以超级管理员 ID 做粗粒度控制，角色与权限矩阵未在代码中形成可文档化的规则。
 3. **邮件验证的本地替代**：`application-local.yml` 中的 Resend Key 为真实凭据示例，本地无网络或无 Key 时的降级路径（如打印验证码到日志）未在代码中体现。
-4. **`rag_index_job` 的退役计划**：该旧索引任务表与新的 `search_index_job` / `search_document` 投影并存（`jobs/indexer --queue` 支持 `both` / `legacy` / `search` 三种消费模式），旧链路何时停用、`--queue` 默认值何时收窄为 `search` 未在代码中标注。
+4. **旧索引链路的退役计划**：`job` 表中 `type='RAG_INDEX'` 的旧 Subject 兼容队列与 `type='SEARCH_INDEX'` / `search_document` 双投影新链路并存（`jobs/indexer --queue` 支持 `both` / `legacy` / `search` 三种消费模式），旧链路何时停用、`--queue` 默认值何时收窄为 `search` 未在代码中标注。

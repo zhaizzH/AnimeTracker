@@ -1,10 +1,13 @@
-"""entity_detail_job 的 MySQL 仓储实现。
+"""ENTITY_DETAIL 任务的 MySQL 仓储实现（统一 job 表）。
 
 提供 claim/lease、重试退避、checkpoint、暂停/恢复和失败报告。
 遵循 indexer repository 相同的 lease 模式：
 - claim 使用 FOR UPDATE SKIP LOCKED 避免多 worker 竞争
 - lease 通过 updated_at 时间戳实现超时回收
 - 失败使用指数退避，超过 max_attempts 后标记 ABANDONED
+
+差异元数据（source_id / checkpoint_json / source_hash）存 job.payload_json；
+type='ENTITY_DETAIL'，index_version=''。
 """
 
 from __future__ import annotations
@@ -19,7 +22,7 @@ from typing import Any, Callable
 from sqlalchemy import text
 
 from app.entities.enums import EntityKind, JobStatus
-
+from jobs.job_payload import decode as _decode_payload, encode as _encode_payload
 
 MAX_ATTEMPTS = 5
 LEASE_SECONDS = 10 * 60  # 10 分钟 lease
@@ -69,7 +72,7 @@ class BackfillReport:
 
 
 class EntityDetailJobRepository:
-    """entity_detail_job 表的读写边界。"""
+    """job 表（type=ENTITY_DETAIL）的读写边界。"""
 
     def __init__(
         self,
@@ -87,11 +90,16 @@ class EntityDetailJobRepository:
         now = _dt(self._now())
         self._session.execute(
             text(
-                "INSERT INTO entity_detail_job (entity_kind, entity_id, source_id, status, attempts, created_at, updated_at) "
-                "VALUES (:entity_kind, :entity_id, :source_id, 'PENDING', 0, :now, :now) "
-                "ON DUPLICATE KEY UPDATE source_id=:source_id, updated_at=:now"
+                "INSERT INTO job (type, entity_kind, entity_id, index_version, content_hash, status, attempts, payload_json, created_at, updated_at) "
+                "VALUES ('ENTITY_DETAIL', :entity_kind, :entity_id, '', '', 'PENDING', 0, :payload, :now, :now) "
+                "ON DUPLICATE KEY UPDATE payload_json=:payload, updated_at=:now"
             ),
-            {"entity_kind": str(entity_kind), "entity_id": entity_id, "source_id": source_id, "now": now},
+            {
+                "entity_kind": str(entity_kind),
+                "entity_id": entity_id,
+                "payload": _encode_payload({"source_id": source_id}),
+                "now": now,
+            },
         )
 
     def claim_batch(self, batch_size: int = 5) -> list[DetailJob]:
@@ -108,19 +116,20 @@ class EntityDetailJobRepository:
             # 回收过期 lease
             self._session.execute(
                 text(
-                    "UPDATE entity_detail_job SET "
+                    "UPDATE job SET "
                     "status=CASE WHEN attempts >= max_attempts THEN 'ABANDONED' ELSE 'FAILED' END, "
                     "last_error_code='LEASE_EXPIRED', last_error_message='backfill worker lease expired', "
                     "next_retry_at=CASE WHEN attempts >= max_attempts THEN NULL ELSE :now END, "
-                    "updated_at=:now WHERE status='CLAIMED' AND updated_at <= :lease_before"
+                    "updated_at=:now WHERE type='ENTITY_DETAIL' AND status='CLAIMED' AND updated_at <= :lease_before"
                 ),
                 {"now": now, "lease_before": now - timedelta(seconds=self._lease_seconds)},
             )
             rows = self._session.execute(
                 text(
-                    "SELECT id, entity_kind, entity_id, source_id, status, attempts, max_attempts, checkpoint_json "
-                    "FROM entity_detail_job "
-                    "WHERE (status='PENDING' OR (status='FAILED' AND (next_retry_at IS NULL OR next_retry_at <= :now))) "
+                    "SELECT id, entity_kind, entity_id, status, attempts, max_attempts, payload_json "
+                    "FROM job "
+                    "WHERE type='ENTITY_DETAIL' "
+                    "AND (status='PENDING' OR (status='FAILED' AND (next_retry_at IS NULL OR next_retry_at <= :now))) "
                     "AND attempts < max_attempts "
                     "ORDER BY id LIMIT :limit FOR UPDATE SKIP LOCKED"
                 ),
@@ -132,21 +141,25 @@ class EntityDetailJobRepository:
                 attempts = int(row["attempts"]) + 1
                 self._session.execute(
                     text(
-                        "UPDATE entity_detail_job SET status='CLAIMED', attempts=:attempts, "
+                        "UPDATE job SET status='CLAIMED', attempts=:attempts, "
                         "claimed_at=:now, next_retry_at=NULL, updated_at=:now WHERE id=:id"
                     ),
                     {"id": job_id, "attempts": attempts, "now": now},
                 )
+                payload = _decode_payload(row["payload_json"])
+                checkpoint = payload.get("checkpoint_json")
                 jobs.append(
                     DetailJob(
                         id=job_id,
                         entity_kind=EntityKind(row["entity_kind"]),
                         entity_id=int(row["entity_id"]),
-                        source_id=int(row["source_id"]),
+                        source_id=int(payload.get("source_id") or 0),
                         status=JobStatus.CLAIMED,
                         attempts=attempts,
                         max_attempts=int(row["max_attempts"]),
-                        checkpoint_json=row["checkpoint_json"],
+                        checkpoint_json=checkpoint if isinstance(checkpoint, str) else (
+                            json.dumps(checkpoint, ensure_ascii=False) if checkpoint else None
+                        ),
                     )
                 )
         return jobs
@@ -156,14 +169,15 @@ class EntityDetailJobRepository:
         now = _dt(self._now())
         self._session.execute(
             text(
-                "UPDATE entity_detail_job SET status='COMPLETED', source_hash=:source_hash, "
-                "completed_at=:now, last_error_code=NULL, last_error_message=NULL, updated_at=:now "
+                "UPDATE job SET status='COMPLETED', "
+                "payload_json=JSON_SET(COALESCE(payload_json, JSON_OBJECT()), '$.source_hash', :source_hash), "
+                "finished_at=:now, last_error_code=NULL, last_error_message=NULL, updated_at=:now "
                 "WHERE id=:id AND status='CLAIMED'"
             ),
             {"id": job_id, "source_hash": source_hash, "now": now},
         )
         job_row = self._session.execute(
-            text("SELECT entity_kind, entity_id FROM entity_detail_job WHERE id=:id"),
+            text("SELECT entity_kind, entity_id FROM job WHERE id=:id"),
             {"id": job_id},
         ).mappings().one()
         kind = str(job_row["entity_kind"])
@@ -180,7 +194,7 @@ class EntityDetailJobRepository:
         now = _dt(self._now())
         with self._session.begin():
             row = self._session.execute(
-                text("SELECT attempts, max_attempts FROM entity_detail_job WHERE id=:id"),
+                text("SELECT attempts, max_attempts FROM job WHERE id=:id"),
                 {"id": job_id},
             ).mappings().one()
             attempts = int(row["attempts"])
@@ -188,7 +202,7 @@ class EntityDetailJobRepository:
             if attempts >= max_attempts:
                 self._session.execute(
                     text(
-                        "UPDATE entity_detail_job SET status='ABANDONED', last_error_code=:code, "
+                        "UPDATE job SET status='ABANDONED', last_error_code=:code, "
                         "last_error_message=:message, next_retry_at=NULL, updated_at=:now WHERE id=:id"
                     ),
                     {"id": job_id, "code": error_code[:64], "message": _sanitize(error_message)[:512], "now": now},
@@ -197,7 +211,7 @@ class EntityDetailJobRepository:
                 retry_at = now + timedelta(seconds=min(3600, 2**attempts * 60))
                 self._session.execute(
                     text(
-                        "UPDATE entity_detail_job SET status='FAILED', last_error_code=:code, "
+                        "UPDATE job SET status='FAILED', last_error_code=:code, "
                         "last_error_message=:message, next_retry_at=:retry_at, updated_at=:now WHERE id=:id"
                     ),
                     {"id": job_id, "code": error_code[:64], "message": _sanitize(error_message)[:512], "retry_at": retry_at, "now": now},
@@ -208,7 +222,8 @@ class EntityDetailJobRepository:
         now = _dt(self._now())
         self._session.execute(
             text(
-                "UPDATE entity_detail_job SET checkpoint_json=CAST(:checkpoint AS JSON), updated_at=:now WHERE id=:id"
+                "UPDATE job SET payload_json=JSON_SET(COALESCE(payload_json, JSON_OBJECT()), "
+                "'$.checkpoint_json', CAST(:checkpoint AS JSON)), updated_at=:now WHERE id=:id"
             ),
             {"id": job_id, "checkpoint": json.dumps(checkpoint), "now": now},
         )
@@ -220,16 +235,16 @@ class EntityDetailJobRepository:
         if entity_kind:
             result = self._session.execute(
                 text(
-                    "UPDATE entity_detail_job SET next_retry_at=:far, updated_at=:now "
-                    "WHERE entity_kind=:kind AND status IN ('PENDING', 'FAILED')"
+                    "UPDATE job SET next_retry_at=:far, updated_at=:now "
+                    "WHERE type='ENTITY_DETAIL' AND entity_kind=:kind AND status IN ('PENDING', 'FAILED')"
                 ),
                 {"far": far_future, "now": now, "kind": str(entity_kind)},
             )
         else:
             result = self._session.execute(
                 text(
-                    "UPDATE entity_detail_job SET next_retry_at=:far, updated_at=:now "
-                    "WHERE status IN ('PENDING', 'FAILED')"
+                    "UPDATE job SET next_retry_at=:far, updated_at=:now "
+                    "WHERE type='ENTITY_DETAIL' AND status IN ('PENDING', 'FAILED')"
                 ),
                 {"far": far_future, "now": now},
             )
@@ -241,16 +256,16 @@ class EntityDetailJobRepository:
         if entity_kind:
             result = self._session.execute(
                 text(
-                    "UPDATE entity_detail_job SET next_retry_at=NULL, updated_at=:now "
-                    "WHERE entity_kind=:kind AND status IN ('PENDING', 'FAILED') AND next_retry_at > :now"
+                    "UPDATE job SET next_retry_at=NULL, updated_at=:now "
+                    "WHERE type='ENTITY_DETAIL' AND entity_kind=:kind AND status IN ('PENDING', 'FAILED') AND next_retry_at > :now"
                 ),
                 {"now": now, "kind": str(entity_kind)},
             )
         else:
             result = self._session.execute(
                 text(
-                    "UPDATE entity_detail_job SET next_retry_at=NULL, updated_at=:now "
-                    "WHERE status IN ('PENDING', 'FAILED') AND next_retry_at > :now"
+                    "UPDATE job SET next_retry_at=NULL, updated_at=:now "
+                    "WHERE type='ENTITY_DETAIL' AND status IN ('PENDING', 'FAILED') AND next_retry_at > :now"
                 ),
                 {"now": now},
             )
@@ -260,7 +275,7 @@ class EntityDetailJobRepository:
         """生成回填覆盖率与失败原因报告。"""
         rows = self._session.execute(
             text(
-                "SELECT status, COUNT(*) AS cnt FROM entity_detail_job GROUP BY status"
+                "SELECT status, COUNT(*) AS cnt FROM job WHERE type='ENTITY_DETAIL' GROUP BY status"
             ),
         ).mappings().all()
         counts: dict[str, int] = {str(r["status"]): int(r["cnt"]) for r in rows}
@@ -268,8 +283,8 @@ class EntityDetailJobRepository:
         completed = counts.get("COMPLETED", 0)
         failure_rows = self._session.execute(
             text(
-                "SELECT last_error_code, COUNT(*) AS cnt FROM entity_detail_job "
-                "WHERE status IN ('FAILED', 'ABANDONED') AND last_error_code IS NOT NULL "
+                "SELECT last_error_code, COUNT(*) AS cnt FROM job "
+                "WHERE type='ENTITY_DETAIL' AND status IN ('FAILED', 'ABANDONED') AND last_error_code IS NOT NULL "
                 "GROUP BY last_error_code ORDER BY cnt DESC LIMIT 20"
             ),
         ).mappings().all()

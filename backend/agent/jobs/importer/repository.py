@@ -120,7 +120,6 @@ class ImportRepository:
             # Credits from the persons endpoint are retained in full, including
             # roles that are not part of the legacy six-role UI subset.
             if bundle.persons_complete:
-                self._upsert_credits(subject_id, bundle.subject, person_ids=person_ids)
                 self._upsert_subject_person_credits(subject_id, bundle.subject, person_ids)
 
             character_ids = self._upsert_characters(characters, bundle.import_record_id)
@@ -422,13 +421,18 @@ class ImportRepository:
     def _enqueue_detail_job(self, entity_kind: str, entity_id: int, source_id: int, now: datetime) -> None:
         self._session.execute(
             text(
-                "INSERT INTO entity_detail_job (entity_kind, entity_id, source_id, status, attempts, created_at, updated_at) "
-                "VALUES (:kind, :entity_id, :source_id, 'PENDING', 0, :now, :now) "
-                "ON DUPLICATE KEY UPDATE source_id=:source_id, "
+                "INSERT INTO job (type, entity_kind, entity_id, index_version, content_hash, status, attempts, payload_json, created_at, updated_at) "
+                "VALUES ('ENTITY_DETAIL', :kind, :entity_id, '', '', 'PENDING', 0, :payload, :now, :now) "
+                "ON DUPLICATE KEY UPDATE payload_json=:payload, "
                 "status=CASE WHEN status IN ('COMPLETED', 'ABANDONED', 'CLAIMED', 'RUNNING') "
                 "THEN status ELSE 'PENDING' END, updated_at=:now"
             ),
-            {"kind": entity_kind, "entity_id": entity_id, "source_id": source_id, "now": now},
+            {
+                "kind": entity_kind,
+                "entity_id": entity_id,
+                "payload": json.dumps({"source_id": source_id}, ensure_ascii=False),
+                "now": now,
+            },
         )
 
     def _replace_free_tags(self, subject_id: int, subject: NormalizedSubject) -> None:
@@ -474,16 +478,22 @@ class ImportRepository:
         )
         for order, credit in enumerate(subject.credits):
             local_id = person_ids.get(credit.person_id)
-            if local_id is None:
-                continue
+            # 未解析到 person 表的 credit 写占位行：person_id=NULL + name 存占位名。
+            # 已解析行 person_id=FK + name=NULL。两分支都必须保留上游 person_type
+            # （person 表本身也存公司/组合），硬编码 PERSON 会丢掉 ORGANIZATION 语义。
             relation = "MAIN" if credit.role in MAIN_CREDIT_ROLES else "SUB"
+            if local_id is None:
+                person_id, name = None, credit.name
+            else:
+                person_id, name = local_id, None
+            credit_type = credit.person_type
             self._session.execute(
                 text(
-                    "INSERT INTO subject_person_credit (subject_id, person_id, role, relation, sort_order, source_active, created_at, updated_at) "
-                    "VALUES (:subject_id, :person_id, :role, :relation, :sort_order, 1, :now, :now) "
-                    "ON DUPLICATE KEY UPDATE relation=:relation, sort_order=:sort_order, source_active=1, updated_at=:now"
+                    "INSERT INTO subject_person_credit (subject_id, person_id, name, credit_type, role, relation, sort_order, source_active, created_at, updated_at) "
+                    "VALUES (:subject_id, :person_id, :name, :credit_type, :role, :relation, :sort_order, 1, :now, :now) "
+                    "ON DUPLICATE KEY UPDATE credit_type=:credit_type, relation=:relation, sort_order=:sort_order, source_active=1, updated_at=:now"
                 ),
-                {"subject_id": subject_id, "person_id": local_id, "role": credit.role, "relation": relation, "sort_order": order, "now": now},
+                {"subject_id": subject_id, "person_id": person_id, "name": name, "credit_type": credit_type, "role": credit.role, "relation": relation, "sort_order": order, "now": now},
             )
 
     def _upsert_subject_characters(
@@ -655,47 +665,13 @@ class ImportRepository:
             {"subject_id": subject_id, "active_names": active_names or ["__never_match__"]},
         )
 
-    def _upsert_credits(
-        self,
-        subject_id: int,
-        subject: NormalizedSubject,
-        *,
-        person_ids: dict[int, int] | None = None,
-    ) -> None:
-        now = datetime.now()
-        # Mark the complete old set stale first.  This avoids using name-only
-        # predicates, which could incorrectly keep a removed role for a person
-        # who still has another role.
-        self._session.execute(
-            text("UPDATE subject_credit SET source_active=0, updated_at=:now WHERE subject_id=:subject_id"),
-            {"subject_id": subject_id, "now": now},
-        )
-        for order, credit in enumerate(subject.credits):
-            self._session.execute(
-                text(
-                    "INSERT INTO subject_credit (subject_id, bangumi_person_id, name, role, credit_type, sort_order, source_active, created_at, updated_at) "
-                    "VALUES (:subject_id, :person_id, :name, :role, :credit_type, :sort_order, 1, :now, :now) "
-                    "ON DUPLICATE KEY UPDATE bangumi_person_id=:person_id, credit_type=:credit_type, "
-                    "sort_order=:sort_order, source_active=1, updated_at=:now"
-                ),
-                {
-                    "subject_id": subject_id,
-                    "person_id": credit.person_id,
-                    "name": credit.name,
-                    "role": credit.role,
-                    "credit_type": credit.person_type,
-                    "sort_order": order,
-                    "now": now,
-                },
-            )
-
     def _profile_source(self, subject_id: int) -> SubjectProfileSource:
         row = self._session.execute(
             text(
                 "SELECT s.name AS title, s.summary, "
                 "(SELECT GROUP_CONCAT(name ORDER BY name SEPARATOR '\\n') FROM subject_alias WHERE subject_id=s.id AND source_active=1) AS aliases, "
                 "(SELECT GROUP_CONCAT(name ORDER BY name SEPARATOR '\\n') FROM subject_meta_tag WHERE subject_id=s.id AND source_active=1) AS meta_tags, "
-                "(SELECT GROUP_CONCAT(CONCAT(role, '：', name) ORDER BY sort_order, name SEPARATOR '\\n') FROM subject_credit WHERE subject_id=s.id AND source_active=1) AS credits, "
+                "(SELECT GROUP_CONCAT(CONCAT(spc.role, '：', IFNULL(p.name, spc.name)) ORDER BY spc.sort_order, IFNULL(p.name, spc.name) SEPARATOR '\\n') FROM subject_person_credit spc LEFT JOIN person p ON p.id=spc.person_id WHERE spc.subject_id=s.id AND spc.source_active=1) AS credits, "
                 "(SELECT GROUP_CONCAT(CONCAT(sr.relation, '：', related.name) ORDER BY related.name SEPARATOR '\\n') "
                 " FROM subject_relation sr JOIN subject related ON related.id=sr.related_subject_id WHERE sr.subject_id=s.id) AS relations "
                 "FROM subject s WHERE s.id=:subject_id"
@@ -738,10 +714,19 @@ class ImportRepository:
             raise ValueError("profile content_hash 无效")
         now = datetime.now()
         kind = entity_kind.value if isinstance(entity_kind, EntityKind) else str(entity_kind)
+        payload = json.dumps(
+            {
+                "embedding_provider": "dashscope",
+                "embedding_model": self._embedding_model,
+                "embedding_dimensions": self._embedding_dimensions,
+                "profile_version": profile.schema_version,
+            },
+            ensure_ascii=False,
+        )
         existing = self._session.execute(
             text(
-                "SELECT id, content_hash, status FROM search_index_job "
-                "WHERE entity_kind=:kind AND entity_id=:entity_id AND index_version=:version"
+                "SELECT id, content_hash, status FROM job "
+                "WHERE type='SEARCH_INDEX' AND entity_kind=:kind AND entity_id=:entity_id AND index_version=:version"
             ),
             {"kind": kind, "entity_id": entity_id, "version": index_version},
         ).mappings().first()
@@ -751,17 +736,14 @@ class ImportRepository:
                 return "UNCHANGED"
             self._session.execute(
                 text(
-                    "UPDATE search_index_job SET content_hash=:content_hash, profile_version=:profile_version, "
-                    "embedding_provider='dashscope', embedding_model=:model, embedding_dimensions=:dimensions, "
+                    "UPDATE job SET content_hash=:content_hash, payload_json=:payload, "
                     "status='PENDING', attempts=0, last_error_code=NULL, last_error_message=NULL, "
-                    "next_retry_at=NULL, claimed_at=NULL, indexed_at=NULL, updated_at=:now WHERE id=:id"
+                    "next_retry_at=NULL, claimed_at=NULL, finished_at=NULL, updated_at=:now WHERE id=:id"
                 ),
                 {
                     "id": int(existing["id"]),
                     "content_hash": profile.content_hash,
-                    "profile_version": profile.schema_version,
-                    "model": self._embedding_model,
-                    "dimensions": self._embedding_dimensions,
+                    "payload": payload,
                     "now": now,
                 },
             )
@@ -769,20 +751,18 @@ class ImportRepository:
 
         self._session.execute(
             text(
-                "INSERT INTO search_index_job "
-                "(entity_kind, entity_id, index_version, profile_version, content_hash, embedding_provider, "
-                "embedding_model, embedding_dimensions, status, attempts, max_attempts, created_at, updated_at) "
-                "VALUES (:kind, :entity_id, :version, :profile_version, :content_hash, 'dashscope', :model, "
-                ":dimensions, 'PENDING', 0, 5, :now, :now)"
+                "INSERT INTO job "
+                "(type, entity_kind, entity_id, index_version, content_hash, payload_json, "
+                "status, attempts, max_attempts, created_at, updated_at) "
+                "VALUES ('SEARCH_INDEX', :kind, :entity_id, :version, :content_hash, :payload, "
+                "'PENDING', 0, 5, :now, :now)"
             ),
             {
                 "kind": kind,
                 "entity_id": entity_id,
                 "version": index_version,
-                "profile_version": profile.schema_version,
                 "content_hash": profile.content_hash,
-                "model": self._embedding_model,
-                "dimensions": self._embedding_dimensions,
+                "payload": payload,
                 "now": now,
             },
         )
@@ -790,26 +770,35 @@ class ImportRepository:
 
     def _upsert_index_job(self, subject_id: int, index_version: str, content_hash: str) -> Literal["PENDING", "UNCHANGED"]:
         existing = self._session.execute(
-            text("SELECT content_hash FROM rag_index_job WHERE subject_id=:subject_id AND index_version=:index_version"),
+            text(
+                "SELECT content_hash FROM job WHERE type='RAG_INDEX' AND entity_kind='SUBJECT' "
+                "AND entity_id=:subject_id AND index_version=:index_version"
+            ),
             {"subject_id": subject_id, "index_version": index_version},
         ).scalar()
         if existing == content_hash:
             return "UNCHANGED"
         self._session.execute(
             text(
-                "INSERT INTO rag_index_job (subject_id, index_version, content_hash, embedding_provider, embedding_model, "
-                "embedding_dimensions, status, attempts, created_at, updated_at) VALUES "
-                "(:subject_id, :index_version, :content_hash, 'dashscope', :model, :dimensions, 'PENDING', 0, :now, :now) "
-                "ON DUPLICATE KEY UPDATE content_hash=:content_hash, embedding_provider='dashscope', "
-                "embedding_model=:model, embedding_dimensions=:dimensions, status='PENDING', attempts=0, "
-                "last_error_code=NULL, last_error_message=NULL, next_retry_at=NULL, indexed_at=NULL, updated_at=:now"
+                "INSERT INTO job (type, entity_kind, entity_id, index_version, content_hash, payload_json, "
+                "status, attempts, created_at, updated_at) VALUES "
+                "('RAG_INDEX', 'SUBJECT', :subject_id, :index_version, :content_hash, :payload, 'PENDING', 0, :now, :now) "
+                "ON DUPLICATE KEY UPDATE content_hash=:content_hash, payload_json=:payload, "
+                "status='PENDING', attempts=0, "
+                "last_error_code=NULL, last_error_message=NULL, next_retry_at=NULL, finished_at=NULL, updated_at=:now"
             ),
             {
                 "subject_id": subject_id,
                 "index_version": index_version,
                 "content_hash": content_hash,
-                "model": self._embedding_model,
-                "dimensions": self._embedding_dimensions,
+                "payload": json.dumps(
+                    {
+                        "embedding_provider": "dashscope",
+                        "embedding_model": self._embedding_model,
+                        "embedding_dimensions": self._embedding_dimensions,
+                    },
+                    ensure_ascii=False,
+                ),
                 "now": datetime.now(),
             },
         )

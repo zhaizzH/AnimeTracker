@@ -289,18 +289,6 @@ def create_import_record(session: Session, mode: str, season_key: Optional[str] 
     return result.lastrowid
 
 
-def acquire_import_lock(session: Session) -> None:
-    """在 importer 主连接上取得 MySQL 单飞锁。"""
-    locked = session.execute(text("SELECT GET_LOCK('animetracker:import', 0)")).scalar()
-    if locked != 1:
-        raise RuntimeError("已有导入任务正在运行，未获得 animetracker:import 锁")
-
-
-def release_import_lock(session: Session) -> None:
-    """释放当前主连接持有的 MySQL 单飞锁。"""
-    session.execute(text("SELECT RELEASE_LOCK('animetracker:import')"))
-
-
 def update_import_progress(
     session: Session,
     record_id: int,

@@ -9,6 +9,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 import pytest
 
 from app.agent.client.actions.collection_progress import build_collection_progress_tools
@@ -22,10 +24,14 @@ from app.chat.user import UserInfo
 
 _USER = UserInfo(user_id=2, username="tester", role="USER", token="tok")
 
+# 依赖"尚未过期"的用例必须用相对时间，写死日期会随日历推移变成过期分支。
+_FUTURE_EXPIRES_AT = (datetime.now(timezone.utc) + timedelta(days=1)).replace(microsecond=0).isoformat()
+
+
 def _preview_response(*, preview_id: str = "p-1") -> dict:
     return {
         "previewId": preview_id,
-        "expiresAt": "2026-09-30T00:00:00+00:00",
+        "expiresAt": _FUTURE_EXPIRES_AT,
         "items": [
             {"subjectId": 84, "subjectName": "X", "currentEpStatus": 3, "targetEpStatus": 4}
         ],
@@ -42,7 +48,7 @@ class _Business:
         self.calls.append((method, path, token))
         return self._responses.pop(0) if self._responses else None
 
-def _pending_action(*, user_id: int = 2, expires_at: str = "2026-09-30T00:00:00+00:00"):
+def _pending_action(*, user_id: int = 2, expires_at: str = _FUTURE_EXPIRES_AT):
     return CollectionProgressPendingAction(
         type="COLLECTION_PROGRESS_UPDATE",
         preview_id="p-old",

@@ -62,10 +62,10 @@ def run_search_batch(
     embedding_client: Any,
     redis_index: RedisEntityIndex,
 ) -> IndexBatchResult:
-    """消费通用 search_index_job，并保留旧 Subject 队列的独立生命周期。
+    """消费通用 SEARCH_INDEX 任务，并保留旧 Subject 队列的独立生命周期。
 
-    ``search_index_job`` 的 Subject 任务写入通用实体索引；旧的
-    ``rag_index_job`` 仍由 :func:`run_batch` 写入在线 Subject alias。两条队列
+    ``job`` 表中 ``type='SEARCH_INDEX'`` 的 Subject 任务写入通用实体索引；
+    ``type='RAG_INDEX'`` 仍由 :func:`run_batch` 写入在线 Subject alias。两条队列
     不共享状态，避免新索引失败时误标记旧任务完成。
     """
     remaining = min(max(limit, 0), 10)
@@ -462,7 +462,7 @@ def run_batch(
     embedding_client: Any,
     redis_index: RedisSubjectIndex,
 ) -> IndexBatchResult:
-    """每批至多 10 条；仅在 Redis 写入成功后确认 MySQL 的 INDEXED。"""
+    """每批至多 10 条；仅在 Redis 写入成功后确认 MySQL 的 COMPLETED。"""
     jobs = repository.claim_batch(index_version, min(limit, 10))
     if not jobs:
         return IndexBatchResult(0, 0, 0, 0, 0, 0)
@@ -602,7 +602,7 @@ def main(argv: list[str] | None = None) -> int:
         "--queue",
         choices=("both", "legacy", "search"),
         default="both",
-        help="消费旧 rag_index_job、新 search_index_job 或两者（默认 both）",
+        help="消费 job 表中 type='RAG_INDEX'（旧 Subject 兼容）、type='SEARCH_INDEX'（通用双投影）或两者（默认 both）",
     )
     parser.add_argument("--report")
     args = parser.parse_args(argv)

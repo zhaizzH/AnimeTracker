@@ -312,7 +312,7 @@ CREATE TABLE `operation_log`  (
   `id`          bigint       NOT NULL AUTO_INCREMENT COMMENT '日志ID',
   `user_id`     bigint       NULL DEFAULT NULL COMMENT '用户ID（匿名失败登录为NULL）',
   `username`    varchar(64)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '用户名/邮箱快照',
-  `action`      varchar(32)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '动作: LOGIN/LOGOUT/REGISTER/SUBJECT_CREATE/SUBJECT_UPDATE/SUBJECT_DELETE/ROLE_CHANGE/IMPORT_RUN',
+  `action`      varchar(32)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '动作: LOGIN/LOGOUT/REGISTER/SUBJECT_DELETE/ROLE_CHANGE/IMPORT_RUN',
   `module`      varchar(32)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '模块: AUTH/USER/SUBJECT/IMPORT/ADMIN',
   `method`      varchar(8)   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'HTTP 方法',
   `path`        varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '请求路径',

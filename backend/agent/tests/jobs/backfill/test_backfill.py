@@ -1,4 +1,4 @@
-"""entity_detail_job repository 与 backfill worker 单元测试。"""
+"""ENTITY_DETAIL 任务 repository 与 backfill worker 单元测试。"""
 
 from __future__ import annotations
 
@@ -101,15 +101,16 @@ class TestEntityDetailJobRepository:
         repo.enqueue(EntityKind.PERSON, 1, 100)
         assert len(session.calls) == 1
         sql, values = session.calls[0]
-        assert "INSERT INTO entity_detail_job" in sql
+        assert "INSERT INTO job" in sql
         assert values["entity_kind"] == "PERSON"
         assert values["entity_id"] == 1
-        assert values["source_id"] == 100
+        assert '"source_id": 100' in values["payload"]
 
     def test_claim_batch_returns_jobs(self):
         session = _Session(claim_rows=[
-            {"id": 1, "entity_kind": "PERSON", "entity_id": 10, "source_id": 100,
-             "status": "PENDING", "attempts": 0, "max_attempts": 5, "checkpoint_json": None},
+            {"id": 1, "entity_kind": "PERSON", "entity_id": 10,
+             "status": "PENDING", "attempts": 0, "max_attempts": 5,
+             "payload_json": '{"source_id": 100}'},
         ])
         repo = EntityDetailJobRepository(session)
         jobs = repo.claim_batch(5)
@@ -124,6 +125,19 @@ class TestEntityDetailJobRepository:
         jobs = repo.claim_batch(5)
         assert jobs == []
 
+    def test_claim_predicate_keeps_null_next_retry_at_claimable(self):
+        """ENTITY_DETAIL 必须放行 `next_retry_at IS NULL`。
+
+        `resume()` 用 `next_retry_at=NULL` 表示「解除暂停、立即可领」（`pause()` 写远期
+        时间）。若照 RAG_INDEX / SEARCH_INDEX 的写法去掉 `IS NULL`，被 resume 清成 NULL
+        的行将永远无法再被认领。不要把这三种 type 的谓词「统一」掉。
+        """
+        session = _Session(claim_rows=[])
+        EntityDetailJobRepository(session).claim_batch(5)
+        claim_sql = next(sql for sql, _ in session.calls if "FOR UPDATE SKIP LOCKED" in sql)
+        assert "next_retry_at IS NULL OR next_retry_at <= :now" in claim_sql
+        assert "type='ENTITY_DETAIL'" in claim_sql
+
     def test_claim_batch_zero_size(self):
         session = _Session()
         repo = EntityDetailJobRepository(session)
@@ -134,7 +148,7 @@ class TestEntityDetailJobRepository:
         session = _Session()
         repo = EntityDetailJobRepository(session)
         repo.mark_completed(1, source_hash="abc123")
-        # 应当有 UPDATE entity_detail_job 和 UPDATE person 两条 SQL
+        # 应当有 UPDATE job 和 UPDATE person 两条 SQL
         update_calls = [c for c in session.calls if "UPDATE" in c[0]]
         assert len(update_calls) >= 1
         assert any("COMPLETED" in c[0] for c in update_calls)
@@ -206,8 +220,9 @@ class TestBackfillWorkerIntegration:
         from jobs.backfill.worker import BackfillWorker
 
         session = _Session(claim_rows=[
-            {"id": 3, "entity_kind": "CHARACTER", "entity_id": 20, "source_id": 200,
-             "status": "PENDING", "attempts": 0, "max_attempts": 5, "checkpoint_json": None},
+            {"id": 3, "entity_kind": "CHARACTER", "entity_id": 20,
+             "status": "PENDING", "attempts": 0, "max_attempts": 5,
+             "payload_json": '{"source_id": 200}'},
         ])
         repo = EntityDetailJobRepository(session)
 
@@ -247,8 +262,9 @@ class TestBackfillWorkerIntegration:
         from jobs.backfill.worker import BackfillWorker
 
         session = _Session(claim_rows=[
-            {"id": 1, "entity_kind": "PERSON", "entity_id": 10, "source_id": 100,
-             "status": "PENDING", "attempts": 0, "max_attempts": 5, "checkpoint_json": None},
+            {"id": 1, "entity_kind": "PERSON", "entity_id": 10,
+             "status": "PENDING", "attempts": 0, "max_attempts": 5,
+             "payload_json": '{"source_id": 100}'},
         ])
         repo = EntityDetailJobRepository(session)
 
@@ -281,8 +297,9 @@ class TestBackfillWorkerIntegration:
         from jobs.backfill.worker import BackfillWorker
 
         session = _Session(claim_rows=[
-            {"id": 2, "entity_kind": "CHARACTER", "entity_id": 20, "source_id": 200,
-             "status": "PENDING", "attempts": 0, "max_attempts": 5, "checkpoint_json": None},
+            {"id": 2, "entity_kind": "CHARACTER", "entity_id": 20,
+             "status": "PENDING", "attempts": 0, "max_attempts": 5,
+             "payload_json": '{"source_id": 200}'},
         ])
         repo = EntityDetailJobRepository(session)
 

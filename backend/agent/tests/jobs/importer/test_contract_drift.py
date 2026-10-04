@@ -1,14 +1,14 @@
-"""契约漂移失败测试：记录 schema、normalize 和 repository 之间的已知不一致。
+"""schema / normalize / repository 之间的契约回归测试。
 
-这些测试在当前代码下应当失败，证明存在需要修复的契约漂移。
-一旦后续 Phase 修复了这些问题，这些测试应当通过。
+本文件最初以"应当失败"的形式记录 5 项已知漂移；这些漂移现已全部修复，
+用例转为回归护栏——**当前全部应通过**。若某个用例失败，说明契约再次漂移：
 
-已知漂移：
-1. eps/volumes：db-schema.sql 有 eps/volumes 列，但 normalize 不提取，repository 不写入。
-2. credit_type：schema 契约为 PERSON|ORGANIZATION，repository 固定写入 MAIN。
-3. AIRING 状态：indexer 只产出 upcoming/finished，但 RetrievalQuery 允许 AIRING。
-4. stale replace-set：repository 只 upsert 不失效上游已删除的标签/主创/别名。
-5. profile hash：importer 写入后构建 profile，indexer 读取时可能因数据变化产生不同 hash。
+1. eps/volumes：`db-schema.sql` 的 eps/volumes 列必须由 normalize 提取、repository 写入。
+2. credit_type：`subject_person_credit.credit_type` 必须反映上游个人/公司类型
+   （PERSON|ORGANIZATION），**已解析行与未解析占位行都要保留**。
+3. AIRING 状态：air_date 已过但存在未播出剧集时，indexer 须产出 `airing`。
+4. stale replace-set：上游已删除的别名/元标签/主创必须被置为 `source_active=0`。
+5. profile hash：importer 写入后构建的 profile 与 indexer 读取时必须产出同一 hash。
 """
 
 from __future__ import annotations
@@ -125,27 +125,48 @@ class TestEpsVolumesDrift:
 
 
 class TestCreditTypeDrift:
-    """credit_type 在 schema 中为 PERSON|ORGANIZATION，但 repository 写入 MAIN。"""
+    """credit_type 应当反映上游 person/company 类型（单表 subject_person_credit）。"""
 
     def test_credit_type_should_be_person_or_organization(self):
-        """subject_credit.credit_type 应当反映上游的 person/company 类型。"""
+        """未解析 credit 写 name 占位行，credit_type 为 PERSON|ORGANIZATION。"""
         session = _Session(existing_id=7)
         repo = ImportRepository(session)
         persons = [
             {"relation": "导演", "person": {"id": 1, "name": "Test Director", "type": 1}},
         ]
         subject = normalize_subject(_raw_subject_with_eps(), persons)
-        repo._upsert_credits(42, subject)
-        # 找到 INSERT INTO subject_credit 的调用（不是最后的 deactivation UPDATE）
-        insert_calls = [(sql, vals) for sql, vals in session.calls if "INSERT INTO subject_credit" in sql]
-        assert insert_calls, "应当有 INSERT INTO subject_credit 调用"
+        repo._upsert_subject_person_credits(42, subject, {})
+        insert_calls = [(sql, vals) for sql, vals in session.calls if "INSERT INTO subject_person_credit" in sql]
+        assert insert_calls, "应当有 INSERT INTO subject_person_credit 调用"
         sql, values = insert_calls[0]
-        # 不应当硬编码 'MAIN'，应当使用参数绑定
         assert "'MAIN'" not in sql, "credit_type 不应当固定为 MAIN"
         assert "credit_type" in sql
-        # 应当根据上游 person type 决定
         assert values.get("credit_type") in ("PERSON", "ORGANIZATION"), \
             "credit_type 应当为 PERSON 或 ORGANIZATION"
+        assert values.get("person_id") is None, "未解析行 person_id 应为 NULL"
+        assert values.get("name"), "未解析行应存占位名"
+
+    def test_resolved_organization_credit_keeps_organization_type(self):
+        """已解析行同样要保留 ORGANIZATION。
+
+        分辨率分支若硬编码 PERSON，公司/组合条目会在重建后全部被标成个人，
+        旧 `subject_credit` 携带的 PERSON/ORGANIZATION 区分即丢失。
+        """
+        session = _Session(existing_id=7)
+        repo = ImportRepository(session)
+        persons = [
+            {"relation": "制作", "person": {"id": 5, "name": "Company X", "type": 2}},
+        ]
+        subject = normalize_subject(_raw_subject_with_eps(), persons)
+        repo._upsert_subject_person_credits(42, subject, {5: 55})
+
+        insert_calls = [(sql, vals) for sql, vals in session.calls if "INSERT INTO subject_person_credit" in sql]
+        assert insert_calls, "应当有 INSERT INTO subject_person_credit 调用"
+        _, values = insert_calls[0]
+        assert values.get("person_id") == 55, "已解析行应写 person FK"
+        assert values.get("name") is None, "已解析行 name 应为 NULL"
+        assert values.get("credit_type") == "ORGANIZATION", \
+            "已解析的 ORGANIZATION credit 不得被写成 PERSON"
 
 
 class TestAiringStatusDrift:
@@ -204,8 +225,8 @@ class TestStaleReplaceSetDrift:
         session = _Session(existing_id=7)
         repo = ImportRepository(session)
         subject = normalize_subject(_raw_subject_with_eps(), [])
-        repo._upsert_credits(42, subject)
-        credit_calls = [c for c in session.calls if "subject_credit" in c[0]]
+        repo._upsert_subject_person_credits(42, subject, {})
+        credit_calls = [c for c in session.calls if "subject_person_credit" in c[0]]
         has_deactivate = any("source_active" in c[0] or "deactivate" in c[0].lower() for c in credit_calls)
         assert has_deactivate, "主创 upsert 应当包含失效逻辑"
 

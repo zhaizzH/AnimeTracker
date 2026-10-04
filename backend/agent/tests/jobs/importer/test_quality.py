@@ -36,7 +36,7 @@ class _Db:
             return _Result([])
         if "FROM subject_relation WHERE" in sql or "FROM episode WHERE airdate" in sql or "FROM subject_tag" in sql:
             return _Result([])
-        if "FROM rag_index_job" in sql:
+        if "FROM job" in sql and "type='SEARCH_INDEX'" in sql:
             return _Result([
                 {"subject_id": 1, "content_hash": "hash-1"},
                 {"subject_id": 2, "content_hash": "hash-2"},

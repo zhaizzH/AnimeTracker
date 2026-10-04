@@ -37,7 +37,6 @@ public class AdminSubjectController {
      * @param request 待创建的条目字段
      * @return 统一成功响应，其数据为：新建条目的详情
      */
-    @OperationLog(action = OperationLogConstants.ACTION_SUBJECT_CREATE, module = OperationLogConstants.MODULE_SUBJECT)
     @PostMapping
     public Result<SubjectDetailVO> createSubject(@Valid @RequestBody SubjectCreateDTO request) {
         return Result.success(adminSubjectService.createSubject(request));
@@ -49,7 +48,6 @@ public class AdminSubjectController {
      * @param request 条目更新字段，空字段保留原值
      * @return 统一成功响应，其数据为：修改后的条目详情
      */
-    @OperationLog(action = OperationLogConstants.ACTION_SUBJECT_UPDATE, module = OperationLogConstants.MODULE_SUBJECT)
     @PostMapping("/{id}/update")
     public Result<SubjectDetailVO> updateSubject(
             @PathVariable Long id,

@@ -216,7 +216,7 @@ mysql -u root -p -e "CREATE DATABASE anime_tracker DEFAULT CHARACTER SET utf8mb4
 mysql -u root -p anime_tracker < docs/database/db-schema.sql
 ```
 
-> 若是**已有数据的存量库**，不要重复执行初始化脚本，改用版本化前向迁移：先执行 `docs/database/migration-002-rag-entities.sql`，再执行 `docs/database/migration-003-search-projection.sql`。执行前请完成可恢复备份。
+> 若是**已有数据的存量库**，不要执行上面的初始化脚本——它是全量 DDL，会连同 `user` / `user_collection` / `operation_log` 一起 `DROP` 重建。存量库的结构变更需评审后手工 `ALTER`；涉及删表合并时走重建流程（备份用户表 → 全量建库 → 恢复用户表 → full import 重灌），详见 [`docs/README.md`](docs/README.md)。执行前请完成可恢复备份。
 
 ### 2. 启动 Spring Boot 业务后端 (:8080)
 
@@ -358,7 +358,7 @@ curl -X POST http://localhost:8080/api/client/subjects/lexical-search \
 <details>
 <summary><strong>Q: 数据导入任务提示锁冲突或无法重复启动？</strong></summary>
 
-**A**: 导入器通过 MySQL `GET_LOCK` 保证全局单实例执行，并在 `jobs/importer/importer.pid` 写入进程标识。若由于异常终止导致锁未释放，可确认进程退出后清理 pid 文件，或调用 Agent 的清理接口。
+**A**: 导入器通过 Redis 锁 `animetracker:import:lock`（`SET NX EX`，TTL 1 小时，持有者每 600 秒续期）保证全局单实例执行，并在 `jobs/importer/importer.pid` 写入进程标识。若由于异常终止导致锁未释放，TTL 到期后会自动释放（最迟 1 小时），也可在确认进程退出后手工 `DEL` 该键；pid 文件残留可清理或调用 Agent 的清理接口。注意导入器现在**依赖 Redis**，Redis 不可达会直接失败。
 </details>
 
 <details>
@@ -376,7 +376,7 @@ curl -X POST http://localhost:8080/api/client/subjects/lexical-search \
 <details>
 <summary><strong>Q: 存量库升级时应该执行哪个 SQL？</strong></summary>
 
-**A**: 全新空库执行 `docs/database/db-schema.sql`（含 23 张表的完整结构）；已有数据的库存量升级按顺序执行 `migration-002-rag-entities.sql`（新增 9 张实体/关系/任务表）与 `migration-003-search-projection.sql`（新增 `search_document`、`search_index_release`）。两个迁移脚本均使用 `CREATE TABLE IF NOT EXISTS`，可重复执行。
+**A**: 现在只有一份脚本：全新空库执行 `docs/database/db-schema.sql`（含 20 张表的完整结构）。仓库已不再提供前向迁移脚本（历史 `migration-002` / `migration-003` 已移除）。存量库改结构需评审后手工 `ALTER`；若涉及删除/合并可重建的派生表，走重建流程：备份 `user` / `user_collection` / `operation_log` → 全量执行 `db-schema.sql` → 恢复这三张表 → `jobs.importer --mode full` 重灌派生数据。注意 `db-schema.sql` 是全量 DDL，对非空库直接执行会清空用户数据。
 </details>
 
 ---

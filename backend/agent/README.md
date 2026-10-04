@@ -89,7 +89,7 @@ backend/agent/
 ├── tests/                   # pytest 测试与确定性评测框架
 │   ├── adapters/            # Business HTTP 网关、Redis 实体名称解析
 │   ├── agent/               # 能力路由、提示词契约
-│   ├── entities/            # 旧 subject_credit 映射兼容
+│   ├── entities/            # subject_person_credit 单表映射（FK 行 / name 占位行）
 │   ├── evals/               # 评测框架：metrics / runner / schemas / golden cases
 │   ├── jobs/                # importer / indexer / backfill / scheduler 任务测试
 │   └── rag/                 # 证据契约、故障矩阵、多实体 profile、查询规划
@@ -147,7 +147,7 @@ backend/agent/
     │   ├── llm/             # agent_factory（LLM 工厂）/ embeddings（DashScope 嵌入）
     │   ├── mysql/           # import_records（引擎与导入记录）/ release_store（发布存储）
     │   ├── prompts/         # file_prompt（本地提示词文件）
-    │   ├── redis/           # chat_store / prompt_repository / model_config_repository
+    │   ├── redis/           # chat_store / prompt / model_config / import_lock 等
     │   │                    # / subject_index / vector_set / entity_name_lookup / user_preference
     │   └── subprocess/      # import_job（以子进程启动导入器）
     └── shared/observability.py  # 结构化日志与 trace 中间件
@@ -354,7 +354,7 @@ Agent 提示词已更新为只可依据工具返回的证据字段陈述事实�
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `RAG_PROFILE_VERSION` | `subject-profile-v1` | indexer / importer 质量报告绑定的 profile 版本 |
-| `SEARCH_INDEX_LEASE_SECONDS` | `300` | `search_index_job` 租约时长 |
+| `SEARCH_INDEX_LEASE_SECONDS` | `300` | `job` 表（`type='SEARCH_INDEX'`）租约时长 |
 | `BACKFILL_BATCH_SIZE` / `BACKFILL_MAX_BATCHES` | `50` / `10` | scheduler 回填批大小与批数上限 |
 | `BUSINESS_BASE_URL` | `http://127.0.0.1:8080` | indexer 影子评估的 `--business-url` 默认值。**与 `BACKEND_BASE_URL` 语义不同**（后者是 Agent 自身回调地址），两者必须保持各自默认值，不要合并 |
 | `RAG_TRUSTED_TAG_MIN_COUNT` | `100` | 可信标签最小出现次数 |
@@ -373,7 +373,7 @@ Agent 提示词已更新为只可依据工具返回的证据字段陈述事实�
 
 发布门禁要求 `--report-dir` 下同时存在五份报告（`quality` / `capacity` / `eval` / `latency` / `human`）且契约一致，任一项缺失或版本不匹配即拒绝激活，不会默认放行。
 
-管理端触发的导入请求由 business 转发到本服务的 `POST /api/admin/agent/import/run`，Agent 以子进程方式启动 `jobs/importer/main.py`，通过 MySQL 锁与 PID 文件保证单实例，并会清理僵尸导入记录。
+管理端触发的导入请求由 business 转发到本服务的 `POST /api/admin/agent/import/run`，Agent 以子进程方式启动 `jobs/importer/main.py`，通过 Redis 锁 `animetracker:import:lock` 与 PID 文件保证单实例，并会清理僵尸导入记录。
 
 ## 快速开始
 
@@ -495,7 +495,7 @@ pytest 配置在 `pyproject.toml`（`pythonpath = ["."]`、`asyncio_mode = "auto
 | `tests/jobs/scheduler/` | 定时调度 |
 | `tests/adapters/` | Business HTTP 网关（batch_evidence、evidence/resolve）与 Redis 实体名称解析 |
 | `tests/agent/` | 能力路由与客户端提示词契约 |
-| `tests/entities/` | 旧 `subject_credit` 映射兼容 |
+| `tests/entities/` | `subject_person_credit` 单表映射（FK 行 / `name` 占位行） |
 
 ## 常见问题
 
@@ -527,7 +527,7 @@ A：需要同时满足：`RAG_ENABLED=true`、Redis 8 支持 Vector Set、且 bu
 A：门禁为 fail-closed，要求 `--report-dir` 下五份报告（`quality` / `capacity` / `eval` / `latency` / `human`）齐全且契约一致。查看输出中的 `reason=` 行定位缺失项，不会被默认放行。
 
 **Q：`jobs/indexer --queue` 该选哪个？**
-A：`legacy` 消费旧 `rag_index_job`，`search` 消费新 `search_index_job`（双投影），`both` 同时消费（默认，用于过渡期）。新数据以 `search` 为准。
+A：`legacy` 消费统一 `job` 表中 `type='RAG_INDEX'` 的旧 Subject 兼容队列，`search` 消费 `type='SEARCH_INDEX'` 的通用双投影任务，`both` 同时消费（默认，用于过渡期）。新数据以 `search` 为准。
 
 **Q：改了提示词但没生效？**
 A：托管提示词优先读 Redis 且启动时已加载为进程内快照。在管理端更新后需确认快照已同步，必要时重启服务。
@@ -539,7 +539,7 @@ A：这是既有设计，删除会话使用 POST 而非 DELETE。
 
 - **business**（[`../business/README.md`](../business/README.md)）：本服务的调用方（代理转发）与被调方（业务工具回查、词法检索、Evidence）。两者必须共享 `JWT_SECRET`，且检索版本以 business 的释放指针为准。
 - **导入器**（[`jobs/importer/README.md`](jobs/importer/README.md)）：由本服务以子进程方式启动，共用环境与 `.env`。
-- **索引器**（`jobs/indexer/`）：构建 MySQL 词法投影与 Redis Vector Set 双投影，并通过 `gate` 控制激活；索引任务来自 importer 登记的 `search_index_job`。
+- **索引器**（`jobs/indexer/`）：构建 MySQL 词法投影与 Redis Vector Set 双投影，并通过 `gate` 控制激活；索引任务来自 importer 登记在 `job` 表（`type='SEARCH_INDEX'`）的任务。
 - **回填器**（`jobs/backfill/`）：补齐 Person / Character 摘要与详情，为检索提供更完整的实体文本。
 - **调度器**（`jobs/scheduler/`）：按 Asia/Shanghai 时间编排上述四类任务。
 - **提示词**：本地 Markdown 位于 `resources/prompt/`，线上托管版本存于 Redis。
@@ -549,5 +549,5 @@ A：这是既有设计，删除会话使用 POST 而非 DELETE。
 
 1. **门禁阈值未文档化**：`quality` / `capacity` / `eval` / `latency` / `human` 五份报告的合格线由 `jobs/indexer/gate.py` 解释，但其数值随数据规模与嵌入额度变化，代码与文档中均无建议基准。
 3. **评测框架的使用入口**：`tests/evals/` 提供 metrics / runner / golden case 生成器，`generate_golden_cases.py` 有 `--output` 参数，但评测的整体执行方式（是否仅经 pytest 驱动、是否有独立 CLI）在代码中未见统一入口，待确认。
-4. **旧索引链路退役计划**：`rag_index_job`（旧）与 `search_index_job` + `search_document`（新）并存，`--queue` 默认 `both`；何时收窄为 `search` 并下线旧表未在代码中标注。
+4. **旧索引链路退役计划**：统一 `job` 表中的旧 `type='RAG_INDEX'` 队列与 `type='SEARCH_INDEX'` + `search_document` 新链路并存，`--queue` 默认 `both`；何时收窄为 `search` 并停止登记 `RAG_INDEX` 任务未在代码中标注。
 5. **运行期产物未纳入 `.gitignore`**：`jobs/importer/importer.pid` 与 `indexer-remaining.json` 为任务运行时生成，当前未被忽略规则覆盖。

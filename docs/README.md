@@ -7,7 +7,7 @@
 ## 适用场景
 
 - **新环境搭建**：用 `database/db-schema.sql` 初始化 MySQL 库表。
-- **存量库升级**：按版本执行 `database/migration-002-rag-entities.sql` 与 `database/migration-003-search-projection.sql`。
+- **存量库结构变更**：仓库不提供前向迁移脚本，需按评审结论手工执行 `ALTER` 或走重建流程（见下文「数据库」）。
 - **接口对接**：用 `spec/openapi.yaml` 查看 business 对外 REST 接口的请求与响应结构。
 - **后端开发**：用 `conventions/backend-conventions.md` 对齐错误拦截与代码注释规范。
 - **了解项目演进**：用 `retrospective/` 与 `superpowers/` 回溯设计决策与实施计划。
@@ -47,13 +47,13 @@
 
 | 脚本 | 用途 | 幂等性 |
 |------|------|--------|
-| [`db-schema.sql`](database/db-schema.sql) | **全新空库**的完整结构事实来源，共 23 张表 | 否，必须空库执行 |
-| [`migration-002-rag-entities.sql`](database/migration-002-rag-entities.sql) | 存量库：新增 9 张实体 / 关系 / 任务表与 `source_active` 兼容列 | 是（`CREATE TABLE IF NOT EXISTS` + 条件 DDL） |
-| [`migration-003-search-projection.sql`](database/migration-003-search-projection.sql) | 存量库：新增检索投影表 `search_document`、`search_index_release` | 是（`CREATE TABLE IF NOT EXISTS`） |
+| [`db-schema.sql`](database/db-schema.sql) | **全新空库**的完整结构事实来源，共 20 张表 | 否，必须空库执行 |
 
-核心表共 23 张，按引入顺序分为三组：
+> 仓库不提供前向迁移脚本（历史 `migration-002` / `migration-003` 已移除）。存量库的结构变更需经评审后手工执行 `ALTER` / 数据回填；涉及删表合并时走重建流程：备份用户表 → 全量执行 `db-schema.sql` → 恢复用户表 → full import 重灌派生数据。
 
-### 原有业务表（12）
+核心表共 20 张，按用途分为三组：
+
+### 番剧与用户基础表（10）
 
 | 表 | 说明 | 主要写入方 |
 |----|------|-----------|
@@ -63,14 +63,12 @@
 | `subject_tag` | 番剧—标签关联（自由标签） | importer |
 | `subject_meta_tag` | 番剧—官方元标签关联 | importer |
 | `subject_alias` | 番剧别名 | importer |
-| `subject_credit` | 番剧主创关联（旧结构） | importer |
 | `subject_relation` | 番剧间关联关系（仅保留动画关系） | importer |
 | `user_collection` | 用户收藏与观看进度 | business |
 | `import_record` | 数据导入批次记录（模式、数量、状态、断点） | importer |
-| `rag_index_job` | 旧索引任务队列（含状态、重试次数、租约） | importer / indexer |
-| `operation_log` | 操作审计日志（登录、条目增删改、角色变更、导入等） | business |
+| `operation_log` | 操作审计日志（登录、条目删除、角色变更、导入等） | business |
 
-### migration-002 新增实体与关系表（9）
+### 实体与关系表（7）
 
 | 表 | 说明 | 主要写入方 |
 |----|------|-----------|
@@ -78,16 +76,15 @@
 | `character` | Bangumi 角色与作品内组织摘要与详情状态 | importer / backfill |
 | `person_alias` | 人物别名及来源有效状态 | importer / backfill |
 | `character_alias` | 角色别名及来源有效状态 | importer / backfill |
-| `subject_person_credit` | 作品—人物主创职责关系 | importer |
+| `subject_person_credit` | 作品—人物主创职责关系（`person_id` 未解析时为 `NULL` + `name` 占位） | importer |
 | `subject_character` | 作品—角色关系 | importer |
 | `character_actor` | 作品限定的角色—声优/演员关系 | importer |
-| `entity_detail_job` | Person / Character 详情渐进回填任务 | importer / backfill |
-| `search_index_job` | SUBJECT / EPISODE / PERSON / CHARACTER 通用索引任务 | importer / indexer |
 
-### migration-003 新增检索投影表（2）
+### 任务与检索投影表（3）
 
 | 表 | 说明 | 主要写入方 |
 |----|------|-----------|
+| `job` | 统一任务队列，`type` 区分 `ENTITY_DETAIL` / `SEARCH_INDEX` / `RAG_INDEX`；差异元数据存 `payload_json` | importer / backfill / indexer |
 | `search_document` | MySQL `ngram` FULLTEXT 词法投影（按实体类型与版本分行） | indexer |
 | `search_index_release` | 索引激活版本指针（**唯一权威**，替代已废弃的 Redis alias） | indexer |
 
@@ -107,16 +104,18 @@ mysql -u root -p anime_tracker < docs/database/db-schema.sql
 
 > 脚本不含幂等 DDL，请勿对非空库执行。
 
-### 存量库前向迁移
+### 存量库结构变更
 
-```bash
-# 1. 先完成可恢复备份，记录备份位置，并确认目标库不是生产库
-# 2. 按版本顺序执行
-mysql -u root -p anime_tracker < docs/database/migration-002-rag-entities.sql
-mysql -u root -p anime_tracker < docs/database/migration-003-search-projection.sql
-```
+仓库不提供前向迁移脚本，`docs/database/` 下只有 `db-schema.sql` 一份事实来源。存量库改结构时：
 
-`migration-002` 面向已有 `subject`、`subject_alias`、`subject_meta_tag`、`subject_credit` 和 `rag_index_job` 的库，只新增实体/关系/任务表与兼容列；`migration-003` 面向已执行 `migration-002` 的库，只新增两张投影表。两者均支持重复执行，且**不回改也不删除任何旧表旧数据**。
+1. 先做可恢复备份（用户数据表 `user` / `user_collection` / `operation_log` 必须单独导出）并确认备份可还原
+2. 结构变更经评审后手工执行 `ALTER`
+3. 若变更涉及删除/合并派生表（`subject`、`person`、`job` 等可重建数据），推荐直接走重建流程：
+   ```bash
+   # 备份用户三表 → 全量执行 db-schema.sql（会 DROP 重建全部表）→ 恢复用户三表 → full import 重灌
+   cd backend/agent && uv run python -m jobs.importer.main --mode full
+   ```
+   注意 `db-schema.sql` 是全量脚本，**含 `DROP TABLE IF EXISTS user / user_collection / operation_log`**，整份执行会清空用户数据。
 
 ### 浏览接口规范
 
@@ -148,10 +147,10 @@ docker run -p 8081:8080 -e SWAGGER_JSON=/spec/openapi.yaml \
 | `/api/admin/*` | 10+ | 仪表盘、条目、用户、导入、日志 |
 | `/api/admin/agent/*` | 6+ | 提示词、模型配置、管理员会话 |
 
-### 校验迁移结果
+### 校验建库结果
 
 ```sql
--- 确认 23 张表均已存在
+-- 确认 20 张表均已存在
 SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
 WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME;
 
@@ -176,22 +175,22 @@ SELECT * FROM search_index_release;
 ## 常见问题
 
 **Q：初始化脚本和迁移脚本怎么选？**
-A：全新空库执行 `database/db-schema.sql`；已有数据的库先备份，再按版本顺序执行前向迁移。不要对未知或非空库执行初始化脚本。
+A：只有初始化脚本。全新空库执行 `database/db-schema.sql`。该脚本是全量 DDL（每条 `CREATE TABLE` 前都有 `DROP TABLE IF EXISTS`），**不要对非空库执行**——它会连同 `user` / `user_collection` / `operation_log` 一起重建。
 
-**Q：迁移脚本可以重复执行吗？**
-A：可以。两份迁移均使用 `CREATE TABLE IF NOT EXISTS`，`migration-002` 的兼容列还额外使用 `INFORMATION_SCHEMA` 条件 DDL 判断后再添加。
+**Q：已有数据的库怎么改结构？**
+A：手工执行 `ALTER`。若变更涉及删除或合并可重建的派生表，走重建流程：备份用户三表 → 全量执行 `db-schema.sql` → 恢复用户三表 → `jobs.importer --mode full` 重灌派生数据。执行前必须确认备份可还原。
 
 **Q：`superpowers/` 目录里的计划文档为什么别人看不到？**
 A：该目录已被根 `.gitignore` 忽略，属于本地工作产物，不进入版本控制。`api/`（第三方 Bangumi 文档）同理。
 
 **Q：改了库表后 entity 注释对不上怎么办？**
-A：`backend-business` 的 entity Javadoc 要求按 `db-schema.sql` 描述撰写，改表时应同步更新 `pojo/entity/` 下对应类的字段注释。当前 `pojo/entity/` 已有 20 个实体。
+A：`backend-business` 的 entity Javadoc 要求按 `db-schema.sql` 描述撰写，改表时应同步更新 `pojo/entity/` 下对应类的字段注释。当前 `pojo/entity/` 已有 17 个实体（`job` 表 business 侧不直接读写，故无对应实体）。
 
 **Q：OpenAPI 文件会自动更新吗？**
 A：不会。business 未集成 springdoc / Knife4j，`spec/openapi.yaml` 需手工维护，新增或修改接口后请同步更新。
 
-**Q：`rag_index_job` 和 `search_index_job` 有什么区别？**
-A：`rag_index_job` 是旧版索引任务队列；`search_index_job` 是新的通用索引任务队列，支持 SUBJECT / EPISODE / PERSON / CHARACTER 四类实体。`jobs/indexer` 的 `--queue` 参数可选 `legacy` / `search` / `both`（默认 `both`）来分别消费，`search_document` 与 `search_index_release` 只由新链路写入。
+**Q：`job` 表里 `RAG_INDEX` 和 `SEARCH_INDEX` 有什么区别？**
+A：两者现在同属 `job` 一张表、靠 `type` 区分。`type='RAG_INDEX'` 是旧版 Subject 索引任务队列；`type='SEARCH_INDEX'` 是通用索引任务队列，支持 SUBJECT / EPISODE / PERSON / CHARACTER 四类实体。`jobs/indexer` 的 `--queue` 参数可选 `legacy` / `search` / `both`（默认 `both`）来分别消费，`search_document` 与 `search_index_release` 只由新链路写入。第三类 `type='ENTITY_DETAIL'` 由 `jobs/backfill` 消费。
 
 **Q：怎么判断检索索引是否处于可用状态？**
 A：查 `search_index_release` 中的激活版本，并确认 `search_document` 有对应版本的行。Agent 侧还会探测 Redis 8 的 Vector Set 能力，任一不满足即保持检索关闭（fail-closed）。
@@ -219,7 +218,7 @@ A：查 `search_index_release` 中的激活版本，并确认 `search_document` 
 
 ## 待补充
 
-1. **迁移版本的完整清单**：`database/` 下当前有 `migration-002` 与 `migration-003`，但**不存在 `migration-001`**。推测 001 对应的变更已并入 `db-schema.sql` 或未被使用，编号起点与后续迁移的命名规则待维护者确认。
-2. **迁移的执行记录归档位置**：`migration-002` 涉及 9 张新增表与 3 个兼容列，其验证报告目前只存在于 `.trellis/` 任务目录中（属于开发流程产物），`docs/` 下没有迁移执行记录的长期归档位置。
+1. **缺少前向迁移机制**：`database/` 下只有全量 `db-schema.sql`，历史 `migration-002` / `migration-003` 已移除。当前存量库改结构依赖人工 `ALTER` 或整库重建，没有版本化迁移工具，变更记录也无固定归档位置。
+2. **重建流程未脚本化**：备份用户三表 → 全量建库 → 恢复 → full import 这一流程目前只有文档描述，没有可复用的脚本，每次执行靠手工步骤，易漏项。
 3. **接口规范的完整性**：`spec/openapi.yaml` 为手工维护，与 `backend/business` 现有 Controller 的一致性未经自动校验，可能存在遗漏或过期定义。
-4. **`rag_index_job` 的退役计划**：新旧索引任务表并存，`--queue` 默认 `both`；旧链路何时下线、`rag_index_job` 何时可删除未在代码或文档中标注。
+4. **旧索引链路的退役计划**：`job` 表中 `type='RAG_INDEX'` 的旧 Subject 兼容队列与 `type='SEARCH_INDEX'` 新链路并存，`--queue` 默认 `both`；旧链路何时下线、`RAG_INDEX` 任务何时停止登记未在代码或文档中标注。

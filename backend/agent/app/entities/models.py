@@ -19,6 +19,7 @@ from app.entities.enums import (
     EntityKind,
     ImageStorageStatus,
     JobStatus,
+    JobType,
     PersonType,
 )
 
@@ -98,29 +99,18 @@ class CharacterAlias:
 
 @dataclass(frozen=True)
 class SubjectPersonCredit:
-    """subject_person_credit 表行映射。"""
+    """subject_person_credit 表行映射（主创关系单表）。
+
+    已解析时 person_id 填 FK 且 name 为 None；未解析时 person_id 为 None 且 name 存占位名。
+    """
 
     id: int
     subject_id: int
-    person_id: int
-    role: str
+    person_id: int | None
+    name: str | None
+    credit_type: CreditType = CreditType.PERSON
+    role: str = ""
     relation: CreditRelation = CreditRelation.MAIN
-    sort_order: int = 0
-    source_active: bool = True
-    created_at: datetime | None = None
-    updated_at: datetime | None = None
-
-
-@dataclass(frozen=True)
-class SubjectCredit:
-    """subject_credit 旧版兼容表行映射。"""
-
-    id: int
-    subject_id: int
-    bangumi_person_id: int | None
-    name: str
-    role: str
-    credit_type: CreditType
     sort_order: int = 0
     source_active: bool = True
     created_at: datetime | None = None
@@ -157,47 +147,23 @@ class CharacterActor:
 
 
 @dataclass(frozen=True)
-class EntityDetailJob:
-    """entity_detail_job 表行映射。"""
+class Job:
+    """job 表行映射（统一任务队列）。"""
 
     id: int
+    type: JobType
     entity_kind: EntityKind
     entity_id: int
-    source_id: int
-    status: JobStatus = JobStatus.PENDING
-    attempts: int = 0
-    max_attempts: int = 5
-    next_retry_at: datetime | None = None
-    last_error_code: str | None = None
-    last_error_message: str | None = None
-    checkpoint_json: str | None = None
-    source_hash: str | None = None
-    claimed_at: datetime | None = None
-    completed_at: datetime | None = None
-    created_at: datetime | None = None
-    updated_at: datetime | None = None
-
-
-@dataclass(frozen=True)
-class SearchIndexJob:
-    """search_index_job 表行映射。"""
-
-    id: int
-    entity_kind: EntityKind
-    entity_id: int
-    index_version: str
-    profile_version: str = "v1"
+    index_version: str = ""
     content_hash: str = ""
-    embedding_provider: str = "dashscope"
-    embedding_model: str = ""
-    embedding_dimensions: int = 1024
     status: JobStatus = JobStatus.PENDING
     attempts: int = 0
     max_attempts: int = 5
+    next_retry_at: datetime | None = None
     last_error_code: str | None = None
     last_error_message: str | None = None
-    next_retry_at: datetime | None = None
+    payload_json: str | None = None
     claimed_at: datetime | None = None
-    indexed_at: datetime | None = None
+    finished_at: datetime | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None

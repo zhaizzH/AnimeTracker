@@ -426,7 +426,7 @@ Correct: 同时统计任务状态和 person/character 的 detail_status，并通
 
 - importer CLI 的 `--mode` 为 `full|season|recent|since|sample`；`--dry-run` 只扫描，不打开数据库或写对象存储，当前仅支持 full 扫描语义。
 - importer 并发 worker 上限为 10；断点由扫描 ID 的 SHA-256、offset 和最后条目共同校验，扫描结果变化时拒绝复用旧断点。
-- importer 使用 MySQL `GET_LOCK` 做跨进程互斥；每个 worker 独立 Session，失败必须 rollback、关闭连接并返回非零结果。
+- importer 使用 Redis 锁 `animetracker:import:lock`（`SET NX EX` + 周期续期 + compare-and-del 释放）做跨进程互斥，**Redis 不可达时导入直接失败**（锁是硬依赖）；每个 worker 独立 Session，失败必须 rollback、关闭连接并返回非零结果。运行中进度计数同样在 Redis（`animetracker:import:{record_id}:done`），终态一次性回写 `import_record.subject_count`。
 - indexer 报告缺失、版本不一致、契约/指标不达标时必须 fail closed；只有显式 `--activate` 且所有报告通过时才更新 MySQL `search_index_release`，旧版本投影不得先删除。
 - scheduler 使用 Asia/Shanghai 的固定时刻（每日 recent、每周 since、季度 full），同一分钟同模式去重；仓库不提供常驻宿主、重叠任务终止或重启托管。
 - 运行环境仅提供普通 Redis 而未加载 Vector Set 时，不能执行 `jobs.indexer`；Redis Vector Set 与 MySQL `search_document` 必须使用同一 `indexVersion`，发布指针只在 MySQL 更新。
@@ -504,7 +504,7 @@ except Exception as error:
 
 ##### 2. Signatures
 
-- `run_search_batch(...) -> IndexBatchResult`：批量消费 `search_index_job`，失败任务进入可重试状态。
+- `run_search_batch(...) -> IndexBatchResult`：批量消费 `job` 表中 `type='SEARCH_INDEX'` 的任务，失败任务进入可重试状态。
 - `SearchIndexJobRepository.mark_failed(job_id, *, error_code, error_message, retry_seconds=0, claimed_at=None) -> bool`：写入错误码并设置 `next_retry_at`。Port 定义（`app/entities/ports.py`）为 `mark_failed(job_id, *, error_code, error_message, retry_seconds) -> None`，无 `claimed_at`；实现（`jobs/indexer/search_repository.py`）更宽，引用时须注明是哪一侧。
 
 ##### 3. Contracts

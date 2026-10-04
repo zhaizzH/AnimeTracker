@@ -1,6 +1,6 @@
 """Person/Character 详情回填 worker。
 
-低速批次消费 entity_detail_job，尊重上游限速预算，
+低速批次消费 job 表（type=ENTITY_DETAIL），尊重上游限速预算，
 避免与 Subject importer 争用同一锁。
 
 详情失败只影响该实体的丰富字段，不删除已有摘要与关系。

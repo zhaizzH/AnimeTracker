@@ -277,7 +277,7 @@ def _item(category: Category, action: Action, target: int | str, details: Mappin
 
 def _expected_content_hashes(db, index_version: str) -> dict[int, str]:
     try:
-        rows = db.execute(text("SELECT subject_id, content_hash FROM rag_index_job WHERE index_version=:index_version"), {"index_version": index_version}).mappings().all()
+        rows = db.execute(text("SELECT entity_id AS subject_id, content_hash FROM job WHERE type='SEARCH_INDEX' AND entity_kind='SUBJECT' AND index_version=:index_version"), {"index_version": index_version}).mappings().all()
     except Exception as error:
         raise RuntimeError("无法读取 MySQL 权威 content_hash") from error
     result: dict[int, str] = {}

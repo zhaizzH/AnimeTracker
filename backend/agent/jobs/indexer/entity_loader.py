@@ -1,7 +1,7 @@
 """多实体数据加载器。
 
 从 MySQL 加载 Person/Character/Episode 资料，用于构建多实体 profile。
-与 IndexJobRepository.load_subject() 对称，支持 search_index_job 的所有实体类型。
+与 IndexJobRepository.load_subject() 对称，支持 job 表（type=SEARCH_INDEX）的所有实体类型。
 """
 
 from __future__ import annotations

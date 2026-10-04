@@ -50,7 +50,7 @@ class CreditRelation(StrEnum):
 
 
 class CreditType(StrEnum):
-    """subject_credit.credit_type（旧版兼容表）。"""
+    """subject_person_credit.credit_type。"""
 
     PERSON = "PERSON"
     ORGANIZATION = "ORGANIZATION"
@@ -71,8 +71,15 @@ class ActorRelation(StrEnum):
     ACTOR = "ACTOR"
 
 
+class JobType(StrEnum):
+    """job.type"""
+
+    ENTITY_DETAIL = "ENTITY_DETAIL"
+    SEARCH_INDEX = "SEARCH_INDEX"
+    RAG_INDEX = "RAG_INDEX"
+
 class EntityKind(StrEnum):
-    """entity_detail_job.entity_kind / search_index_job.entity_kind"""
+    """job.entity_kind"""
 
     SUBJECT = "SUBJECT"
     EPISODE = "EPISODE"
@@ -81,10 +88,10 @@ class EntityKind(StrEnum):
 
 
 class JobStatus(StrEnum):
-    """entity_detail_job.status / search_index_job.status 的通用状态。
+    """job.status 的通用状态。
 
-    entity_detail_job 额外使用 RUNNING 和 ABANDONED；
-    search_index_job 额外使用 TOMBSTONE。
+    RAG_INDEX 额外使用 RUNNING；
+    SEARCH_INDEX 额外使用 TOMBSTONE。
     """
 
     PENDING = "PENDING"

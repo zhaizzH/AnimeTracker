@@ -18,7 +18,7 @@ public class OperationLog {
     /** 用户名/邮箱快照 */
     private String username;
 
-    /** 动作: LOGIN/LOGOUT/REGISTER/SUBJECT_CREATE/SUBJECT_UPDATE/SUBJECT_DELETE/ROLE_CHANGE/IMPORT_RUN */
+    /** 动作: LOGIN/LOGOUT/REGISTER/SUBJECT_DELETE/ROLE_CHANGE/IMPORT_RUN */
     private String action;
 
     /** 模块: AUTH/USER/SUBJECT/IMPORT/ADMIN */
@@ -80,8 +80,8 @@ public class OperationLog {
     }
 
     /**
-     * 获取动作: LOGIN/LOGOUT/REGISTER/SUBJECT_CREATE/SUBJECT_UPDATE/SUBJECT_DELETE/ROLE_CHANGE/IMPORT_RUN
-     * @return 动作: LOGIN/LOGOUT/REGISTER/SUBJECT_CREATE/SUBJECT_UPDATE/SUBJECT_DELETE/ROLE_CHANGE/IMPORT_RUN；未持久化或未提供时为 {@code null}
+     * 获取动作: LOGIN/LOGOUT/REGISTER/SUBJECT_DELETE/ROLE_CHANGE/IMPORT_RUN
+     * @return 动作: LOGIN/LOGOUT/REGISTER/SUBJECT_DELETE/ROLE_CHANGE/IMPORT_RUN；未持久化或未提供时为 {@code null}
      */
     public String getAction() {
         return this.action;
@@ -192,8 +192,8 @@ public class OperationLog {
     }
 
     /**
-     * 替换动作: LOGIN/LOGOUT/REGISTER/SUBJECT_CREATE/SUBJECT_UPDATE/SUBJECT_DELETE/ROLE_CHANGE/IMPORT_RUN
-     * @param action 动作: LOGIN/LOGOUT/REGISTER/SUBJECT_CREATE/SUBJECT_UPDATE/SUBJECT_DELETE/ROLE_CHANGE/IMPORT_RUN，可为 {@code null}
+     * 替换动作: LOGIN/LOGOUT/REGISTER/SUBJECT_DELETE/ROLE_CHANGE/IMPORT_RUN
+     * @param action 动作: LOGIN/LOGOUT/REGISTER/SUBJECT_DELETE/ROLE_CHANGE/IMPORT_RUN，可为 {@code null}
      */
     public void setAction(final String action) {
         this.action = action;

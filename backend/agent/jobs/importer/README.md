@@ -21,9 +21,9 @@
 | 组件 | 说明 |
 |------|------|
 | Python 3.10+ 与 uv | 与 Agent 共用同一虚拟环境，依赖由 `backend/agent/uv.lock` 锁定 |
-| MySQL 8 | 目标库 `anime_tracker`，表结构由 [`docs/database/db-schema.sql`](../../../../docs/database/db-schema.sql) 创建（存量库需先执行 `migration-002` 与 `migration-003`） |
+| MySQL 8 | 目标库 `anime_tracker`，表结构由 [`docs/database/db-schema.sql`](../../../../docs/database/db-schema.sql) 创建；仓库当前不提供前向迁移脚本，存量库结构变更需经评审后手工执行 `ALTER` / 回填 |
 | MinIO | 封面与原始快照存储；**未配置时封面回退为 Bangumi 原始 URL** |
-| Redis（可选） | 本工具不直接写 Redis，仅通过 MySQL 任务表登记索引任务；Redis 由 `jobs/indexer` 消费 |
+| Redis（**必需**） | 单实例锁 `animetracker:import:lock` 与运行中进度计数 `animetracker:import:{record_id}:done` 都在 Redis（`REDIS_URL`）。**Redis 不可达时导入会直接以退出码 1 失败**（锁是硬依赖，fail closed）。索引任务仍只登记在 MySQL `job` 表，由 `jobs/indexer` 消费 |
 | 网络 | 需可访问 `https://api.bgm.tv`；如有代理请配置 `HTTPS_PROXY` |
 
 ## 架构定位
@@ -37,8 +37,8 @@
 3. 解析关联条目：只保留 `type=2` 且非 NSFW 的动画关系，由仓储层按本地自然键写入已存在的关联目标。
 4. 实体与关系写入：由 `repository.py` 的 `write_bundle` 在同一事务内提交番剧域、人物/角色域与关系表，并为 SUBJECT / EPISODE / PERSON / CHARACTER 四类实体登记索引任务。
 5. 并发模型：**网络请求并行、数据库写入串行**（`_db_lock` 全局锁），并对任务按线程数交错重排（`_stagger`）降低同区段锁竞争；遇到死锁自动重试最多 4 次并指数退避。
-6. 每次运行写入一条 `import_record` 记录，标注模式、数量与状态；后台线程每 3 秒把已处理数刷到 `subject_count`。
-7. 单实例保护：通过 MySQL `GET_LOCK` 加锁，并在 `jobs/importer/importer.pid` 写入 PID 文件，供 Agent 跨 worker 重启识别仍存活的导入子进程。
+6. 每次运行写入一条 `import_record` 记录，标注模式、数量与状态；运行中的已处理数用 Redis 计数器 `animetracker:import:{record_id}:done` 递增，**不再周期性写库**，终态读回计数并一次性写入 `subject_count`。
+7. 单实例保护：通过 Redis 锁 `animetracker:import:lock`（`SET NX EX` 获取，持有者每 600 秒续期，释放时 compare-and-del）加锁，并在 `jobs/importer/importer.pid` 写入 PID 文件，供 Agent 跨 worker 重启识别仍存活的导入子进程。
 
 ## 快速开始
 
@@ -131,12 +131,12 @@ uv run python -m jobs.importer.main --mode sample --limit 100
 
 | 分组 | 表 |
 |------|-----|
-| 番剧域 | `subject`、`episode`、`subject_alias`、`subject_meta_tag`、`subject_tag`、`subject_credit`、`subject_relation` |
+| 番剧域 | `subject`、`episode`、`subject_alias`、`subject_meta_tag`、`subject_tag`、`subject_relation` |
 | 实体域 | `person`、`character`、`person_alias`、`character_alias` |
 | 关系域 | `subject_person_credit`、`subject_character`、`character_actor` |
-| 任务域 | `import_record`（批次记录）、`entity_detail_job`（人物/角色详情回填任务）、`search_index_job`（四类实体的索引任务） |
+| 任务域 | `import_record`（批次记录）、`job`（统一任务队列：`type='ENTITY_DETAIL'` 人物/角色详情回填、`type='SEARCH_INDEX'` 四类实体双投影索引、`type='RAG_INDEX'` 旧 Subject 兼容索引） |
 
-`search_index_job` 由本工具登记、由 [`jobs/indexer`](../indexer/) 消费；索引器再写入 `search_document`（MySQL 词法投影）与 Redis Vector Set，并把激活版本记录到 `search_index_release`。`entity_detail_job` 由 [`jobs/backfill`](../backfill/) 消费。
+`job` 表中 `type='SEARCH_INDEX'` 的任务由本工具登记、由 [`jobs/indexer`](../indexer/) 消费；索引器再写入 `search_document`（MySQL 词法投影）与 Redis Vector Set，并把激活版本记录到 `search_index_release`。`type='ENTITY_DETAIL'` 的任务由 [`jobs/backfill`](../backfill/) 消费，`type='RAG_INDEX'` 的任务由 [`jobs/indexer`](../indexer/) 的 `--queue legacy` 兼容消费。
 
 表结构定义见 [`docs/database/db-schema.sql`](../../../../docs/database/db-schema.sql)。
 
@@ -192,16 +192,19 @@ A：可以。加 `--resume` 会加载上次的 `import_record` checkpoint。注�
 A：正常保护机制。写入串行化后仍可能与外部事务冲突，导入器最多重试 4 次并指数退避，超过后该条目标记为失败并继续。
 
 **Q：导入突然被拒绝，提示已有导入在跑？**
-A：MySQL `GET_LOCK` 单实例保护生效。确认无其他导入进程后，检查 `jobs/importer/importer.pid` 是否残留（异常退出时应自动清理），或通过 Agent 的僵尸记录清理逻辑处理。
+A：Redis 锁 `animetracker:import:lock` 单实例保护生效。确认无其他导入进程后，检查 `jobs/importer/importer.pid` 是否残留（异常退出时应自动清理），或通过 Agent 的僵尸记录清理逻辑处理。锁 TTL 为 1 小时，进程被 SIGKILL 时最迟 1 小时后自动释放，无需手工干预。
 
 **Q：封面没有转存到 MinIO？**
 A：检查 `MINIO_*` 配置与桶是否存在。未配置时是预期行为——封面会保留 Bangumi 原始 URL。
 
 **Q：`subject_count` 显示的数字和最终条目数不一致？**
-A：`subject_count` 由后台线程每 3 秒刷新，是过程值；导入结束会写入最终值。以结束日志的「共 N 个条目」为准。
+A：运行期间 `import_record.subject_count` 保持为初始值不再刷新（已改用 Redis 计数器 `animetracker:import:{record_id}:done`），只有导入终态才写入最终值。因此**运行中查库看到的数字不代表进度**，如需实时进度请读该 Redis 键；终态与结束日志的「共 N 个条目」一致。
+
+**Q：Redis 里残留了 `animetracker:import:*:done` 键？**
+A：该计数键没有 TTL，仅在导入正常走到终态时被删除。importer 被 SIGKILL 会留下残留键，确认该次导入记录已终止后可手工 `DEL`。计数键按 `record_id` 隔离，残留不会影响后续导入的数值。
 
 **Q：导入完成后检索不到新数据？**
-A：导入只登记索引任务（`search_index_job`），并不直接构建检索投影。需要再运行 `jobs/indexer` 消费任务，并通过 `jobs/indexer.gate` 激活版本后，检索结果才会更新。
+A：导入只登记索引任务（`job` 表 `type='SEARCH_INDEX'`），并不直接构建检索投影。需要再运行 `jobs/indexer` 消费任务，并通过 `jobs/indexer.gate` 激活版本后，检索结果才会更新。
 
 **Q：人物/角色只有名字没有简介？**
 A：导入阶段写入的是摘要字段，详情由 [`jobs/backfill`](../backfill/) 渐进回填。运行 `uv run python -m jobs.backfill.main --batch-size 5` 补齐。
@@ -209,8 +212,8 @@ A：导入阶段写入的是摘要字段，详情由 [`jobs/backfill`](../backfi
 ## 与相邻模块的关联
 
 - **Agent**（[`../../README.md`](../../README.md)）：管理端触发的导入由 Agent 的 `POST /api/admin/agent/import/run` 以子进程方式启动本工具（见 `app/adapters/subprocess/import_job.py`），共用环境与 `.env`。
-- **索引器**（[`../indexer/`](../indexer/)）：本工具登记 `search_index_job`，索引器消费后写入 MySQL 词法投影与 Redis Vector Set；`quality.py` 的报告供其发布门禁消费。
-- **回填器**（[`../backfill/`](../backfill/)）：消费本工具登记的 `entity_detail_job`，补齐 Person / Character 详情。
+- **索引器**（[`../indexer/`](../indexer/)）：本工具登记 `job` 表 `type='SEARCH_INDEX'`（双投影）与 `type='RAG_INDEX'`（旧 Subject 兼容）任务，索引器消费后写入 MySQL 词法投影与 Redis Vector Set；`quality.py` 的报告供其发布门禁消费。
+- **回填器**（[`../backfill/`](../backfill/)）：消费本工具登记的 `job` 表 `type='ENTITY_DETAIL'` 任务，补齐 Person / Character 详情。
 - **调度器**（[`../scheduler/`](../scheduler/)）：按 Asia/Shanghai 时间定时以 `recent` / `since` / `full` 模式启动本工具。
 - **business**：导入结果经 `subject` 等表对外提供查询；管理端「导入记录」页读取 `import_record`。
 - **后端总览**：[`../../../README.md`](../../../README.md) · **项目总览**：[`../../../../README.md`](../../../../README.md)

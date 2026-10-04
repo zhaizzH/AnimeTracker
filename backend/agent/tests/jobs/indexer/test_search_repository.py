@@ -103,7 +103,7 @@ class TestEnqueue:
             embedding_model="text-embedding-v4", embedding_dimensions=1024,
         )
         assert status == JobStatus.PENDING
-        assert any("INSERT INTO search_index_job" in sql for sql, _ in session.calls)
+        assert any("INSERT INTO job" in sql for sql, _ in session.calls)
 
     def test_same_hash_completed_returns_completed(self):
         session = _FakeSession(responses={
@@ -144,7 +144,7 @@ class TestEnqueue:
             embedding_model="text-embedding-v4", embedding_dimensions=1024,
         )
         assert status == JobStatus.PENDING
-        update_calls = [(sql, p) for sql, p in session.calls if "UPDATE search_index_job" in sql]
+        update_calls = [(sql, p) for sql, p in session.calls if "UPDATE job" in sql]
         assert len(update_calls) == 1
         assert update_calls[0][1]["hash"] == "new_hash"
 
@@ -164,23 +164,21 @@ class TestClaimBatch:
         rows = [
             {
                 "id": 1, "entity_kind": "PERSON", "entity_id": 42,
-                "index_version": "v2026-09", "profile_version": "v1",
-                "content_hash": "hash1", "embedding_provider": "dashscope",
-                "embedding_model": "text-embedding-v4", "embedding_dimensions": 1024,
+                "index_version": "v2026-09", "content_hash": "hash1",
+                "payload_json": '{"profile_version": "v1", "embedding_provider": "dashscope", "embedding_model": "text-embedding-v4", "embedding_dimensions": 1024}',
                 "attempts": 0,
             },
             {
                 "id": 2, "entity_kind": "CHARACTER", "entity_id": 7,
-                "index_version": "v2026-09", "profile_version": "v1",
-                "content_hash": "hash2", "embedding_provider": "dashscope",
-                "embedding_model": "text-embedding-v4", "embedding_dimensions": 1024,
+                "index_version": "v2026-09", "content_hash": "hash2",
+                "payload_json": '{"profile_version": "v1", "embedding_provider": "dashscope", "embedding_model": "text-embedding-v4", "embedding_dimensions": 1024}',
                 "attempts": 1,
             },
         ]
         session = _FakeSession(responses={
             "SELECT id, entity_kind": _FakeMappingResult(rows),
-            "UPDATE search_index_job SET status=CASE": _FakeResult(0),
-            "UPDATE search_index_job SET status='CLAIMED'": _FakeResult(1),
+            "UPDATE job SET status=CASE": _FakeResult(0),
+            "UPDATE job SET status='CLAIMED'": _FakeResult(1),
         })
         repo = _make_repo(session=session)
         jobs = repo.claim_batch(5, index_version="v2026-09")
@@ -215,14 +213,14 @@ class TestClaimBatch:
 class TestMarkCompleted:
     def test_marks_completed(self):
         session = _FakeSession(responses={
-            "UPDATE search_index_job SET status='COMPLETED'": _FakeResult(1),
+            "UPDATE job SET status='COMPLETED'": _FakeResult(1),
         })
         repo = _make_repo(session=session)
         assert repo.mark_completed(1) is True
 
     def test_returns_false_when_not_claimed(self):
         session = _FakeSession(responses={
-            "UPDATE search_index_job SET status='COMPLETED'": _FakeResult(0),
+            "UPDATE job SET status='COMPLETED'": _FakeResult(0),
         })
         repo = _make_repo(session=session)
         assert repo.mark_completed(1) is False
@@ -232,7 +230,7 @@ class TestMarkFailed:
     def test_sets_failed_with_retry(self):
         session = _FakeSession(responses={
             "SELECT attempts": _FakeMappingResult([{"attempts": 2}]),
-            "UPDATE search_index_job SET status=:status": _FakeResult(1),
+            "UPDATE job SET status=:status": _FakeResult(1),
         })
         repo = _make_repo(session=session)
         result = repo.mark_failed(1, error_code="EMBEDDING_ERROR", error_message="rate limited")
@@ -244,7 +242,7 @@ class TestMarkFailed:
     def test_abandoned_after_max_attempts(self):
         session = _FakeSession(responses={
             "SELECT attempts": _FakeMappingResult([{"attempts": MAX_ATTEMPTS}]),
-            "UPDATE search_index_job SET status=:status": _FakeResult(1),
+            "UPDATE job SET status=:status": _FakeResult(1),
         })
         repo = _make_repo(session=session)
         result = repo.mark_failed(1, error_code="FATAL", error_message="unrecoverable")
@@ -275,15 +273,14 @@ class TestTombstoneBatch:
         rows = [
             {
                 "id": 3, "entity_kind": "SUBJECT", "entity_id": 100,
-                "index_version": "v2026-09", "profile_version": "",
-                "content_hash": "", "embedding_provider": "dashscope",
-                "embedding_model": "", "embedding_dimensions": 0,
+                "index_version": "v2026-09", "content_hash": "",
+                "payload_json": "{}",
                 "attempts": 0,
             },
         ]
         session = _FakeSession(responses={
             "SELECT id, entity_kind": _FakeMappingResult(rows),
-            "UPDATE search_index_job SET status='CLAIMED'": _FakeResult(1),
+            "UPDATE job SET status='CLAIMED'": _FakeResult(1),
         })
         repo = _make_repo(session=session)
         jobs = repo.tombstone_batch("v2026-09")

@@ -177,8 +177,8 @@ public class ClientSubjectServiceImpl implements ClientSubjectService {
         try {
             release = subjectMapper.selectActiveSearchIndexRelease();
         } catch (DataAccessException ex) {
-            // A deployment that has not run migration-003 must fail closed as
-            // an unavailable lexical index, never expose a 500 SQL detail.
+            // 库表缺少 search_index_release 时必须按「词法索引不可用」fail closed，
+            // 绝不能把 500 的 SQL 细节透传给客户端。
             throw new BizException(ErrorType.SERVICE_UNAVAILABLE, "词法索引尚未迁移");
         }
         if (release == null || release.getIndexVersion() == null || release.getIndexVersion().isBlank()) {

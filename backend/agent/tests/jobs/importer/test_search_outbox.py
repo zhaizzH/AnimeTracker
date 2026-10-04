@@ -1,4 +1,4 @@
-"""Importer -> generic search_index_job outbox 契约测试。"""
+"""Importer -> SEARCH_INDEX outbox 契约测试。"""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ class _Session:
         sql = str(statement)
         params = values or {}
         self.calls.append((sql, params))
-        if "SELECT id, content_hash, status FROM search_index_job" in sql:
+        if "SELECT id, content_hash, status FROM job" in sql:
             return _Result(row=self.existing)
         return _Result()
 
@@ -95,11 +95,12 @@ def test_search_outbox_insert_is_idempotent_and_keeps_profile_metadata():
 
     assert repo._upsert_search_index_job(EntityKind.PERSON, 7, "v1", profile) == "PENDING"
 
-    sql, values = next(call for call in session.calls if "INSERT INTO search_index_job" in call[0])
-    assert "profile_version" in sql
+    sql, values = next(call for call in session.calls if "INSERT INTO job" in call[0])
+    assert "payload_json" in sql
     assert values["kind"] == "PERSON"
     assert values["entity_id"] == 7
     assert values["content_hash"] == profile.content_hash
+    assert profile.schema_version in values["payload"]
 
 
 def test_search_outbox_completed_same_hash_does_not_reset_task():
@@ -108,8 +109,8 @@ def test_search_outbox_completed_same_hash_does_not_reset_task():
     repo = ImportRepository(session)
 
     assert repo._upsert_search_index_job(EntityKind.PERSON, 7, "v1", profile) == "UNCHANGED"
-    assert not any("INSERT INTO search_index_job" in sql for sql, _ in session.calls)
-    assert not any("UPDATE search_index_job" in sql for sql, _ in session.calls)
+    assert not any("INSERT INTO job" in sql for sql, _ in session.calls)
+    assert not any("UPDATE job" in sql for sql, _ in session.calls)
 
 
 def test_search_outbox_failed_same_hash_is_requeued():
@@ -118,9 +119,9 @@ def test_search_outbox_failed_same_hash_is_requeued():
     repo = ImportRepository(session)
 
     assert repo._upsert_search_index_job(EntityKind.PERSON, 7, "v1", profile) == "PENDING"
-    update = next(values for sql, values in session.calls if "UPDATE search_index_job" in sql)
+    update = next(values for sql, values in session.calls if "UPDATE job" in sql)
     assert update["content_hash"] == profile.content_hash
-    assert update["profile_version"] == profile.schema_version
+    assert profile.schema_version in update["payload"]
 
 
 def test_incomplete_entity_responses_publish_no_person_or_character_tasks():
@@ -184,7 +185,6 @@ def test_write_bundle_publishes_legacy_and_generic_outboxes_for_complete_entitie
     monkeypatch.setattr(repo, "_upsert_persons", lambda people, import_record_id=None: {
         person.bangumi_id: person.bangumi_id + 100 for person in people
     })
-    monkeypatch.setattr(repo, "_upsert_credits", lambda *args, **kwargs: None)
     monkeypatch.setattr(repo, "_upsert_subject_person_credits", lambda *args, **kwargs: None)
     monkeypatch.setattr(repo, "_upsert_characters", lambda chars, import_record_id=None: {
         character.bangumi_id: character.bangumi_id + 200 for character in chars

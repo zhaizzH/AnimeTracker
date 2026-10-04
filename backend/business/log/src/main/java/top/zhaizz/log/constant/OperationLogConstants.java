@@ -32,10 +32,6 @@ public final class OperationLogConstants {
     public static final String ACTION_RESET_PASSWORD = "RESET_PASSWORD";
     /** 操作动作筛选编码：{@code LOGOUT}，与前端筛选保持一致 */
     public static final String ACTION_LOGOUT = "LOGOUT";
-    /** 操作动作筛选编码：{@code SUBJECT_CREATE}，与前端筛选保持一致 */
-    public static final String ACTION_SUBJECT_CREATE = "SUBJECT_CREATE";
-    /** 操作动作筛选编码：{@code SUBJECT_UPDATE}，与前端筛选保持一致 */
-    public static final String ACTION_SUBJECT_UPDATE = "SUBJECT_UPDATE";
     /** 操作动作筛选编码：{@code SUBJECT_DELETE}，与前端筛选保持一致 */
     public static final String ACTION_SUBJECT_DELETE = "SUBJECT_DELETE";
     /** 操作动作筛选编码：{@code ROLE_CHANGE}，与前端筛选保持一致 */

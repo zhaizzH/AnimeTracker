@@ -11,6 +11,7 @@ from sqlalchemy import text
 
 MAX_ATTEMPTS = 5
 RUNNING_LEASE_SECONDS = 15 * 60
+JOB_TYPE = "RAG_INDEX"
 
 
 @dataclass(frozen=True)
@@ -72,11 +73,11 @@ class IndexJobRepository:
         with self._session.begin():
             self._session.execute(
                 text(
-                    "UPDATE rag_index_job SET "
-                    "status=CASE WHEN attempts >= :max_attempts THEN 'FAILED' ELSE 'RETRY' END, "
+                    "UPDATE job SET "
+                    "status='FAILED', "
                     "last_error_code='LEASE_EXPIRED', last_error_message='index worker lease expired', "
                     "next_retry_at=CASE WHEN attempts >= :max_attempts THEN NULL ELSE :now END, "
-                    "updated_at=:now WHERE index_version=:index_version AND status='RUNNING' "
+                    "updated_at=:now WHERE type='RAG_INDEX' AND index_version=:index_version AND status='RUNNING' "
                     "AND updated_at <= :lease_before"
                 ),
                 {
@@ -88,9 +89,13 @@ class IndexJobRepository:
             )
             rows = self._session.execute(
                 text(
-                    "SELECT id, subject_id, index_version, content_hash, attempts "
-                    "FROM rag_index_job WHERE index_version=:index_version AND "
-                    "(status = 'PENDING' OR (status = 'RETRY' AND (next_retry_at IS NULL OR next_retry_at <= :now))) "
+                    # FAILED 行只在 next_retry_at 到期后可再领；next_retry_at IS NULL
+                    # 表示终态（mark_failed / 退避耗尽的 mark_retry），不得当作"立即可领"，
+                    # 否则非可重试错误会无退避地重试到 max_attempts。
+                    "SELECT id, entity_id AS subject_id, index_version, content_hash, attempts "
+                    "FROM job WHERE type='RAG_INDEX' AND index_version=:index_version AND "
+                    "attempts < max_attempts AND (status = 'PENDING' OR (status = 'FAILED' "
+                    "AND next_retry_at <= :now)) "
                     "ORDER BY id LIMIT :limit FOR UPDATE SKIP LOCKED"
                 ),
                 {"index_version": index_version, "now": now, "limit": capped_limit},
@@ -101,7 +106,7 @@ class IndexJobRepository:
                 job_id = int(row["id"])
                 self._session.execute(
                     text(
-                        "UPDATE rag_index_job SET status='RUNNING', attempts=:attempts, "
+                        "UPDATE job SET status='RUNNING', attempts=:attempts, "
                         "next_retry_at=NULL, updated_at=:now WHERE id=:id"
                     ),
                     {"id": job_id, "attempts": attempts, "now": now},
@@ -121,7 +126,7 @@ class IndexJobRepository:
                     "SELECT s.id AS subject_id, s.name AS title, s.summary, "
                     "(SELECT GROUP_CONCAT(name ORDER BY name SEPARATOR '\\n') FROM subject_alias WHERE subject_id=s.id AND source_active=1) AS aliases, "
                     "(SELECT GROUP_CONCAT(name ORDER BY name SEPARATOR '\\n') FROM subject_meta_tag WHERE subject_id=s.id AND source_active=1) AS meta_tags, "
-                    "(SELECT GROUP_CONCAT(CONCAT(role, '：', name) ORDER BY sort_order, name SEPARATOR '\\n') FROM subject_credit WHERE subject_id=s.id AND source_active=1) AS credits, "
+                    "(SELECT GROUP_CONCAT(CONCAT(spc.role, '：', IFNULL(p.name, spc.name)) ORDER BY spc.sort_order, IFNULL(p.name, spc.name) SEPARATOR '\\n') FROM subject_person_credit spc LEFT JOIN person p ON p.id=spc.person_id WHERE spc.subject_id=s.id AND spc.source_active=1) AS credits, "
                     "(SELECT GROUP_CONCAT(CONCAT(sr.relation, '：', related.name) ORDER BY related.name SEPARATOR '\\n') "
                     "FROM subject_relation sr JOIN subject related ON related.id=sr.related_subject_id WHERE sr.subject_id=s.id) AS relations, "
                     "YEAR(s.air_date) AS year, QUARTER(s.air_date) AS quarter, s.score, s.rating_total, s.collection_total, "
@@ -212,7 +217,7 @@ class IndexJobRepository:
             with session.begin():
                 result = session.execute(
                     text(
-                        "UPDATE rag_index_job SET updated_at=:now WHERE id=:id AND status='RUNNING' "
+                        "UPDATE job SET updated_at=:now WHERE id=:id AND type='RAG_INDEX' AND status='RUNNING' "
                         "AND updated_at=:lease_updated_at"
                     ),
                     {"id": job_id, "now": now, "lease_updated_at": lease_updated_at},
@@ -227,9 +232,9 @@ class IndexJobRepository:
         with self._session.begin():
             result = self._session.execute(
                 text(
-                    "UPDATE rag_index_job SET status='INDEXED', indexed_at=:now, next_retry_at=NULL, "
+                    "UPDATE job SET status='COMPLETED', finished_at=:now, next_retry_at=NULL, "
                     "last_error_code=NULL, last_error_message=NULL, updated_at=:now WHERE id=:id "
-                    "AND status='RUNNING' AND updated_at=:lease_updated_at"
+                    "AND type='RAG_INDEX' AND status='RUNNING' AND updated_at=:lease_updated_at"
                 ),
                 {"id": job_id, "now": now, "lease_updated_at": lease_updated_at},
             )
@@ -239,19 +244,18 @@ class IndexJobRepository:
         now = _datetime_seconds(self._now())
         code, message = _error_details(error)
         if attempts >= MAX_ATTEMPTS:
-            status, retry_at = "FAILED", None
+            retry_at = None
         else:
-            status = "RETRY"
             retry_at = now + timedelta(seconds=min(3600, 2**attempts * 30))
         with self._session.begin():
             result = self._session.execute(
                 text(
-                    "UPDATE rag_index_job SET status=:status, last_error_code=:code, last_error_message=:message, "
+                    "UPDATE job SET status='FAILED', last_error_code=:code, last_error_message=:message, "
                     "next_retry_at=:next_retry_at, updated_at=:now WHERE id=:id "
-                    "AND status='RUNNING' AND updated_at=:lease_updated_at"
+                    "AND type='RAG_INDEX' AND status='RUNNING' AND updated_at=:lease_updated_at"
                 ),
                 {
-                    "id": job_id, "status": status, "code": code, "message": message,
+                    "id": job_id, "code": code, "message": message,
                     "next_retry_at": retry_at, "now": now, "lease_updated_at": lease_updated_at,
                 },
             )
@@ -263,9 +267,9 @@ class IndexJobRepository:
         with self._session.begin():
             result = self._session.execute(
                 text(
-                    "UPDATE rag_index_job SET status='FAILED', last_error_code=:code, last_error_message=:message, "
+                    "UPDATE job SET status='FAILED', last_error_code=:code, last_error_message=:message, "
                     "next_retry_at=NULL, updated_at=:now WHERE id=:id "
-                    "AND status='RUNNING' AND updated_at=:lease_updated_at"
+                    "AND type='RAG_INDEX' AND status='RUNNING' AND updated_at=:lease_updated_at"
                 ),
                 {"id": job_id, "code": code, "message": message, "now": now, "lease_updated_at": lease_updated_at},
             )

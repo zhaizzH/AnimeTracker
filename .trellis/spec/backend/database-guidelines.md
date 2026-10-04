@@ -113,16 +113,17 @@ DEALLOCATE PREPARE stmt;
 
 ### 3. Contracts
 
-- 所有主创关系只写 `subject_person_credit`；importer 对未解析到 `person` 表的 credit 写 `name` 占位行，待 backfill 解析后回填 `person_id` 并清 `name`。
-- `credit_type` 只能使用 `PERSON` 或 `ORGANIZATION`；Python 侧由 `CreditType` 枚举（`app/entities/enums.py`）强制。
-- Profile/索引摘要读取走单表 `LEFT JOIN person`：`IFNULL(person.name, spc.name)` 取展示名。
+- 所有主创关系只写 `subject_person_credit`；importer 是**唯一写入方**（`jobs/importer/repository.py:_upsert_subject_person_credits`）。
+- 未解析到 `person` 表的 credit 写 `name` 占位行（`person_id=NULL`），**当前没有任何代码会把占位行提升为 FK 行**。占位行靠下一次 full import 自愈：那时 `person_ids` 已有映射，写入的 FK 行 `dedup_key` 不同，与占位行并存；而函数开头的 `UPDATE ... SET source_active=0` 会把旧占位行标为失效。因此同一 credit 可能短暂存在一条 inactive 占位行 + 一条 active FK 行，摘要在 `source_active=1` 过滤下只读后者。**不要再假设存在 backfill 回填路径。**
+- `credit_type` 只能使用 `PERSON` 或 `ORGANIZATION`；Python 侧由 `CreditType` 枚举（`app/entities/enums.py`）约束取值，但**没有运行时校验拒绝非法写入**——`SubjectPersonCredit` 是无 `__post_init__` 的 frozen dataclass。
+- Profile/索引摘要读取走单表 `LEFT JOIN person`：`IFNULL(person.name, spc.name)` 取展示名。注意 `tests/evals/generate_golden_cases.py` 生成 person 关系用例时用的是 `JOIN person`（INNER），会自然排除占位行——这是有意的（用例需要 person 名）。
 
 ### 4. Validation & Error Matrix
 
 | 条件 | 处理 |
 |---|---|
-| `credit_type` 非 `PERSON\|ORGANIZATION` | 拒绝写入并记录契约错误 |
-| `person_id` 与 `name` 同时非 NULL 或同时 NULL | 拒绝写入（不变式：恰好其一非 NULL，ORGANIZATION 行例外允许 name 占位） |
+| `credit_type` 非 `PERSON\|ORGANIZATION` | 无运行时拦截；靠 `CreditType` 枚举与 code review 保证 |
+| `person_id` 与 `name` 同时非 NULL 或同时 NULL | 无运行时拦截；importer 赋值处（`local_id is None` 分支）保证恰好其一非 NULL |
 | 引用已删除的 `subject_credit` | 阻止发布，改为单表查询 |
 
 ### 5. Good/Base/Bad Cases
@@ -133,9 +134,8 @@ DEALLOCATE PREPARE stmt;
 
 ### 6. Tests Required
 
-- Python 单测：`CreditType` 仅接受两个数据库字面值。
-- 导入器契约测试：未解析 credit 写占位行；解析后回填清 `name`。
-- 摘要 SQL 测试：`person_id` 行与 `name` 占位行产出一致格式 `role：name`。
+- `tests/entities/test_credit_mapping.py`：断言占位行（`person_id=None` + `name`）与 FK 行（`person_id` + `name=None`）两种构造形态。
+- 待补：目前**没有**覆盖摘要 SQL（`IFNULL(person.name, spc.name)` 两种行产出一致 `role：name`）的测试，也**没有**覆盖"二次导入把占位行标 inactive + 写入 FK 行"的测试。改动 credit 写路径时应补上。
 
 ### 7. Wrong vs Correct
 
@@ -154,9 +154,22 @@ DEALLOCATE PREPARE stmt;
 ## Python 离线任务
 
 - importer 将标准化和持久化分开，参考 `jobs/importer/normalize.py` 与 `repository.py`。
-- 导入用 Redis 锁保证单实例（键 `animetracker:import:lock`，`SET NX EX` + Lua compare-and-del 释放），并维护 import record、进度和 PID 文件；运行中进度计数在 Redis（`animetracker:import:{record_id}:done`），终态一次性回写 import_record。
-- indexer 同时维护两类任务：旧 `rag_index_job` 仅承担 Subject 兼容队列，新 `search_index_job` 承担 SUBJECT/EPISODE/PERSON/CHARACTER 通用双投影；迁移窗口内不得误删旧队列表。`jobs/indexer/gate.py` 缺报告时必须 fail closed。
-- 每条 `search_index_job` 必须成组绑定 `index_version`、`profile_version` 与 `content_hash`；MySQL lexical shadow 和 Redis Vector Set 任一写入失败都不得确认任务完成，tombstone 使用 `VREM`。
+- 导入用 Redis 锁保证单实例（键 `animetracker:import:lock`，`SET NX EX` 获取 + 周期续期，释放走 WATCH+MULTI 的 compare-and-del）。**释放与续期不要改用 Lua**：WATCH+MULTI 语义等价，且免去 `lupa` 依赖、fakeredis 无 Lua 时也能测（见 `app/adapters/redis/import_lock.py` 模块 docstring）。导入同时维护 import record、进度和 PID 文件；运行中进度计数在 Redis（`animetracker:import:{record_id}:done`），终态一次性回写 import_record。
+- 任务队列统一在 `job` 表，靠 `type` 区分三类：`ENTITY_DETAIL`（backfill 消费）、`SEARCH_INDEX`（indexer 通用双投影）、`RAG_INDEX`（indexer 旧 Subject 兼容队列）。禁止再引入独立的 job 队列表。
+- **针对 `job` 表的每条 SQL 必须带 `type=` 或 `id=` 作用域**。只按 `status` / `next_retry_at` 过滤会跨队列误伤其他 type 的任务，这是本表最易犯的错误。
+- **claim 谓词里的 `next_retry_at IS NULL` 按 type 而异，不要互相「统一」**。合并前 `RAG_INDEX` 靠 `status='RETRY'` vs `'FAILED'` 区分可重试/终态；折叠成单 `FAILED` 后，这个区分必须由 `next_retry_at` 承担：
+
+  | type | claim 谓词的 FAILED 分支 | 终态表示 |
+  |---|---|---|
+  | `RAG_INDEX` | `next_retry_at <= :now`（**不含** `IS NULL`） | `FAILED` + `next_retry_at NULL` |
+  | `SEARCH_INDEX` | `next_retry_at <= :now`（**不含** `IS NULL`） | `ABANDONED` |
+  | `ENTITY_DETAIL` | `(next_retry_at IS NULL OR next_retry_at <= :now)`（**必须保留 `IS NULL`**） | `ABANDONED` |
+
+  `RAG_INDEX` / `SEARCH_INDEX` 若把 `IS NULL` 也算作可领，`mark_failed` 与退避耗尽的 `mark_retry` 会被当成「立即可领」，非可重试错误将无退避地重试到 `max_attempts`（白烧 embedding 配额）。回归护栏：`tests/jobs/indexer/test_rag_job_failure_semantics.py`。
+
+  反过来，`ENTITY_DETAIL` **必须**放行 `IS NULL`：`backfill/repository.py:resume()` 用 `next_retry_at=NULL` 表示「解除暂停、立即可领」（`pause()` 写的是远期时间）。若照 RAG 的写法去掉 `IS NULL`，被 `resume()` 清成 NULL 的行将永远无法再被认领。
+- 新增终态时优先用独立状态（`ABANDONED` / `TOMBSTONE`）而不是复用 `FAILED`+`NULL`，避免与 `next_retry_at` 语义纠缠。
+- 每条 `SEARCH_INDEX` 任务必须成组绑定 `index_version`、`profile_version` 与 `content_hash`；`profile_version` 与 embedding 元组存 `payload_json`，`content_hash` 提升为列用于幂等比对。MySQL lexical shadow 和 Redis Vector Set 任一写入失败都不得确认任务完成，tombstone 使用 `VREM`。`jobs/indexer/gate.py` 缺报告时必须 fail closed。
 - 清理先生成计划并校验确认摘要，参考 `jobs/importer/cleanup.py`。
 - RAG 旧投影清理必须等待回滚窗口结束并取得独立确认；不能以 release 激活或灰度通过替代删除确认。
 - CLI 失败路径必须释放锁、关闭会话并返回非零退出码。
@@ -195,7 +208,7 @@ DEALLOCATE PREPARE stmt;
 | 存量库未执行迁移 | Business lexical API 失败或返回 503，不伪造候选 |
 | 无 active release | 返回 503，Agent 降级到既有 Business 搜索 |
 | 第二条 ACTIVE release | 唯一约束拒绝写入，保留原 active |
-| 初始化 Schema 用于非空库 | 禁止执行，改走前向迁移评审 |
+| 初始化 Schema 用于非空库 | 禁止执行（全量 DDL 会 DROP 用户表），改走手工 ALTER 或重建流程评审 |
 
 ### 5. Good / Base / Bad Cases
 
@@ -205,7 +218,7 @@ DEALLOCATE PREPARE stmt;
 
 ### 6. Tests Required
 
-- DDL：MySQL 8.4 空库初始化和迁移脚本二次执行均成功，断言 FULLTEXT、唯一键和生成列存在。
+- DDL：MySQL 8.4 空库执行 `db-schema.sql` 成功，断言 FULLTEXT、唯一键和生成列存在。（迁移脚本已移除，其二次执行断言不可复现。）
 - Mapper：断言 `MATCH ... AGAINST` 绑定参数和 `indexVersion` 过滤。
 - Service：断言无 active release 返回 503，成功响应包含版本和候选排名。
 

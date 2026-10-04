@@ -24,24 +24,30 @@ from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
+import redis
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.adapters.mysql.import_records import get_engine, sanitize_import_error
+from app.adapters.redis.import_lock import (
+    acquire as acquire_import_lock,
+    release as release_import_lock,
+    renew as renew_import_lock,
+)
 from app.rag.seasons import SEASON_QUARTERS, season_month_range
 from app.shared.observability import log_event
 
 try:
     from .client import BangumiClient
     from .db import upsert_subject, upsert_episodes, upsert_tags, \
-        upsert_relations, create_import_record, complete_import_record, acquire_import_lock, release_import_lock, update_import_progress, load_resume_record, resume_import_record
+        upsert_relations, create_import_record, complete_import_record, update_import_progress, load_resume_record, resume_import_record
     from .normalize import normalize_subject
     from .repository import ImportBundle, ImportCheckpoint, ImportRepository
     from .storage import ObjectStorage
 except ImportError:
     from client import BangumiClient
     from db import upsert_subject, upsert_episodes, upsert_tags, \
-        upsert_relations, create_import_record, complete_import_record, acquire_import_lock, release_import_lock, update_import_progress, load_resume_record, resume_import_record
+        upsert_relations, create_import_record, complete_import_record, update_import_progress, load_resume_record, resume_import_record
     from normalize import normalize_subject
     from repository import ImportBundle, ImportCheckpoint, ImportRepository
     from storage import ObjectStorage
@@ -66,7 +72,76 @@ _db_lock = threading.Lock()
 # ponytail: 模块级单例，避免层层传递
 _object_storage = None
 _start_time = None
-_done_count = 0  # 已处理成功条目数，后台线程周期刷到 import_record.subject_count
+
+# Redis 客户端单例：导入锁 + 进度计数器共用（连接获取同 R4）
+_redis_client = None
+
+# import_record.subject_count 的 Redis 中间计数键；导入终态读出后删除
+_PROGRESS_KEY_TEMPLATE = "animetracker:import:{record_id}:done"
+
+
+def _get_redis():
+    global _redis_client
+    if _redis_client is None:
+        _redis_client = redis.Redis.from_url(
+            os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+            decode_responses=True,
+        )
+    return _redis_client
+
+
+def _progress_key(record_id: int) -> str:
+    return _PROGRESS_KEY_TEMPLATE.format(record_id=record_id)
+
+
+def _incr_done(record_id: int) -> None:
+    """成功导入一条即 INCR 一次；Redis 故障只告警，不影响导入主流程。"""
+    try:
+        _get_redis().incr(_progress_key(record_id))
+    except Exception as e:
+        logger.warning("Redis 导入进度计数失败: %s", sanitize_import_error(e))
+
+
+def _clear_done(record_id: int) -> None:
+    try:
+        _get_redis().delete(_progress_key(record_id))
+    except Exception as e:
+        logger.warning("清理 Redis 导入进度计数失败: %s", sanitize_import_error(e))
+
+
+def _read_and_clear_done(record_id: int) -> int | None:
+    """读出累计成功数并删除计数键。
+
+    读取异常时返回 None（而非 0）——调用方需回退到本次运行的内存计数，
+    否则一次成功的导入会被静默记成 `subject_count=0`。
+    """
+    key = _progress_key(record_id)
+    count: int | None = None
+    try:
+        raw = _get_redis().get(key)
+        count = int(raw) if raw else 0
+    except Exception as e:
+        logger.warning("读取 Redis 导入进度计数失败: %s", sanitize_import_error(e))
+    _clear_done(record_id)
+    return count
+
+
+def _start_lock_renewer(token: str, every: float = 600.0):
+    """后台守护线程：每 600s 校验 token 并 PEXPIRE 续期；token 丢失即停止。"""
+    stop = threading.Event()
+
+    def _loop():
+        while not stop.wait(every):
+            try:
+                if not renew_import_lock(_get_redis(), token):
+                    logger.error("导入锁续期失败（token 已不持有），停止续期")
+                    return
+            except Exception as e:
+                logger.warning("导入锁续期异常: %s", sanitize_import_error(e))
+
+    thread = threading.Thread(target=_loop, daemon=True)
+    thread.start()
+    return stop, thread
 
 # jobs/importer launcher 靠这个 PID 文件跨 worker 重启识别仍存活的导入子进程
 PID_FILE = Path(__file__).with_name("importer.pid")
@@ -88,39 +163,6 @@ def _fmt_duration(secs: float) -> str:
     if h:
         return f"{h}h{m:02d}m{s:02d}s"
     return f"{m}m{s:02d}s"
-
-
-def _start_count_flusher(record_id: int, engine, every: float = 3.0):
-    """后台守护线程：周期把已处理数刷到 import_record.subject_count。
-
-    3s 刷新足够实时且写库次数有限（full 全程仅几十次）。
-    返回 stop Event；导入结束先 set()+join() 再写最终值，避免与 complete 竞态。
-    """
-    stop = threading.Event()
-
-    def _flush(db):
-        n = _done_count
-        try:
-            db.execute(
-                text("UPDATE import_record SET subject_count = :n WHERE id = :id"),
-                {"n": n, "id": record_id},
-            )
-            db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.warning("刷新 import_record.subject_count 失败: %s", sanitize_import_error(e))
-
-    def _loop():
-        db = Session(engine)
-        try:
-            while not stop.wait(every):
-                _flush(db)
-        finally:
-            db.close()
-
-    thread = threading.Thread(target=_loop, daemon=True)
-    thread.start()
-    return stop, thread
 
 
 def _get_object_storage() -> ObjectStorage:
@@ -155,13 +197,12 @@ def _stagger(ids, workers):
 
 def _run_batch(bangumi_ids, resume, access_token, user_agent,
                host, port, user, password, db_name, max_workers=MAX_WORKERS, base_done=0,
-               record_id=None, mode="", resume_checkpoint=None, track_progress=True,
+               record_id=None, mode="", resume_checkpoint=None,
                entity_import_record_id=None):
     """并行导入一批 subject_id，返回成功数。
 
     base_done: 扫描阶段已发现条数，导入进度从该值继续累加（full 模式页面计数连续）。
     """
-    global _done_count
     source_ids = list(bangumi_ids)
     if resume_checkpoint is not None:
         bangumi_ids = _resume_batch_ids(source_ids, resume_checkpoint)
@@ -191,6 +232,8 @@ def _run_batch(bangumi_ids, resume, access_token, user_agent,
             skipped = outcome == OUTCOME_SKIPPED
             if success:
                 done += 1
+                if worker_import_record_id is not None:
+                    _incr_done(worker_import_record_id)
             if outcome != OUTCOME_FAILURE:
                 completed_positions.add(positions[subject_id])
                 while confirmed_offset in completed_positions:
@@ -211,8 +254,6 @@ def _run_batch(bangumi_ids, resume, access_token, user_agent,
                     progress_db.commit()
                 finally:
                     progress_db.close()
-            if track_progress:
-                _done_count = done
             _safe_progress(done - base_done, total)
     return done - base_done
 
@@ -533,16 +574,13 @@ def _full_catalog_ids(client, limit: int | None = None) -> list[int]:
 
 
 def run_full(client, db, resume, *, limit: int | None = None, **kw):
-    global _done_count
     ids = _full_catalog_ids(client, limit)
-    _done_count = len(ids)
     imported = _run_batch(ids, resume, base_done=len(ids), **kw)
     # full 的断点只描述完整目录；追赶批次不覆盖它，也不复用它。
     catchup_kw = dict(kw)
     catchup_kw.pop("record_id", None)
     catchup_kw.pop("mode", None)
     catchup_kw.pop("resume_checkpoint", None)
-    catchup_kw["track_progress"] = False
     # The catch-up batch belongs to the same import record for entity lineage,
     # but must not overwrite the full-catalog checkpoint/progress counters.
     catchup_kw["entity_import_record_id"] = kw.get("record_id")
@@ -648,7 +686,7 @@ def main(argv=None):
             raise ValueError("dry-run currently supports full mode only")
         return _dry_run_full(client, args.limit)
     engine = get_engine(db_host, db_port, db_user, db_password, db_name)
-    # 保持主连接在整个导入期间被检出，MySQL GET_LOCK 不会在 commit 后漂移到连接池。
+    # 主连接仍用于 import_record 读写；导入锁已迁到 Redis，不再依赖连接被持续检出。
     main_connection = engine.connect()
     db = Session(bind=main_connection)
 
@@ -662,12 +700,15 @@ def main(argv=None):
     global _start_time
     _start_time = time.time()
     record_id = None
-    stop_flusher = flusher_thread = None
+    lock_token = f"{os.getpid()}:{time.time()}"
     lock_acquired = False
+    stop_renewer = renewer_thread = None
     resume_checkpoint = None
     try:
-        acquire_import_lock(db)
+        if not acquire_import_lock(_get_redis(), lock_token):
+            raise RuntimeError("已有导入任务正在运行，未获得 animetracker:import:lock 锁")
         lock_acquired = True
+        stop_renewer, renewer_thread = _start_lock_renewer(lock_token)
         PID_FILE.write_text(str(os.getpid()))
         if args.resume:
             saved = load_resume_record(db, args.mode, getattr(args, "key", None))
@@ -683,8 +724,11 @@ def main(argv=None):
                 record_id,
                 ImportCheckpoint(args.mode, 0, None, hashlib.sha256(b"").hexdigest()),
             )
+        # 计数键无 TTL，只在 finally 删除；被 SIGKILL 会残留。--resume 复用同一
+        # record_id，残留值会被叠加进终态 subject_count。此处已持有导入锁（无其他
+        # importer 在跑），任何既存值都是残留，清零后再开始计数。
+        _clear_done(record_id)
         db.commit()
-        stop_flusher, flusher_thread = _start_count_flusher(record_id, engine)
         pool_kw.update(record_id=record_id, mode=args.mode, resume_checkpoint=resume_checkpoint)
 
         logger.info("Bangumi 数据导入模式: %s", args.mode)
@@ -707,9 +751,14 @@ def main(argv=None):
         else:
             raise ValueError(f"Unknown mode: {args.mode}")
 
-        stop_flusher.set()
-        flusher_thread.join(timeout=5)
-        stop_flusher = flusher_thread = None
+        # 终态以 Redis 累计成功数为准（含 full 追赶批次），读出后立即删键。
+        # Redis 不可用时回退到本次运行的内存计数：run_full 返回
+        # `主批次 + 追赶批次`，与 Redis 计数语义一致。
+        redis_count = _read_and_clear_done(record_id)
+        if redis_count is None:
+            logger.warning("Redis 进度计数不可用，subject_count 回退为本次运行计数 %d", count)
+        else:
+            count = redis_count
         complete_import_record(db, record_id, count, "COMPLETED")
         db.commit()
         elapsed = _fmt_duration(time.time() - _start_time)
@@ -730,12 +779,17 @@ def main(argv=None):
         log_event("rag.import.completed", jobId=record_id, success=False, errorType=type(e).__name__)
         return 1
     finally:
-        if stop_flusher is not None:
-            stop_flusher.set()
-            flusher_thread.join(timeout=5)
+        if stop_renewer is not None:
+            stop_renewer.set()
+            renewer_thread.join(timeout=5)
         PID_FILE.unlink(missing_ok=True)
         if lock_acquired:
-            release_import_lock(db)
+            try:
+                release_import_lock(_get_redis(), lock_token)
+            except Exception as e:
+                logger.warning("释放导入锁失败: %s", sanitize_import_error(e))
+        if record_id is not None:
+            _clear_done(record_id)
         db.close()
         main_connection.close()
     log_event("rag.import.completed", jobId=record_id, candidateCount=count, success=True)

@@ -14,10 +14,9 @@ from app.entities.models import (
     Character,
     CharacterActor,
     CharacterAlias,
-    EntityDetailJob,
+    Job,
     Person,
     PersonAlias,
-    SearchIndexJob,
     SubjectCharacter,
     SubjectPersonCredit,
 )
@@ -90,13 +89,13 @@ class RelationRepository(Protocol):
 
 @runtime_checkable
 class EntityDetailJobRepository(Protocol):
-    """entity_detail_job 的 claim/lease/complete 边界。"""
+    """job 表（type=ENTITY_DETAIL）的 claim/lease/complete 边界。"""
 
     def enqueue(self, entity_kind: EntityKind, entity_id: int, source_id: int) -> None:
         """幂等入队：已存在则不重复创建。"""
         ...
 
-    def claim_batch(self, batch_size: int, *, lease_seconds: int = 300) -> list[EntityDetailJob]:
+    def claim_batch(self, batch_size: int, *, lease_seconds: int = 300) -> list[Job]:
         """认领一批待处理任务（PENDING/FAILED 且 next_retry_at <= now）。"""
         ...
 
@@ -115,7 +114,7 @@ class EntityDetailJobRepository(Protocol):
 
 @runtime_checkable
 class SearchIndexJobRepository(Protocol):
-    """search_index_job 的 outbox 写入与消费边界。"""
+    """job 表（type=SEARCH_INDEX）的 outbox 写入与消费边界。"""
 
     def enqueue(
         self,
@@ -131,7 +130,7 @@ class SearchIndexJobRepository(Protocol):
         """幂等写入索引任务；hash 未变则返回 UNCHANGED 语义（不重复入队）。"""
         ...
 
-    def claim_batch(self, batch_size: int, *, lease_seconds: int = 300) -> list[SearchIndexJob]:
+    def claim_batch(self, batch_size: int, *, lease_seconds: int = 300) -> list[Job]:
         """认领一批待索引任务。"""
         ...
 
