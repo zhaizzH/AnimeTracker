@@ -70,6 +70,12 @@
 #### 网络教训（fake-IP 轮流劫持）
 本机 Clash fake-IP 模式先后劫持 `dashscope.aliyuncs.com`（10-04）与 `api.bgm.tv`（10-05），且**同一时刻只放行一个**。最终解法：Python 进程显式 `HTTPS_PROXY=http://127.0.0.1:7897` 走 HTTP 代理，绕过 fake-IP。runbook 前置检查已含 DashScope 探测；bgm.tv 同理：`curl -x http://127.0.0.1:7897 https://api.bgm.tv/v0/subjects/8` 应 200。
 
+#### recent 增量导入（2026-10-05 下午）
+- `--mode recent` 101 条 COMPLETED（10m17s，0 失败），subject 136→139
+- backfill 增量 3667 条全部 COMPLETED（ENTITY_DETAIL 累计 7747）
+- **索引增量未跑，用户决定跳过**：SEARCH_INDEX 剩 8937 PENDING + 203 FAILED（`EMBEDDING_UNAVAILABLE`，attempts<5 可重试）、RAG_INDEX 80 PENDING。原因：Clash fake-IP 轮流劫持 `dashscope.aliyuncs.com` 与 `api.bgm.tv`，同一时刻只有一个可达，代理切换后 embedding 仍间歇性 TLS 截断（curl/schannel 通、Python/OpenSSL 断），无法稳定放量。网络修复后 `jobs.indexer.main --index-version v1` 重跑即可接上，任务不会丢
+- CLAIMED 已全部复位 PENDING；`import_record` id=2 recent COMPLETED（success 101/101）
+
 #### 多进程 backfill 死锁教训
 `BackfillRepository.claim_batch` 在同一事务里先跑 lease 回收 UPDATE（扫 CLAIMED 行）再 `SELECT ... FOR UPDATE SKIP LOCKED`——单进程无碍，**多进程并发 claim 死锁**（1213）。临时并行 worker 去掉 lease UPDATE 后 8 进程无冲突。长期方案：lease 回收拆到独立低频任务，或并入 claim 谓词。临时脚本 `jobs/backfill/parallel_worker.py` 用完已删（见 git 历史）。
 - runbook： [`runbook-r7.md`](runbook-r7.md)

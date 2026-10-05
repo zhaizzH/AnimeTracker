@@ -64,7 +64,7 @@ cd backend/business && mvn -q -o test-compile
 - ✅ **索引重建（2026-10-05 完成）**：5368 SEARCH_INDEX + 136 RAG_INDEX 全部 COMPLETED，`search_document` 5504 行，0 FAILED。此前 42 个 `EMBEDDING_UNAVAILABLE` FAILED 任务网络恢复后自动重领成功
 - ✅ **backfill（2026-10-05 完成）**：ENTITY_DETAIL 4080/4080 全 COMPLETED；person 3086 / character 994 全 COMPLETE；credit 未解析 0。R7 全部步骤已完成，终态对账全绿（见 implement.md）
 
-**R7 已完成（2026-10-05）。剩余：full import 可选（用户之前决定只跑 season 验证链路）；trellis-check → 提交收尾。**
+**R7 已完成（2026-10-05）。** 同日补跑 `--mode recent` 101 条 COMPLETED + backfill 增量清零；索引增量（SEARCH 8937 PENDING + 203 FAILED 可重试 / RAG 80 PENDING）**用户决定跳过**——Clash fake-IP 轮流劫持 dashscope/bgm.tv，网络稳定后 `jobs.indexer.main --index-version v1` 可接上。验证：pytest 629 passed / mvn EXIT=0。
 网络教训：Clash fake-IP 轮流劫持 dashscope/bgm.tv，Python 显式 `HTTPS_PROXY=http://127.0.0.1:7897` 绕过。多进程 backfill 死锁：claim_batch 的 lease 回收 UPDATE 与 SKIP LOCKED 冲突，临时并行 worker（已删）跳过 lease UPDATE 后 8 进程无冲突。
 
 **恢复方式**：修好 `*.aliyuncs.com` 的网络/代理规则后，按 runbook 第 6 节重跑
