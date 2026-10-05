@@ -12,19 +12,22 @@
 
 源码：`backend/agent/main.py`、`backend/agent/app/rag/retrieval.py`、`backend/agent/app/rag/use_case.py`、`backend/agent/app/agent/client/rag_tools.py`。
 
+> **模块结构**：2026-10-05 起 `app/rag` 按管线阶段拆分（`lexical.py` / `entity_resolution.py` / `authority.py` / `rerank.py`），结构与决策见 [app/rag 模块结构（ADR 0001）](./directory-structure.md#apprag-模块结构adr-00012026-10-05提交-08799fdb)；下文引用路径均已更新为新归属。
+
 | 边界 | 当前实现 | 必须保留的说明 |
 |---|---|---|
 | 普通用户 / 管理员 | 客户端三个节点注册各自 rag_*；admin 只注册目录/导入/时间工具 | 不得笼统宣称所有 Agent 都有 RAG 工具 |
-| 实体名称 | `entity_name_lookup=None`，有名称即 `entity_resolution_unavailable` | 名称参数和 Prompt 已存在不等于在线名称解析可用；显式 ID 的 Business `/resolve` 已接线 |
+| 实体名称 | `entity_name_lookup=None`，有名称即 `entity_resolution_unavailable`（`entity_resolution.py::lookup_entity_name`） | 名称参数和 Prompt 已存在不等于在线名称解析可用；显式 ID 的 Business `/resolve` 已接线 |
 | 查询版本 | lexical 响应 indexVersion 决定 Subject VSIM key | Python 未独立校验响应 profileVersion；MySQL JOIN 和发布 gate 承担对应版本约束 |
 | 收藏画像向量 | `_subject_vector_lookup` 在 `rag_enabled` 启动时读取 MySQL `search_index_release` 的 ACTIVE `index_version`，不再使用配置 `rag_index_version` | 已对齐权威指针，但取版本路径与主检索不同（主链经 Business lexical 响应，画像链直读同一张表）；解析失败或无 ACTIVE 时返回 `None` 并告警，个性化降级而非静默 |
 | 工具错误 | use case 返回 available/reason/personalizationNotice；工具 `_items` 保留 `{available:false,reason,items:[]}` | 模型可区分不可用和正常无结果，但仍需真实回放验证回答是否正确解释 |
-| Evidence 重复 ID | `_enrich_evidence` 在 `by_id` 赋值前检测已见 subjectId，命中即整批 fail-closed | 已实现拒绝：`available=false`、`reason=evidence_unavailable`、空候选，日志 `errorType="duplicate_subject_id"`；不再静默后者胜 |
+| Evidence 重复 ID | `authority.py::enrich_evidence` 在 `by_id` 赋值前检测已见 subjectId，命中即整批 fail-closed | 已实现拒绝：`available=false`、`reason=evidence_unavailable`、空候选，日志 `errorType="duplicate_subject_id"`；不再静默后者胜 |
 | 适配器出参校验 | `HttpBusinessGateway.batch_subjects/batch_evidence/resolve_evidence/save_collection` 依赖上游 typed 工具，不自校验 ID/类型 | **backlog（12e）**：纵深校验会改动四方法的出参与错误语义，需先确认与上游 typed 工具的职责划分 |
-| 静默异常分类 | `retrieval.py`、`main.py` 多处 `except Exception` 把不同根因坍缩为单一降级 | **backlog（12f）**：细分类会变更降级语义与 `log_event` errorType，需先定义错误分类契约 |
+| 静默异常分类 | `retrieval.py`（4 处）、`entity_resolution.py`（3 处）、`authority.py`（1 处）、`main.py`（3 处）多处 `except Exception` 把不同根因坍缩为单一降级 | **backlog（12f）**：细分类会变更降级语义与 `log_event` errorType，需先定义错误分类契约 |
+| 两套转义表 | `lexical.py` 保留 `_REDIS_RESERVED` 与 `_REDIS_TAG_RESERVED`（后者保逗号），语义不同 | **backlog**：不合并；合并会改动 Redis 查询转义契约，需回归 `tests/rag/test_lexical_contract.py` 后独立任务处理 |
 | 个性化降级可观测性 | `redis/user_preference.py::load` 对「无收藏」「向量构建失败」「版本不可用」统一返回 `missing=True`，经 `personalizationNotice` 通道对外同形 | **backlog**：版本解析失败已在运维侧以 `logger.warning` 区分（`main._resolve_active_index_version`），但对外仍无法与「用户本就无收藏」区分；改 `personalizationNotice` 会牵动 Prompt 与前端契约，需独立任务 |
 
-RRF 按两路排名计算 `Σ 1/(60+rank)`，每路上限 50，权威回查后最终至多 15 条；当前重排为 `retrieval.py::_rerank` 中的规则分数，没有独立 reranker 模型。查询 Embedding 失败时可继续词法召回，版本获取/索引异常进入 Business fallback；正常空召回不一定触发 fallback。
+RRF 按两路排名计算 `Σ 1/(60+rank)`，每路上限 50，权威回查后最终至多 15 条；当前重排为 `rerank.py::rerank` 中的规则分数（RRF 融合为 `rerank.py::reciprocal_rank_fusion`），没有独立 reranker 模型。查询 Embedding 失败时可继续词法召回，版本获取/索引异常进入 Business fallback；正常空召回不一定触发 fallback。
 
 ### 日期与状态的已知偏差
 

@@ -29,18 +29,20 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 
 ### 当前测试基线
 
-2026-09-10 的历史审计曾因 `tests/agent/test_capability_route.py` 导入缺失符号而收集失败；该测试已按当前 graph/runtime 契约重写。
-
-2026-09-21 本轮文档复核在 `backend/agent` 执行 `uv run pytest`，结果为 413 passed；2026-09-29 复核为 **585 passed, 6 xfailed**（基线从 516 提升，新增 SSE 序列化、gateway 路由解析、collection_progress 三类用例；6 个 xfailed 为已登记的已知缺陷）。Java 侧同轮复跑 `mvn -B test -f backend/business/pom.xml` 为 95 个测试通过、0 失败、0 错误，`check_javadoc.py` 为 255 个文件、1658 个声明、0 个违规，`test_check_javadoc.py` 为 7 项通过。2026-09-12 的 284 passed 与 2026-09-16 的 Java 95/255/1658 仍是带日期的历史基线；此前 271 passed 是排除失效测试文件后的历史诊断数。不得沿用历史通过数。
+2026-10-05 本轮文档复核实测：`backend/agent` 执行 `uv run pytest` 为 **629 passed, 6 xfailed**；Java 侧 `mvn -B test -f backend/business/pom.xml` 全 reactor 合计 **220 个测试通过、0 失败、0 错误**（Lombok 移除后各模块测试全部计入，旧基线 95 已失效）。`check_javadoc.py` 及其回归 `test_check_javadoc.py` 已随提交 `721d5c71` 删除（Lombok 移除工作遗留的一次性脚本），历史基线 255 文件/1658 声明/0 违规不再可复跑；恢复前 Javadoc 检查以人工审查为准，见下文「可重复的声明与语法检查」。2026-09-29 的 585 passed、2026-09-21 的 413 passed、2026-09-12 的 284 passed 均为带日期的历史基线。不得沿用历史通过数。
 
 - Java `app` 模块包含配置迁移回归测试：`AppConfigurationBindingTest`、`SecurityConfigAuthorizationTest`、`CookieOriginFilterTest`、`AgentConfigTest` 与 `ArchitectureBoundaryTest`。
-- Python 已有 importer、indexer gate、shadow eval、release store、容量报告和 RAG 故障矩阵回归用例；任务归档的 2026-09-07 证据为 Agent `268 passed, 1 deselected`、Business `37` tests。该数字是带日期的历史验证，不替代本次变更重新运行测试。
+- Python 已有 importer、indexer gate、shadow eval、release store、容量报告和 RAG 故障矩阵回归用例。
 - Python 还有 `tests/jobs/backfill`、`tests/jobs/scheduler`、`tests/adapters`、`tests/entities`、`tests/evals` 与 `tests/agent`。Prompt 字符串断言只证明文件内容，不能证明模型始终使用中文，也不能证明进程已经刷新 Prompt。
 - Java 配置迁移必须使用 `clean`，避免旧 `target/classes` 中的配置类造成重复 Bean 或假成功。
-- MyBatis `type-aliases-package` 会把实体简单类名注册为不区分大小写的别名；实体类名若与 MyBatis/JDK 内置类型冲突，必须显式使用 `@Alias` 绑定业务别名，并用 `TypeAliasRegistry.registerAliases` 回归测试扫描结果。
+- MyBatis `type-aliases-package` 会把实体简单类名注册为不区分大小写的别名；实体类名若与 MyBatis/JDK 内置类型冲突，必须显式使用 `@Alias` 绑定业务别名（回归见下文「验证粒度」）。
 - 这些用例覆盖配置绑定、授权矩阵、Cookie Origin、Agent 超时/Trace/SSE 和模块边界；不启动完整 `AppApplication`，不连接真实 MySQL、Redis、MinIO 或 Python Agent。
 - 新增业务分支应补最小回归测试；修复契约漂移时优先增加跨层或适配器测试。
 - `ArchitectureBoundaryTest` 必须排除测试类，否则测试夹具中的 `app` 引用会污染下层边界判断。
+
+### 已知 flaky 测试
+
+- **backlog**：`tests/rag/test_air_status.py::test_both_call_sites_use_the_shared_function` 在全量 `uv run pytest` 中偶发失败（2026-10-05 首次观察），单独运行该文件 29 passed、全量重跑 629 passed 全绿。现象指向测试隔离/顺序依赖而非源码缺陷。处置：首次失败先重跑确认；修复隔离另起独立任务。禁止把「重跑即绿」当作常态接受，flaky 会腐蚀门禁信任。
 
 ### 已知覆盖债务
 
@@ -159,9 +161,7 @@ trace = GoldenTrace(
 
 ### Java 注释质量
 
-Java 后端统一遵循 [Javadoc 规范](./quality-guidelines.md#java-后端-javadoc-规范)，包括 pojo 全部字段、类型及手写成员。接口契约、实现继承说明与源码行为必须一致；字段行尾注释不满足 pojo 文档要求。方法体算法说明不冒充声明 Javadoc。
-
-本规则是已确认的项目要求；2026-09-14 最终修复后，AST 检查 255 个 Java 文件、1658 个声明，违规 0，JDK doclint 通过。早期文本扫描的“缺失 0”结论已被替换，后续以可重复检查命令和人工语义审查为准。项目尚未配置自动覆盖门禁，审查仍须检查格式与契约真实性，普通测试通过不能替代文档检查。
+Java 后端统一遵循 [Javadoc 规范](./quality-guidelines.md#java-后端-javadoc-规范)。普通测试通过不能替代文档检查。
 
 ### 代码审查清单
 
@@ -179,12 +179,7 @@ Java 后端统一遵循 [Javadoc 规范](./quality-guidelines.md#java-后端-jav
 - importer/indexer 改动：测试 dry-run、锁释放、断点续传或 fail-closed gate。
 - 跨层改动：从浏览器 API 调用一路核对到存储，再核对返回类型。
 - 配置改动：同步示例文件，确认日志不会打印真实密钥；若是 Java 配置迁移，补齐上述五类测试并运行 `mvn -B clean test`。
-
-#### MyBatis 类型别名冲突
-
-- 错误：在 `mybatis-plus.type-aliases-package` 扫描包中直接新增名为 `Character`、`String` 等与内置别名冲突的实体类，依赖默认简单类名注册。
-- 正确：为业务实体显式指定不冲突别名，例如 `@Alias("BangumiCharacter")`，并保留 Mapper/XML 使用的全限定类名兼容。
-- 验证：至少断言业务别名解析到实体类、内置别名仍解析到 JDK 类型，再运行 `mvn -B clean test`。
+- MyBatis 类型别名：在 `mybatis-plus.type-aliases-package` 扫描包中新增名为 `Character`、`String` 等与内置别名冲突的实体类时，必须显式指定业务别名（如 `@Alias("BangumiCharacter")`），断言业务别名解析到实体类、内置别名仍解析到 JDK 类型，再运行 `mvn -B clean test`。
 
 ### Git 提交信息
 
@@ -343,22 +338,11 @@ public static UserCollectionVO toUserCollectionVO(UserCollectionSubjectVO vo) {
 | 继承 | 接口契约完整，覆盖方法显式继承或补充，未复制失效说明 |
 | 维护 | 不含空模板、无意义复述、虚构异常或历史作者信息；篇幅与复杂度匹配，不为满足行数重复契约 |
 
-### 可重复的声明与语法检查
+### 声明与语法检查（自动化检查器已退役）
 
-在仓库根目录执行：
+> **Warning**：`backend/business/tools/check_javadoc.py` 与 `test_check_javadoc.py` 已随提交 `721d5c71`（2026-10-04）删除，理由是 Lombok 移除工作遗留的一次性脚本、无后续引用。**上述 Javadoc 规范（覆盖、语法、真实性、继承、维护）本身仍然有效**；自动化检查恢复前，提交前验证为 `mvn -B clean test -f backend/business/pom.xml` + 人工对照规范审查。恢复路径：`git show 721d5c71^ -- backend/business/tools/` 取回检查器源码。禁止引用该命令作为现行门禁。
 
-```bash
-# 先完成 Java 完整回归，再校验文档
-mvn -B clean test -f backend/business/pom.xml
-python backend/business/tools/check_javadoc.py
-python backend/business/tools/test_check_javadoc.py
-```
-
-`check_javadoc.py` 使用 JDK 21 语法树遍历全部 Java 源码（含测试和工具，排除 target），检查类型、手写构造器、字段、方法、record 组件的声明文档，以及参数顺序、返回标签、中文摘要和已知机械模板。继承文档只允许出现在显式覆盖的方法上。随后读取 app 的 Surefire 报告中实际构建类路径，运行 JDK `javadoc -private -Xdoclint:all,-missing -Werror`，校验 HTML、标签语法和引用；缺失检查由前一阶段执行，`-missing` 在 doclint 阶段关闭以避免重复报错。任一阶段失败都返回非零。
-
-结果写入 `backend/business/target/javadoc-check/coverage.txt` 与 `doclint.txt`；HTML 文档和参数文件也位于该临时目录。`clean` 会清理报告，交付记录需保存日期、命令和结果摘要。检查器回归覆盖中文和 record、私有构造器和枚举、参数/返回错配、继承限制、模板及损坏源码。
-
-该命令是提交前独立检查，尚未接入 Maven 默认生命周期或 CI。自动检查不证明业务语义、异常条件或数据单位正确，也不能穷举无意义表述；仍需对照实现和测试人工审查。纯注释修改不机械新增业务单元测试；检查器自身的正反例用于证明门禁能发现已知遗漏。
+历史检查器行为（供恢复参考）：JDK 21 语法树全量声明检查 + `javadoc -Xdoclint:all,-missing -Werror`，退役前最后基线（2026-09-21）255 文件/1658 声明/0 违规；实现细节从 git 历史取回。人工审查不能穷举无意义表述；仍需对照实现和测试核对业务语义、异常条件与数据单位。纯注释修改不机械新增业务单元测试。
 
 语法依据：[JDK 21 标准 Javadoc 规范](https://docs.oracle.com/en/java/javase/21/docs/specs/javadoc/doc-comment-spec.html)。覆盖范围、中文风格和审查要求是本项目约定。
 

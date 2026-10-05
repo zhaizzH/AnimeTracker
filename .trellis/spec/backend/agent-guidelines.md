@@ -17,7 +17,7 @@
 - RAG 关闭时使用显式不可用适配器与 Business fallback，不能把检索失败静默伪装为空结果。
 - RAG 索引运行前必须验证 Redis 提供 Vector Set 命令（至少 `VADD`、`VSIM`、`VREM`）；MySQL 8.4 `ngram` FULLTEXT 负责词法召回，Redis 8 Vector Set 只负责语义向量召回。没有 Vector Set 时保持 `RAG_ENABLED=false` 或走 Business fallback，不得宣称已发布 RAG。
 - 2026-09-09 历史记录确认 v1 `subject-profile-v1` release 激活及 24 小时灰度/回滚，但本次源码审计不证明当前运行数据库状态；`RAG_ENABLED` 代码默认仍为 `false`。完整发布、灰度和回滚契约见 [RAG 检索与版本发布契约](./rag-retrieval-contract.md)。
-- 通过权威回查的候选必须经 Evidence API 补充证据字段（`_enrich_evidence`）；Evidence 失败、错误、部分或不安全响应时必须 fail-closed（`available=false`、空候选），并记录 `rag.evidence.enriched` 事件。
+- 通过权威回查的候选必须经 Evidence API 补充证据字段（`app/rag/authority.py::enrich_evidence`）；Evidence 失败、错误、部分或不安全响应时必须 fail-closed（`available=false`、空候选），并记录 `rag.evidence.enriched` 事件。
 - `RetrievalQuery` 的 `person_ids`、`character_ids`、`actor_ids`、`relation_subject_ids` 只能通过 Business `/api/client/evidence/resolve` 解析为活跃、非 NSFW 动画 Subject allowlist；解析失败不得访问 Redis 或返回未过滤候选。
 - Agent 提示词禁止陈述工具返回中不存在的证据；`app/rag/use_case.py::_compact` 当前输出 20 个键，包含 `airDate`、播出状态、来源、匹配事实和检索解释。字段清单以该函数与 `tests/rag/test_evidence_contract.py` 核对，缺项按字段使用空列表、空字符串或 None；不能用旧字段数量代替契约检查。
 - 故障矩阵必须在测试中覆盖：Redis/Embedding/Business/Evidence 每层独立故障与组合故障，证明 fail-closed 或既定降级行为。
@@ -106,7 +106,7 @@ safe = [item for item in safe if self._matches_query_filters(item.evidence or {}
 - Business 只返回 `type=2`、`nsfw=false`、`active=true` 的证据候选；Agent 仅提取 `subjectId`。
 - 多种实体过滤取交集；allowlist 同时约束 Redis 召回和 Business fallback，再执行 Subject 权威回查与 Evidence 回查。
 - 实体 ID 不得拼接进 Vector Set `FILTER` 或 SQL 字符串。
-- 目标边界：名称应先解析为本地实体 ID，再通过 Business `/resolve` 做关系扩展。当前 `main.py` 在开关两种分支都注入 `entity_name_lookup=None`，`_lookup_entity_name` 遇到名称立即返回 `entity_resolution_unavailable`；只有显式实体 ID 的 `/resolve` 链已接线。不得把注释中的 Business 名称解析方案描述为已实现。旧 `RedisEntityNameLookup` 未接入在线组合根。
+- 目标边界：名称应先解析为本地实体 ID，再通过 Business `/resolve` 做关系扩展。当前 `main.py` 在开关两种分支都注入 `entity_name_lookup=None`，`app/rag/entity_resolution.py::lookup_entity_name` 遇到名称立即返回 `entity_resolution_unavailable`；只有显式实体 ID 的 `/resolve` 链已接线。不得把注释中的 Business 名称解析方案描述为已实现。旧 `RedisEntityNameLookup` 未接入在线组合根。
 - 注入名称适配器的测试路径中，PERSON 与 CHARACTER 的名称候选可在名称约束内取并集；与显式 ID/关系字段仍取交集。查询声优关系时必须保留 ACTOR 语义。当前线上装配没有名称适配器，不能把这些单测路径视为已接通。
 
 #### 4. Validation & Error Matrix
@@ -253,7 +253,7 @@ allowed = resolve_evidence(match.entity_kind, ids, token=token)
 ##### 6. Tests Required
 
 - `tests/agent/test_subject_resolution.py`：归一化仅字符层面（`第二季 != 第2季`）、唯一精确/多命中、`dedup_ids` 拒 bool 与非正数、`/batch` 过滤 `active/type/nsfw` 与基础设施错误、Business 命中不回退 RAG、Business 错误不回退不预览、空结果回退 RAG、RAG 不可用不伪装、非空无精确进 resolution、显式 `subject_id` 跳搜索仍 `/batch`、选择按序号/唯一名/歧义/越界/用户不匹配/过期/已收藏/失效重校验、gateway 对 `SUBJECT_RESOLUTION` 路由、判别联合序列化往返。
-- 运行 `uv run pytest tests/agent` 与 `uv run pytest`（2026-09-21 复核：78 / 413 通过）。
+- 运行 `uv run pytest tests/agent` 与 `uv run pytest`。
 
 ##### 7. Wrong vs Correct
 
@@ -328,7 +328,7 @@ emit_pending_action_set(build_resolution_action(...)) # 多个/歧义 → SUBJEC
 
 - `tests/agent/test_collection_type.py`：预览 ADD/NOOP/CHANGE 与状态错误、set 唯一精确/多候选(带 collection_type)/NOOP 清理/显式 id/无匹配、execute 成功/409/404/基础设施保留/无待确认、选择后按 collection_type 分派、SET_COLLECTION_TYPE 与 SUBJECT_RESOLUTION(带/不带 collectionType) 序列化往返、工具 schema 含 collection_type。
 - `tests/agent/test_write_intent_routing.py`：写入短语命中（含插词）、否定不误触发、纯查询不误触发、SET_COLLECTION_TYPE 确认强制路由、非确认不强制。
-- 运行 `uv run pytest tests/agent` 与 `uv run pytest`（2026-09-21 复核：78 / 413 通过）。
+- 运行 `uv run pytest tests/agent` 与 `uv run pytest`。
 
 ##### 7. Wrong vs Correct
 

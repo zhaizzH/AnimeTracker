@@ -14,7 +14,7 @@
 
 | 主题 | 内容 |
 |---|---|
-| [架构与模块边界](./directory-structure.md) | 目标九模块、现有实现对照、Auth/Infrastructure/Java Agent 设计、pojo/Converter 与迁移验收 |
+| [架构与模块边界](./directory-structure.md) | 目标九模块、现有实现对照、Auth/Infrastructure/Java Agent 设计、app/rag 拆分（ADR 0001）、pojo/Converter 与迁移验收 |
 | [Agent 编排与运行](./agent-guidelines.md) | 角色工具、Prompt、运行契约、SSE 与编排 |
 | [数据与存储](./database-guidelines.md) | MySQL、MyBatis、SQLAlchemy、Redis、Schema 与存储约束 |
 | [RAG 检索与版本发布](./rag-retrieval-contract.md) | 检索、发布 gate、灰度、回滚与 Evidence 边界 |
@@ -41,16 +41,15 @@ cd ../agent
 uv run pytest
 ```
 
-CI 当前执行 Java `mvn -B test`、Python `uv run pytest` 和前端 typecheck；`clean test` 与前端 build 属于相应变更的提交前/交付前验证。Python 已包含 importer/indexer/backfill/scheduler、RAG、适配器、eval 和 Agent Prompt 测试。2026-09-10 的能力路由测试收集失败是历史记录，2026-09-12 既有记录说明已重写；2026-09-15 的既有证据包含 Business reactor clean test，2026-09-16 和 2026-09-21 两轮复核重新运行了 `mvn -B test`、Javadoc 检查和检查器回归，详见 [质量门禁](./quality-guidelines.md#后端质量门禁)；不得沿用历史通过数。
+CI 当前执行 Java `mvn -B test`、Python `uv run pytest` 和前端 typecheck；`clean test` 与前端 build 属于相应变更的提交前/交付前验证。Python 已包含 importer/indexer/backfill/scheduler、RAG、适配器、eval 和 Agent Prompt 测试。详见 [质量门禁](./quality-guidelines.md#后端质量门禁)；不得沿用历史通过数。
 
-### 2026-09-21 Backend 复核基线
+### 2026-10-05 Backend 复核基线
 
 - Business reactor 当前包含 `common`、`pojo`、`infrastructure`、`auth`、`log`、`agent`、`client`、`admin`、`app` 九个 Maven 模块；模块上限和实际职责以 [目录与依赖边界](./directory-structure.md) 及 `ArchitectureBoundaryTest` 为准
-- `mvn -B test -f backend/business/pom.xml`：95 个测试通过，0 失败，0 错误
-- `uv run pytest`（`backend/agent`）：413 passed；2026-09-12 的 284 passed 为历史基线
-- `python backend/business/tools/check_javadoc.py`：255 个 Java 文件、1658 个声明、0 个违规；`test_check_javadoc.py`：7 项通过
-- `app/src/main/resources` 当前包含 `application.yml`、`application-local.yml`、`logback-spring.xml`；配置与 Profile 说明不能只引用公共配置文件
-- `docs/database/` 当前只有 `db-schema.sql`；历史迁移脚本 `migration-002-rag-entities.sql`、`migration-003-search-projection.sql` 已随提交 `f9b8fd39` 删除
+- `mvn -B test -f backend/business/pom.xml`：全 reactor 合计 220 个测试通过，0 失败，0 错误（Lombok 移除后各模块测试全部计入；2026-09-21 的 95 为历史基线）
+- `uv run pytest`（`backend/agent`）：629 passed, 6 xfailed；2026-09-29 的 585 passed、2026-09-21 的 413 passed 为历史基线
+- `check_javadoc.py` 自动化检查器已随提交 `721d5c71`（2026-10-04）删除；Javadoc 规范仍有效，恢复前以人工审查为准，详见 [质量门禁](./quality-guidelines.md#声明与语法检查自动化检查器已退役)
+- `app/rag` 已于 2026-10-05 按管线阶段拆分（提交 `08799fdb`），详见 [app/rag 模块结构（ADR 0001）](./directory-structure.md#apprag-模块结构adr-00012026-10-05提交-08799fdb)
 
 ## 合并前路径对照
 

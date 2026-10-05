@@ -2,7 +2,7 @@
 
 ## 事实来源
 
-- MySQL 8 表结构唯一事实来源是 `docs/database/db-schema.sql`。
+- MySQL 8 表结构唯一事实来源是 `docs/database/db-schema.sql`；当前终态 **20 张表**（任务 10-04-db-schema-slim，23→20，2026-10-04 收尾）。
 - Spring 配置为 `spring.sql.init.mode: never`，当前不使用 Flyway/Liquibase。
 - 表结构变更必须同步 Schema、Java Entity/Mapper、Python importer/indexer、OpenAPI 与前端共享类型。
 - Redis 与 MinIO 是辅助存储，不能替代 MySQL 中的用户、番剧和收藏权威数据。
@@ -115,6 +115,7 @@ DEALLOCATE PREPARE stmt;
 
 - 所有主创关系只写 `subject_person_credit`；importer 是**唯一写入方**（`jobs/importer/repository.py:_upsert_subject_person_credits`）。
 - 未解析到 `person` 表的 credit 写 `name` 占位行（`person_id=NULL`），**当前没有任何代码会把占位行提升为 FK 行**。占位行靠下一次 full import 自愈：那时 `person_ids` 已有映射，写入的 FK 行 `dedup_key` 不同，与占位行并存；而函数开头的 `UPDATE ... SET source_active=0` 会把旧占位行标为失效。因此同一 credit 可能短暂存在一条 inactive 占位行 + 一条 active FK 行，摘要在 `source_active=1` 过滤下只读后者。**不要再假设存在 backfill 回填路径。**
+- 去重依赖 `dedup_key char(64)` 生成列（`sha2(concat_ws('#', subject_id, role, ifnull(person_id,0), ifnull(name,'')), 256)`，VIRTUAL）+ 唯一索引 `uk_subject_person_credit`。用 sha2 定长哈希而非明文拼接，是为避免生成列长度受拼接字段隐式约束（提交 `6297ce21`）；改拼接字段时必须同步改生成列表达式。
 - `credit_type` 只能使用 `PERSON` 或 `ORGANIZATION`；Python 侧由 `CreditType` 枚举（`app/entities/enums.py`）约束取值，但**没有运行时校验拒绝非法写入**——`SubjectPersonCredit` 是无 `__post_init__` 的 frozen dataclass。
 - Profile/索引摘要读取走单表 `LEFT JOIN person`：`IFNULL(person.name, spc.name)` 取展示名。注意 `tests/evals/generate_golden_cases.py` 生成 person 关系用例时用的是 `JOIN person`（INNER），会自然排除占位行——这是有意的（用例需要 person 名）。
 
@@ -155,7 +156,7 @@ DEALLOCATE PREPARE stmt;
 
 - importer 将标准化和持久化分开，参考 `jobs/importer/normalize.py` 与 `repository.py`。
 - 导入用 Redis 锁保证单实例（键 `animetracker:import:lock`，`SET NX EX` 获取 + 周期续期，释放走 WATCH+MULTI 的 compare-and-del）。**释放与续期不要改用 Lua**：WATCH+MULTI 语义等价，且免去 `lupa` 依赖、fakeredis 无 Lua 时也能测（见 `app/adapters/redis/import_lock.py` 模块 docstring）。导入同时维护 import record、进度和 PID 文件；运行中进度计数在 Redis（`animetracker:import:{record_id}:done`），终态一次性回写 import_record。
-- 任务队列统一在 `job` 表，靠 `type` 区分三类：`ENTITY_DETAIL`（backfill 消费）、`SEARCH_INDEX`（indexer 通用双投影）、`RAG_INDEX`（indexer 旧 Subject 兼容队列）。禁止再引入独立的 job 队列表。
+- 任务队列统一在 `job` 表，靠 `type` 区分三类：`ENTITY_DETAIL`（backfill 消费）、`SEARCH_INDEX`（indexer 通用双投影）、`RAG_INDEX`（indexer 旧 Subject 兼容队列）。禁止再引入独立的 job 队列表。三表合并理由（任务 10-04）：旧 `entity_detail_job`/`search_index_job`/`rag_index_job` schema 约 90% 雷同（status/attempts/next_retry_at/last_error），差异列（embedding 元组、source_id、checkpoint_json）均非查询条件，折叠进 `payload_json` 后单表可承载。
 - **针对 `job` 表的每条 SQL 必须带 `type=` 或 `id=` 作用域**。只按 `status` / `next_retry_at` 过滤会跨队列误伤其他 type 的任务，这是本表最易犯的错误。
 - **claim 谓词里的 `next_retry_at IS NULL` 按 type 而异，不要互相「统一」**。合并前 `RAG_INDEX` 靠 `status='RETRY'` vs `'FAILED'` 区分可重试/终态；折叠成单 `FAILED` 后，这个区分必须由 `next_retry_at` 承担：
 
@@ -235,6 +236,11 @@ ALTER TABLE search_document ADD COLUMN IF NOT EXISTS lexical_text TEXT;
 ```text
 存量库结构不一致时先检查 INFORMATION_SCHEMA，再由评审决定 ALTER/回填/回滚；仓库当前不提供前向迁移脚本。
 ```
+
+## 运维注意
+
+- **代理 fake-IP 劫持**：Clash fake-IP 模式会轮流劫持 `dashscope`（embedding）与 `bgm.tv`（数据源）域名，导致 importer/indexer/backfill 随机超时。绕过方式：Python 进程显式设 `HTTPS_PROXY=http://127.0.0.1:7897` 走真实代理。backfill 多进程并发时注意 `claim_batch` 的 lease 回收 UPDATE 与 `SKIP LOCKED` 冲突死锁（任务 10-04 实测）。
+- **backlog：索引增量补跑**：2026-10-05 recent 增量导入 101 条 COMPLETED + backfill 增量清零后，索引增量（SEARCH_INDEX 8937 PENDING + 203 FAILED 可重试 / RAG_INDEX 80 PENDING）因 fake-IP 网络受限被决定跳过。网络稳定后执行 `python -m jobs.indexer.main --index-version v1` 接上；执行前先 `--limit 20` 验证链路（FAILED 任务会自动重领）。
 
 ## 常见错误
 

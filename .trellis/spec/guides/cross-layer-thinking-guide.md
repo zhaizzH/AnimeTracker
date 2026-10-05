@@ -99,6 +99,19 @@ React client/admin
 - 季度映射两端已对齐：Java `SeasonUtil` 为权威，Python 唯一词表在 `app/rag/seasons.py`；改动任一端后必须运行 `tests/rag/test_season_alignment.py` 核对。首播日期也不能证明已经完结。
 - 详细源码与验证缺口见 [Agent 运行与提示词契约](../backend/agent-guidelines.md#agent-角色提示词与流式输出契约)。
 
+## 项目术语表
+
+跨层共享术语。只定义词汇，不含实现细节与决策理由。新术语在含义被钉死时立即写入，不批量补。
+
+| 术语 | 定义 |
+|---|---|
+| **gate / 发布门禁** | RAG 索引激活前的强制检查：`jobs/indexer/gate.py` 校验同 `indexVersion/profileVersion` 的五份报告与阈值，任一缺失/不一致/不达标即 fail-closed；gate 通过 + 人工确认后才允许 `--activate`。 |
+| **基线数字** | spec 中带日期的实测测试通过数（如「2026-10-05：629 passed, 6 xfailed」）。代码变更后必须重新实测并替换日期与数字，**不得沿用历史通过数**。 |
+| **move-only 重构** | 只移动代码、不改行为的重构：不改逻辑、参数、fail-closed 语义；私有方法转模块级函数后原类以 `staticmethod` 委托别名保留旧调用点；验收标准为测试数与拆前一致。模板见 [app/rag 模块结构](../backend/directory-structure.md#apprag-模块结构adr-00012026-10-05提交-08799fdb)。 |
+| **flaky / 测试隔离问题** | 单跑通过、全量偶发失败、重跑全绿的测试；指向测试间状态泄漏或顺序依赖而非源码缺陷。登记于 `backend/quality-guidelines.md`「已知 flaky 测试」。禁止把「重跑即绿」当常态接受。 |
+| **xfail(strict=True)** | Python 侧已知缺陷的登记方式；严格模式在缺陷修复后强制用例失败，倒逼清理标记。当前 6 处标记对应缺陷见 `backend/agent-guidelines.md`。 |
+| **Evidence 权威回查** | RAG 候选必须经 Business 权威回查 + Evidence API 双重校验；超时、错误、缺项、非法/inactive/NSFW、重复 subjectId 均整批 fail-closed（`available=false` + 空候选），绝不静默降级取部分结果。 |
+
 ## 代码复用检查指南
 
 ### 写代码前搜索

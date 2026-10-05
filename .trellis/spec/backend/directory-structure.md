@@ -11,7 +11,7 @@
 
 ### Business 当前模块总览（已实施）
 
-本节是当前九模块边界；后文标注“迁移前”的目录、配置与依赖仅作为历史证据。新增模块已落地；实现与测试状态以当前源码、POM、`ArchitectureBoundaryTest` 和质量记录为准。
+本节是当前九模块边界；实现与测试状态以当前源码、POM、`ArchitectureBoundaryTest` 和质量记录为准。
 
 | 模块 | 当前职责 | 允许的项目内直接依赖上限 |
 |---|---|---|
@@ -54,37 +54,41 @@ DTO/VO/Entity 统一放 pojo；框架身份实现、技术接口与其配套枚�
 
 验收同时覆盖旧实现清理、Maven 无环与显式依赖、Bean 唯一装配、Mapper XML/类型引用、接口字段/权限/错误/SSE 行为，以及各目标规范列出的行为断言。本轮已运行完整 Business `mvn -B clean test`；后续修改配置或架构边界时仍必须重复该验证。
 
-### 历史总体结构（迁移前）
+### Python Agent 总体结构
 
 ```text
-backend/
-├── business/                 # Spring Boot 业务与鉴权，:8080
-│   ├── pojo/                 # Entity / DTO / VO
-│   ├── common/               # 跨模块平台能力
-│   ├── client/               # 用户端 Controller / Service / Mapper / Store / Gateway
-│   ├── admin/                # 管理端 Controller / Service / Mapper / Gateway
-│   ├── agent/                # Python Agent 的 HTTP 代理
-│   └── app/                  # 启动组合根与基础设施适配器
-└── agent/                    # FastAPI + LangGraph，:8090
-    ├── app/api/              # HTTP/SSE 边界
-    ├── app/agent|chat|rag/   # 用例、状态、端口与领域逻辑
-    ├── app/adapters/         # HTTP、Redis、MySQL、LLM、提示词、子进程实现
-    └── jobs/                 # importer / indexer / backfill / scheduler
+backend/agent/                # FastAPI + LangGraph，:8090
+├── app/api/              # HTTP/SSE 边界
+├── app/agent|chat|rag/   # 用例、状态、端口与领域逻辑
+├── app/adapters/         # HTTP、Redis、MySQL、LLM、提示词、子进程实现
+└── jobs/                 # importer / indexer / backfill / scheduler
 ```
 
-证据：`backend/business/pom.xml`、`backend/agent/main.py`、`backend/agent/app/agent/dependencies.py`。
+证据：`backend/agent/main.py`、`backend/agent/app/agent/dependencies.py`。
 
-### 历史 Spring Business 放置规则（迁移前）
+### app/rag 模块结构（ADR 0001，2026-10-05，提交 `08799fdb`）
 
-- `pojo` 只放数据结构：请求用 DTO，响应用 VO，数据库映射用 Entity。
-- `client/admin` 遵循 Controller → Service → Mapper/Store；Controller 只做绑定、鉴权上下文和响应包装。
-- 外部系统先在消费模块定义 Gateway，实现在同一消费模块内。参考 `agent/gateway/ImportAgentGateway` 与 `agent/gateway/HttpImportAgentGateway`（同为 `agent` 模块）；不要放在 `app` 下，`app` 只做组合装配。
-- 只有多个业务模块共享的能力才放 `common`；模块私有端口不要上提。
-- `app` 是组合根，聚合业务模块并承载 MinIO、Resend、Agent HTTP 等适配器，以及本次从旧 `common.config` 迁移的六类 Spring 配置绑定和运行时 Bean 装配；它不是所有领域配置类的唯一所在地。
+`retrieval.py` 曾达 1030 行、23 个方法，按管线阶段拆四模块（move-only，行为零变化）：
+
+| 模块 | 职责 |
+|---|---|
+| `lexical.py` | Redis 转义、查询表达式、词法项 |
+| `entity_resolution.py` | 实体名称/ID 解析、安全校验 |
+| `authority.py` | 权威回查、Evidence enrich/校验 |
+| `rerank.py` | 候选构建、RRF、规则重排 |
+
+`retrieval.py`（402 行）只留 `RetrievalCandidate`/`RetrievalResult` dataclass 与 `RagRetrievalService` 编排。关键取舍：
+
+1. **move-only**：不改逻辑、参数、fail-closed 语义；验收锚点是 pytest 通过数拆前拆后一致（629 passed, 6 xfailed）。
+2. **`staticmethod` 委托别名**：service 保留 `_enrich_evidence = staticmethod(enrich_evidence)` 等别名，既有调用点与测试不改。新增代码必须直接调模块级函数；别名是过渡产物，未来清理需独立任务。
+3. **authority 三方法留 service**：`_authoritative_result`、`_business_fallback`、`_authoritative_allowlist_result` 依赖 `self` 的 gateway/ports 且承担编排，未移入 `authority.py`。
+4. **文件名以代码为准**：PRD 曾写 `authority_enrich.py`，落地 `authority.py`（职责含回查不止 enrich）。
+
+该模式是后续拆分 `jobs/importer`（862 行）、`jobs/indexer`（785 行）的模板。
 
 ### Business 模块重设计状态
 
-上方目录和下方依赖表保留迁移前证据；以下已确认的目标规则与当前实现一致，并作为持续约束。重设计目标为低耦合、高内聚，保留 client/admin 各自的用户与管理员业务职责。
+以下已确认的目标规则与当前实现一致，并作为持续约束。重设计目标为低耦合、高内聚，保留 client/admin 各自的用户与管理员业务职责。
 
 - `log`：操作日志采集、存储、清理和查询统一归属；admin 保留管理端接口、权限与 VO 转换。详见 [操作日志模块目标设计](./error-handling.md#business-操作日志模块已实施设计)。
 - Converter：各模块独立维护，位置与迁移边界见下一节。
@@ -214,18 +218,7 @@ AgentService agentService(RestTemplate restTemplate, ObjectMapper mapper, AgentP
 }
 ```
 
-### 历史模块依赖与配置例外（迁移前）
-
-| 模块 | 允许依赖/职责 | 当前边界说明 |
-|---|---|---|
-| `pojo` | 数据结构与 DTO/VO/Entity | 不依赖业务实现或 `app` |
-| `common` | 跨模块常量、结果、日志、安全和共享端口 | 不反向依赖 `client/admin/agent/app` |
-| `client` | 用户端 Controller、Service、Mapper、Store、Gateway | 可依赖 `pojo/common`；不得依赖 `app` |
-| `admin` | 管理端 Controller、Service、Mapper、Gateway | 可依赖 `pojo/common`；不得依赖 `app` 或 `client` 实现 |
-| `agent` | Spring 到 Python Agent 的代理边界 | 只依赖契约和共享基础能力，不把 Python 实现引入 Java 业务模块 |
-| `app` | 组合根、基础设施适配器、配置装配 | 可组合下层模块，不向下层泄露 Spring 配置类型 |
-
-历史记录中的边界说明只描述迁移前状态。当前 `ArchitectureBoundaryTest` 已按上方完整矩阵检查所有九模块，并用夹具覆盖 `client → agent`、`common → pojo` 等此前遗漏的边；新增跨模块 import 仍必须同时做人工审查和测试。
+### 配置例外（迁移后仍归消费方）
 
 配置例外必须按真实源码处理：`client/config/AuthCookieProperties`、`CollectionProgressConfig`、`infrastructure` 模块自身的 `MinioConfig`/`MinioProperties` 等仍属于消费方或基础设施自身配置；`app` 模块当前只有 `config`、`filter`、`web` 三个包，MinIO/Resend 实现已迁入 `infrastructure` 模块。迁移规则只适用于本次列出的 `app.config` 类，不得扩大解释为“所有 `@ConfigurationProperties` 都在 app”。
 

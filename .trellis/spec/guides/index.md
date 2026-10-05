@@ -6,7 +6,7 @@
 
 | 主题 | 内容 |
 |---|---|
-| [跨层契约与代码复用](./cross-layer-thinking-guide.md) | 端到端契约、事实核对、复用所有者与重复检查 |
+| [跨层契约与代码复用](./cross-layer-thinking-guide.md) | 端到端契约、事实核对、项目术语表、复用所有者与重复检查 |
 | [Agent 编排与运行](../backend/agent-guidelines.md) | 角色工具、Prompt 生效、日期与流式输出排障 |
 
 ## Trellis 发现边界
