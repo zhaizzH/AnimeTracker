@@ -132,6 +132,8 @@ backend/agent/jobs/importer/import.log
 backend/agent/agent.db*
 backend/agent/.pytest-work/
 backend/agent/.pytest-tmp*/
+backend/agent/.pytest_cache/
+backend/agent/indexer-remaining.json
 
 frontend\client\.workbuddy
 
