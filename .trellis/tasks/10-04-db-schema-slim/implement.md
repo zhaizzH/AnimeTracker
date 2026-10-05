@@ -53,8 +53,25 @@
 - [x] 恢复用户三表 → AC7 通过
 - [x] 部署：本地运行直接用工作区新代码
 - [x] 导入：`--mode season --key 2026-autumn` → 136 条，COMPLETED（用户选择先小范围验证链路，未跑 full）
-- [ ] 索引重建：**受阻于网络**（`dashscope.aliyuncs.com` 被 fake-IP DNS 解析到 `198.18.0.19`，TLS 失败）→ 42 个任务 `EMBEDDING_UNAVAILABLE/attempts=1`，可重试，网络恢复后重跑即可接上
-- [ ] backfill（`ENTITY_DETAIL` 4080 个 PENDING）
+- [x] 索引重建（2026-10-05 完成）：网络恢复后（`*.aliyuncs.com` 不再被 fake-IP 劫持）先 `--limit 20` 验证链路（38 个 FAILED 任务自动重领成功），再 `--limit 5500` 放量 → **5368 SEARCH_INDEX + 136 RAG_INDEX 全部 COMPLETED，`search_document` 5504 行，0 FAILED**
+- [x] backfill（2026-10-05 完成）：**ENTITY_DETAIL 4080/4080 全部 COMPLETED**，person 3086 + character 994 的 detail_status 全为 COMPLETE，`subject_person_credit` 未解析残留 0。过程：单 worker 受阻于 fake-IP（见下）→ 用户开代理后改走 `HTTPS_PROXY=http://127.0.0.1:7897` → 8 进程并发 + 自写并行 worker（跳过 lease 回收 UPDATE 避免多进程 claim 死锁，临时脚本已删）→ 4080 条约 10 分钟跑完。尾部 3 条手工复位后补跑清零
+
+#### R7 终态对账（2026-10-05 全绿）
+
+| AC | 结果 |
+|---|---|
+| AC1 表数 | ✅ 20 张 |
+| AC2 credit 摘要 | ✅（见上） |
+| AC6 operation_log | ✅ SUBJECT_CREATE/UPDATE = 0 |
+| AC7 用户三表 | ✅ user 2 / user_collection 12 / operation_log 74 |
+| job 全量 | ✅ ENTITY_DETAIL 4080 + SEARCH_INDEX 5368 + RAG_INDEX 136 全 COMPLETED，0 FAILED/ABANDONED |
+| 实体详情 | ✅ person 3086 / character 994 全 COMPLETE，credit 未解析 0 |
+
+#### 网络教训（fake-IP 轮流劫持）
+本机 Clash fake-IP 模式先后劫持 `dashscope.aliyuncs.com`（10-04）与 `api.bgm.tv`（10-05），且**同一时刻只放行一个**。最终解法：Python 进程显式 `HTTPS_PROXY=http://127.0.0.1:7897` 走 HTTP 代理，绕过 fake-IP。runbook 前置检查已含 DashScope 探测；bgm.tv 同理：`curl -x http://127.0.0.1:7897 https://api.bgm.tv/v0/subjects/8` 应 200。
+
+#### 多进程 backfill 死锁教训
+`BackfillRepository.claim_batch` 在同一事务里先跑 lease 回收 UPDATE（扫 CLAIMED 行）再 `SELECT ... FOR UPDATE SKIP LOCKED`——单进程无碍，**多进程并发 claim 死锁**（1213）。临时并行 worker 去掉 lease UPDATE 后 8 进程无冲突。长期方案：lease 回收拆到独立低频任务，或并入 claim 谓词。临时脚本 `jobs/backfill/parallel_worker.py` 用完已删（见 git 历史）。
 - runbook： [`runbook-r7.md`](runbook-r7.md)
 
 #### 对账结果

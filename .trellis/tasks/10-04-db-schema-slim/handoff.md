@@ -61,8 +61,11 @@ cd backend/business && mvn -q -o test-compile
 
 - ✅ 备份 + 实测可还原；schema 重建（20 表）；恢复用户三表；导入 `season 2026-autumn` 136 条 COMPLETED
 - ✅ AC1 / AC2 / AC6 / AC7 全部通过（AC2：98 个重叠 bangumi_id 中 97 个逐字符一致，唯一差异为上游超集）
-- ❌ **索引重建受阻**：`dashscope.aliyuncs.com` 被本机 VPN/代理的 fake-IP DNS 解析到保留网段 `198.18.0.19`，TLS 握手失败 → 42 个任务 `EMBEDDING_UNAVAILABLE`（`attempts=1/5`，**可重试**，网络修好后重跑 indexer 即可接上，无需重新导入）
-- ⬜ backfill（`ENTITY_DETAIL` 4080 个 PENDING）未跑
+- ✅ **索引重建（2026-10-05 完成）**：5368 SEARCH_INDEX + 136 RAG_INDEX 全部 COMPLETED，`search_document` 5504 行，0 FAILED。此前 42 个 `EMBEDDING_UNAVAILABLE` FAILED 任务网络恢复后自动重领成功
+- ✅ **backfill（2026-10-05 完成）**：ENTITY_DETAIL 4080/4080 全 COMPLETED；person 3086 / character 994 全 COMPLETE；credit 未解析 0。R7 全部步骤已完成，终态对账全绿（见 implement.md）
+
+**R7 已完成（2026-10-05）。剩余：full import 可选（用户之前决定只跑 season 验证链路）；trellis-check → 提交收尾。**
+网络教训：Clash fake-IP 轮流劫持 dashscope/bgm.tv，Python 显式 `HTTPS_PROXY=http://127.0.0.1:7897` 绕过。多进程 backfill 死锁：claim_batch 的 lease 回收 UPDATE 与 SKIP LOCKED 冲突，临时并行 worker（已删）跳过 lease UPDATE 后 8 进程无冲突。
 
 **恢复方式**：修好 `*.aliyuncs.com` 的网络/代理规则后，按 runbook 第 6 节重跑
 `.venv/Scripts/python -m jobs.indexer.main --index-version v1`（去掉 `--limit`）。
