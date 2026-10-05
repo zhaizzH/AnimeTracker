@@ -628,3 +628,25 @@ spec 同步：`agent-guidelines.md` 新增「Gateway 路由结果解析」与「
 
 [OK] **Completed** — 任务已归档；2 处缺陷转 `09-29-*` 新任务待修
 
+
+## Session — 10-04-db-schema-slim 收尾（R7 执行 + 归档）
+
+### 完成
+- R7 生产重建全部落地：备份实测可还原 → 20 表重建 → 用户三表恢复 → season 2026-autumn 136 条验证 → 索引重建 5368 SEARCH + 136 RAG 全 COMPLETED → backfill 4080 ENTITY_DETAIL 清零 → recent 增量 101 条 + 增量 backfill 清零
+- 终态对账全绿（AC1/2/6/7）；person 3086 / character 994 全 COMPLETE；credit 未解析 0
+- 验证：pytest 629 passed / mvn EXIT=0
+
+### 教训（已写入 implement.md / runbook）
+1. Clash fake-IP 轮流劫持 `dashscope.aliyuncs.com` 与 `api.bgm.tv`，同一时刻只放行一个；Python/OpenSSL 直连 TLS 被截而 curl/schannel 通。解法：Python 显式 `HTTPS_PROXY=http://127.0.0.1:7897`；但 embedding 仍间歇断 → 索引增量（SEARCH 8937 PENDING）用户决定跳过，网络稳定后 `jobs.indexer.main --index-version v1` 可接上（attempts<5 可重试，任务不丢）
+2. 多进程 backfill：`claim_batch` 同事务 lease 回收 UPDATE + `FOR UPDATE SKIP LOCKED` → 1213 死锁。临时并行 worker（跳过 lease UPDATE，8 进程）10 分钟跑完 4080 条；长期：lease 回收拆独立低频任务
+3. `mysqldump/mysql` 还原必须 `--default-character-set=utf8mb4`（客户端侧），否则 GBK 错位误报「备份损坏」
+4. AC2 credit 比对必须按 `bangumi_id`（subject.id 自增重灌后重排）
+
+### Git Commits
+| Hash | Message |
+|------|---------|
+| `8d48e2cc` | docs(task): R7 全部完成——索引重建+backfill 清零，终态对账全绿 |
+| `b4328ebe` | docs(task): recent 增量导入完成，索引增量跳过（fake-IP 网络受限） |
+
+### Status
+[OK] **Completed** — 任务归档；索引增量遗留已记录于 implement.md（非缺陷，网络恢复后可续）
