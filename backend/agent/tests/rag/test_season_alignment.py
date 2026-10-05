@@ -14,7 +14,8 @@ import pytest
 
 from app.adapters.redis.subject_index import _vector_filter
 from app.rag.query_planner import plan_retrieval_query
-from app.rag.retrieval import RagRetrievalService, _item_quarter
+from app.rag.authority import item_quarter as _item_quarter
+from app.rag.retrieval import RagRetrievalService
 from app.rag.schemas import RetrievalQuery
 from app.rag.seasons import SEASON_QUARTERS, season_month_range
 from jobs.importer.main import parse_season_key
