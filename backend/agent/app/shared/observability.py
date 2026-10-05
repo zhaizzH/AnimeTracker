@@ -33,7 +33,7 @@ _session_hash: ContextVar[str | None] = ContextVar("session_hash", default=None)
 _user_hash: ContextVar[str | None] = ContextVar("user_hash", default=None)
 
 # 事件字段白名单(隐私红线)。token 字段来自 usage_metadata；请求事件要求
-# sessionHash/userHash/toolCount/routeTarget。
+# sessionHash/userHash/toolCount/routeTarget 等请求事件字段。
 _ALLOWED_FIELDS = {
     "provider", "model", "slot", "durationMs", "firstTokenMs",
     "success", "errorType", "toolName", "routeTarget", "businessStatus",

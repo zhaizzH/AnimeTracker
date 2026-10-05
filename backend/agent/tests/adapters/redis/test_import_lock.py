@@ -1,4 +1,4 @@
-"""Tests for the Redis single-flight import lock adapter."""
+"""Redis 单飞导入锁适配器的测试。"""
 
 from __future__ import annotations
 

@@ -51,8 +51,8 @@ class _Minio:
 
 class _SampleOnlyIndex:
     def content_hashes(self, _index_version):
-        # Simulate Redis VRANGE's bounded sample: one of two vectors is enough
-        # for hash evidence, but must not define catalog coverage.
+        # 模拟 Redis VRANGE 的有界采样：两个向量之一即可作为哈希证据，
+        # 但不得用于界定目录覆盖率。
         return {1: "hash-1"}
 
     def cardinality(self, _index_version):

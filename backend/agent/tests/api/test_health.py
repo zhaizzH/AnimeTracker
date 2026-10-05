@@ -1,7 +1,7 @@
-"""API-layer tests for ``GET /api/client/agent/health``.
+"""``GET /api/client/agent/health`` 的 API 层测试。
 
-Covers AC1-AC10 and AC13 of the health-depth task.  Every dependency is a
-stand-in; no real network or Redis connection is opened.
+覆盖健康探测深度任务的 AC1-AC10 与 AC13。所有依赖均为替身，
+不会打开真实网络或 Redis 连接。
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ ENUM_VALUES = {"ok", "down", "disabled"}
 
 
 class _FakeResponse:
-    """Minimal successful ``httpx`` response stand-in for monkeypatched calls."""
+    """用于 monkeypatch 调用的最小化成功 ``httpx`` 响应替身。"""
 
     def raise_for_status(self) -> None:
         return None
@@ -41,7 +41,7 @@ _SENSITIVE = (
 )
 
 
-# --- AC1 / AC2: shape and all-green -------------------------------------------
+# --- AC1 / AC2：响应结构与全绿状态 ------------------------------------------------------
 
 
 def test_health_returns_stable_status_and_keys(make_client):
@@ -67,12 +67,12 @@ def test_all_dependencies_up_reports_ok(make_client):
     assert body["status"] == "ok"
     assert body["llm_configured"] is True
     assert body["checks"] == {"llm": "ok", "redis": "ok", "business": "ok", "rag": "disabled"}
-    # Toggles are not faults (R2).
+    # 开关关闭不算故障（R2）。
     assert all(value in ENUM_VALUES for value in body["checks"].values())
     assert store.ping_count == 1
 
 
-# --- AC3: Redis failure must not short-circuit others -------------------------
+# --- AC3：Redis 失败不得短路其他探测 -----------------------------------------------------
 
 
 class _FailingRedisStore:
@@ -100,7 +100,7 @@ def test_redis_failure_degrades_without_short_circuiting(make_client):
     assert response.status_code == 200
     assert body["status"] == "degraded"
     assert body["checks"]["redis"] == "down"
-    # The remaining probes still ran and reported truthfully.
+    # 其余探测仍然执行并如实上报。
     assert store.ping_count == 1
     assert business.calls, "Business probe was skipped after Redis failed"
     assert rag_redis.commands, "RAG probe was skipped after Redis failed"
@@ -118,7 +118,7 @@ def test_missing_state_objects_are_down_not_errors(make_client):
     assert response.json()["checks"]["business"] == "down"
 
 
-# --- AC4: Business failure semantics ------------------------------------------
+# --- AC4：业务侧失败语义 --------------------------------------------------------------
 
 
 def test_business_connect_error_is_down(make_client):
@@ -158,12 +158,12 @@ def test_business_probe_uses_liveness_and_narrowed_timeout(make_client):
     assert len(business.calls) == 1
     method, path, kwargs = business.calls[0]
     assert method == "GET"
-    # Not the default /actuator/health: that aggregates Business' own DB/Redis.
+    # 不是默认的 /actuator/health：那会聚合业务侧自身的 DB/Redis。
     assert path == "/actuator/health/liveness"
     assert kwargs["timeout_seconds"] == 2.0
 
 
-# --- AC5 / AC6: RAG conditional probe -----------------------------------------
+# --- AC5 / AC6：RAG 条件探测 -------------------------------------------------------
 
 
 class _RecordingRedis:
@@ -222,9 +222,9 @@ def test_rag_enabled_without_client_is_down(make_client):
 
 
 def test_probe_entry_point_does_not_require_index_version():
-    """R4: the health entry point must not call validate_version."""
+    """R4：健康探测入口不得调用 validate_version。"""
     redis_stub = _RecordingRedis()
-    # Called with no version argument at all; a required parameter would TypeError.
+    # 完全不传版本参数调用；若该参数为必填则会抛 TypeError。
     probe_vector_set_commands(redis_stub)
     assert redis_stub.commands == ["VADD", "VSIM", "VREM"]
 
@@ -233,7 +233,7 @@ def test_probe_entry_point_does_not_require_index_version():
         probe_vector_set_commands(unsupported)
 
 
-# --- AC7: LLM is configuration-only -------------------------------------------
+# --- AC7：LLM 仅取决于配置 -----------------------------------------------------------
 
 
 def test_llm_not_configured_is_down_without_network(make_client):
@@ -252,16 +252,15 @@ def test_llm_not_configured_is_down_without_network(make_client):
     assert body["checks"]["llm"] == "down"
     assert body["llm_configured"] is False
     assert body["status"] == "degraded"
-    # The standing gateway stand-in never touches httpx, so this only proves a
-    # real gateway was not substituted in.  The load-bearing assertion lives in
-    # ``test_llm_not_configured_makes_no_request_through_real_gateway``, which
-    # mounts a real gateway and observes what actually reaches httpx.
+    # 常驻的网关替身根本不碰 httpx，因此这只能证明未替换为真实网关。
+    # 关键断言在 ``test_llm_not_configured_makes_no_request_through_real_gateway``，
+    # 它挂载真实网关并观察实际到达 httpx 的内容。
     assert probed == []
 
 
 def test_llm_not_configured_makes_no_request_through_real_gateway(make_client):
-    """AC7: with a real ``HttpBusinessGateway`` mounted, the LLM=down path still
-    issues no HTTP call (it is a pure configuration check)."""
+    """AC7：挂载真实 ``HttpBusinessGateway`` 时，LLM=down 路径仍不发任何
+    HTTP 调用（它是纯配置检查）。"""
     calls: list[tuple] = []
 
     def record(method, url, **kwargs):
@@ -279,7 +278,7 @@ def test_llm_not_configured_makes_no_request_through_real_gateway(make_client):
     body = response.json()
     assert body["checks"]["llm"] == "down"
     assert body["status"] == "degraded"
-    # Only the Business probe may reach the network; the LLM check never does.
+    # 只有业务侧探测可能触网；LLM 检查则永不触网。
     assert len(calls) == 1, f"expected only the business probe, got {calls}"
     method, url = calls[0]
     assert method == "GET"
@@ -300,12 +299,12 @@ def test_llm_down_does_not_block_other_probes(make_client):
     assert business.calls
 
 
-# --- AC8: authorization stays anonymous on the Python side --------------------
+# --- AC8：鉴权在 Python 侧保持匿名 -----------------------------------------------------
 
 
 def test_health_is_anonymous(make_client):
-    """Pins the deliberate Python/Java split: direct :8090 access is anonymous,
-    the browser path goes through the Spring proxy which requires a JWT."""
+    """固定刻意的 Python/Java 分工：直连 :8090 为匿名，
+    浏览器路径经 Spring 代理并需要 JWT。"""
     with make_client(settings_obj=fake_settings()) as client:
         response = client.get(HEALTH_PATH)
 
@@ -313,13 +312,13 @@ def test_health_is_anonymous(make_client):
 
 
 def test_other_routes_still_require_auth(make_client):
-    """The anonymous health branch must not have removed auth elsewhere."""
+    """匿名健康分支不得移除其他位置已有的鉴权。"""
     with make_client(settings_obj=fake_settings()) as client:
         with pytest.raises(AssertionError):
             client.get("/api/client/agent/sessions")
 
 
-# --- AC9: no sensitive information --------------------------------------------
+# --- AC9：不泄露敏感信息 --------------------------------------------------------------
 
 
 @pytest.mark.parametrize("healthy", [True, False])
@@ -353,14 +352,13 @@ def test_minio_absent_from_response(make_client):
     assert "minio" not in response.text.lower()
 
 
-# --- AC10: bounded total probe time -------------------------------------------
+# --- AC10：探测总耗时受控 -------------------------------------------------------------
 
 
 def test_probes_never_return_still_answer_within_budget(make_client):
-    # Both probes outlive their budget.  The synchronous Business call runs in a
-    # worker thread that Python cannot cancel, so it is kept to 3s: the point is
-    # that the *response* arrives at the 2s per-probe budget, not that the
-    # orphaned thread is killed.
+    # 两个探测都超出各自的预算。同步的业务侧调用运行在 Python 无法取消的
+    # 工作线程中，因此这里限制为 3s：要点是 *响应* 在每探测 2s 的预算内返回，
+    # 而不是那个被遗弃的线程被杀掉。
     class HangingStore:
         async def init_db(self) -> None:
             await asyncio.sleep(30)
@@ -377,7 +375,7 @@ def test_probes_never_return_still_answer_within_budget(make_client):
         settings_obj=fake_settings(),
     ) as client:
         response = client.get(HEALTH_PATH)
-        # Measured before teardown, which joins the orphaned worker thread.
+        # 在 teardown 之前测量，因为 teardown 会 join 被遗弃的工作线程。
         elapsed = time.monotonic() - started
 
     body = response.json()
@@ -385,11 +383,11 @@ def test_probes_never_return_still_answer_within_budget(make_client):
     assert body["checks"]["redis"] == "down"
     assert body["checks"]["business"] == "down"
     assert body["status"] == "degraded"
-    # Per-probe budget is 2s; the probes would have run for 3s/30s.
+    # 每探测预算为 2s；而两个探测原本会运行 3s/30s。
     assert elapsed < 2.8, f"health probe took {elapsed:.1f}s"
 
 
-# --- AC13: no MinIO scope creep ------------------------------------------------
+# --- AC13：不得擅自引入 MinIO ------------------------------------------------
 
 
 def test_no_new_minio_import_in_app_package():

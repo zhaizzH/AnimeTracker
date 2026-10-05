@@ -57,7 +57,7 @@ class ObjectStorage:
         self._bucket = self._environment.get("MINIO_BUCKET", "anime-tracker")
         self._raw_bucket = self._environment.get("MINIO_RAW_BUCKET", "anime-tracker-private")
         if self._raw_bucket == self._bucket:
-            raise ValueError("MINIO_RAW_BUCKET must differ from MINIO_BUCKET")
+            raise ValueError("MINIO_RAW_BUCKET 必须与 MINIO_BUCKET 不同")
         self._minio = minio_client or Minio(
             self._endpoint,
             access_key=self._environment.get("MINIO_ACCESS_KEY", "minioadmin"),
@@ -82,11 +82,11 @@ class ObjectStorage:
             )
         except Exception as error:
             logger.warning(
-                "raw storage failed subject_id=%d error_type=%s",
+                "原始对象存储失败 subject_id=%d error_type=%s",
                 bangumi_id,
                 _normalized_error_type(error),
             )
-            raise ObjectStorageError("raw storage failed") from None
+            raise ObjectStorageError("原始对象存储失败") from None
         return object_name
 
     def put_cover(self, bangumi_id: int, source_url: str) -> CoverResult:
@@ -102,7 +102,7 @@ class ObjectStorage:
             )
         except Exception as error:
             logger.warning(
-                "cover storage failed subject_id=%d error_type=%s",
+                "封面存储失败 subject_id=%d error_type=%s",
                 bangumi_id,
                 _normalized_error_type(error),
             )
@@ -152,13 +152,13 @@ class ObjectStorage:
                 if attempt == 2:
                     raise
                 logger.warning(
-                    "object storage retry subject_id=%d attempt=%d error_type=%s",
+                    "对象存储重试 subject_id=%d attempt=%d error_type=%s",
                     bangumi_id,
                     attempt + 1,
                     _normalized_error_type(error),
                 )
                 self._sleep(attempt + 1)
-        raise RuntimeError("unreachable")
+        raise RuntimeError("不可达")
 
     def _download_url(self, source_url: str) -> str:
         proxy = self._environment.get("BANGUMI_IMAGE_PROXY_URL", "").rstrip("/")

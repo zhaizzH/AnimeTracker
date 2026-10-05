@@ -100,10 +100,10 @@ def create_chat_router(*, prefix: str, auth_dep, include_health: bool = False) -
     if include_health:
         @router.get("/health")
         async def health(request: Request):
-            # Intentionally anonymous: browser traffic only reaches this path
-            # through the Spring proxy, which requires a JWT
-            # (ClientAgentController + SecurityConfig).  Direct :8090 callers are
-            # internal orchestration probes.  See spec agent-guidelines.md.
+            # 刻意保持匿名：浏览器流量只会经 Spring 代理到达此路径，
+            # 而该代理要求 JWT（ClientAgentController + SecurityConfig）。
+            # 直连 :8090 的调用方属于内部编排探测。
+            # 参见 spec agent-guidelines.md。
             state = request.app.state
             return await build_health_report(
                 settings_obj=getattr(state, "settings", settings),

@@ -48,7 +48,7 @@ def _is_explicit_confirmation(text: str) -> bool:
     t = text.strip().rstrip("。.!！?？").strip()
     if not t:
         return False
-    # Match complete affirmative phrases before checking substring negations;
+    # 先匹配完整肯定短语，再检查子串否定；
     # otherwise “没问题” is rejected because it contains “没”.
     if t in _CONFIRMATION_PHRASES:
         return True
@@ -114,21 +114,21 @@ def _build_gateway_prompt(state: AgentState, dependencies: AgentDependencies) ->
 def _resolve_routing_result(raw_payload: Any) -> dict[str, str]:
     """解析 gateway 结构化路由结果;非法输入抛 ValueError。"""
     if not isinstance(raw_payload, dict):
-        raise ValueError("gateway payload must be a mapping")
+        raise ValueError("gateway 载荷必须是映射")
     messages = raw_payload.get("messages") or []
     if not messages:
-        raise ValueError("gateway payload messages cannot be empty")
+        raise ValueError("gateway 载荷 messages 不能为空")
     # 部分模型返回 content 块列表,用 extract_text 统一抽取文本
     content = extract_text(messages[-1])
     if not content.strip():
-        raise ValueError("gateway last message content is empty")
+        raise ValueError("gateway 最后一条消息 content 为空")
     try:
         data = json.loads(content.strip())
     except json.JSONDecodeError as exc:
-        raise ValueError("gateway returned invalid JSON") from exc
+        raise ValueError("gateway 返回的 JSON 无效") from exc
     target = str((data or {}).get("route_target") or "").strip()
     if target not in _ALLOWED_TARGETS:
-        raise ValueError(f"unsupported route_target: {target}")
+        raise ValueError(f"不支持的 route_target: {target}")
     return {"route_target": target}
 
 

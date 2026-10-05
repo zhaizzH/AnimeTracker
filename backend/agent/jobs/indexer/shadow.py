@@ -1,8 +1,8 @@
-"""Shadow Vector Set lifecycle and MySQL release-pointer switching.
+"""影子 Vector Set 生命周期与 MySQL 发布指针切换。
 
-Redis Vector Sets are data-plane storage only.  Activation and rollback are
-delegated to an injected release store backed by Business/MySQL; this module
-never uses Redis aliases or lets Redis decide the active version.
+Redis Vector Set 仅作为数据面存储。激活与回滚委托给
+由业务侧/MySQL 支撑的注入式发布存储；本模块
+绝不使用 Redis 别名，也不让 Redis 决定活动版本。
 """
 
 from __future__ import annotations
@@ -60,7 +60,7 @@ class SwitchResult:
 
 
 class ShadowIndexManager:
-    """Inspect Vector Set shadow versions and switch the MySQL release pointer."""
+    """查看 Vector Set 影子版本并切换 MySQL 发布指针。"""
 
     def __init__(self, redis_client: Any, *, alias: str = ALIAS_PATTERN, release_store: ReleasePointer | None = None):
         self._redis = redis_client
@@ -151,7 +151,7 @@ def _now() -> str:
 
 
 def _parse_ft_info(raw: Any) -> dict[str, Any]:
-    """Compatibility parser for old report tooling; no FT command is used."""
+    """面向旧报告工具的兼容解析器；不使用任何 FT 命令。"""
     if isinstance(raw, dict):
         return raw
     result: dict[str, Any] = {}
@@ -164,7 +164,7 @@ def _parse_ft_info(raw: Any) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Shadow Vector Set manager")
+    parser = argparse.ArgumentParser(description="影子 Vector Set 管理器")
     parser.add_argument("action", choices=["list", "info", "switch", "rollback"])
     parser.add_argument("--index-version")
     parser.add_argument("--report-dir", type=Path)
@@ -178,14 +178,14 @@ def main(argv: list[str] | None = None) -> int:
             print(name)
         return 0
     if not args.index_version:
-        print("error: --index-version required")
+        print("错误: 需要 --index-version")
         return 1
     if args.action == "info":
         info = manager.get_info(args.index_version)
         if info is None:
-            print(f"index not found: {args.index_version}")
+            print(f"索引不存在: {args.index_version}")
             return 1
         print(json.dumps({"indexVersion": info.index_version, "indexName": info.index_name, "documentCount": info.document_count, "releaseVersion": info.alias_target, "isActive": info.is_active}, ensure_ascii=False, indent=2))
         return 0
-    print("activation=FAIL reason=MySQL release store must be injected by the application")
+    print("activation=FAIL reason=必须由应用注入 MySQL 发布存储")
     return 1

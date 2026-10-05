@@ -169,11 +169,11 @@ class IndexJobRepository:
         )
 
     def upsert_search_document(self, job: IndexJob, subject: IndexSubject, profile: Any) -> None:
-        """Persist the MySQL lexical shadow before the Vector Set write.
+        """在写入 Vector Set 之前先持久化 MySQL 词法影子。
 
-        The projection is rebuildable and never becomes an authority source;
-        keeping it in the same worker transaction boundary makes a failed
-        Redis write retryable without losing the lexical half.
+        该投影可重建，且永远不会成为权威来源；
+        把它放在同一个 worker 事务边界内，
+        可让失败的 Redis 写入可重试，且不丢失词法部分。
         """
         now = _datetime_seconds(self._now())
         aliases = "\n".join(subject.aliases)

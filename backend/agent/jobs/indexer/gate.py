@@ -1,10 +1,9 @@
-"""Fail-closed gate for switching a versioned RAG index.
+"""用于切换带版本 RAG 索引的失败即闭合门禁。
 
-The gate deliberately treats reports as untrusted input.  It does not import
-the offline evaluation package: a report may be produced by a temporary eval
-checkout and can be removed after rollout without making this module depend on
- it.  The default CLI mode only reads reports. Activation is delegated to
-the MySQL ``search_index_release`` store; this module never mutates Redis.
+本门禁刻意把报告视为不可信输入。它不导入离线评估包：
+报告可能由临时的 eval checkout 生成，并在上线后删除，
+而不会让本模块产生依赖。默认 CLI 模式只读取报告。
+激活委托给 MySQL 的 ``search_index_release`` 存储；本模块绝不修改 Redis。
 """
 
 from __future__ import annotations
@@ -30,12 +29,11 @@ REPORT_NAMES = ("quality", "capacity", "eval", "latency", "human")
 
 @dataclass(frozen=True)
 class GateInputs:
-    """Normalized evidence consumed by :func:`evaluate_gate`.
+    """:func:`evaluate_gate` 消费的归一化证据。
 
-    ``None`` means that the corresponding evidence was not present.  Keeping
-    missing values distinct from zero is important: a missing report must not
-    accidentally pass a zero-valued metric.  The report loader fills every
-    field, while tests and callers may construct this value directly.
+    ``None`` 表示对应证据不存在。把缺失值与零区分开很重要：
+    缺失的报告不得因指标为零而意外通过。报告加载器会填充每个字段，
+    而测试与调用方可以直接构造该值。
     """
 
     index_version: str | None = None
@@ -79,7 +77,7 @@ class GateDecision:
 
 
 def evaluate_gate(inputs: GateInputs) -> GateDecision:
-    """Evaluate all rollout requirements; any missing/invalid value rejects."""
+    """评估所有上线要求；任何缺失/无效值都会导致拒绝。"""
 
     checks: dict[str, bool] = {}
     reasons: list[str] = list(inputs.report_errors)
@@ -89,61 +87,60 @@ def evaluate_gate(inputs: GateInputs) -> GateDecision:
         if not condition:
             reasons.append(reason)
 
-    require("reports_complete", inputs.reports_complete, "required report is missing or malformed")
-    require("index_version", _valid_version(inputs.index_version), "index version is missing or invalid")
+    require("reports_complete", inputs.reports_complete, "必需的报告缺失或格式错误")
+    require("index_version", _valid_version(inputs.index_version), "索引版本缺失或无效")
     versions = dict(inputs.report_versions)
     version_ok = bool(versions) and _all_versions_match(versions, inputs.index_version)
-    require("report_versions", version_ok, "report versions are missing or inconsistent")
+    require("report_versions", version_ok, "报告版本缺失或不一致")
     require(
         "content_hash_sample_match",
         inputs.content_hash_sample_match is True,
-        "content_hash sample does not match the authoritative catalog",
+        "content_hash 样本与权威目录不匹配",
     )
     require(
         "embedding_contract_match",
         inputs.embedding_contract_match is True,
-        "embedding provider/model/dimensions/profile version are inconsistent",
+        "向量 provider/model/维度/档案版本不一致",
     )
 
-    require("coverage", _at_least(inputs.coverage, INDEX_COVERAGE_MIN), "coverage is below 99.5%")
-    require("nsfw_count", inputs.nsfw_count == 0, "index contains NSFW entries")
-    require("non_anime_count", inputs.non_anime_count == 0, "index contains non-anime entries")
-    require("required_failed", inputs.required_failed == 0, "required eval cases failed")
-    require("required_passed", inputs.required_passed == 120, "required eval passed count is missing or is not 120")
-    require("required_total", inputs.required_total == 120, "required eval count is missing or is not exactly 120")
-    require("required_consistency", inputs.required_passed is not None and inputs.required_failed is not None and inputs.required_total is not None and inputs.required_passed + inputs.required_failed == inputs.required_total, "required eval counts are inconsistent")
-    require("eval_failures", inputs.eval_failures == (), "eval report contains failures or is missing failures")
+    require("coverage", _at_least(inputs.coverage, INDEX_COVERAGE_MIN), "覆盖率低于 99.5%")
+    require("nsfw_count", inputs.nsfw_count == 0, "索引包含 NSFW 条目")
+    require("non_anime_count", inputs.non_anime_count == 0, "索引包含非动画条目")
+    require("required_failed", inputs.required_failed == 0, "必需评测用例失败")
+    require("required_passed", inputs.required_passed == 120, "必需评测通过数缺失或不为 120")
+    require("required_total", inputs.required_total == 120, "必需评测总数缺失或不是恰好 120")
+    require("required_consistency", inputs.required_passed is not None and inputs.required_failed is not None and inputs.required_total is not None and inputs.required_passed + inputs.required_failed == inputs.required_total, "必需评测计数不一致")
+    require("eval_failures", inputs.eval_failures == (), "评测报告包含失败项或缺少失败项")
     require(
         "evaluation_status",
         inputs.evaluation_status == "RELEASE_CANDIDATE",
-        "eval report status must be explicit RELEASE_CANDIDATE; SHADOW_ONLY or missing status cannot activate a release",
+        "评测报告状态必须显式为 RELEASE_CANDIDATE；SHADOW_ONLY 或状态缺失都不能激活发布",
     )
     require(
         "evidence_completeness",
         _at_least(inputs.evidence_completeness, 1.0),
-        "evidence completeness is below 100%",
+        "证据完整度低于 100%",
     )
-    require("mrr10", _at_least(inputs.mrr10, MRR10_MIN), "MRR@10 is below 0.90")
-    require("recall20", _at_least(inputs.recall20, RECALL20_MIN), "Recall@20 is below 0.85")
-    require("ndcg10", _at_least(inputs.ndcg10, NDCG10_MIN), "nDCG@10 is below 0.75")
-    require("redis_p95_ms", _strictly_below(inputs.redis_p95_ms, REDIS_P95_MAX_MS), "Redis P95 is not below 250 ms")
-    require("hydrated_p95_ms", _strictly_below(inputs.hydrated_p95_ms, HYDRATED_P95_MAX_MS), "hydrated P95 is not below 500 ms")
-    require("memory_utilization", _at_most(inputs.memory_utilization, MEMORY_UTILIZATION_MAX), "memory utilization exceeds 60%")
-    require("human_severe_errors", inputs.human_severe_errors == 0, "human review found severe errors")
-    require("human_check_count", inputs.human_check_count is not None and inputs.human_check_count >= 20, "human check count is missing or below 20")
+    require("mrr10", _at_least(inputs.mrr10, MRR10_MIN), "MRR@10 低于 0.90")
+    require("recall20", _at_least(inputs.recall20, RECALL20_MIN), "Recall@20 低于 0.85")
+    require("ndcg10", _at_least(inputs.ndcg10, NDCG10_MIN), "nDCG@10 低于 0.75")
+    require("redis_p95_ms", _strictly_below(inputs.redis_p95_ms, REDIS_P95_MAX_MS), "Redis P95 不低于 250 ms")
+    require("hydrated_p95_ms", _strictly_below(inputs.hydrated_p95_ms, HYDRATED_P95_MAX_MS), "补齐后 P95 不低于 500 ms")
+    require("memory_utilization", _at_most(inputs.memory_utilization, MEMORY_UTILIZATION_MAX), "内存利用率超过 60%")
+    require("human_severe_errors", inputs.human_severe_errors == 0, "人工审核发现严重错误")
+    require("human_check_count", inputs.human_check_count is not None and inputs.human_check_count >= 20, "人工检查数量缺失或低于 20")
 
-    # Preserve report order while avoiding duplicate messages from one failed
-    # requirement being surfaced twice.
+    # 保持报告顺序，同时避免同一失败要求产生重复消息。
     unique_reasons = tuple(dict.fromkeys(reasons))
     return GateDecision(not unique_reasons, unique_reasons, checks)
 
 
 def load_gate_inputs(report_dir: str | Path, index_version: str) -> GateInputs:
-    """Load the five rollout reports from ``report_dir``.
+    """从 ``report_dir`` 加载五份上线报告。
 
-    Reports must be explicit JSON files.  Missing files, malformed JSON,
-    missing versions, and missing required evidence are represented in the
-    returned value and therefore fail closed through :func:`evaluate_gate`.
+    报告必须是显式的 JSON 文件。文件缺失、JSON 格式错误、
+    版本缺失以及必需证据缺失都会体现在返回值中，
+    并因此通过 :func:`evaluate_gate` 失败即闭合。
     """
 
     directory = Path(report_dir)
@@ -153,20 +150,20 @@ def load_gate_inputs(report_dir: str | Path, index_version: str) -> GateInputs:
     for name in REPORT_NAMES:
         path = _report_path(directory, name, index_version)
         if path is None:
-            errors.append(f"missing report: {name}")
+            errors.append(f"缺少报告: {name}")
             continue
         try:
             raw = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, UnicodeError, json.JSONDecodeError):
-            errors.append(f"invalid report: {name}")
+            errors.append(f"报告无效: {name}")
             continue
         if not isinstance(raw, Mapping):
-            errors.append(f"invalid report root: {name}")
+            errors.append(f"报告根结构无效: {name}")
             continue
         payloads[name] = raw
         version = _text(raw, "indexVersion", "index_version", "version")
         if version is None:
-            errors.append(f"missing report version: {name}")
+            errors.append(f"缺少报告版本: {name}")
         else:
             versions[name] = version
 
@@ -191,20 +188,20 @@ def load_gate_inputs(report_dir: str | Path, index_version: str) -> GateInputs:
     required_passed = _integer(evaluation, "requiredPassed", "required_passed")
     required_failed = _integer(evaluation, "requiredFailed", "required_failed")
     if required_total is None or required_passed is None or required_failed is None:
-        errors.append("missing required eval counts")
+        errors.append("缺少必需评测计数")
     failures_value = evaluation.get("failures")
     if not isinstance(failures_value, list):
-        errors.append("missing eval failures")
+        errors.append("缺少评测失败项")
         eval_failures = None
     else:
         eval_failures = tuple(str(item) for item in failures_value)
     case_results = evaluation.get("caseResults", evaluation.get("case_results"))
     if not isinstance(case_results, list) or required_total is None or len(case_results) != required_total:
-        errors.append("missing eval case results")
+        errors.append("缺少评测用例结果")
     evaluation_status = _text(evaluation, "status")
     human_check_count = _integer(human_values, "checkCount", "humanCheckCount", "human_check_count")
     if human_check_count is None:
-        errors.append("missing human check count")
+        errors.append("缺少人工检查数量")
     return GateInputs(
         index_version=index_version,
         coverage=_number(quality, "coverage", "indexCoverage", "coverageRatio"),
@@ -233,12 +230,12 @@ def load_gate_inputs(report_dir: str | Path, index_version: str) -> GateInputs:
     )
 
 
-# Backwards-friendly name for callers that use the plan's report terminology.
+# 为沿用计划报告术语的调用方保留的向后兼容名称。
 read_gate_reports = load_gate_inputs
 
 
 def activate_release(release_store: Any, index_version: str) -> None:
-    """Activate a gate-passed version through the MySQL release contract."""
+    """通过 MySQL 发布契约激活已通过门禁的版本。"""
     _validate_name(index_version, "index version")
     activate = getattr(release_store, "activate", None)
     if not callable(activate):
@@ -247,15 +244,15 @@ def activate_release(release_store: Any, index_version: str) -> None:
 
 
 def activate_alias(_redis_client: Any, _index_version: str, *, alias: str | None = None) -> None:
-    """Compatibility guard: Redis aliases are intentionally unsupported."""
+    """兼容性守卫：刻意不支持 Redis 别名。"""
     raise RuntimeError("Redis alias 已移除；请通过 MySQL search_index_release 激活")
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Check and optionally activate a RAG index gate")
+    parser = argparse.ArgumentParser(description="检查并可选地激活 RAG 索引门禁")
     parser.add_argument("--index-version", required=True)
     parser.add_argument("--report-dir", type=Path, required=True)
-    parser.add_argument("--activate", action="store_true", help="activate only after every gate passes")
+    parser.add_argument("--activate", action="store_true", help="仅在所有门禁通过后才激活")
     args = parser.parse_args(argv)
     try:
         inputs = load_gate_inputs(args.report_dir, args.index_version)
@@ -275,8 +272,8 @@ def main(argv: list[str] | None = None) -> int:
         print("activation=SKIPPED")
         return 0
 
-    # Keep the activation summary visible; release mutation requires an
-    # application-provided MySQL store and is intentionally not implicit CLI I/O.
+    # 保持激活摘要可见；发布变更需要应用提供 MySQL 存储，
+    # 刻意不做隐式的 CLI I/O。
     print(f"old_index=unchanged new_index=rag:vectors:SUBJECT:{args.index_version}")
     for name in REPORT_NAMES:
         print(f"report={name} present={name in inputs.report_summaries}")
@@ -369,26 +366,26 @@ def _content_hash_match(payload: Mapping[str, Any]) -> tuple[bool | None, str | 
     samples = payload.get("contentHashSamples", payload.get("content_hash_samples"))
     if isinstance(samples, Mapping):
         if not samples:
-            return None, "missing content_hash sample evidence"
+            return None, "缺少 content_hash 样本证据"
         if "expected" in samples or "observed" in samples:
             pairs = (samples,)
         else:
             pairs = tuple(value for value in samples.values() if isinstance(value, Mapping))
             if len(pairs) != len(samples):
-                return None, "invalid content_hash sample evidence"
+                return None, "content_hash 样本证据无效"
     elif isinstance(samples, list) and samples:
         pairs = tuple(item for item in samples if isinstance(item, Mapping))
         if len(pairs) != len(samples):
-            return None, "invalid content_hash sample evidence"
+            return None, "content_hash 样本证据无效"
     else:
-        return None, "missing content_hash sample evidence"
+        return None, "缺少 content_hash 样本证据"
     if not pairs or any(not _nonempty(pair.get("expected")) or not _nonempty(pair.get("observed")) for pair in pairs):
-        return None, "invalid content_hash sample evidence"
+        return None, "content_hash 样本证据无效"
     match = all(pair["expected"] == pair["observed"] for pair in pairs)
     reported = payload.get("contentHashSampleMatch", payload.get("content_hash_sample_match"))
     if isinstance(reported, bool) and reported != match:
         match = False
-    return match, None if match else "content_hash sample mismatch"
+    return match, None if match else "content_hash 样本不匹配"
 
 
 def _nonempty(value: object) -> bool:
@@ -405,20 +402,20 @@ def _contract_match(*payloads: Mapping[str, Any]) -> tuple[bool | None, str | No
         raw = payload.get("embeddingContract", payload.get("embedding_contract"))
         if not isinstance(raw, Mapping):
             flag = next((payload[key] for key in ("embeddingContractMatch", "embedding_contract_match", "profileConsistent", "profile_consistent") if isinstance(payload.get(key), bool)), None)
-            return (False, "embedding contract mismatch") if flag is False else (None, "missing embedding contract evidence")
+            return (False, "向量契约不匹配") if flag is False else (None, "缺少向量契约证据")
         contract_payload = dict(raw)
         for key in ("releaseProfileVersion", "release_profile_version"):
             if key in payload and key not in contract_payload:
                 contract_payload[key] = payload[key]
         contract = _normalize_contract(contract_payload)
         if contract is None:
-            return False, "embedding contract is incomplete"
+            return False, "向量契约不完整"
         contracts.append(contract)
     if not contracts:
-        return None, "missing embedding contract evidence"
+        return None, "缺少向量契约证据"
     normalized = {json.dumps(item, sort_keys=True, ensure_ascii=False) for item in contracts}
     if len(normalized) != 1:
-        return False, "embedding contract mismatch"
+        return False, "向量契约不匹配"
     return True, None
 
 
@@ -432,11 +429,10 @@ def _normalize_contract(payload: Mapping[str, Any]) -> dict[str, Any] | None:
     values: dict[str, Any] = {}
     for name, keys in aliases.items():
         value = next((payload[key] for key in keys if key in payload), None)
-        # A release may contain entity-specific projection profiles (for
-        # example SUBJECT vs PERSON) while the embedding contract used by the
-        # gate must be explicit and shared by all five reports.  Prefer the
-        # release-level contract when supplied; older reports continue to use
-        # their embeddingContract.profileVersion value.
+        # 一次发布可能包含实体专属的投影档案（如 SUBJECT 与 PERSON），
+        # 而门禁使用的向量契约必须显式且由五份报告共享。
+        # 提供发布级契约时优先使用；旧报告继续使用其
+        # embeddingContract.profileVersion 值。
         if name == "profileVersion":
             release_profile = next(
                 (payload[key] for key in ("releaseProfileVersion", "release_profile_version") if key in payload),
@@ -478,12 +474,12 @@ def _human_values(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
 def _validate_name(value: str, label: str) -> None:
     if not _valid_version(value):
-        raise ValueError(f"invalid {label}")
+        raise ValueError(f"{label} 无效")
 
 
 def _validate_alias(value: str) -> None:
     if not value or not all(char.isalnum() or char in "._:-" for char in value):
-        raise ValueError("invalid index alias")
+        raise ValueError("索引别名无效")
 
 
 if __name__ == "__main__":

@@ -13,9 +13,9 @@ from app.shared.observability import hash_value
 
 logger = logging.getLogger(__name__)
 
-# ponytail: datetime.now() has microsecond resolution; back-to-back writes can share
-# a timestamp and break "most recent first" session ordering. Guard makes updated_at
-# strictly increasing within this process (not part of the plan's original code).
+# ponytail: datetime.now() 只有微秒精度；连续写入可能共用同一时间戳，
+# 破坏"最近优先"的会话排序。这里的保护让 updated_at 在本进程内严格递增
+# （非原计划代码）。
 _now_lock = threading.Lock()
 _last_now: str | None = None
 

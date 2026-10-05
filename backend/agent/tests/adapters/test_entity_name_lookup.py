@@ -1,4 +1,4 @@
-"""Business-owned entity name resolver boundary tests."""
+"""业务侧持有的实体名称解析器边界测试。"""
 
 from __future__ import annotations
 
@@ -26,5 +26,5 @@ def test_vector_set_name_lookup_fails_closed_without_business_resolver():
 
 def test_invalid_resolver_response_fails_closed():
     lookup = RedisEntityNameLookup(resolver=lambda *_args, **_kwargs: {"items": []})
-    with pytest.raises(RuntimeError, match="response invalid"):
+    with pytest.raises(RuntimeError, match="解析器响应无效"):
         lookup.lookup("A")

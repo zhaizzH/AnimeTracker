@@ -20,6 +20,8 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 
 from app.agent.client.actions.wishlist import build_wishlist_preview
+from app.agent.client.actions.collection_state import require_user as _require_user
+from app.agent.client.actions.write_guard import is_expired as _is_expired
 from app.agent.middleware import tool_call_status
 from app.agent.ports import BusinessGateway
 from app.chat.pending_action import (
@@ -462,12 +464,6 @@ def finalize_resolution(outcome: dict, user: UserInfo, *, preview_one, collectio
     }
 
 
-def _is_expired(expires_at: datetime) -> bool:
-    now = datetime.now(timezone.utc)
-    if expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
-    return expires_at <= now
-
 
 def _selection_message(code: str | None) -> str:
     if code == "ambiguous_name":
@@ -566,7 +562,3 @@ def build_subject_resolution_tools(business: BusinessGateway, retrieval: Retriev
     return [resolve_subject_by_title, select_resolved_subject]
 
 
-def _require_user(user: UserInfo | None) -> dict | None:
-    if user is None:
-        return {"error": True, "message": "用户上下文不可用"}
-    return None

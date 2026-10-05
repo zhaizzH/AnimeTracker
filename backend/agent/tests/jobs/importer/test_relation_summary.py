@@ -109,10 +109,10 @@ def test_repository_writes_normalized_credit_and_character_edges():
 
 
 def test_summary_validation_rejects_incomplete_relation_fields():
-    with pytest.raises(ValueError, match="persons response"):
+    with pytest.raises(ValueError, match="persons 响应"):
         _validate_summary_items([{"id": 10, "name": "Director"}], "persons")
 
-    with pytest.raises(ValueError, match="characters response"):
+    with pytest.raises(ValueError, match="characters 响应"):
         _validate_summary_items([{"id": 20, "name": "Hero", "actors": []}], "characters")
 
 
@@ -128,7 +128,7 @@ def test_episode_pagination_rejects_short_success_response():
     pages = iter([{"data": [], "total": 1}])
     client.get_episodes = lambda *args, **kwargs: next(pages)
 
-    with pytest.raises(ValueError, match="ended before total"):
+    with pytest.raises(ValueError, match="total 前结束"):
         client.get_all_episodes(1)
 
 

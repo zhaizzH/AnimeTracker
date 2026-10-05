@@ -1,9 +1,8 @@
-"""``COMMAND INFO`` response parsing shared by every Vector Set capability check.
+"""所有 Vector Set 能力检查共用的 ``COMMAND INFO`` 响应解析。
 
-This module is the single definition of ``command_info_present``.  It must stay
-free of internal imports: ``vector_set`` already imports ``subject_index``, so a
-second copy (or an import in the other direction) would either duplicate the
-decision logic or create an import cycle.
+本模块是 ``command_info_present`` 的唯一定义。它不得引入内部依赖：
+``vector_set`` 已经导入 ``subject_index``，若再复制一份（或反向导入），
+要么重复判断逻辑，要么造成导入环。
 """
 
 from __future__ import annotations
@@ -12,7 +11,7 @@ from typing import Any, Mapping
 
 
 def command_info_present(info: Any) -> bool:
-    """Redis returns ``[None]`` for an unknown COMMAND INFO entry."""
+    """Redis 对未知的 COMMAND INFO 条目返回 ``[None]``。"""
     if not info:
         return False
     if isinstance(info, Mapping):

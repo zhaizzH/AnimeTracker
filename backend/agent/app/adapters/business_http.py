@@ -59,9 +59,8 @@ class HttpBusinessGateway(BusinessGateway):
         except httpx.RequestError as e:
             return {"error": True, "message": f"后端服务不可用: {str(e)}"}
         if isinstance(body, dict):
-            # Java success responses use a {code,message,data} envelope.  A
-            # successful endpoint may omit data when its result is null; do
-            # not leak the envelope to domain callers in that case.
+            # 业务侧成功响应使用 {code,message,data} 信封。成功接口在 result 为 null 时
+            # 可能省略 data；此时不要把信封泄漏给领域层调用方。
             if "data" in body:
                 return body["data"]
             if "code" in body and "message" in body:
@@ -114,10 +113,10 @@ class HttpBusinessGateway(BusinessGateway):
         )
 
     def lexical_search(self, query: dict, *, token: str | None) -> dict | list | None:
-        """Call the versioned MySQL FULLTEXT retrieval contract.
+        """调用带版本的 MySQL FULLTEXT 检索契约。
 
-        Business returns ``{"indexVersion": "...", "candidates": [...]}``;
-        callers reject a response without that version before querying Redis.
+        业务侧返回 ``{"indexVersion": "...", "candidates": [...]}``；
+        调用方在查询 Redis 前会拒绝不含该版本号的响应。
         """
         return self.request(
             "POST",

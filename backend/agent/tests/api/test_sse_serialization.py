@@ -109,7 +109,7 @@ def test_frame_uses_data_prefix_and_blank_line_terminator() -> None:
 
 def test_non_ascii_is_not_escaped() -> None:
     frame = serialize_sse(AssistantResponse(content=Content(text="中文内容")))
-    assert "中文内容" in frame            # ensure_ascii=False
+    assert "中文内容" in frame            # ensure_ascii=False（不转义非 ASCII）
     assert "\\u" not in frame
 
 # --------------------------------------------------------------------------- #

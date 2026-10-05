@@ -13,12 +13,8 @@ from app.chat.pending_events import (
 from app.chat.user import UserInfo
 from app.chat.pending_action import CollectionProgressPendingAction
 from app.agent.client.actions.write_guard import require_confirmed_write
+from app.agent.client.actions.collection_state import require_user as _require_user
 
-
-def _require_user(user: UserInfo | None) -> dict | None:
-    if user is None:
-        return {"error": True, "message": "用户上下文不可用"}
-    return None
 
 
 def _preview_data_to_pending_action(data: dict, user: UserInfo) -> CollectionProgressPendingAction:

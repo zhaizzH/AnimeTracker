@@ -41,14 +41,14 @@ class SubprocessImportJobLauncher:
             import ctypes
 
             kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-            h = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+            h = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION（进程查询受限信息权限）
             if not h:
                 return ctypes.get_last_error() == 5  # ERROR_ACCESS_DENIED -> 进程存在但无权打开
             try:
                 code = ctypes.c_ulong()
                 if not kernel32.GetExitCodeProcess(h, ctypes.byref(code)):
                     return True
-                return code.value == 259  # STILL_ACTIVE
+                return code.value == 259  # STILL_ACTIVE（进程仍在运行）
             finally:
                 kernel32.CloseHandle(h)
         try:

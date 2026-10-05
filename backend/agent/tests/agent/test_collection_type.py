@@ -130,7 +130,7 @@ def test_preview_propagates_state_error() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# set_subject_collection
+# set_subject_collection（设置条目收藏）
 # --------------------------------------------------------------------------- #
 
 def test_set_collection_unique_exact_previews_add() -> None:
@@ -204,7 +204,7 @@ def test_set_collection_no_match() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# execute_set_collection_type
+# execute_set_collection_type（执行设置收藏类型）
 # --------------------------------------------------------------------------- #
 
 def test_execute_success_saves_and_clears() -> None:

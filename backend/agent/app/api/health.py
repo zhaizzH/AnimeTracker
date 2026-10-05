@@ -1,15 +1,14 @@
-"""Dependency-aware health report for ``GET /api/client/agent/health``.
+"""``GET /api/client/agent/health`` 的依赖感知健康报告。
 
-The endpoint always answers HTTP 200 and expresses degradation in the body.
-That is a deliberate exception to the "HTTP status must match the error code"
-rule: this is a diagnostic endpoint, not a business response, and no resident
-host consumes its status code (see ``error-handling.md`` and the task notes).
+该接口始终返回 HTTP 200，并在响应体中表达降级。这是对
+"HTTP 状态码必须与错误码一致"规则的有意例外：它是诊断接口而非业务响应，
+且没有常驻调用方依赖其状态码（参见 ``error-handling.md`` 与任务笔记）。
 
-Probe semantics: every probe performs a real dependency call, is bounded by a
-timeout, and reports ``down`` for any exception, timeout or error envelope.
-``checks`` only ever contains the finite enum ``ok``/``down``/``disabled`` --
-never exception text, which would leak upstream bodies and connection strings.
-A disabled feature flag is ``disabled``, never ``down``.
+探测语义：每个探测都发起真实的依赖调用，受超时约束，并
+对任何异常、超时或错误信封报告 ``down``。
+``checks`` 只包含有限枚举 ``ok``/``down``/``disabled``，
+绝不含异常文本，以免泄漏上游响应体与连接串。
+被禁用的功能开关是 ``disabled``，绝不是 ``down``。
 """
 
 from __future__ import annotations
@@ -23,20 +22,17 @@ from app.config import resolve_llm_provider
 
 logger = logging.getLogger(__name__)
 
-# Business liveness answers "is the Business HTTP process reachable" without
-# aggregating Business' own MySQL/Redis readiness.  Probing the default
-# ``/actuator/health`` would report a Business-internal DB hiccup as an Agent
-# dependency failure.  The path is permitAll in Business SecurityConfig, so the
-# anonymous agent probe needs no token.
+# 业务侧存活检查只回答"业务 HTTP 进程是否可达"，不聚合业务自身的
+# MySQL/Redis 就绪状态。探测默认的 ``/actuator/health`` 会把业务内部
+# 的 DB 抖动误报成 Agent 依赖故障。该路径在业务 SecurityConfig 中为
+# permitAll，因此匿名 Agent 探测无需令牌。
 BUSINESS_LIVENESS_PATH = "/actuator/health/liveness"
 
-# Per-probe ceiling.  Redis already caps its socket connect at 2s
-# (``RedisChatStore``); Business is narrowed to the same value for health only
-# (its business calls keep the 10s default).
+# 单个探测的上限。Redis 的连接已在 2s 处封顶（``RedisChatStore``）；
+# 仅健康检查把业务侧收窄到同一值（业务调用仍保持 10s 默认）。
 PROBE_TIMEOUT_SECONDS = 2.0
-# Overall ceiling, so the endpoint can never hang even if a probe ignores its
-# own timeout.  Contains the Redis budget plus headroom and stays far below the
-# 10s Business default.
+# 整体上限，保证即使某个探测忽略自身超时，接口也不会挂住。
+# 覆盖 Redis 预算并留有余量，且远低于业务侧 10s 默认值。
 TOTAL_TIMEOUT_SECONDS = 3.0
 
 _PROBE_NAMES = ("redis", "business", "rag")
@@ -50,23 +46,23 @@ async def build_health_report(
     business: Any,
     rag_redis: Any,
 ) -> dict[str, Any]:
-    """Probe every dependency and build the stable response payload.
+    """探测所有依赖并构造稳定的响应载荷。
 
-    A missing dependency object is reported as ``down`` (fail-closed) instead of
-    letting ``AttributeError`` escape.  Probes run concurrently and never
-    short-circuit: one failing dependency must not hide the state of the others.
+    依赖对象缺失时按 ``down`` 上报（失败即闭合），而不是让
+    ``AttributeError`` 泄漏出去。各探测并发执行且不会短路：
+    一个依赖失败不得掩盖其他依赖的状态。
     """
     llm = _probe_llm(settings_obj)
-    # Default to fail-closed; a probe that never completes (total budget or
-    # cancellation) leaves its entry as ``down``.
+    # 默认失败即闭合；未完成的探测（总预算耗尽或被取消）
+    # 其条目保持 ``down``。
     checks: dict[str, str] = {name: _DOWN for name in _PROBE_NAMES}
 
     async def guarded(name: str, probe: Any) -> None:
         try:
             checks[name] = await asyncio.wait_for(probe, timeout=PROBE_TIMEOUT_SECONDS)
         except Exception:
-            # Any failure -- exception, timeout, malformed response -- is
-            # ``down``. Only the typed enum is recorded, never the exception.
+            # 任何失败——异常、超时、响应格式错误——都记为 ``down``。
+            # 只记录类型化枚举，绝不记录异常本身。
             checks[name] = _DOWN
 
     try:
@@ -90,7 +86,7 @@ async def build_health_report(
 
 
 def _probe_llm(settings_obj: Any) -> str:
-    """Configuration-only check: the LLM has no probeable network endpoint."""
+    """仅配置检查：LLM 没有可探测的网络端点。"""
     try:
         resolve_llm_provider(settings_obj)
     except Exception:
@@ -99,7 +95,7 @@ def _probe_llm(settings_obj: Any) -> str:
 
 
 async def _probe_redis(store: Any) -> str:
-    """Real PING.  Constructing the store proves nothing: it only parses the URL."""
+    """真实 PING。仅构造存储对象不能说明问题：它只解析 URL。"""
     if store is None:
         return _DOWN
     await store.init_db()
@@ -107,7 +103,7 @@ async def _probe_redis(store: Any) -> str:
 
 
 async def _probe_business(business: Any) -> str:
-    """Real HTTP call.  ``request`` normalizes failures into an error envelope."""
+    """真实 HTTP 调用。``request`` 会把失败归一化为错误信封。"""
     if business is None:
         return _DOWN
     response = await asyncio.to_thread(
@@ -122,12 +118,12 @@ async def _probe_business(business: Any) -> str:
 
 
 async def _probe_rag(settings_obj: Any, rag_redis: Any) -> str:
-    """Conditional probe: a disabled flag is ``disabled`` and is not a fault."""
+    """条件探测：开关关闭时记为 ``disabled``，不算故障。"""
     if not getattr(settings_obj, "rag_enabled", False):
         return "disabled"
     if rag_redis is None:
-        # The flag claims RAG is on but no client was assembled: a real
-        # inconsistency, not a disabled feature.
+        # 开关声称 RAG 已启用，但未装配客户端：这是真实的不一致，
+        # 而非功能被禁用。
         return _DOWN
     await asyncio.to_thread(probe_vector_set_commands, rag_redis)
     return "ok"

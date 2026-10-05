@@ -16,7 +16,7 @@ VECTOR_DIMENSIONS = 1024
 
 
 def vector_bytes(values: Sequence[float]) -> bytes:
-    """Encode and validate a fixed-dimension little-endian Float32 vector."""
+    """编码并校验固定维度的小端 Float32 向量。"""
     if len(values) != VECTOR_DIMENSIONS:
         raise ValueError("embedding 必须是 1024 个有限浮点数")
     try:
@@ -33,7 +33,7 @@ def vector_bytes(values: Sequence[float]) -> bytes:
 
 @dataclass(frozen=True)
 class SubjectIndexDocument:
-    """A versioned public Subject document written to a Redis Vector Set."""
+    """写入 Redis Vector Set 的带版本公开 Subject 文档。"""
 
     subject_id: int
     index_version: str
@@ -57,22 +57,21 @@ class SubjectIndexDocument:
 
 
 class LexicalSearchUnavailable(RuntimeError):
-    """The lexical half is owned by Business/MySQL, not Redis."""
+    """词法检索部分由业务侧/MySQL 负责，不属于 Redis。"""
 
 
 class RedisSubjectIndex:
-    """Redis 8 Vector Set adapter for versioned Subject embeddings.
+    """Redis 8 Vector Set 适配器，用于带版本的 Subject 向量。
 
-    Lexical retrieval is deliberately not implemented here. Callers must
-    inject a Business lexical adapter so MySQL release and Vector Set version
-    can be checked together.
+    此处刻意不实现词法检索。调用方必须注入业务侧词法适配器，
+    以便同时校验 MySQL 发布版本与 Vector Set 版本。
     """
 
     def __init__(self, redis: Any, key_prefix: str = "rag:vectors:", index_prefix: str = "idx:rag:", active_alias: str | None = None):
         self._redis = redis
         self._key_prefix = key_prefix
         self._index_prefix = index_prefix
-        # Compatibility property only. Publication is controlled by MySQL.
+        # 仅为兼容属性。发布由 MySQL 控制。
         self._active_alias = active_alias or "search_index_release"
 
     @property
@@ -109,7 +108,7 @@ class RedisSubjectIndex:
         )
 
     def content_hashes(self, index_version: str) -> dict[int, str]:
-        """Read a bounded sample via Vector Set attributes for quality gates."""
+        """通过 Vector Set 属性读取有界样本，供质量门禁使用。"""
         try:
             members = self._redis.execute_command("VRANGE", self.vector_key(index_version), "-", "+", 100)
         except Exception as exc:
@@ -131,11 +130,10 @@ class RedisSubjectIndex:
         return result
 
     def cardinality(self, index_version: str) -> int:
-        """Return the authoritative Vector Set member count for a version.
+        """返回某版本的权威 Vector Set 成员数。
 
-        ``content_hashes`` is intentionally bounded because it is only sample
-        evidence.  Coverage gates must use ``VCARD`` instead of treating that
-        bounded sample as the complete index.
+        ``content_hashes`` 刻意做有界处理，因为它只是样本证据。
+        覆盖率门禁必须使用 ``VCARD``，而不能把该有界样本当作完整索引。
         """
         try:
             raw = self._redis.execute_command("VCARD", self.vector_key(index_version))
@@ -177,7 +175,7 @@ class RedisSubjectIndex:
     def semantic_search_for_version(
         self, index_version: str, query: RetrievalQuery, vector: Sequence[float], *, limit: int = 50
     ) -> list[dict[str, Any]]:
-        """Run VSIM only against the release returned by Business lexical search."""
+        """只对业务侧词法检索返回的发布版本执行 VSIM。"""
         version = self._validate_version(index_version)
         if limit < 1:
             raise ValueError("limit 必须大于 0")
@@ -228,10 +226,10 @@ class RedisSubjectIndex:
 
 
 def _vector_filter(query: RetrievalQuery) -> str:
-    """Build only literals from typed query; never accept user expressions."""
-    # Vector Set filter expressions use numeric JSON values for booleans;
-    # Redis 8 rejects the ``true``/``false`` literals accepted by neither its
-    # filter parser nor the RESP command grammar.
+    """只从类型化查询构造字面量；绝不接受用户表达式。"""
+    # Vector Set 过滤表达式用数值型 JSON 表示布尔值；
+    # Redis 8 既不接受 ``true``/``false`` 字面量，
+    # 其过滤解析器和 RESP 命令语法也都不支持。
     parts = ['.entity_kind == "SUBJECT"', ".source_active == 1", ".type == 2", ".nsfw == 0"]
     if query.year_from is not None:
         parts.append(f".year >= {int(query.year_from)}")
@@ -244,8 +242,8 @@ def _vector_filter(query: RetrievalQuery) -> str:
     if query.rating_total_min is not None:
         parts.append(f".rating_total >= {int(query.rating_total_min)}")
     if query.air_status:
-        # Indexer stores the derived status in lowercase (upcoming/airing/
-        # finished); normalize the typed query to that storage contract.
+        # 索引器以小写存储派生状态（upcoming/airing/finished）；
+        # 把类型化查询归一化到该存储约定。
         parts.append(f'.air_status == "{query.air_status.lower()}"')
     for subject_id in query.exclude_subject_ids:
         parts.append(f".subject_id != {int(subject_id)}")

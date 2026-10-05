@@ -1,4 +1,4 @@
-"""Regression tests for the MySQL lexical and Vector Set boundaries."""
+"""MySQL 词法检索与 Vector Set 边界的回归测试。"""
 
 from __future__ import annotations
 

@@ -250,7 +250,7 @@ class SearchIndexJobRepositoryImpl:
             )
 
     def upsert_search_document(self, job: ClaimedJob, document: Any, *, source_active: bool = True) -> None:
-        """Write the rebuildable MySQL lexical projection for this entity."""
+        """为该实体写入可重建的 MySQL 词法投影。"""
         now = _datetime_seconds(self._now())
         profile = document.profile
         aliases = "\n".join(document.aliases)

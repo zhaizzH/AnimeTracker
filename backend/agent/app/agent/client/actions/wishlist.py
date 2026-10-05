@@ -12,15 +12,10 @@ from app.chat.pending_events import emit_pending_action_clear, emit_pending_acti
 from app.chat.user import UserInfo
 from app.chat.pending_action import WishlistPendingAction, WishlistPendingItem
 from app.agent.client.actions.collection_state import check_collection_state
+from app.agent.client.actions.collection_state import require_user as _require_user
 from app.agent.client.actions.write_guard import require_confirmed_write
 
 _MAX_WISHLIST_PREVIEW_ITEMS = 10
-
-
-def _require_user(user: UserInfo | None) -> dict | None:
-    if user is None:
-        return {"error": True, "message": "用户上下文不可用"}
-    return None
 
 
 def _pending_action_from_items(items: list[dict], user: UserInfo) -> WishlistPendingAction:

@@ -41,7 +41,7 @@ class Credit:
 
 @dataclass(frozen=True)
 class PersonSummary:
-    """Person payload embedded in a subject/persons or character/actors response."""
+    """嵌在 subject/persons 或 character/actors 响应中的人物载荷。"""
 
     bangumi_id: int
     name: str
@@ -53,7 +53,7 @@ class PersonSummary:
 
 @dataclass(frozen=True)
 class CharacterSummary:
-    """Character payload embedded in a subject/characters response."""
+    """嵌在 subject/characters 响应中的角色载荷。"""
 
     bangumi_id: int
     name: str
@@ -181,9 +181,9 @@ def _credits(persons: list[dict]) -> tuple[Credit, ...]:
         # Bangumi person.type: 1=个人, 2=公司, 3=组合
         raw_type = _int(person.get("type")) or 1
         person_type = "ORGANIZATION" if raw_type in (2, 3) else "PERSON"
-        # The subject/persons endpoint is the authoritative credit list. Keep every
-        # non-empty role (not only the six UI "main" roles), otherwise roles such
-        # as 製作, 音乐 and 摄影 disappear before they can be audited or searched.
+        # subject/persons 接口是权威演职员列表。保留所有非空职务
+        # （而非仅 UI 的六个"主要"职务），否则 製作、音乐、摄影 等职务
+        # 会在可审计或可检索之前就消失。
         key = (person_id, role)
         if person_id is not None and name and role and key not in seen:
             seen.add(key)
@@ -197,7 +197,7 @@ def _person_summaries(persons: list[dict]) -> tuple[PersonSummary, ...]:
     for entry in persons or []:
         person = entry.get("person") if isinstance(entry, dict) else None
         if not isinstance(person, dict):
-            # Be tolerant of callers passing a bare Person payload.
+            # 容忍调用方直接传入裸 Person 载荷。
             person = entry if isinstance(entry, dict) else {}
         person_id = _optional_int(person.get("id"))
         name = _text(person.get("name"))
@@ -279,8 +279,8 @@ def _normalize_character_relation(value: object) -> str:
         "客串": "GUEST",
         "GUEST": "GUEST",
     }.get(raw, raw)
-    # Keep unknown upstream relation labels for audit, while respecting the schema
-    # column's size. Empty labels are represented by the safe default.
+    # 为便于审计保留未知的上游关系标签，同时遵守 schema 列长度限制。
+    # 空标签用安全默认值表示。
     return (normalized or "MAIN")[:32]
 
 

@@ -9,7 +9,7 @@ from langchain.tools.tool_node import ToolCallRequest
 from app.chat.event_sink import emit_function_call
 from app.shared.observability import elapsed_ms, log_event
 
-_REGISTERED: dict[str, str] = {}  # tool_name -> display_name
+_REGISTERED: dict[str, str] = {}  # tool_name -> display_name（工具名到展示名）
 
 
 def get_tool_name(tool_obj: Any) -> str:

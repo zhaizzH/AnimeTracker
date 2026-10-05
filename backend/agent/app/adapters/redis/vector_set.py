@@ -1,9 +1,8 @@
-"""Redis 8 Vector Set primitives used by the RAG index.
+"""RAG 索引使用的 Redis 8 Vector Set 原语。
 
-The adapter intentionally contains no RediSearch commands.  A vector set is
-versioned by key and its members carry only public, non-private metadata.  The
-MySQL ``search_index_release`` remains the publication pointer; this module
-never creates an alias or decides which version is active.
+本适配器刻意不含任何 RediSearch 命令。Vector Set 通过 key 做版本隔离，
+其成员只携带公开、非私密元数据。MySQL 的 ``search_index_release``
+仍是发布指针；本模块绝不创建别名，也不决定哪个版本处于活动状态。
 """
 
 from __future__ import annotations
@@ -25,20 +24,20 @@ _MAX_MEMBER_LENGTH = 128
 
 
 class VectorSetUnavailable(RuntimeError):
-    """Raised when the connected Redis does not expose Vector Set commands."""
+    """连接的 Redis 未提供 Vector Set 命令时抛出。"""
 
 
 def probe_vector_set_commands(
     redis_client: Any,
     commands: Sequence[str] = ("VADD", "VSIM", "VREM"),
 ) -> None:
-    """Probe Vector Set command availability without a specific index version.
+    """在不指定索引版本的情况下探测 Vector Set 命令可用性。
 
-    Unlike :meth:`RedisVectorSet.ensure_version`, this entry point does not call
-    ``validate_version``: health checks cannot know the active ``index_version``
-    (the online version is decided per request by the Business lexical response).
-    It never creates a key or writes data, so it is idempotent and safe to call
-    from a diagnostic endpoint.  A missing command raises ``VectorSetUnavailable``.
+    与 :meth:`RedisVectorSet.ensure_version` 不同，此入口不调用
+    ``validate_version``：健康检查无法得知活动的 ``index_version``
+    （线上版本由业务侧词法响应按请求决定）。
+    它不创建 key、不写数据，因此幂等，可安全用于诊断接口。
+    命令缺失时抛出 ``VectorSetUnavailable``。
     """
     for command in commands:
         try:
@@ -77,14 +76,14 @@ def _decode(value: Any) -> Any:
 
 
 def parse_vsim_response(raw: Any) -> list[dict[str, Any]]:
-    """Normalize RESP2 ``VSIM ... WITHSCORES WITHATTRIBS`` rows.
+    """归一化 RESP2 的 ``VSIM ... WITHSCORES WITHATTRIBS`` 行。
 
-    Each result consists of ``member, score, json_attributes``.  Malformed
-    rows are ignored; an invalid Redis response never becomes a candidate.
+    每行结果由 ``member, score, json_attributes`` 组成。
+    格式错误的行会被忽略；无效的 Redis 响应绝不会成为候选项。
     """
 
     if isinstance(raw, Mapping):
-        # redis-py RESP3 can return {member: (score, attrs)}.
+        # redis-py 在 RESP3 下可能返回 {member: (score, attrs)}。
         rows: list[dict[str, Any]] = []
         for member, value in raw.items():
             if isinstance(value, (list, tuple)) and value:
@@ -133,7 +132,7 @@ def _result_row(member: Any, score: Any, attrs: Any) -> dict[str, Any]:
 
 
 class RedisVectorSet:
-    """Low-level versioned Vector Set writer/query adapter."""
+    """底层带版本 Vector Set 读写适配器。"""
 
     def __init__(self, redis_client: Any, *, prefix: str = VECTOR_SET_PREFIX, quantization: str = "Q8") -> None:
         self._redis = redis_client
@@ -146,7 +145,7 @@ class RedisVectorSet:
         return vector_set_key(entity_kind, index_version, prefix=self._prefix)
 
     def ensure_version(self, index_version: str) -> None:
-        """Validate the server capability without creating a fake empty index."""
+        """校验服务端能力，且不创建空的假索引。"""
         validate_version(index_version)
         probe_vector_set_commands(self._redis)
 
@@ -230,7 +229,7 @@ def safe_attributes(
     source_active: bool = True,
     **metadata: Any,
 ) -> dict[str, Any]:
-    """Build the allowlisted public attributes stored beside a vector."""
+    """构造与向量一同存储的白名单公开属性。"""
 
     attributes: dict[str, Any] = {
         "entity_kind": entity_kind.value,

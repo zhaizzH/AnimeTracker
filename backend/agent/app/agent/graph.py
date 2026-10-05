@@ -13,9 +13,6 @@ from app.agent.state import AgentState
 _ALLOWED_TARGETS = ("search_agent", "discover_agent", "recommend_agent")
 
 
-def _entry_router(_: AgentState) -> dict:
-    return {}
-
 
 def _route_from_entry(state: AgentState) -> str:
     user = state.get("user")
@@ -28,22 +25,20 @@ def _route_from_gateway(state: AgentState) -> str:
     routing = state.get("routing") or {}
     target = routing.get("route_target")
     if target not in _ALLOWED_TARGETS:
-        raise ValueError(f"gateway_router must provide a valid route_target, got {target!r}")
+        raise ValueError(f"gateway_router 必须提供有效的 route_target，实际为 {target!r}")
     return target
 
 
 def build_graph(dependencies: AgentDependencies) -> Any:
     graph = StateGraph(AgentState)
-    graph.add_node("entry_router", _entry_router)
     graph.add_node("gateway_router", build_gateway_router(dependencies))
     graph.add_node("search_agent", build_search_agent(dependencies))
     graph.add_node("discover_agent", build_discover_agent(dependencies))
     graph.add_node("recommend_agent", build_recommend_agent(dependencies))
     graph.add_node("admin_agent", build_admin_agent(dependencies))
 
-    graph.add_edge(START, "entry_router")
     graph.add_conditional_edges(
-        "entry_router",
+        START,
         _route_from_entry,
         {"gateway_router": "gateway_router", "admin_agent": "admin_agent"},
     )

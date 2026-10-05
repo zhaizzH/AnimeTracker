@@ -282,20 +282,20 @@ def _progress(done: int, total: int | None = None):
 
 
 def parse_args(argv=None):
-    parser = argparse.ArgumentParser(description="Bangumi data importer")
+    parser = argparse.ArgumentParser(description="Bangumi 数据导入器")
     parser.add_argument("--mode", required=True,
                         choices=["full", "season", "recent", "since", "sample"],
-                        help="import mode")
-    parser.add_argument("--key", help="season key, e.g. 2026-summer (required for season mode)")
-    parser.add_argument("--since", help="start date, e.g. 2026-01-01 (required for since mode)")
+                        help="导入模式")
+    parser.add_argument("--key", help="season key，例如 2026-summer（season 模式必填）")
+    parser.add_argument("--since", help="起始日期，例如 2026-01-01（since 模式必填）")
     parser.add_argument("--resume", action="store_true",
-                        help="skip already imported subjects")
+                        help="跳过已导入的条目")
     parser.add_argument("--workers", type=int, default=MAX_WORKERS,
-                        help=f"number of import threads (default: {MAX_WORKERS}, max: {MAX_WORKERS_LIMIT})")
+                        help=f"导入线程数（默认: {MAX_WORKERS}，上限: {MAX_WORKERS_LIMIT}）")
     parser.add_argument("--limit", type=int,
-                        help="maximum items for full/sample mode; full defaults to no limit")
+                        help="full/sample 模式的最大条目数；full 默认不限")
     parser.add_argument("--dry-run", action="store_true",
-                        help="scan only; never open the database or write remote storage")
+                        help="仅扫描；不打开数据库，也不写远端存储")
     return parser.parse_args(argv)
 
 
@@ -319,7 +319,7 @@ def _sample_bucket(date: str) -> int:
 def _sample_ids(items, *, limit: int = 500, strata: tuple[int, int, int, int] = SAMPLE_STRATA):
     """在内存中挑选样本；不足配额按最近年代层补齐。"""
     if limit < 1 or len(strata) != 4 or any(value < 0 for value in strata):
-        raise ValueError("sample limit and strata must be positive")
+        raise ValueError("采样 limit 与 strata 必须为正数")
     buckets = [[] for _ in strata]
     for subject_id, date in items:
         if subject_id:
@@ -372,11 +372,11 @@ def run_sample(client, db, resume=False, *, limit: int = 500, strata: tuple[int,
 def parse_season_key(key: str):
     parts = key.split("-")
     if len(parts) != 2:
-        raise ValueError(f"invalid season key: {key}")
+        raise ValueError(f"无效的 season key: {key}")
     year = int(parts[0])
     season = parts[1].lower()
     if season not in SEASON_QUARTERS:
-        raise ValueError(f"invalid season: {season}")
+        raise ValueError(f"无效的 season: {season}")
     ms, me = season_month_range(season)
     return year, ms, me
 
@@ -437,15 +437,14 @@ def import_single_subject(client, db, bangumi_id, resume, *, import_record_id=No
             storage.put_raw_subject(data["id"], data)
             cover = storage.put_cover(data["id"], (data.get("images") or {}).get("large") or "")
 
-            # Related collections are independent API calls.  A failed call must
-            # not prevent the core Subject from being refreshed, but its old
-            # collection must remain active (the repository receives a
-            # completeness flag and will not run replace-set for it).
+            # 关联集合是相互独立的 API 调用。某次调用失败不得阻止核心 Subject 刷新，
+            # 但其旧集合必须保持活动（仓储会收到完整性标记，
+            # 并因此不对其执行 replace-set）。
             persons_complete = True
             try:
                 persons = client.get_subject_persons(bangumi_id)
                 if not isinstance(persons, list):
-                    raise ValueError("persons response must be a list")
+                    raise ValueError("persons 响应必须是列表")
                 _validate_summary_items(persons, "persons")
             except Exception as e:
                 persons = []
@@ -456,7 +455,7 @@ def import_single_subject(client, db, bangumi_id, resume, *, import_record_id=No
             try:
                 characters = client.get_subject_characters(bangumi_id)
                 if not isinstance(characters, list):
-                    raise ValueError("characters response must be a list")
+                    raise ValueError("characters 响应必须是列表")
                 _validate_summary_items(characters, "characters")
             except Exception as e:
                 characters = []
@@ -469,9 +468,8 @@ def import_single_subject(client, db, bangumi_id, resume, *, import_record_id=No
                 return OUTCOME_SKIPPED
 
             episodes = []
-            # An explicit zero means "the complete source set is empty".  If
-            # both count fields are absent, the payload is partial and old
-            # episodes must be retained.
+            # 显式 0 表示"完整来源集为空"。若两个计数字段都缺失，
+            # 则该载荷是部分数据，必须保留旧的剧集记录。
             episode_count_present = any(
                 _is_non_negative_int(data.get(field)) for field in ("eps", "total_episodes")
             )
@@ -485,7 +483,7 @@ def import_single_subject(client, db, bangumi_id, resume, *, import_record_id=No
                 try:
                     episodes = client.get_all_episodes(bangumi_id)
                     if not isinstance(episodes, list):
-                        raise ValueError("episodes response must be a list")
+                        raise ValueError("episodes 响应必须是列表")
                 except Exception as e:
                     episodes_complete = False
                     logger.warning("  -> 剧集列表获取失败 subject %d，保留旧剧集: %s", bangumi_id, sanitize_import_error(e))
@@ -496,7 +494,7 @@ def import_single_subject(client, db, bangumi_id, resume, *, import_record_id=No
             try:
                 relations = client.get_relations(bangumi_id)
                 if not isinstance(relations, list):
-                    raise ValueError("relations response must be a list")
+                    raise ValueError("relations 响应必须是列表")
                 _validate_relation_items(relations)
                 if relations:
                     for relation in relations:
@@ -532,8 +530,8 @@ def import_single_subject(client, db, bangumi_id, resume, *, import_record_id=No
                         tuple(anime_relations),
                         persons=normalized.persons,
                         characters=normalized.characters,
-                        # A present-but-null collection is an incomplete source
-                        # response, not an authoritative empty set.
+                        # 字段存在但为 null 表示来源响应不完整，
+                        # 而非权威的空集合。
                         aliases_complete=isinstance(data.get("infobox"), list),
                         tags_complete=isinstance(data.get("tags"), list),
                         meta_tags_complete=isinstance(data.get("meta_tags"), list),
@@ -581,8 +579,8 @@ def run_full(client, db, resume, *, limit: int | None = None, **kw):
     catchup_kw.pop("record_id", None)
     catchup_kw.pop("mode", None)
     catchup_kw.pop("resume_checkpoint", None)
-    # The catch-up batch belongs to the same import record for entity lineage,
-    # but must not overwrite the full-catalog checkpoint/progress counters.
+    # 补跑批次出于实体血缘归属同一条导入记录，
+    # 但不得覆盖全量目录的检查点/进度计数。
     catchup_kw["entity_import_record_id"] = kw.get("record_id")
     return imported + run_recent(client, db, resume, **catchup_kw)
 
@@ -683,7 +681,7 @@ def main(argv=None):
     client = BangumiClient(access_token=access_token, user_agent=user_agent)
     if args.dry_run:
         if args.mode != "full":
-            raise ValueError("dry-run currently supports full mode only")
+            raise ValueError("dry-run 目前仅支持 full 模式")
         return _dry_run_full(client, args.limit)
     engine = get_engine(db_host, db_port, db_user, db_password, db_name)
     # 主连接仍用于 import_record 读写；导入锁已迁到 Redis，不再依赖连接被持续检出。
@@ -736,20 +734,20 @@ def main(argv=None):
             count = run_full(client, db, args.resume, limit=args.limit, **pool_kw)
         elif args.mode == "season":
             if not args.key:
-                raise ValueError("season mode needs --key")
+                raise ValueError("season 模式需要 --key")
             count = run_season(client, db, args.key, args.resume, **pool_kw)
         elif args.mode == "recent":
             count = run_recent(client, db, args.resume, **pool_kw)
         elif args.mode == "since":
             if not args.since:
-                raise ValueError("since mode needs --since")
+                raise ValueError("since 模式需要 --since")
             count = run_since(client, db, args.since, args.resume, **pool_kw)
         elif args.mode == "sample":
             summary = run_sample(client, db, args.resume, limit=args.limit or 500, **pool_kw)
             count = summary.processed
             logger.info("样本实际分布: %s", summary.distribution)
         else:
-            raise ValueError(f"Unknown mode: {args.mode}")
+            raise ValueError(f"未知模式: {args.mode}")
 
         # 终态以 Redis 累计成功数为准（含 full 追赶批次），读出后立即删键。
         # Redis 不可用时回退到本次运行的内存计数：run_full 返回
@@ -797,14 +795,13 @@ def main(argv=None):
 
 
 def _validate_summary_items(items: list[object], kind: str) -> None:
-    """Reject malformed successful responses before any replace-set can run."""
+    """在任何 replace-set 执行前拒绝格式错误的成功响应。"""
     for item in items:
         if not isinstance(item, dict):
-            raise ValueError(f"{kind} response contains an invalid summary")
-        # The v0 RelatedPerson payload is a bare Person object with a
-        # top-level ``relation`` field.  Accept the older nested shape too;
-        # rejecting the documented bare shape would make every valid persons
-        # response look incomplete and preserve stale credits forever.
+            raise ValueError(f"{kind} 响应包含无效的摘要")
+        # v0 的 RelatedPerson 载荷是带顶层 ``relation`` 字段的裸 Person 对象。
+        # 同时兼容更旧的嵌套结构；若拒绝文档化的裸结构，
+        # 所有合法的 persons 响应都会被判定为不完整，陈旧演职员信息将永远保留。
         nested_person = item.get("person") if kind == "persons" else None
         entity = nested_person if isinstance(nested_person, dict) else item
         if (
@@ -815,18 +812,18 @@ def _validate_summary_items(items: list[object], kind: str) -> None:
             or not isinstance(entity.get("name"), str)
             or not entity.get("name", "").strip()
         ):
-            raise ValueError(f"{kind} response contains an invalid summary")
+            raise ValueError(f"{kind} 响应包含无效的摘要")
         if kind == "persons" and (
             not isinstance(item.get("relation"), str) or not item.get("relation", "").strip()
         ):
-            raise ValueError("persons response contains an invalid relation")
+            raise ValueError("persons 响应包含无效的关系")
         if kind != "characters":
             continue
         if not isinstance(item.get("relation"), str) or not item.get("relation", "").strip():
-            raise ValueError("characters response contains an invalid relation")
+            raise ValueError("characters 响应包含无效的关系")
         actors = item.get("actors") or []
         if not isinstance(actors, list):
-            raise ValueError("characters.actors response must be a list")
+            raise ValueError("characters.actors 响应必须是列表")
         for actor in actors:
             if (
                 not isinstance(actor, dict)
@@ -836,11 +833,11 @@ def _validate_summary_items(items: list[object], kind: str) -> None:
                 or not isinstance(actor.get("name"), str)
                 or not actor.get("name", "").strip()
             ):
-                raise ValueError("characters response contains an invalid actor summary")
+                raise ValueError("characters 响应包含无效的演员摘要")
 
 
 def _validate_relation_items(items: list[object]) -> None:
-    """Reject malformed relation payloads before replace-set can remove old edges."""
+    """在 replace-set 删除旧边之前拒绝格式错误的关系载荷。"""
     for item in items:
         if (
             not isinstance(item, dict)
@@ -850,7 +847,7 @@ def _validate_relation_items(items: list[object]) -> None:
             or not isinstance(item.get("relation"), str)
             or not item.get("relation", "").strip()
         ):
-            raise ValueError("relations response contains an invalid relation")
+            raise ValueError("relations 响应包含无效的关系")
 
 
 def _is_non_negative_int(value: object) -> bool:

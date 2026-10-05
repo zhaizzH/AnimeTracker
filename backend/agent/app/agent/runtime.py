@@ -56,8 +56,7 @@ def _extract_reasoning_content_from_chunk(chunk: Any) -> str:
             continue
         normalized = raw.strip()
         if normalized and normalized not in seen:
-            # Preserve chunk boundaries and intentional spaces.  Only blank
-            # chunks and exact duplicate payloads are discarded.
+            # 保留分块边界与有意的空格。仅丢弃空白分块和完全重复的载荷。
             parts.append(raw)
             seen.add(normalized)
     return "".join(parts)
@@ -66,9 +65,6 @@ def _extract_reasoning_content_from_chunk(chunk: Any) -> str:
 @dataclass(frozen=True)
 class _AgentInvokeResult:
     payload: Any
-    messages: list[Any]
-    content: str
-    raw_content: Any
 
 
 def _extract_usage(messages: list[Any]) -> tuple[int | None, int | None, int | None]:
@@ -105,22 +101,9 @@ def agent_invoke(
     try:
         payload = {"messages": _normalize_history_messages(history_messages)}
         raw_result = _run_async(agent_instance.ainvoke(payload))
-
         messages = list(raw_result.get("messages") or []) if isinstance(raw_result, dict) else []
-        content = ""
-        raw_content = None
-        for message in reversed(messages):
-            if str(getattr(message, "type", "") or "").lower() != "ai":
-                continue
-            raw_content = getattr(message, "content", None)
-            content = extract_text(message).strip()
-            break
-        if not content and isinstance(raw_result, dict):
-            content = str(raw_result.get("output") or raw_result.get("text") or "").strip()
-            if raw_content is None:
-                raw_content = raw_result.get("output") or raw_result.get("text")
         success = True
-        return _AgentInvokeResult(payload=raw_result, messages=messages, content=content, raw_content=raw_content)
+        return _AgentInvokeResult(payload=raw_result)
     except Exception as exc:
         error_type = classify_error(exc)
         raise
@@ -202,10 +185,8 @@ def agent_stream(
         answer_chunks, thinking_chunks, latest_state = _run_async(_collect())
         success = True
         return {
-            "latest_state": latest_state,
             "streamed_text": "".join(answer_chunks),
             "streamed_thinking": "".join(thinking_chunks),
-            "final_messages": list(latest_state.get("messages") or []),
         }
     except Exception as exc:
         error_type = classify_error(exc)

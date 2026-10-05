@@ -1,4 +1,4 @@
-"""Tests for the read-only candidate-version evaluation adapter."""
+"""只读候选版本评估适配器的测试。"""
 
 from types import SimpleNamespace
 

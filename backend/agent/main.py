@@ -45,17 +45,17 @@ _VECTOR_BYTES = 1024 * 4
 class _UnavailableIndex:
     @staticmethod
     def lexical_search(*_args: Any, **_kwargs: Any) -> None:
-        raise RuntimeError("RAG index disabled")
+        raise RuntimeError("RAG 索引未启用")
 
     @staticmethod
     def semantic_search(*_args: Any, **_kwargs: Any) -> None:
-        raise RuntimeError("RAG index disabled")
+        raise RuntimeError("RAG 索引未启用")
 
 
 class _UnavailableEmbeddings:
     @staticmethod
     def embed_documents(*_args: Any, **_kwargs: Any) -> list[list[float]]:
-        raise RuntimeError("RAG embeddings disabled")
+        raise RuntimeError("RAG 向量服务未启用")
 
 
 class _NoPreferenceProvider:
@@ -93,12 +93,12 @@ def _business_fallbacks(business):
         )
 
     def lexical(query: RetrievalQuery, *, token: str | None) -> dict | list:
-        """Versioned MySQL FULLTEXT contract owned by Business.
+        """由业务侧提供的带版本 MySQL FULLTEXT 契约。
 
-        The endpoint is intentionally separate from the legacy subject search:
-        it must return ``indexVersion`` and ``items`` from one active release.
-        Until Business exposes it, the adapter returns an explicit error and
-        the retrieval service falls back to the legacy authoritative search.
+        该接口刻意与旧版 subject 搜索分离：
+        它必须从同一个活动发布中返回 ``indexVersion`` 与 ``items``。
+        在业务侧提供之前，适配器返回显式错误，
+        检索服务回退到旧版权威搜索。
         """
         text = query.semantic_query or " ".join(query.keywords)
         payload = {
@@ -108,8 +108,8 @@ def _business_fallbacks(business):
             "scoreMax": None,
             "year": query.year_from if query.year_from == query.year_to else None,
             "weekday": None,
-            # Exclusions are enforced by the typed Agent query path; they are
-            # not a Business allowlist and must never be sent as subjectIds.
+            # 排除项由类型化 Agent 查询路径实现；它们不是业务白名单，
+            # 绝不能作为 subjectIds 发送。
             "subjectIds": None,
             "limit": _MAX_CANDIDATES,
         }
@@ -127,8 +127,8 @@ def _build_agent_dependencies(model_configs, prompts, import_service) -> AgentDe
     if settings.rag_enabled:
         rag_redis = redis.Redis.from_url(settings.effective_rag_redis_url)
         index = RedisSubjectIndex(rag_redis)
-        # Name resolution is authoritative Business work. The old Redis
-        # text-index adapter is intentionally not wired.
+        # 名称解析属于业务侧权威工作。旧版 Redis
+        # 文本索引适配器刻意不接入。
         entity_name_lookup = None
         embeddings = DashScopeEmbeddingClient(settings.dashscope_api_key)
         preference_provider = RedisUserPreferenceProvider(

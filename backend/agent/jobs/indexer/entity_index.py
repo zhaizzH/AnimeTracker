@@ -1,4 +1,4 @@
-"""Versioned Redis 8 Vector Set writer for all searchable entities."""
+"""面向所有可检索实体的带版本 Redis 8 Vector Set 写入器。"""
 
 from __future__ import annotations
 
@@ -24,9 +24,9 @@ class EntityIndexDocument:
     summary: str = ""
     subject_id: int | None = None
     source_active: bool = True
-    # Subject filters are evaluated inside the Vector Set.  Keep the same
-    # public metadata on generic Subject jobs as on the legacy Subject writer;
-    # otherwise ``.type == 2``/``.nsfw == false`` would reject every new row.
+    # Subject 过滤在 Vector Set 内部求值。通用 Subject 任务必须
+    # 携带与旧 Subject 写入器相同的公开元数据；
+    # 否则 ``.type == 2``/``.nsfw == false`` 会拒绝每一行新数据。
     type: int = 2
     nsfw: bool = False
     year: int | None = None
@@ -38,12 +38,12 @@ class EntityIndexDocument:
 
 
 class RedisEntityIndex:
-    """Write/delete SUBJECT, EPISODE, PERSON and CHARACTER Vector Set members."""
+    """写入/删除 SUBJECT、EPISODE、PERSON、CHARACTER 的 Vector Set 成员。"""
 
     def __init__(self, redis_client: Any, *, key_prefix: str = ENTITY_KEY_PREFIX, index_prefix: str = "idx:rag:entity:") -> None:
         self._redis = redis_client
         self._vectors = RedisVectorSet(redis_client, prefix=key_prefix)
-        # Kept for diagnostics/backwards-compatible constructor callers.
+        # 为诊断与向后兼容的构造调用方保留。
         self._index_prefix = index_prefix
 
     def index_name(self, index_version: str) -> str:

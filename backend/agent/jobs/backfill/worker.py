@@ -106,9 +106,8 @@ class BackfillWorker:
 
         # 规范化并写入详情
         infobox = raw.get("infobox") or []
-        # PersonDetail exposes career as a first-class field.  Keep that payload
-        # when present; infobox parsing remains a compatibility fallback for
-        # older snapshots.
+        # PersonDetail 把 career 作为一等字段暴露。存在该载荷时予以保留；
+        # infobox 解析仅作为旧快照的兼容兜底。
         career = raw.get("career") or _extract_career(infobox)
         summary = raw.get("summary") or ""
         images = raw.get("images") or {}
@@ -136,9 +135,8 @@ class BackfillWorker:
         aliases = _extract_aliases(infobox)
         self._replace_person_aliases(job.entity_id, aliases)
 
-        # Persist a replay-safe checkpoint before completing the job.  Detail
-        # endpoints are single responses today, but keeping the source/hash
-        # envelope makes pause/resume and future paginated payloads idempotent.
+        # 完成任务前持久化可重放的检查点。详情接口目前都是单次响应，
+        # 但保留 source/hash 信封能让暂停/恢复以及未来的分页载荷保持幂等。
         self._repo.save_checkpoint(
             job.id,
             {"sourceId": job.source_id, "sourceHash": source_hash, "entityKind": "PERSON"},

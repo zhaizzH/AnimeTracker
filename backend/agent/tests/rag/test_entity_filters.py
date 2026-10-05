@@ -264,9 +264,9 @@ def test_entity_allowlist_is_not_limited_by_redis_top_fifty():
 
 
 def test_relation_allowlist_fallback_skips_empty_filtered_batch():
-    # The resolved relation subject is outside Redis's bounded top-50 window.
-    # Business adapters may reject an empty batch, so the filtered expression
-    # must be skipped and the exact relation allowlist queried instead.
+    # 解析出的关系 subject 位于 Redis 有界 top-50 窗口之外。
+    # 业务适配器可能拒绝空批次，因此必须跳过过滤后的表达式，
+    # 改为查询精确的关系白名单。
     index = _Index(rows=[{"subject_id": subject_id} for subject_id in range(1, 51)])
     resolver = _resolver({"RELATION_SUBJECT": [100]})
     authority_calls: list[list[int]] = []
@@ -294,9 +294,8 @@ def test_relation_allowlist_fallback_skips_empty_filtered_batch():
 
 
 def test_entity_allowlist_does_not_replace_textual_relevance():
-    # Subject 2 is in the authoritative relation expansion but absent from
-    # the lexical/vector result.  A person + keyword query must not broaden
-    # into every work for that person.
+    # Subject 2 在权威关系展开中，但不在词法/向量结果里。
+    # 人物 + 关键词查询不得扩大到该人物的所有作品。
     index = _Index(rows=[{"subject_id": 1}])
     resolver = _resolver({"PERSON": [1, 2]})
     result = _service(index, resolver).retrieve(

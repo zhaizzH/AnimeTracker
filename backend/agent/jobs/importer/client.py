@@ -38,7 +38,7 @@ class BangumiClient:
                 resp = self._session.request(method, url, timeout=timeout, **kwargs)
                 if resp.status_code == 429:
                     retry_after = int(resp.headers.get("Retry-After", str(2 ** attempt)))
-                    logger.warning("429 rate limited, waiting %ds (attempt %d)", retry_after, attempt + 1)
+                    logger.warning("429 触发限流，等待 %ds（第 %d 次尝试）", retry_after, attempt + 1)
                     time.sleep(retry_after)
                     continue
                 resp.raise_for_status()
@@ -47,14 +47,14 @@ class BangumiClient:
                     time.sleep(self._request_delay)
                 return result
             except requests.exceptions.Timeout:
-                logger.warning("Timeout on %s (attempt %d)", path, attempt + 1)
+                logger.warning("请求 %s 超时（第 %d 次尝试）", path, attempt + 1)
                 if attempt < 2:
                     time.sleep(2 ** attempt)
                     continue
                 raise
             except requests.exceptions.HTTPError as e:
                 if e.response is not None and e.response.status_code in (502, 503, 504):
-                    logger.warning("%d on %s (attempt %d)", e.response.status_code, path, attempt + 1)
+                    logger.warning("%s 返回 %d（第 %d 次尝试）", path, e.response.status_code, attempt + 1)
                     time.sleep(2 ** attempt)
                     continue
                 # 404 对 NSFW 条目是正常情况，不重试
@@ -79,26 +79,26 @@ class BangumiClient:
     def get_all_episodes(self, subject_id: int, limit: int = 200) -> list[dict]:
         """获取条目的全部剧集，按响应实际条数推进分页偏移量。"""
         if limit < 1:
-            raise ValueError("episode page limit must be positive")
+            raise ValueError("剧集分页 limit 必须为正数")
         offset = 0
         episodes: list[dict] = []
         while True:
             page = self.get_episodes(subject_id, limit=limit, offset=offset)
             if not isinstance(page, dict):
-                raise ValueError("episodes response must be an object")
+                raise ValueError("episodes 响应必须是对象")
             items = page.get("data") or []
             if not isinstance(items, list):
-                raise ValueError("episodes.data response must be a list")
+                raise ValueError("episodes.data 响应必须是列表")
             total = page.get("total")
             if not isinstance(total, int) or total < 0:
-                raise ValueError("episodes response has no valid total")
+                raise ValueError("episodes 响应缺少有效的 total")
             if offset > total or offset + len(items) > total:
-                raise ValueError("episodes response count is inconsistent")
+                raise ValueError("episodes 响应计数不一致")
             episodes.extend(items)
             offset += len(items)
             if not items:
                 if offset < total:
-                    raise ValueError("episodes response ended before total")
+                    raise ValueError("episodes 响应在达到 total 前结束")
                 return episodes
             if offset >= total:
                 return episodes

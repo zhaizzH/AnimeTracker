@@ -1,1 +1,1 @@
-"""Shared package marker."""
+"""共享包标记。"""

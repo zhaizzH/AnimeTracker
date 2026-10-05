@@ -1,4 +1,4 @@
-"""Tests for adapters.business_http."""
+"""adapters.business_http 的测试。"""
 from __future__ import annotations
 
 from unittest.mock import patch, MagicMock

@@ -5,13 +5,8 @@ from langgraph.prebuilt import InjectedState
 
 from app.agent.middleware import tool_call_status
 from app.agent.ports import BusinessGateway
+from app.agent.client.actions.collection_state import require_user as _require_user
 from app.chat.user import UserInfo
-
-
-def _require_user(user: UserInfo | None) -> dict | None:
-    if user is None:
-        return {"error": True, "message": "用户上下文不可用"}
-    return None
 
 
 # 收藏类型映射（与后端 /api/client/collections 返回的 type 数字一致）

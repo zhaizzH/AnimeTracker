@@ -3,34 +3,25 @@ from langchain_core.tools import tool
 from app.agent.middleware import tool_call_status
 from app.agent.ports import BusinessGateway
 
-
-def build_subject_catalog_tools(business: BusinessGateway) -> tuple:
-    @tool
-    @tool_call_status(display_name="搜索番剧")
-    def search_subjects(query: str, page: int = 1, size: int = 20) -> list | dict:
-        """按关键词搜索番剧。query: 搜索关键词"""
-        data = business.request("GET", "/api/client/subjects/search", params={"q": query, "page": page, "size": size})
-        return data.get("content") if isinstance(data, dict) else data
-
+def build_subject_detail_tool(business: BusinessGateway):
     @tool
     @tool_call_status(display_name="查看番剧详情")
     def get_subject_detail(subject_id: int) -> dict:
         """获取番剧详细信息。subject_id: 番剧 ID"""
         return business.request("GET", f"/api/client/subjects/{subject_id}")
 
+    return get_subject_detail
+
+def build_episodes_tool(business: BusinessGateway):
     @tool
     @tool_call_status(display_name="查看剧集列表")
     def get_episodes(subject_id: int) -> list:
         """获取番剧的剧集列表。subject_id: 番剧 ID"""
         return business.request("GET", f"/api/client/subjects/{subject_id}/episodes")
 
-    @tool
-    @tool_call_status(display_name="按标签筛选番剧")
-    def get_subjects_by_tag(tag: str, page: int = 1, size: int = 20) -> list:
-        """按标签获取番剧。tag: 标签名称"""
-        data = business.request("GET", f"/api/client/tags/{tag}/subjects", params={"page": page, "size": size})
-        return data.get("content") if isinstance(data, dict) else data
+    return get_episodes
 
+def build_schedule_tool(business: BusinessGateway):
     @tool
     @tool_call_status(display_name="查询每周追番日程")
     def get_schedule(weekday: int = -1, year: int = 0, quarter: str = "") -> dict:
@@ -41,6 +32,23 @@ def build_subject_catalog_tools(business: BusinessGateway) -> tuple:
         if quarter:
             params["quarter"] = quarter
         return business.request("GET", "/api/client/subjects/schedule", params=params)
+
+    return get_schedule
+
+def build_subject_catalog_tools(business: BusinessGateway) -> tuple:
+    @tool
+    @tool_call_status(display_name="搜索番剧")
+    def search_subjects(query: str, page: int = 1, size: int = 20) -> list | dict:
+        """按关键词搜索番剧。query: 搜索关键词"""
+        data = business.request("GET", "/api/client/subjects/search", params={"q": query, "page": page, "size": size})
+        return data.get("content") if isinstance(data, dict) else data
+
+    @tool
+    @tool_call_status(display_name="按标签筛选番剧")
+    def get_subjects_by_tag(tag: str, page: int = 1, size: int = 20) -> list:
+        """按标签获取番剧。tag: 标签名称"""
+        data = business.request("GET", f"/api/client/tags/{tag}/subjects", params={"page": page, "size": size})
+        return data.get("content") if isinstance(data, dict) else data
 
     @tool
     @tool_call_status(display_name="查看季度新番")
@@ -86,10 +94,10 @@ def build_subject_catalog_tools(business: BusinessGateway) -> tuple:
 
     return (
         search_subjects,
-        get_subject_detail,
-        get_episodes,
+        build_subject_detail_tool(business),
+        build_episodes_tool(business),
         get_subjects_by_tag,
-        get_schedule,
+        build_schedule_tool(business),
         get_season_subjects,
         get_popular_subjects,
         get_top_rated,

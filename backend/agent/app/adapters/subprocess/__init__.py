@@ -1,1 +1,1 @@
-"""Subprocess-backed job launchers."""
+"""基于子进程的任务启动器。"""

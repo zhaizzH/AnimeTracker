@@ -105,7 +105,7 @@ def _candidate_after(now: datetime, hour: int, predicate) -> datetime:
         candidate = datetime(date.year, date.month, date.day, hour, tzinfo=SHANGHAI)
         if candidate > now and predicate(candidate):
             return candidate
-    raise RuntimeError("cannot determine next scheduled import")
+    raise RuntimeError("无法确定下一次计划导入时间")
 
 
 def next_run_at(now: datetime) -> datetime:
@@ -196,7 +196,7 @@ class JobScheduler:
         self._index_version = index_version or os.getenv("RAG_INDEX_VERSION", "")
         self._run_job = run_job or self._start_job
         self._executed_minutes: set[tuple[datetime, str, str]] = set()
-        self._running: dict[str, tuple[ScheduledJob, Any]] = {}  # key = job_type
+        self._running: dict[str, tuple[ScheduledJob, Any]] = {}  # key = job_type（键为任务类型）
 
     def run_due(self, now: datetime) -> list[ScheduledJob]:
         """轮询完成状态，启动到期任务。"""

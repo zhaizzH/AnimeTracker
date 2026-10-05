@@ -28,7 +28,7 @@ def _action(*, user_id=2, expires_in=600, type_="SET_COLLECTION_TYPE"):
 
 
 # --------------------------------------------------------------------------- #
-# require_confirmed_write
+# require_confirmed_write（要求已确认写入）
 # --------------------------------------------------------------------------- #
 
 def test_guard_passes_when_all_conditions_met() -> None:

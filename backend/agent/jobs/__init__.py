@@ -1,1 +1,1 @@
-"""Offline job entrypoints for importer, indexer, and scheduler."""
+"""导入、索引与调度等离线任务入口。"""

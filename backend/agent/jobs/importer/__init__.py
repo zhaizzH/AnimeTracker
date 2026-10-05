@@ -1,1 +1,1 @@
-"""Bangumi importer job package."""
+"""Bangumi 导入任务包。"""

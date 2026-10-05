@@ -1,11 +1,10 @@
-"""Run a read-only retrieval evaluation against an unpublished index version.
+"""对未发布的索引版本执行只读检索评估。
 
-The public Business lexical endpoint intentionally reads the MySQL ACTIVE
-release and therefore cannot evaluate a shadow projection while no release is
-published.  This module is an internal gate adapter: it reads only the
-requested ``search_document.index_version`` rows, queries the matching Redis
-Vector Set, and still uses Business batch/evidence APIs for the authority
-boundary.  It never inserts or updates ``search_index_release``.
+公开的业务侧词法接口刻意读取 MySQL 的 ACTIVE 发布，
+因此在未发布任何版本时无法评估影子投影。
+本模块是内部门禁适配器：只读取指定的 ``search_document.index_version`` 行，
+查询匹配的 Redis Vector Set，并在权威边界上仍使用业务侧批量/证据 API。
+它绝不插入或更新 ``search_index_release``。
 """
 
 from __future__ import annotations
@@ -39,7 +38,7 @@ EvalStatus = Literal["SHADOW_ONLY", "RELEASE_CANDIDATE"]
 
 
 class ShadowEvalReport(BaseModel):
-    """Gate-compatible evaluation report for shadow or release candidates."""
+    """面向影子或发布候选的、与门禁兼容的评估报告。"""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -91,14 +90,14 @@ class ShadowEvalReport(BaseModel):
 
 @dataclass(frozen=True)
 class ShadowLexicalSearch:
-    """Read-only MySQL FULLTEXT adapter for one candidate version."""
+    """面向单个候选版本的只读 MySQL FULLTEXT 适配器。"""
 
     engine: Engine
     index_version: str
     limit: int = 50
 
     def __call__(self, query: RetrievalQuery, *, token: str | None = None) -> dict[str, Any]:
-        del token  # The internal SQL path does not accept user credentials.
+        del token  # 内部 SQL 路径不接受用户凭据。
         sql, params = build_shadow_sql(query, index_version=self.index_version, limit=self.limit)
         with self.engine.connect() as connection:
             rows = connection.execute(text(sql), params).mappings().all()
@@ -119,7 +118,7 @@ class ShadowLexicalSearch:
 
 
 def build_shadow_sql(query: RetrievalQuery, *, index_version: str, limit: int = 50) -> tuple[str, dict[str, Any]]:
-    """Build parameterized shadow SQL; no query text becomes SQL syntax."""
+    """构造参数化的影子 SQL；任何查询文本都不会成为 SQL 语法。"""
 
     _validate_version(index_version)
     if not 1 <= limit <= 50:
@@ -193,8 +192,7 @@ def build_shadow_sql(query: RetrievalQuery, *, index_version: str, limit: int = 
     if terms:
         order_by = "lexical_score DESC, s.score DESC, s.rating_total DESC, s.id ASC"
     else:
-        # Keep filter-only cases identical to the golden snapshot generator's
-        # deterministic subject ordering.
+        # 让纯过滤用例与黄金快照生成器的确定性 subject 排序保持一致。
         order_by = "s.score DESC, s.rating_total DESC, s.id ASC"
     sql = (
         "SELECT d.entity_id AS subject_id, s.name, s.name_cn, "
@@ -218,11 +216,10 @@ def run_shadow_eval(
     token: str | None = None,
     status: EvalStatus = "SHADOW_ONLY",
 ) -> ShadowEvalReport:
-    """Evaluate exactly 120 cases without requiring an ACTIVE release.
+    """在不需要 ACTIVE 发布的情况下精确评估 120 个用例。
 
-    ``RELEASE_CANDIDATE`` is deliberately available only for a clean 120/120
-    result.  The caller still has to produce the remaining gate reports before
-    activating the MySQL release.
+    ``RELEASE_CANDIDATE`` 刻意只在 120/120 全部通过时可用。
+    调用方在激活 MySQL 发布前仍需产出其余门禁报告。
     """
 
     _validate_version(index_version)
@@ -377,11 +374,11 @@ def _single_subject_profile(connection: Any, index_version: str) -> str:
 
 
 def _required_case_passed(case: GoldenCase, retrieved_ids: list[int]) -> bool:
-    """Evaluate the hard requirement without confusing it with ranking gold.
+    """评估硬性要求，且不与排序黄金数据混淆。
 
-    ``expected_subject_ids`` is ordered relevance data for Recall/MRR/nDCG;
-    ``must_contain_all`` is the explicit pass/fail set.  Cases without an
-    expected result are strict no-result checks.
+    ``expected_subject_ids`` 是用于 Recall/MRR/nDCG 的有序相关性数据；
+    ``must_contain_all`` 是显式的通过/失败集合。
+    没有预期结果的用例属于严格的无结果校验。
     """
     retrieved = set(retrieved_ids)
     required = set(case.expectation.must_contain_all)

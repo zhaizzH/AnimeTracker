@@ -1,8 +1,8 @@
-"""API-layer test scaffolding.
+"""API 层测试脚手架。
 
-The app under test mounts only the client chat router with ``include_health``
-and fills ``app.state`` with stand-ins.  The real lifespan is never started: it
-would connect to Redis/MySQL and build the LangGraph.
+被测应用只挂载带 ``include_health`` 的客户端聊天路由，
+并用替身填充 ``app.state``。真实 lifespan 永不启动：
+它会连接 Redis/MySQL 并构建 LangGraph。
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from app.api.chat import create_chat_router
 
 
 class NoopStore:
-    """Store stand-in whose PING succeeds."""
+    """PING 成功的存储替身。"""
 
     def __init__(self) -> None:
         self.ping_count = 0
@@ -27,7 +27,7 @@ class NoopStore:
 
 
 class NoopBusiness:
-    """Business gateway stand-in answering liveness successfully."""
+    """成功响应存活探测的业务网关替身。"""
 
     def __init__(self) -> None:
         self.calls: list[tuple] = []
@@ -38,11 +38,11 @@ class NoopBusiness:
 
 
 def fake_settings(*, rag_enabled: bool = False, llm_configured: bool = True) -> SimpleNamespace:
-    """Settings stand-in for ``resolve_llm_provider``.
+    """``resolve_llm_provider`` 的 settings 替身。
 
-    It must expose every attribute that function reads, or the LLM check would
-    fail for the wrong reason (AttributeError instead of a missing key).
-    ``llm_configured=False`` makes the resolution raise.
+    它必须暴露该函数读取的每个属性，否则 LLM 检查会因错误的原因失败
+    （抛 AttributeError 而非缺少 key）。
+    ``llm_configured=False`` 会让解析抛异常。
     """
     return SimpleNamespace(
         rag_enabled=rag_enabled,
@@ -64,10 +64,10 @@ def _auth_dep():
 
 @pytest.fixture
 def make_client():
-    """Build a TestClient over a hand-assembled ``app.state``.
+    """在手工组装的 ``app.state`` 上构建 TestClient。
 
-    ``with_state=False`` leaves ``app.state`` empty to exercise the fail-closed
-    path (handler falls back to the process settings singleton for the LLM check).
+    ``with_state=False`` 会让 ``app.state`` 保持为空，以验证失败即闭合路径
+    （处理器回退到进程级 settings 单例来执行 LLM 检查）。
     """
 
     def build(*, store=None, business=None, rag_redis=None, settings_obj=None, with_state=True):

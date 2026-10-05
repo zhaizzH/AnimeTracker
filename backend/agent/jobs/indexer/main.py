@@ -595,7 +595,7 @@ def _document(subject: IndexSubject, job: IndexJob, profile: SubjectProfile, vec
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="RAG indexer")
+    parser = argparse.ArgumentParser(description="RAG 索引器")
     parser.add_argument("--index-version", required=True)
     parser.add_argument("--limit", type=int, default=10)
     parser.add_argument(
@@ -698,14 +698,14 @@ def _combine(batches: list[IndexBatchResult]) -> IndexBatchResult:
 
 
 def _embedding_contract() -> dict[str, Any]:
-    """Return the explicit release-level Subject embedding contract."""
+    """返回显式的发布级 Subject 向量契约。"""
     return {
         "provider": "dashscope",
         "model": os.getenv("RAG_EMBEDDING_MODEL", "text-embedding-v4"),
         "dimensions": int(os.getenv("RAG_EMBEDDING_DIM", "1024")),
-        # Business lexical JOINs release.profile_version to the SUBJECT
-        # projection.  Entity-specific profiles remain projection metadata;
-        # the release-level contract must be configured explicitly.
+        # 业务侧词法检索会把 release.profile_version JOIN 到 SUBJECT 投影。
+        # 实体专属档案仍属于投影元数据；
+        # 发布级契约必须显式配置。
         "profileVersion": os.getenv("RAG_PROFILE_VERSION", "subject-profile-v1"),
     }
 

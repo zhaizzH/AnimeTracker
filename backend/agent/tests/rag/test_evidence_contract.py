@@ -60,7 +60,7 @@ class TestEvidenceCandidateOutput:
 
     def test_compact_has_air_status(self):
         compact = RetrieveSubjectsUseCase._compact(_evidence_candidate())
-        # A first-air date alone cannot prove that a series has finished.
+        # 仅凭首播日期无法证明番剧已完结。
         assert compact["airStatus"] == "UNKNOWN"
         assert compact["airDate"] == "2024-01-01"
 
@@ -180,9 +180,8 @@ class TestEvidenceEnrichment:
                 "score": 8.5,
                 "ratingTotal": 1500,
                 "airDate": "2024-01-01",
-                # The authority SQL computes airStatus and it is what this
-                # filter must consume; the conservative date-based fallback
-                # deliberately refuses to infer FINISHED.
+                # 权威 SQL 会计算 airStatus，本过滤器必须消费该字段；
+                # 基于日期的保守兜底刻意拒绝推断为 FINISHED。
                 "airStatus": "FINISHED",
             },
             {
@@ -199,8 +198,8 @@ class TestEvidenceEnrichment:
         ]
 
         def mock_authority(ids, token=None, exclude_collected=False):
-            # This mirrors /subjects/batch: no metaTags, score, ratingTotal,
-            # or airDate fields are required for the authority boundary.
+            # 这与 /subjects/batch 一致：权威边界不要求
+            # metaTags、score、ratingTotal 或 airDate 字段。
             return [
                 {"id": subject_id, "type": 2, "nsfw": False, "active": True}
                 for subject_id in ids
@@ -308,9 +307,9 @@ class TestEvidenceEnrichment:
                 {"id": 2, "name": "Two", "type": 2, "nsfw": False, "active": True},
             ]
 
-        # Two self-contradictory rows for the same legal subjectId.  The old
-        # dict assignment silently kept the last one and the key-set
-        # completeness check still passed, so the wrong row became authority.
+        # 同一合法 subjectId 出现两行自相矛盾的数据。旧代码的字典赋值
+        # 会静默保留最后一行，而键集合完整性校验仍会通过，
+        # 于是错误的行成了权威数据。
         def duplicate_evidence(ids, token=None):
             return [
                 {"subjectId": 1, "type": 2, "nsfw": False, "active": True, "summary": "first row"},
@@ -330,10 +329,9 @@ class TestEvidenceEnrichment:
         assert result.items == []
         assert result.reason == "evidence_unavailable"
 
-        # ``result.items`` is empty, so asserting on it would be vacuous.  Call
-        # the fail-closed boundary directly to prove that no candidate leaves it
-        # carrying either contradictory row, and that the input candidates are
-        # not mutated in place.
+        # ``result.items`` 为空，因此对其断言没有意义。直接调用
+        # 失败即闭合边界，证明没有候选会带着任一矛盾行离开，
+        # 且输入候选不会被原地修改。
         candidates = [
             RetrievalCandidate(subject_id=1, retrieval_score=1.0, retrieval_reason="lexical"),
             RetrievalCandidate(subject_id=2, retrieval_score=0.5, retrieval_reason="lexical"),
@@ -443,7 +441,7 @@ class TestMapEvidence:
         assert mapped["summaryExcerpt"] == ""
 
 
-# --- Test helpers ---
+# --- 测试辅助 ---
 
 
 @dataclass(frozen=True)

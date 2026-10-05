@@ -1,8 +1,7 @@
-"""Business-owned entity name resolution contract.
+"""由业务侧负责的实体名称解析契约。
 
-Redis Vector Set has no lexical name index. Entity names therefore resolve via
-the typed Business endpoint; this adapter is a small boundary that prevents
-callers from reintroducing storage-specific text expressions into the Agent process.
+Redis Vector Set 没有词法名称索引，因此实体名称通过类型化业务接口解析；
+本适配器是一层薄边界，防止调用方把特定存储的文本表达式重新引入 Agent 进程。
 """
 
 from __future__ import annotations
@@ -21,7 +20,7 @@ class EntityNameMatch:
 
 
 class RedisEntityNameLookup:
-    """Compatibility name for the old adapter; delegates to a typed resolver."""
+    """旧适配器的兼容名称；委托给类型化解析器。"""
 
     def __init__(self, redis_client: Any = None, *, index_version: str = "", resolver: Callable[..., Any] | None = None, **_kwargs: Any) -> None:
         self._resolver = resolver
@@ -36,7 +35,7 @@ class RedisEntityNameLookup:
             raise RuntimeError("实体名称解析必须使用 Business typed resolver；Vector Set 不提供全文名称查询")
         response = self._resolver(entity_name.strip(), entity_kind=entity_kind, limit=min(limit, 50))
         if not isinstance(response, (list, tuple)):
-            raise RuntimeError("Business entity resolver response invalid")
+            raise RuntimeError("Business 实体解析器响应无效")
         result: list[EntityNameMatch] = []
         for row in response:
             if isinstance(row, EntityNameMatch):
@@ -44,8 +43,8 @@ class RedisEntityNameLookup:
             elif isinstance(row, dict):
                 match = EntityNameMatch(str(row.get("entity_kind", row.get("entityType"))).upper(), int(row.get("entity_id", row.get("entityId"))))
             else:
-                raise RuntimeError("Business entity resolver row invalid")
+                raise RuntimeError("Business 实体解析器数据行无效")
             if match.entity_id < 1:
-                raise RuntimeError("Business entity resolver entity id invalid")
+                raise RuntimeError("Business 实体解析器实体 ID 无效")
             result.append(match)
         return result

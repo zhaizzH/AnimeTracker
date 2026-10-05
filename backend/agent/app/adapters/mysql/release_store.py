@@ -1,4 +1,4 @@
-"""MySQL active-release pointer for RAG shadow versions."""
+"""RAG 影子版本的 MySQL 活动发布指针。"""
 
 from __future__ import annotations
 
@@ -10,10 +10,9 @@ from sqlalchemy import text
 
 
 class MySqlReleaseStore:
-    """Small transactional adapter used by the gate and shadow manager.
+    """门禁与影子管理器使用的小型事务适配器。
 
-    Redis remains data-plane storage.  This adapter is the only component
-    allowed to change the published index version.
+    Redis 仍是数据面存储。本适配器是唯一允许修改已发布索引版本的组件。
     """
 
     def __init__(self, session_factory: Callable[[], Any]):

@@ -69,7 +69,7 @@ def _tools(business: _Business):
     return preview, execute, cancel
 
 # --------------------------------------------------------------------------- #
-# preview_weekly_collection_progress
+# preview_weekly_collection_progress（预览每周追番进度）
 # --------------------------------------------------------------------------- #
 
 def test_preview_emits_pending_action_set_when_preview_id_present(collector) -> None:
@@ -267,7 +267,7 @@ def test_execute_emits_nothing_on_unknown_state(collector) -> None:
     assert collector() is None
 
 # --------------------------------------------------------------------------- #
-# cancel_weekly_collection_progress
+# cancel_weekly_collection_progress（取消每周追番进度）
 # --------------------------------------------------------------------------- #
 
 def test_cancel_clears_pending_and_never_touches_business(collector) -> None:

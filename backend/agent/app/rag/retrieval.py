@@ -150,10 +150,9 @@ class RagRetrievalService:
                 vector = None
         effective_evidence = evidence_lookup or self._evidence_lookup
         effective_lexical = lexical_search or self._lexical_search
-        # An entity relation is an authoritative allowlist.  When textual
-        # intent is present, preserve the lexical/vector result whenever it
-        # has candidates; only use the complete allowlist as a bounded-index
-        # fallback when that result is empty.
+        # 实体关系是权威白名单。存在文本意图时，只要词法/向量结果
+        # 有候选就保留；仅当该结果为空时，才用完整白名单
+        # 作为有界索引的兜底。
         has_textual_intent = bool(query.semantic_query or query.keywords)
         entity_candidates_exhausted = False
         versioned_semantic = getattr(self._index, "semantic_search_for_version", None)
@@ -161,14 +160,14 @@ class RagRetrievalService:
             lexical_payload: Any = None
             index_version: str | None = None
             if callable(versioned_semantic):
-                # The Business lexical contract is the only source of the
-                # release version.  A versionless response must fail closed.
+                # 业务侧词法契约是发布版本的唯一来源。
+                # 缺少版本号的响应必须失败即闭合。
                 if effective_lexical is None:
-                    raise RuntimeError("MySQL lexical search adapter unavailable")
+                    raise RuntimeError("MySQL 词法检索适配器不可用")
                 lexical_payload = effective_lexical(query, token=token)
                 index_version = _index_version(lexical_payload)
                 if not index_version:
-                    raise RuntimeError("Business lexical response missing indexVersion")
+                    raise RuntimeError("Business 词法响应缺少 indexVersion")
                 lexical = self._as_candidates(lexical_payload, "lexical")
             for expression in self._expressions(query):
                 if not callable(versioned_semantic) and (self._lexical_terms(query) or vector is None):
@@ -189,21 +188,19 @@ class RagRetrievalService:
                 if excluded:
                     candidates = [candidate for candidate in candidates if candidate.subject_id not in excluded]
                 if not candidates:
-                    # An entity filter can remove every item from the bounded
-                    # index window.  Do not call Business with an empty batch:
-                    # some adapters reject it, and the allowlist fallback
-                    # below must get a chance to query the resolved IDs.
+                    # 实体过滤可能清空有界索引窗口中的全部条目。
+                    # 不要用空批次调用业务侧：部分适配器会拒绝，
+                    # 且下方白名单兜底需要机会去查询已解析的 ID。
                     entity_candidates_exhausted = entity_subject_ids is not None
                     continue
                 result = self._authoritative_result(
                     candidates, query, token, preference, effective_evidence,
                 )
                 if entity_subject_ids and result.available and (not has_textual_intent or not result.items):
-                    # The lexical/vector stores deliberately return a bounded
-                    # top-N window.  An entity relation expansion is an
-                    # authoritative allowlist, so candidates outside that
-                    # window must still be checked in bounded Business
-                    # batches before declaring the result complete.
+                    # 词法/向量存储刻意只返回有界的 top-N 窗口。
+                    # 实体关系展开是权威白名单，因此该窗口之外的候选
+                    # 仍须在有界的业务批次中校验后，
+                    # 才能判定结果完整。
                     allowlist_result = self._authoritative_allowlist_result(
                         entity_subject_ids,
                         query,
@@ -227,10 +224,10 @@ class RagRetrievalService:
             redis_failed = True
             lexical, semantic = [], []
 
-        # A vector/text index returns only its top-N window.  An allowlisted entity can
-        # legitimately rank below that window, so perform an exact authoritative
-        # batch lookup before declaring no results; this keeps entity filters
-        # from becoming an accidental recall limit.
+        # 向量/文本索引只返回其 top-N 窗口。白名单中的实体可能
+        # 合理地排在该窗口之外，因此在判定无结果前要
+        # 做一次精确的权威批量查询；这能避免实体过滤
+        # 变成意外的召回上限。
         if entity_subject_ids and not redis_failed and (
             not has_textual_intent or not lexical or not semantic or entity_candidates_exhausted
         ):
@@ -301,12 +298,11 @@ class RagRetrievalService:
         resolve_lookup: EntityResolveLookup | None,
         name_matches: list[tuple[str, int]] | None = None,
     ) -> tuple[list[int] | None, str | None]:
-        """Resolve typed entity IDs through Business before touching the index.
+        """在触碰索引前先通过业务侧解析类型化实体 ID。
 
-        The resolver response is reduced to safe Subject IDs only.  Entity IDs
-        never become Redis expressions or SQL fragments in this service.
-        Multiple entity filters are an intersection, preserving Business's
-        deterministic order for the first filter.
+        解析响应只保留安全的 Subject ID。在本服务中，实体 ID
+        绝不会变成 Redis 表达式或 SQL 片段。
+        多个实体过滤条件是取交集，并保留业务侧对第一个过滤器的确定性顺序。
         """
         requested = [
             ("PERSON", query.person_ids),
@@ -342,9 +338,8 @@ class RagRetrievalService:
                 allowed = [subject_id for subject_id in allowed if subject_id in resolved_set]
             if not allowed:
                 return [], None
-        # A name without an explicit kind may match both a person and a
-        # character.  Those alternatives are OR within the name constraint;
-        # only different query fields are ANDed below.
+        # 未指定类型的名称可能同时匹配人物和角色。
+        # 这些候选在名称约束内是 OR 关系；下方只对不同查询字段做 AND。
         if any(by_kind.values()):
             name_allowed: list[int] = []
             name_seen: set[int] = set()
@@ -379,7 +374,7 @@ class RagRetrievalService:
         *,
         lookup: EntityNameLookup | None,
     ) -> tuple[list[tuple[str, int]], str | None]:
-        """Resolve a user-facing name to typed local IDs through the shadow index."""
+        """通过影子索引把面向用户的名称解析为类型化本地 ID。"""
         if not query.entity_name:
             return [], None
         if lookup is None:
@@ -423,10 +418,10 @@ class RagRetrievalService:
 
     @staticmethod
     def _safe_resolved_subject_ids(response: Any) -> tuple[list[int], bool]:
-        """Extract only active, non-NSFW animation Subjects from /resolve."""
+        """仅从 /resolve 提取活动的、非 NSFW 的动画 Subject。"""
         if isinstance(response, list):
-            # A direct list is the HttpBusinessGateway's normalized success
-            # response.  Redis protocol arrays are not valid here.
+            # 直接列表是 HttpBusinessGateway 归一化后的成功响应。
+            # Redis 协议数组在此无效。
             if response and isinstance(response[0], int):
                 return [], False
             rows = response
@@ -464,9 +459,9 @@ class RagRetrievalService:
         try:
             if int(item.get("type") or 0) != 2 or item.get("nsfw") is not False:
                 return False
-            # Business exposes import_status as the derived `active` field;
-            # absence is fail-closed because an entity filter must never widen
-            # the candidate set on an incomplete authority response.
+            # 业务侧把 import_status 暴露为派生字段 `active`；
+            # 缺失时失败即闭合，因为实体过滤绝不能因权威响应不完整
+            # 而扩大候选集。
             if item.get("active") is not True:
                 return False
             if "importStatus" in item and int(item.get("importStatus") or 0) != 1:
@@ -570,10 +565,9 @@ class RagRetrievalService:
                 continue
             if subject_id > 0:
                 details_by_id[subject_id] = item
-        # The batch Subject endpoint intentionally returns only the basic
-        # authority fields.  Validate that boundary before Evidence, but do
-        # not apply structured filters here: fields such as metaTags are only
-        # available from the Evidence response.
+        # 批量 Subject 接口刻意只返回基础权威字段。
+        # 在 Evidence 之前校验该边界，但此处不要应用结构化过滤：
+        # metaTags 等字段只有 Evidence 响应才提供。
         safe = [
             replace(candidate, details=details_by_id[candidate.subject_id])
             for candidate in candidates
@@ -583,12 +577,12 @@ class RagRetrievalService:
         if safe and evidence_lookup is not None:
             safe, evidence_ok = self._enrich_evidence(safe, token, evidence_lookup)
             if not evidence_ok:
-                # Evidence is the final authority boundary before data enters
-                # the Agent context.  A partial/failed response must never
-                # silently fall back to Redis/Subject details.
+                # Evidence 是数据进入 Agent 上下文前的最终权威边界。
+                # 部分失败或整体失败的响应绝不能静默回退到
+                # Redis/Subject 详情。
                 return RetrievalResult(available=False, items=[], reason="evidence_unavailable")
-            # Apply structured filters only after Evidence has supplied the
-            # complete fields (metaTags, score, ratingTotal, airDate, etc.).
+            # 只有在 Evidence 提供了完整字段（metaTags、score、ratingTotal、airDate 等）
+            # 之后才应用结构化过滤。
             safe = [
                 candidate
                 for candidate in safe
@@ -596,9 +590,8 @@ class RagRetrievalService:
                 and self._matches_query_filters(candidate.evidence, query)
             ]
         elif safe:
-            # Preserve the existing Business fallback behaviour when no
-            # Evidence adapter is configured; there is no evidence payload
-            # from which to evaluate the richer fields in that mode.
+            # 未配置 Evidence 适配器时保留既有的业务侧回退行为；
+            # 该模式下没有可用于评估更丰富字段的证据载荷。
             safe = [
                 candidate
                 for candidate in safe
@@ -677,10 +670,9 @@ class RagRetrievalService:
             if subject_id <= 0:
                 return [], False
             if subject_id in by_id:
-                # A duplicate legal ID means Business returned two
-                # self-contradictory rows for the same Subject.  The dict
-                # would silently keep the last one and the key-set check
-                # below would still pass, so reject the whole batch here.
+                # 合法 ID 重复意味着业务侧对同一 Subject 返回了两行
+                # 自相矛盾的数据。字典会静默保留最后一行，而下方的
+                # 键集合校验仍会通过，因此在此拒绝整个批次。
                 log_event(
                     "rag.evidence.enriched",
                     success=False,
@@ -766,10 +758,10 @@ class RagRetrievalService:
 
     @staticmethod
     def _is_safe_authority_detail(item: Mapping[str, Any], query: RetrievalQuery) -> bool:
-        """Validate only the fields available from Business batch authority.
+        """只校验业务侧批量权威接口提供的字段。
 
-        Structured filters must not run at this stage because the batch
-        endpoint does not include Evidence fields such as ``metaTags``.
+        此阶段不得运行结构化过滤，因为批量接口
+        不包含 ``metaTags`` 等 Evidence 字段。
         """
         try:
             if (
@@ -786,7 +778,7 @@ class RagRetrievalService:
 
     @staticmethod
     def _matches_query_filters(item: Mapping[str, Any], query: RetrievalQuery) -> bool:
-        """Apply query filters to exact Business rows used by entity fallback."""
+        """对实体兜底使用的精确业务行应用查询过滤。"""
         if query.score_min is not None:
             try:
                 if float(item.get("score")) < query.score_min:
@@ -813,9 +805,8 @@ class RagRetrievalService:
         if query.air_status is not None:
             status = str(item.get("airStatus") or item.get("air_status") or "").upper()
             if status not in {"UPCOMING", "AIRING", "FINISHED"}:
-                # Only the conservative inference is allowed to fill a missing
-                # or non-authoritative status; an explicit ``UNKNOWN`` must not
-                # be treated as an authoritative value.
+                # 只允许保守推断来填补缺失或非权威状态；
+                # 显式的 ``UNKNOWN`` 不得被当作权威值。
                 status = infer_air_status(item.get("airDate") or item.get("air_date"))
             if status != query.air_status:
                 return False
@@ -840,10 +831,10 @@ class RagRetrievalService:
         for item in rows:
             if not isinstance(item, Mapping):
                 continue
-            # Business lexical candidates use the public ``subjectId`` field,
-            # while the Redis/legacy adapters use ``subject_id`` or ``id``.
-            # Normalize all three at this boundary so a valid FULLTEXT
-            # response is not silently discarded before RRF.
+            # 业务侧词法候选用公开字段 ``subjectId``，
+            # 而 Redis/旧适配器使用 ``subject_id`` 或 ``id``。
+            # 在此边界统一三者，避免有效的 FULLTEXT 响应
+            # 在 RRF 前被静默丢弃。
             raw_id = item.get("subject_id", item.get("subjectId", item.get("id")))
             if isinstance(raw_id, bool):
                 continue
@@ -898,8 +889,8 @@ class RagRetrievalService:
             if query.semantic_query and isinstance(raw_tags, (list, tuple, set)):
                 semantic_text = query.semantic_query.strip().casefold()
                 if any(str(tag).strip().casefold() == semantic_text for tag in raw_tags):
-                    # Meta tags are authoritative evidence for semantic-tag
-                    # cases; keep an exact tag match in the bounded result set.
+                    # 元标签是语义标签用例的权威证据；
+                    # 在有界结果集中保留精确标签匹配。
                     result += 0.35
             return min(result, 1.0)
 
@@ -939,7 +930,7 @@ def _items(response: Any) -> list[Any]:
 
 
 def _index_version(response: Any) -> str | None:
-    """Extract the Business release pointer from a lexical response."""
+    """从词法响应中提取业务侧发布指针。"""
     if not isinstance(response, Mapping):
         return None
     value = response.get("indexVersion", response.get("index_version"))
@@ -998,7 +989,7 @@ def _item_quarter(item: Mapping[str, Any]) -> int | None:
 
 
 def _has_textual_intent(query: RetrievalQuery) -> bool:
-    """Whether ranking should be allowed to reorder a structured result set."""
+    """是否允许排序对结构化结果集重新排序。"""
     return bool(query.semantic_query or query.keywords)
 
 

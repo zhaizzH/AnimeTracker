@@ -10,9 +10,8 @@ SafeTerm = Annotated[
     StringConstraints(strip_whitespace=True, min_length=1, max_length=48, pattern=r"^[^\x00-\x1f]+$"),
 ]
 
-# Entity IDs arrive from a model-facing tool, so reject coercible values such
-# as ``"12"`` and ``true`` at the boundary rather than passing them to a
-# downstream gateway.
+# 实体 ID 来自面向模型的工具，因此在边界处直接拒绝可强转的值
+# （如 ``"12"``、``true``），而不是传给下游网关。
 PositiveEntityId = Annotated[StrictInt, Field(gt=0)]
 
 

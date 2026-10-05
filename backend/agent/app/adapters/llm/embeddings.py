@@ -41,9 +41,9 @@ class DashScopeEmbeddingClient:
         transport: Transport | None = None,
     ) -> None:
         if model != EMBEDDING_MODEL:
-            raise ValueError(f"unsupported embedding model: {model}")
+            raise ValueError(f"不支持的向量模型: {model}")
         if dimensions != EMBEDDING_DIMENSIONS:
-            raise ValueError(f"unsupported embedding dimensions: {dimensions}")
+            raise ValueError(f"不支持的向量维度: {dimensions}")
         self._api_key = api_key
         self._model = model
         self._dimensions = dimensions
@@ -69,13 +69,13 @@ class DashScopeEmbeddingClient:
             )
         except Exception as exc:
             if _is_rate_limited(exc):
-                raise EmbeddingRateLimited("embedding rate limited") from None
-            raise EmbeddingUnavailable("embedding unavailable") from None
+                raise EmbeddingRateLimited("向量接口限流") from None
+            raise EmbeddingUnavailable("向量服务不可用") from None
 
         _validate_status(response)
         items = _embedding_items(response)
         if len(items) != len(texts):
-            raise EmbeddingResponseError("embedding response 条数不匹配")
+            raise EmbeddingResponseError("向量响应条数不匹配")
         return [_validate_embedding(item, index, self._dimensions) for index, item in enumerate(items)]
 
 
@@ -90,15 +90,15 @@ def _validate_status(response: Any) -> None:
     code = _field(response, "code")
     if status_code is not None and status_code != 200:
         if status_code == 429 or _is_rate_limited(code):
-            raise EmbeddingRateLimited("embedding rate limited")
+            raise EmbeddingRateLimited("向量接口限流")
         if isinstance(status_code, int) and status_code >= 500:
-            raise EmbeddingUnavailable("embedding unavailable")
-        raise EmbeddingResponseError("embedding response status invalid")
+            raise EmbeddingUnavailable("向量服务不可用")
+        raise EmbeddingResponseError("向量响应状态码无效")
 
     if code not in (None, "", 0, 200, "200", "Success", "success"):
         if _is_rate_limited(code):
-            raise EmbeddingRateLimited("embedding rate limited")
-        raise EmbeddingResponseError("embedding API status invalid")
+            raise EmbeddingRateLimited("向量接口限流")
+        raise EmbeddingResponseError("向量 API 状态码无效")
 
 
 def _embedding_items(response: Any) -> Sequence[Any]:
@@ -110,23 +110,23 @@ def _embedding_items(response: Any) -> Sequence[Any]:
     output = _field(response, "output")
     embeddings = _field(output, "embeddings")
     if not _is_embedding_item_sequence(embeddings):
-        raise EmbeddingResponseError("embedding response invalid")
+        raise EmbeddingResponseError("向量响应无效")
     return embeddings
 
 
 def _validate_embedding(item: Any, index: int, dimensions: int) -> list[float]:
     text_index = _field(item, "text_index")
     if text_index is not None and text_index != index:
-        raise EmbeddingResponseError("embedding response 顺序不匹配")
+        raise EmbeddingResponseError("向量响应顺序不匹配")
     vector = _field(item, "embedding") if text_index is not None else item
     if not _is_vector_sequence(vector):
-        raise EmbeddingResponseError("embedding vector invalid")
+        raise EmbeddingResponseError("向量数据无效")
     if len(vector) != dimensions:
-        raise EmbeddingResponseError(f"embedding dimension must be {dimensions}")
+        raise EmbeddingResponseError(f"向量维度必须为 {dimensions}")
     values: list[float] = []
     for value in vector:
         if isinstance(value, bool) or not isinstance(value, (int, float)):
-            raise EmbeddingResponseError("embedding vector value invalid")
+            raise EmbeddingResponseError("向量元素值无效")
         try:
             normalized = float(value)
         except (OverflowError, TypeError):

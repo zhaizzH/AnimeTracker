@@ -35,9 +35,8 @@ class ImportBundle:
     relations: tuple[dict, ...] = ()
     persons: tuple[PersonSummary, ...] = ()
     characters: tuple[CharacterSummary, ...] = ()
-    # A collection is replaced only after its upstream response completed.  The
-    # defaults preserve the old ImportBundle API for callers that only import a
-    # subject and episodes.
+    # 只有上游响应完整完成后才替换集合。
+    # 默认值保留了旧 ImportBundle API，供只导入 subject 与 episodes 的调用方使用。
     aliases_complete: bool = True
     tags_complete: bool = True
     meta_tags_complete: bool = True
@@ -117,8 +116,8 @@ class ImportRepository:
             actor_summaries = _unique_actor_summaries(characters)
             for source_id, local_id in self._upsert_persons(actor_summaries, bundle.import_record_id).items():
                 person_ids.setdefault(source_id, local_id)
-            # Credits from the persons endpoint are retained in full, including
-            # roles that are not part of the legacy six-role UI subset.
+            # persons 接口返回的演职员信息完整保留，
+            # 包括不属于旧版六职务 UI 子集的职务。
             if bundle.persons_complete:
                 self._upsert_subject_person_credits(subject_id, bundle.subject, person_ids)
 
@@ -130,18 +129,17 @@ class ImportRepository:
             if bundle.episodes_complete:
                 self._replace_episodes(subject_id, list(bundle.episodes))
             if bundle.relations_complete:
-                # upsert_relations returns False when a related subject is not
-                # present locally; it intentionally leaves the old set intact.
+                # 当关联 subject 在本地不存在时 upsert_relations 返回 False；
+                # 它有意保持旧集合不变。
                 upsert_relations(self._session, subject_id, list(bundle.relations))
             profile = build_subject_profile(
                 self._profile_source(subject_id), self._embedding_model, self._embedding_dimensions
             )
             status = self._upsert_index_job(subject_id, index_version, profile.content_hash)
-            # Keep the legacy Subject queue for the online index, while also
-            # publishing one deterministic task per searchable entity.  The
-            # helper uses the current transaction directly (rather than the
-            # standalone SearchIndexJobRepository, which starts its own
-            # transaction and cannot be nested here).
+            # 为在线索引保留旧的 Subject 队列，同时为每个可检索实体
+            # 发布一个确定性任务。该辅助方法直接复用当前事务
+            # （而不是独立的 SearchIndexJobRepository——
+            # 后者会自行开启事务，无法在此嵌套）。
             self._upsert_search_index_job(
                 EntityKind.SUBJECT,
                 subject_id,
@@ -181,12 +179,12 @@ class ImportRepository:
         persons_complete: bool,
         characters_complete: bool,
     ) -> None:
-        """Publish Person/Character tasks only for complete upstream sets.
+        """仅对完整的上游数据集发布 Person/Character 任务。
 
-        Actor summaries are valid Person inputs when the Character endpoint was
-        complete, even if the separate Subject persons endpoint was not.  The
-        profile's relational fields are read after edge writes, so a retry by
-        the indexer computes the same text/hash from MySQL.
+        当 Character 接口完整时，演员摘要可作为合法的 Person 输入，
+        即使独立的 Subject persons 接口不完整。档案的关系字段
+        在边写入之后读取，因此索引器重试时会从 MySQL
+        计算出相同的文本/哈希。
         """
         person_sources: dict[int, PersonSummary] = {}
         if persons_complete:
@@ -217,7 +215,7 @@ class ImportRepository:
         index_version: str,
         episodes: tuple[dict, ...],
     ) -> None:
-        """Publish only episode rows belonging to the completed response."""
+        """只发布属于已完成响应的剧集行。"""
         if not episodes:
             return
         bangumi_ids = tuple(
@@ -327,7 +325,7 @@ class ImportRepository:
     def _upsert_persons(
         self, persons: tuple[PersonSummary, ...], import_record_id: int | None = None
     ) -> dict[int, int]:
-        """Upsert summary entities and enqueue detail work without blocking Subject."""
+        """写入摘要实体并入队详情任务，且不阻塞 Subject。"""
         now = datetime.now()
         ids: dict[int, int] = {}
         for person in persons:
@@ -375,7 +373,7 @@ class ImportRepository:
     def _upsert_characters(
         self, characters: tuple[CharacterSummary, ...], import_record_id: int | None = None
     ) -> dict[int, int]:
-        """Upsert character summaries and their independent detail jobs."""
+        """写入角色摘要及其独立详情任务。"""
         now = datetime.now()
         ids: dict[int, int] = {}
         for character in characters:
@@ -436,7 +434,7 @@ class ImportRepository:
         )
 
     def _replace_free_tags(self, subject_id: int, subject: NormalizedSubject) -> None:
-        """Replace tags only after a complete Subject response."""
+        """仅在 Subject 响应完整后才替换标签。"""
         upsert_tags(self._session, subject_id, [tag.__dict__ for tag in subject.free_tags])
         names = [tag.name for tag in subject.free_tags]
         if names:
@@ -453,7 +451,7 @@ class ImportRepository:
             )
 
     def _replace_episodes(self, subject_id: int, episodes: list[dict]) -> None:
-        """Replace episodes after all pages have been read successfully."""
+        """在所有分页都成功读取后才替换剧集。"""
         upsert_episodes(self._session, subject_id, episodes)
         ids = [episode.get("id") for episode in episodes if episode.get("id")]
         if ids:
@@ -470,8 +468,8 @@ class ImportRepository:
         self, subject_id: int, subject: NormalizedSubject, person_ids: dict[int, int]
     ) -> None:
         now = datetime.now()
-        # Mark all old edges stale first; reactivating the exact natural keys below
-        # makes removal and duplicate handling deterministic.
+        # 先把所有旧边标记为失效；下方重新激活精确的自然键，
+        # 使删除与去重处理具备确定性。
         self._session.execute(
             text("UPDATE subject_person_credit SET source_active=0, updated_at=:now WHERE subject_id=:subject_id"),
             {"subject_id": subject_id, "now": now},
@@ -705,7 +703,7 @@ class ImportRepository:
         index_version: str,
         profile: ProfileResult,
     ) -> Literal["PENDING", "UNCHANGED"]:
-        """Write one idempotent generic index task in the caller's transaction."""
+        """在调用方事务内写入一个幂等的通用索引任务。"""
         if entity_id < 1:
             raise ValueError("entity_id 必须是正整数")
         if not index_version:
@@ -810,7 +808,7 @@ def _split_values(value: str | None) -> tuple[str, ...]:
 
 
 def _json_values(value: object) -> tuple[str, ...]:
-    """Read a JSON list without allowing malformed detail data to break import."""
+    """读取 JSON 列表，且不让格式错误的详情数据中断导入。"""
     if not value:
         return ()
     if isinstance(value, (list, tuple)):
@@ -825,7 +823,7 @@ def _json_values(value: object) -> tuple[str, ...]:
 
 
 def _unique_actor_summaries(characters: tuple[CharacterSummary, ...]) -> tuple[PersonSummary, ...]:
-    """Flatten actor summaries while preserving source order and deduplicating IDs."""
+    """展平演员摘要，同时保持来源顺序并对 ID 去重。"""
     result: list[PersonSummary] = []
     seen: set[int] = set()
     for character in characters:

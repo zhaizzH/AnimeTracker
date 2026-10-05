@@ -119,7 +119,7 @@ def upsert_episodes(session: Session, subject_id: int, episodes: list[dict]):
             {"sid": subject_id, "eid": bangumi_ep_id},
         ).scalar()
 
-        airdate = ep.get("airdate") or None  # empty string → NULL
+        airdate = ep.get("airdate") or None  # 空字符串 → NULL
         # ponytail: Bangumi API 有时返回中文日期格式
         if airdate:
             airdate = airdate.replace("年", "-").replace("月", "-").replace("日", "")

@@ -1,1 +1,1 @@
-"""Adapter package marker."""
+"""适配器包标记。"""

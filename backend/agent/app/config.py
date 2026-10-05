@@ -28,20 +28,20 @@ class Settings(BaseSettings):
     llm_max_tokens: int = 4096
     llm_thinking_budget: int = 2048
 
-    # Server
+    # 服务
     agent_host: str = "0.0.0.0"
     agent_port: int = 8090
 
-    # Backend API
+    # 后端 API
     backend_base_url: str = "http://localhost:8080"
 
     # JWT — 与 Spring Boot 共享签名秘钥,agent 本地验签,不回调业务后端
     jwt_secret: str = "dev-secret-key-not-for-production-use-change-it"
 
-    # Redis
+    # Redis 配置
     redis_url: str = "redis://localhost:6379/0"
     rag_redis_url: str = ""
-    # Redis alias was removed. MySQL search_index_release is the only active pointer.
+    # Redis 别名已移除。MySQL 的 search_index_release 是唯一的活动指针。
     rag_index_version: str = "v1"
     rag_embedding_model: Literal["text-embedding-v4"] = "text-embedding-v4"
     rag_embedding_dim: Literal[1024] = 1024
@@ -93,7 +93,7 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def raw_bucket_must_be_private(self) -> "Settings":
         if self.minio_raw_bucket == self.minio_bucket:
-            raise ValueError("MINIO_RAW_BUCKET must differ from MINIO_BUCKET")
+            raise ValueError("MINIO_RAW_BUCKET 必须与 MINIO_BUCKET 不同")
         return self
 
     @property
@@ -146,7 +146,7 @@ def resolve_llm_provider(s: Settings) -> ResolvedLlmProviderConfig:
                 model=s.deepseek_model, route_model=s.deepseek_model_route,
                 reasoning_effort=s.llm_reasoning_effort, base_url=s.deepseek_base_url,
             )
-        # provider == "dashscope"
+        # provider == "dashscope"（仅剩该分支）
         if not s.dashscope_api_key:
             raise ValueError("LLM_PROVIDER=dashscope 但未配置 DASHSCOPE_API_KEY")
         return ResolvedLlmProviderConfig(

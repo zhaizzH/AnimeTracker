@@ -1,1 +1,1 @@
-"""Transport-independent chat contracts."""
+"""与传输层无关的会话契约。"""

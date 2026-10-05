@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from app.chat.user import UserInfo
 
 
-def _is_expired(expires_at: datetime | None) -> bool:
+def is_expired(expires_at: datetime | None) -> bool:
     if expires_at is None:
         return False
     now = datetime.now(timezone.utc)
@@ -34,7 +34,7 @@ def require_confirmed_write(
         return {"error": True, "message": "没有待确认的动作"}
     if getattr(pending, "user_id", None) != user.user_id:
         return {"error": True, "message": "待确认动作不属于当前用户"}
-    if _is_expired(getattr(pending, "expires_at", None)):
+    if is_expired(getattr(pending, "expires_at", None)):
         return {"error": True, "message": "待确认动作已过期，请重新发起"}
     if not write_confirmed:
         # 关键硬门禁：非明确确认回合，即使模型调用 execute 也拒绝写入

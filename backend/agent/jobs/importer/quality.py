@@ -250,7 +250,7 @@ def _list_object_names(minio) -> list[str]:
         client = getattr(minio, "_minio", minio)
         bucket = getattr(minio, "_bucket", None) or getattr(minio, "bucket_name", None)
         if not bucket:
-            raise ValueError("MinIO bucket name is required for quality report")
+            raise ValueError("质量报告需要 MinIO bucket 名称")
         objects = client.list_objects(bucket, recursive=True)
     return [item if isinstance(item, str) else item.object_name for item in objects]
 
@@ -296,7 +296,7 @@ def _subject_digest(subject: Mapping[str, Any]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Generate a read-only RAG data quality report")
+    parser = argparse.ArgumentParser(description="生成只读的 RAG 数据质量报告")
     parser.add_argument("--output", required=True)
     parser.add_argument("--index-version")
     args = parser.parse_args(argv)

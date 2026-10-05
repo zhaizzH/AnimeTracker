@@ -3,11 +3,11 @@ from __future__ import annotations
 from array import array
 from base64 import b64decode, b64encode
 import json
-import math
 from typing import Any, Mapping, Sequence
 
 from app.agent.ports import BusinessGateway
 from app.rag.user_profile import CollectionItem, UserPreference, build_preference, collection_version
+from app.rag.user_profile import _float32_vector
 
 
 _CACHE_TTL_SECONDS = 24 * 60 * 60
@@ -125,14 +125,3 @@ def _collection_items(response: Any) -> list[CollectionItem]:
     return items
 
 
-def _float32_vector(values: Sequence[float] | None) -> tuple[float, ...] | None:
-    if values is None:
-        return None
-    try:
-        vector = tuple(float(value) for value in values)
-        if len(vector) != _VECTOR_DIMENSIONS or not all(math.isfinite(value) for value in vector):
-            return None
-        encoded = array("f", vector)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    return tuple(encoded) if all(math.isfinite(value) for value in encoded) else None

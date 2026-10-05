@@ -1,4 +1,4 @@
-"""Regression tests for release gate report safety."""
+"""发布门禁报告安全性的回归测试。"""
 
 from jobs.indexer.gate import GateInputs, _normalize_contract, evaluate_gate, load_gate_inputs
 
@@ -35,7 +35,7 @@ def test_shadow_only_eval_cannot_pass_gate():
     decision = evaluate_gate(_passing_inputs(evaluation_status="SHADOW_ONLY"))
 
     assert decision.allowed is False
-    assert "eval report status must be explicit RELEASE_CANDIDATE; SHADOW_ONLY or missing status cannot activate a release" in decision.reasons
+    assert "评测报告状态必须显式为 RELEASE_CANDIDATE；SHADOW_ONLY 或状态缺失都不能激活发布" in decision.reasons
 
 
 def test_missing_eval_status_cannot_pass_gate():
@@ -54,7 +54,7 @@ def test_incomplete_evidence_cannot_pass_gate():
     decision = evaluate_gate(_passing_inputs(evidence_completeness=0.99))
 
     assert decision.allowed is False
-    assert "evidence completeness is below 100%" in decision.reasons
+    assert "证据完整度低于 100%" in decision.reasons
 
 
 def test_release_profile_version_overrides_entity_projection_profile():
@@ -74,4 +74,4 @@ def test_release_profile_version_overrides_entity_projection_profile():
 def test_missing_eval_case_results_fails_closed():
     inputs = load_gate_inputs(__file__, "v1")
 
-    assert "missing eval case results" in inputs.report_errors
+    assert "缺少评测用例结果" in inputs.report_errors
