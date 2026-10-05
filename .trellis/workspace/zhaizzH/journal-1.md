@@ -650,3 +650,25 @@ spec 同步：`agent-guidelines.md` 新增「Gateway 路由结果解析」与「
 
 ### Status
 [OK] **Completed** — 任务归档；索引增量遗留已记录于 implement.md（非缺陷，网络恢复后可续）
+
+
+## Session 23: rag retrieval 按管线阶段拆分
+<!-- trellis-session: v=2 fp=10a0b5c36259d72f -->
+
+**Date**: 2026-10-05
+**Task**: rag retrieval 按管线阶段拆分
+**Branch**: `main`
+
+### Summary
+
+retrieval.py 1030→402 行，拆出 lexical/entity_resolution/authority/rerank 四模块，move-only，pytest 629 passed 6 xfailed 与基线一致。经 grill 收敛方案（4A 5B 6A）：jobs 巨型 main 拆分排后续 task。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `08799fdb` | refactor(agent): rag retrieval 按管线阶段拆分（1030→402 行） |
+
+### Status
+
+[OK] **Completed**

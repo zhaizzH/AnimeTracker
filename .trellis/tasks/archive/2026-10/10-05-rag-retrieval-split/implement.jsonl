@@ -1,0 +1,6 @@
+{"phase": "implement", "status": "done", "note": "retrieval.py 1030 -> 402 行。新增 app/rag/lexical.py (59), entity_resolution.py (190), authority.py (247), rerank.py (185)。"}
+{"phase": "implement", "status": "decision", "note": "既有测试直调 RagRetrievalService 私有方法（_matches_query_filters/_enrich_evidence/_map_evidence/_as_candidates/_build_expression），保留 5 条 staticmethod 薄委托，其余委托删除（无测试引用）。"}
+{"phase": "implement", "status": "decision", "note": "retrieval.py 保留 infer_air_status re-export（noqa F401）：test_air_status.py::test_both_call_sites_use_the_shared_function 断言 module.infer_air_status 存在。"}
+{"phase": "implement", "status": "decision", "note": "test_season_alignment.py import 改从 app.rag.authority 引 item_quarter。"}
+{"phase": "implement", "status": "deadcode", "note": "删除无人引用的委托：_lookup_entity_name/_resolve_entity_subject_ids/_safe_resolved_subject_ids/_is_safe_subject_response/_expressions/_lexical_terms/_is_safe_evidence/_is_safe_authority_detail/_filter_entity_subjects/_rerank；删除 retrieval.py 对 escape_redis_term 的 re-export（无外部引用）。"}
+{"phase": "verify", "status": "done", "note": "uv run pytest: 拆前 629 passed 6 xfailed -> 拆后 629 passed 6 xfailed，数字一致。"}
