@@ -13,6 +13,16 @@ http.interceptors.request.use((cfg: InternalAxiosRequestConfig) => {
   return cfg;
 });
 
+// 这些端点把 401/403 当作业务结果（凭据错误、邮箱未验证、验证码错误）直接返回，
+// 不应触发静默刷新重试；logout 不在列内，令牌过期时仍应先刷新再重放。
+const AUTH_ENDPOINT = /^\/client\/auth\/(login|register|verify-email|resend-code|refresh|forgot-password|reset-password)$/;
+
+/** 优先暴露后端 Result.message，避免 axios 的 “Request failed with status code 401” 掩盖真实原因 */
+function toError(error: AxiosError): Error {
+  const body = error.response?.data as ApiResult<unknown> | undefined;
+  return new Error(body?.message || error.message || '请求失败');
+}
+
 http.interceptors.response.use(
   (res) => {
     const body = res.data as ApiResult<unknown>;
@@ -21,11 +31,12 @@ http.interceptors.response.use(
   },
   async (error: AxiosError) => {
     const original = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined;
-    if (error.response?.status === 401 && original && !original._retried && original.url !== '/client/auth/refresh') {
+    const url = original?.url ?? '';
+    if (error.response?.status === 401 && original && !original._retried && !AUTH_ENDPOINT.test(url)) {
       original._retried = true;
       if (await refreshWithLock()) return http(original);
     }
-    return Promise.reject(error);
+    return Promise.reject(toError(error));
   },
 );
 
