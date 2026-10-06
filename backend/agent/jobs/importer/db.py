@@ -114,6 +114,13 @@ def upsert_episodes(session: Session, subject_id: int, episodes: list[dict]):
     today = now.date()
     for ep in episodes:
         bangumi_ep_id = ep["id"]
+        # Bangumi 会把剧集区间文本（如「第0话 - 第12话, 第14话 - 第25话」）塞进
+        # duration，超出列宽时 MySQL 抛 DataError 1406，整条目事务回滚。截断保命，
+        # 避免一个畸形字段废掉整部番剧的导入。
+        duration = ep.get("duration")
+        if isinstance(duration, str) and len(duration) > 64:
+            logger.warning("duration 超长已截断 subject_id=%s ep=%s", subject_id, bangumi_ep_id)
+            duration = duration[:64]
         existing_id = session.execute(
             text("SELECT id FROM episode WHERE subject_id = :sid AND bangumi_ep_id = :eid"),
             {"sid": subject_id, "eid": bangumi_ep_id},
@@ -152,7 +159,7 @@ def upsert_episodes(session: Session, subject_id: int, episodes: list[dict]):
                     "sort": ep.get("sort"),
                     "name": ep.get("name"),
                     "name_cn": ep.get("name_cn"),
-                    "duration": ep.get("duration"),
+                    "duration": duration,
                     "airdate": airdate,
                     "description": ep.get("desc", ""),
                     "status": ep_status,
@@ -175,7 +182,7 @@ def upsert_episodes(session: Session, subject_id: int, episodes: list[dict]):
                     "sort": ep.get("sort"),
                     "name": ep.get("name"),
                     "name_cn": ep.get("name_cn"),
-                    "duration": ep.get("duration"),
+                    "duration": duration,
                     "airdate": airdate,
                     "description": ep.get("desc", ""),
                     "status": ep_status,

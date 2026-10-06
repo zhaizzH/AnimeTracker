@@ -29,7 +29,7 @@ CREATE TABLE `episode`  (
   `sort` decimal(5, 1) NULL DEFAULT NULL COMMENT '集数序号（支持小数点: 1, 1.5, 2 等）',
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '日文/英文标题',
   `name_cn` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '中文标题',
-  `duration` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '时长（如 \"24m\"）',
+  `duration` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '时长（如 \"24m\"）；Bangumi 会把剧集区间文本塞进此字段，故留足宽度',
   `airdate` date NULL DEFAULT NULL COMMENT '播出日期',
   `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '剧情简介',
   `status` varchar(5) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'NA' COMMENT '播出状态: Air=已播出, Today=今日播出, NA=未播出',

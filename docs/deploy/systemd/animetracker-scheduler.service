@@ -1,0 +1,24 @@
+[Unit]
+Description=AnimeTracker Scheduler (importer / indexer / backfill)
+After=network-online.target animetracker-business.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=zhaizz
+Group=zhaizz
+WorkingDirectory=/opt/animetracker/src/AnimeTracker/backend/agent
+Environment=UV_CACHE_DIR=/opt/animetracker/.uv-cache
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/zhaizz/.local/bin/uv run python -m jobs.scheduler.main
+Restart=always
+RestartSec=10
+# scheduler 以 subprocess 派生子任务（importer/indexer/backfill），子进程同属本 cgroup，
+# 故 MemoryMax 覆盖整棵进程树。不可设得过小，否则长任务中途被 SIGKILL。
+MemoryMax=512M
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=at-scheduler
+
+[Install]
+WantedBy=multi-user.target

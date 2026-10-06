@@ -1,0 +1,23 @@
+[Unit]
+Description=AnimeTracker Agent (FastAPI + LangGraph)
+After=network-online.target animetracker-business.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=zhaizz
+Group=zhaizz
+WorkingDirectory=/opt/animetracker/src/AnimeTracker/backend/agent
+Environment=UV_CACHE_DIR=/opt/animetracker/.uv-cache
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/zhaizz/.local/bin/uv run uvicorn main:app --host 127.0.0.1 --port 8090 --no-access-log
+Restart=always
+RestartSec=5
+MemoryMax=320M
+MemoryHigh=256M
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=at-agent
+
+[Install]
+WantedBy=multi-user.target
