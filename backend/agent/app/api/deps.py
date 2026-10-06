@@ -16,7 +16,11 @@ def verify_token(authorization: str | None = Header(None)) -> UserInfo:
 
     token = authorization[len("Bearer "):]
     try:
-        claims = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+        # JJWT 的 Keys.hmacShaKeyFor 按密钥字节长度自动选 HS256/HS384/HS512
+        # （>=64B→HS512，>=48B→HS384，>=32B→HS256），business 侧签发算法随
+        # jwt.secret 长度变化。此处必须同样放行三种，硬编码单一算法会让生产
+        # 强密钥（64B→HS512）签发的 token 全部验签失败。
+        claims = jwt.decode(token, settings.jwt_secret, algorithms=["HS256", "HS384", "HS512"])
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="认证失败，请重新登录")
 
