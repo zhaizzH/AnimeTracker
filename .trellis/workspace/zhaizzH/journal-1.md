@@ -672,3 +672,46 @@ retrieval.py 1030→402 行，拆出 lexical/entity_resolution/authority/rerank 
 ### Status
 
 [OK] **Completed**
+
+## Session 24: 图片公开 URL 走反代前缀 + 全量导入后台运行
+<!-- trellis-session: v=2 fp=deploy-20261006 -->
+
+**Date**: 2026-10-06
+**Branch**: `main`
+
+### Summary
+
+线上封面全 404：导入器把 `MINIO_ENDPOINT=127.0.0.1:9000` 直接拼进 `subject.image`，
+Java 上传网关同样用 endpoint 拼头像 URL。该地址只 bind 环回，浏览器无法访问
+（6706/7041 条 subject 命中）。
+
+修法：新增对外前缀 `MINIO_PUBLIC_BASE_URL`（根相对路径 `/media`），前缀已映射桶根故不再拼桶名；
+留空退回 endpoint 保持旧行为。`quality.py::canonical_cover_object_path` 同步识别新形态——
+否则封面会被判为未引用对象并被 cleanup 删除（本次最危险处）。Java 侧加
+`MinioProperties.publicBaseUrl` + `MinioImageStorageGateway.publicUrl()`。
+
+服务器已生效（不重启服务）：nginx 两 server 块 `/media/` 反代 → `127.0.0.1:9000/anime-tracker/`；
+env 追加 `MINIO_PUBLIC_BASE_URL=/media` 与 `AT_MINIO_PUBLIC_BASE_URL=/media`；
+DB 迁移 7201 行改为 `/media/covers/...`，残留 0。`:80`/`:8081` 实测 200 42KB image/jpeg。
+
+**未完成**：Java 重建、agent 重启（内存仅 45MB free，导入占用中，暂缓）。
+导入跑旧内存代码 → 结束后必须重跑 `post_import.sh` 的 UPDATE。
+
+同时按用户要求停止跟踪 `docs/deploy`（部署件含主机细节，`git rm -r --cached` + `.gitignore`）。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `392cd873` | fix(storage): 图片公开 URL 走反向代理前缀，修复封面全部 404 |
+| `81a402b3` | chore(repo): 停止跟踪 docs/deploy 部署件 |
+
+### Status
+
+[PARTIAL] 代码已推送+服务器已拉取；nginx/DB/env 已生效。待导入结束后重建 Java 并重启 agent。
+
+### 服务器后台任务
+
+- `at-import-full`（systemd 瞬态 system scope，PPID=1，**关会话不受影响**；机器重启会丢）
+  - `--mode full --workers 10`，日志 `/opt/animetracker/logs/full.log`
+  - 收尾脚本已就位：`bash /opt/animetracker/post_import.sh`（幂等，会拒绝在导入未结束时空跑）
