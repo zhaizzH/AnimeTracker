@@ -16,7 +16,7 @@
 |---|---|
 | [架构与模块边界](./directory-structure.md) | 目标九模块、现有实现对照、Auth/Infrastructure/Java Agent 设计、app/rag 拆分（ADR 0001）、pojo/Converter 与迁移验收 |
 | [Agent 编排与运行](./agent-guidelines.md) | 角色工具、Prompt、运行契约、SSE 与编排 |
-| [数据与存储](./database-guidelines.md) | MySQL、MyBatis、SQLAlchemy、Redis、Schema 与存储约束 |
+| [数据与存储](./database-guidelines.md) | MySQL、MyBatis、SQLAlchemy、Redis、MinIO 公开 URL、Schema 与存储约束 |
 | [RAG 检索与版本发布](./rag-retrieval-contract.md) | 检索、发布 gate、灰度、回滚与 Evidence 边界 |
 | [错误、日志与可观测性](./error-handling.md) | 异常适配、统一响应、操作日志模块、追踪与隐私 |
 | [质量与 Javadoc](./quality-guidelines.md) | 测试门禁、审查、Java 声明全覆盖、注释篇幅与 pojo 字段契约、AST/doclint 检查 |

@@ -183,6 +183,73 @@ DEALLOCATE PREPARE stmt;
 - Business 对象存储走 `ImageStorageGateway`；实现位于 `infrastructure/storage/minio`。
 - importer 的公开封面桶与私有原始桶必须使用不同名称。
 
+## Scenario: MinIO 图片公开 URL 与反代前缀
+
+### 1. Scope / Trigger
+
+- 触发：修改 `jobs/importer/storage.py::ObjectStorage._public_url`、`jobs/importer/quality.py::canonical_cover_object_path`、`infrastructure/storage/minio/MinioImageStorageGateway.publicUrl`，或新增 `MINIO_PUBLIC_BASE_URL` / `minio.public-base-url`（env `AT_MINIO_PUBLIC_BASE_URL`）。
+- 目的：SDK 端点（如 `127.0.0.1:9000`）只 bind 环回，把 endpoint 直接拼进 `subject.image`/头像 URL 会让浏览器请求用户本机 9000 → 图片全部 404。封面/头像必须走浏览器可达的反向代理前缀。
+
+### 2. Signatures
+
+- Python：`ObjectStorage._public_url(object_name: str) -> str`（`jobs/importer/storage.py`）。
+- Java：`MinioImageStorageGateway.publicUrl(String objectName) -> String`（私有方法，返回给客户端）。
+- 反解（质量检查必须能还原对象名）：`canonical_cover_object_path(image: object, minio) -> str | None`（`jobs/importer/quality.py`）。
+- 配置属性：`ObjectStorage.public_base_url`（property，来自 `MINIO_PUBLIC_BASE_URL`，`.rstrip("/")`）；`MinioProperties.publicBaseUrl`（getter/setter，来自 `minio.public-base-url`）。
+
+### 3. Contracts
+
+- `MINIO_PUBLIC_BASE_URL`（Python，`.env`）/ `minio.public-base-url`（Java，`application.yml`，env `AT_MINIO_PUBLIC_BASE_URL`）是**浏览器访问前缀**，推荐根相对路径 `/media`，也可写绝对 URL。
+- 前缀**已映射到桶根**（nginx `location /media/ { proxy_pass http://127.0.0.1:9000/<bucket>/; }`），故拼接公开 URL 时**不再重复拼接桶名**：`{prefix}/{object_name}` → `/media/covers/244.jpg`。
+- 前缀留空时退回 endpoint 拼接 `http://{endpoint}/{bucket}/{object_name}`，保持旧部署行为；此形态仅供 SDK 与浏览器同机的本地开发。
+- 用相对路径使主机/IP/域名变更无需改存量数据；`:80` 与 `:8081` 两 nginx server 块同源可用，需各配一条 `location /media/`。
+- `subject.image` / `user.avatar` 存的就是公开 URL 字符串，前端直接 `<img src={s.image}>`，不拼接。
+
+### 4. Validation & Error Matrix
+
+| 条件 | 必须行为 |
+|---|---|
+| 前缀已配置 | 公开 URL = `{prefix}/{object_name}`，**不含桶名** |
+| 前缀未配置 | 退回 `{scheme}://{endpoint}/{bucket}/{object_name}`（旧行为） |
+| 前缀含末尾 `/` | 入库前 `.rstrip("/")`，避免双斜杠 |
+| 公开 URL 经质量检查反解 | 前缀形态按前缀匹配；endpoint 形态按 netloc+bucket 匹配；两者并存期都必须还原出 `covers/<id>.jpg` |
+| 反解结果非 `covers/` 目录、含 `..`、含 `://`、或前缀不匹配 | 返回 `None`，不得当作 MinIO 对象名，防止误删 |
+
+### 5. Good/Base/Bad Cases
+
+- Good：`MINIO_PUBLIC_BASE_URL=/media`，封面入库 `/media/covers/244.jpg`，浏览器经 nginx 反代命中 MinIO，质量检查还原 `covers/244.jpg`。
+- Base：本地开发不配前缀，URL 用 `http://localhost:9000/anime-tracker/covers/x.jpg`，SDK 与浏览器同机可用。
+- Bad：前缀拼进桶名生成 `/media/anime-tracker/covers/...`（nginx 已映射桶根 → 404），或 endpoint 直连 `http://127.0.0.1:9000/...`（浏览器不可达）。
+
+### 6. Tests Required
+
+- `tests/jobs/importer/test_storage_public_url.py`：生成 `_public_url` 与反解 `canonical_cover_object_path` 必须同一契约（前缀形态 + 根相对路径形态 round-trip）；留空时退回 endpoint；绝对/相对前缀并存时都能识别。
+- `MinioGatewayTest`（business）：`uploadUsesPublicBaseUrlWhenConfigured` 断言反代前缀形态、无桶名重复、无双斜杠。
+- 前端：无需单测；仅需确认 `<img src>` 对相对路径可用。
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+# 把 SDK 内网端点直接拼进公开 URL；或公开 URL 重复拼桶名
+return f"{scheme}://{self._endpoint}/{self._bucket}/{object_name}"
+# 前缀形态却拼了桶名：/media/anime-tracker/covers/244.jpg → nginx 已映射桶根 → 404
+```
+
+#### Correct
+
+```python
+# 前缀已指向桶根，只拼 object_name；留空退回 endpoint 保持旧行为
+if self._public_base_url:
+    return f"{self._public_base_url}/{object_name}"
+return f"{scheme}://{endpoint}/{self._bucket}/{object_name}"
+```
+
+> **Warning**: `canonical_cover_object_path` 只处理 `covers/` 目录的反解。把前缀公开 URL 入库前必须保证它能被该函数还原，否则质量检查会把所有封面判为 `UNREFERENCED_OBJECT`，随后的 cleanup 将删除全部封面对象。
+
+> **Warning**: 代码先改后部署有窗口期。运行中的 importer 进程持有旧内存代码，会继续写入旧 endpoint URL；存量行需用幂等前向 SQL 改写为 `/media/...`（只匹配旧前缀 `http://{endpoint}/{bucket}/%`，替换为 `/media/<object>`），且应在导入结束后**再次**执行以覆盖窗口期新写入的行。该 SQL 属服务器本地部署件（`docs/deploy/` 已不入库），不在仓库中。
+
 ## Scenario: RAG 词法投影与发布指针
 
 ### 1. Scope / Trigger
