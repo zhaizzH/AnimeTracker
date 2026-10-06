@@ -12,7 +12,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  server: { port: 5174, proxy: { '/api': { target: 'http://localhost:8080', changeOrigin: true } } },
+  server: { port: 5174, proxy: { '/api': { target: 'http://localhost:8080', changeOrigin: true }, '/media': { target: 'http://localhost:9000/anime-tracker', changeOrigin: true, rewrite: (p) => p.replace(/^\/media/, '') } } },
   build: {
     // Framework chunks stay below 560 kB minified and 186 kB gzip; larger regressions still warn.
     // recharts 随 dashboard 懒加载 chunk 走，不单独拆包（拆开会多一次请求且无复用收益）。

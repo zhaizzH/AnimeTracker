@@ -96,8 +96,10 @@ jwt:
 
 
 # MinIO 对象存储
+# endpoint 仅供 SDK 连接（内网）；public-base-url 是给浏览器的反代前缀，为空时退回 endpoint 拼接。
 minio:
   endpoint: http://${minio.host:localhost}:${minio.port:9000}
+  public-base-url: ${at.minio.public-base-url:}
   access-key: ${at.minio.access-key:minioadmin}
   secret-key: ${at.minio.secret-key:minioadmin}
   bucket: ${at.minio.bucket:anime-tracker}

@@ -64,10 +64,35 @@ public class MinioImageStorageGateway implements ImageStorageGateway {
                     .stream(file.getInputStream(), file.getSize(), -1)
                     .contentType(contentType)
                     .build());
-            return minioProperties.getEndpoint() + "/" + minioProperties.getBucket() + "/" + objectName;
+            return publicUrl(objectName);
         } catch (Exception exception) {
             log.error("文件上传失败", exception);
             throw new BizException(ErrorType.INTERNAL_ERROR, "文件上传失败");
         }
+    }
+
+    /**
+     * 生成图片对外访问地址
+     * <p>前缀语义与导入器一致：前缀已指向桶根，故不再重复拼接桶名；
+     * 未配置时退回 SDK 端点 + 桶名，仅适用于 SDK 与浏览器同机
+     *
+     * @param objectName 桶内对象路径
+     * @return 可直接给浏览器的图片地址
+     */
+    private String publicUrl(String objectName) {
+        String baseUrl = minioProperties.getPublicBaseUrl();
+        if (baseUrl != null && !baseUrl.isBlank()) {
+            return stripTrailingSlash(baseUrl) + "/" + objectName;
+        }
+        return stripTrailingSlash(minioProperties.getEndpoint()) + "/" + minioProperties.getBucket() + "/" + objectName;
+    }
+
+    /**
+     * 去掉末尾斜杠，避免拼接出双斜杠
+     * @param value 待处理字符串
+     * @return 去除尾部 {@code /} 的结果；输入为 {@code null} 时原样返回
+     */
+    private static String stripTrailingSlash(String value) {
+        return value == null ? null : value.replaceAll("/+$", "");
     }
 }

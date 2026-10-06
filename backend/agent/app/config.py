@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     db_password: str = ""
     db_name: str = "anime_tracker"
     minio_endpoint: str = "localhost:9000"
+    # 对外访问前缀（如 https://host/media）。SDK 端点是内网地址，浏览器无法解析；
+    # 留空则退回端点直连，保持旧行为。仅影响公开 URL 生成，不影响 SDK 连接。
+    minio_public_base_url: str = ""
     minio_secure: bool = False
     minio_access_key: str = "minioadmin"
     minio_secret_key: str = "minioadmin"

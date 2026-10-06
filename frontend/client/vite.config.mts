@@ -21,7 +21,7 @@ export default defineConfig({
       'zustand/middleware',
     ],
   },
-  server: { port: 5173, proxy: { '/api': { target: 'http://localhost:8080', changeOrigin: true } } },
+  server: { port: 5173, proxy: { '/api': { target: 'http://localhost:8080', changeOrigin: true }, '/media': { target: 'http://localhost:9000/anime-tracker', changeOrigin: true, rewrite: (p) => p.replace(/^\/media/, '') } } },
   build: {
     // Framework chunks stay below 560 kB minified and 186 kB gzip; larger regressions still warn.
     chunkSizeWarningLimit: 560,

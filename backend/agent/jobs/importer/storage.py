@@ -54,6 +54,9 @@ class ObjectStorage:
         self._sleep = sleep
         self._endpoint = self._environment.get("MINIO_ENDPOINT", "localhost:9000")
         self._secure = self._environment.get("MINIO_SECURE", "false").lower() == "true"
+        # 对外访问前缀。SDK 端点（如 127.0.0.1:9000）是内网地址，浏览器无法解析，
+        # 故公开 URL 必须走反向代理前缀；留空则退回端点直连，保持旧行为。
+        self._public_base_url = self._environment.get("MINIO_PUBLIC_BASE_URL", "").rstrip("/")
         self._bucket = self._environment.get("MINIO_BUCKET", "anime-tracker")
         self._raw_bucket = self._environment.get("MINIO_RAW_BUCKET", "anime-tracker-private")
         if self._raw_bucket == self._bucket:
@@ -165,9 +168,17 @@ class ObjectStorage:
         return f"{proxy}/{source_url}" if proxy else source_url
 
     def _public_url(self, object_name: str) -> str:
+        """封面公开访问地址；配置了对外前缀时不含桶名（前缀已包含），否则退回端点直连。"""
+        if self._public_base_url:
+            return f"{self._public_base_url}/{object_name}"
         scheme = "https" if self._secure else "http"
         endpoint = self._endpoint.rstrip("/")
         return f"{scheme}://{endpoint}/{self._bucket}/{object_name}"
+
+    @property
+    def public_base_url(self) -> str:
+        """对外访问前缀，供 QA 反向解析公开 URL；未配置时为空串。"""
+        return self._public_base_url
 
 
 def _get_ext_from_url(url: str) -> str | None:

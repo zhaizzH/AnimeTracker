@@ -58,4 +58,17 @@ class MinioGatewayTest {
         properties.setBucket("images");
         return properties;
     }
+
+    /** 配置公开前缀后，URL 走反代且不重复拼桶名（前缀已指向桶根） */
+    @Test
+    void uploadUsesPublicBaseUrlWhenConfigured() throws Exception {
+        MinioClient client = mock(MinioClient.class);
+        MinioProperties properties = properties();
+        properties.setPublicBaseUrl("http://104.208.115.195/media/");
+        var gateway = new MinioImageStorageGateway(client, properties);
+        String url = gateway.upload(new MockMultipartFile("file", "a.png", "image/png", new byte[]{1}), ImageCategory.COVER);
+        assertTrue(url.startsWith("http://104.208.115.195/media/covers/"), url);
+        assertFalse(url.contains("//media//"), url);
+        assertFalse(url.contains("images/"), "反代前缀已含桶映射，不应再拼桶名: " + url);
+    }
 }

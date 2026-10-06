@@ -211,22 +211,38 @@ def write_quality_report(report: QualityReport, path: str | Path) -> str:
 
 
 def canonical_cover_object_path(image: object, minio) -> str | None:
-    """从公开 URL 提取桶内路径；绝不把 URL 作为 MinIO object name。"""
+    """从公开 URL 提取桶内路径；绝不把 URL 作为 MinIO object name。
+
+    支持一种公开形态与一种存量形态：
+    - 反代前缀（可为绝对 URL 或根相对路径，如 ``/media``）——升级后写入的形态
+    - ``endpoint/bucket`` 绝对 URL——升级前写入的存量数据
+    """
     if not isinstance(image, str) or not image:
         return None
+    # 先试前缀：/media 是根相对路径，无 scheme/netloc，必须先于绝对 URL 判断。
+    public_base_url = str(getattr(minio, "public_base_url", "") or "").rstrip("/")
+    if public_base_url and image.startswith(public_base_url + "/"):
+        return _cover_object_name(image[len(public_base_url) + 1:])
     parsed = urlparse(image)
     if not parsed.scheme or not parsed.netloc:
         return None
-    parts = [part for part in parsed.path.split("/") if part]
     bucket = getattr(minio, "bucket_name", None) or getattr(minio, "_bucket", None)
     endpoint = getattr(minio, "endpoint", None) or getattr(minio, "_endpoint", None)
     if not bucket or not endpoint or parsed.netloc.lower() != _endpoint_netloc(str(endpoint)):
         return None
+    parts = [part for part in parsed.path.split("/") if part]
     if parts[:1] != [bucket]:
         return None
-    parts = parts[1:]
-    object_name = "/".join(parts)
-    return object_name if object_name.startswith("covers/") else None
+    return _cover_object_name("/".join(parts[1:]))
+
+
+def _cover_object_name(object_name: str) -> str | None:
+    """仅接受 covers/ 下的桶内路径，排除空值与穿越写法。"""
+    if not object_name.startswith("covers/") or "://" in object_name:
+        return None
+    if any(part in ("", ".", "..") for part in object_name.split("/")):
+        return None
+    return object_name
 
 
 def git_state() -> tuple[str, bool]:

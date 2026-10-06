@@ -7,8 +7,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @ConfigurationProperties(prefix = "minio")
 public class MinioProperties {
-    /** MinIO HTTP 服务地址，同时用作上传后访问 URL 前缀 */
+    /** MinIO HTTP 服务地址，供 SDK 连接使用，不得作为对外访问 URL 前缀 */
     private String endpoint;
+    /** 图片对外访问前缀（反向代理地址）；为空时退回 endpoint 拼接，仅适用于同机访问 */
+    private String publicBaseUrl;
     /** MinIO 访问标识，来自 minio.access-key 配置 */
     private String accessKey;
     /** MinIO 访问密钥，仅供 SDK 认证，禁止日志输出 */
@@ -18,6 +20,22 @@ public class MinioProperties {
 
     /** 创建全部字段为空的配置对象，供 Spring 属性绑定使用 */
     public MinioProperties() {
+    }
+
+    /**
+     * 获取 MinIO 对外访问前缀
+     * @return 反向代理前缀；未配置时为 {@code null}
+     */
+    public String getPublicBaseUrl() {
+        return this.publicBaseUrl;
+    }
+
+    /**
+     * 替换 MinIO 对外访问前缀
+     * @param publicBaseUrl 反向代理前缀，可为 {@code null}
+     */
+    public void setPublicBaseUrl(final String publicBaseUrl) {
+        this.publicBaseUrl = publicBaseUrl;
     }
 
     /**
@@ -98,6 +116,9 @@ public class MinioProperties {
         final Object thisEndpoint = this.getEndpoint();
         final Object otherEndpoint = other.getEndpoint();
         if (thisEndpoint == null ? otherEndpoint != null : !thisEndpoint.equals(otherEndpoint)) return false;
+        final Object thisPublicBaseUrl = this.getPublicBaseUrl();
+        final Object otherPublicBaseUrl = other.getPublicBaseUrl();
+        if (thisPublicBaseUrl == null ? otherPublicBaseUrl != null : !thisPublicBaseUrl.equals(otherPublicBaseUrl)) return false;
         final Object thisAccessKey = this.getAccessKey();
         final Object otherAccessKey = other.getAccessKey();
         if (thisAccessKey == null ? otherAccessKey != null : !thisAccessKey.equals(otherAccessKey)) return false;
@@ -129,6 +150,8 @@ public class MinioProperties {
         int result = 1;
         final Object hashEndpoint = this.getEndpoint();
         result = result * PRIME + (hashEndpoint == null ? 43 : hashEndpoint.hashCode());
+        final Object hashPublicBaseUrl = this.getPublicBaseUrl();
+        result = result * PRIME + (hashPublicBaseUrl == null ? 43 : hashPublicBaseUrl.hashCode());
         final Object hashAccessKey = this.getAccessKey();
         result = result * PRIME + (hashAccessKey == null ? 43 : hashAccessKey.hashCode());
         final Object hashSecretKey = this.getSecretKey();
@@ -144,6 +167,6 @@ public class MinioProperties {
      */
     @Override
     public String toString() {
-        return "MinioProperties(endpoint=" + this.getEndpoint() + ", accessKey=" + this.getAccessKey() + ", secretKey=" + this.getSecretKey() + ", bucket=" + this.getBucket() + ")";
+        return "MinioProperties(endpoint=" + this.getEndpoint() + ", publicBaseUrl=" + this.getPublicBaseUrl() + ", accessKey=" + this.getAccessKey() + ", secretKey=" + this.getSecretKey() + ", bucket=" + this.getBucket() + ")";
     }
 }
