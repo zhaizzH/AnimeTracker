@@ -1,0 +1,9 @@
+{"file": ".trellis/tasks/10-12-frontend-spec-drift-audit/research/spec-drift-audit.md", "reason": "逐文件逐条的 STALE/PARTIALLY-STALE 断言与 file:line 反证,是本次编辑的唯一权威清单"}
+{"file": ".trellis/tasks/10-12-frontend-spec-drift-audit/research/runtime-verification.md", "reason": "免登录真实运行验证结果,佐证路由/404/主题跟随等陈述"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "待改文档:admin 页面清单、认证路由结构、顶层 404、未接线 header 簇、测试约定、ADR 0018 落地"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "待改文档:测试计数、shim 位置、optimizeDeps、未接线文件总则"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "待改文档:followSystem 已订阅现状改写;唯一混合行尾文件需规范化 CRLF"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "待改文档:forwardRef 契约清单纠错"}
+{"file": ".trellis/spec/adr/0018-admin-on-separate-port-not-subpath.md", "reason": "admin 无 /admin 前缀的依据;directory-structure 需写出对其的落地,且不为它新开 ADR"}
+{"file": ".trellis/spec/adr/README.md", "reason": "新 ADR 需登记进索引表"}
+{"file": ".trellis/spec/adr/0020-raw-subject-snapshots-not-redistributed.md", "reason": "ADR 模板与编号顺延参照(新文件为 0021)"}

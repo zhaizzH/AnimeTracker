@@ -24,7 +24,8 @@
 | [0018](./0018-admin-on-separate-port-not-subpath.md) | 管理端用独立端口部署，前端 `baseURL` 固定 `/api` |
 | [0019](./0019-email-via-resend-with-lockout-and-ratelimit.md) | 邮箱验证走 Resend，并同时配登录锁定与限流 |
 | [0020](./0020-raw-subject-snapshots-not-redistributed.md) | 数据来源限 Bangumi v0 官方 API，原始快照留存但不分发 |
+| [0021](./0021-shared-contract-visuals-vs-app-local-decorations.md) | 前端「契约性视觉」下沉 shared，装饰件与 `ui` 原语层各端自持 |
 
 ## 关于取舍
 
-以上 20 条中，少数（0004、0013、0017、0019）的「难以反转」程度或「意外性」弱于其余，收录时已注明其历史性或操作性；若将来判定它们够不上三条准入，可移回对应层规范。
+以上 21 条中，少数（0004、0013、0017、0019）的「难以反转」程度或「意外性」弱于其余，收录时已注明其历史性或操作性；若将来判定它们够不上三条准入，可移回对应层规范。

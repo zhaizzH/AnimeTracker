@@ -10,10 +10,10 @@
 ### 组件职责
 
 - Page 负责路由级数据组合；可复用交互拆到 `components`。
-- client/admin 共同使用且不依赖单一应用路由、全局 CSS 或专属运行时的展示组件才进入 shared；`SubjectCard.tsx` 当前仍依赖 `react-router-dom`，属于待治理的共享边界债务（历史债务 `.od-card-img` 与 `--od-*` 变量层已随本次重建退场，shared 组件改用 shadcn 令牌）。
+- client/admin 共同使用且不依赖单一应用路由、全局 CSS 或专属运行时的展示组件才进入 shared（下沉判据见 [ADR 0021](../adr/0021-shared-contract-visuals-vs-app-local-decorations.md)：契约性视觉下沉 shared，装饰件与 `ui` 原语层各端自持）；`SubjectCard.tsx` 当前仍依赖 `react-router-dom`，属于待治理的共享边界债务（历史债务 `.od-card-img` 与 `--od-*` 变量层已随本次重建退场，shared 组件改用 shadcn 令牌）。
 - shared 组件必须在 `packages/shared/package.json` 声明自身运行时依赖，不能依赖消费应用“碰巧”安装的包，也不能假设 client 的全局样式一定存在。历史漂移已收敛：shared 曾声明源码未使用的 `react-markdown`（实际使用方是 client/admin），该依赖现已在两个 consumer 的 `package.json` 中声明；`SubjectCard.tsx` 使用的 `react-router-dom` 已在 shared 声明。shared 已不再声明 `antd` 依赖（`antdTheme`/`antdThemeDark` 随本次重建移除），亦不 import 任何 UI 库运行时组件。
 - 复杂状态共享优先 Provider + 自定义 Hook，参考 `AgentChatProvider` 与 `useClientAgentChat`。
-- 路由页面使用 `lazy + Suspense`（client 全量；admin 除 `AdminLogin` 外，该页是静态导入）；fallback 保持接近最终内容宽度，避免布局跳动。
+- 路由页面使用 `lazy + Suspense`（client 全量；admin 除登录页 `components/auth/auth-page.tsx` 外，该页是静态导入）；fallback 保持接近最终内容宽度，避免布局跳动。
 - 不把 API URL、鉴权刷新或 SSE 解析复制进页面组件。
 
 ### Props 与渲染
@@ -38,8 +38,8 @@
 
 ### UI 原语契约（admin）
 
-- `admin/src/components/ui/*` 是本仓库自己维护的 shadcn 派生代码，**不是**可随意上手的上游产物。改动 instance 渲染路径的原语（`button.tsx`、`badge.tsx`、`breadcrumb.tsx`）时必须显式 `React.forwardRef`，其余原语（如 `input.tsx`、`textarea.tsx`）是普通函数组件，不要为了“统一”给它们加 ref。
-- 判据不是“是否导出了 ref 类型”，而是“消费方是否真的传 ref”。当前取消确认弹窗都写成 `<AlertDialogTrigger asChild><Button …/></AlertDialogTrigger>`（`AgentConfig`/`Subjects`/`Users`），而 `AlertDialogTrigger` 必须拿到子节点的 DOM ref 才能定位锚点，所以按钮必须前向 ref。
+- `admin/src/components/ui/*` 是本仓库自己维护的 shadcn 派生代码，**不是**可随意上手的上游产物。当前只有 `button.tsx`（两端）用 `React.forwardRef`；`badge.tsx`、`breadcrumb.tsx` 是普通函数组件（`asChild ? Slot.Root : span/a`，不前向 ref），`input.tsx`、`textarea.tsx` 同样是普通函数组件。不要为了“统一”给它们加 ref。
+- 判据不是“是否导出了 ref 类型”，而是“消费方是否真的传 ref”。当前取消确认弹窗都写成 `<AlertDialogTrigger asChild><Button …/></AlertDialogTrigger>`（`AgentConfig`/`Subjects`/`Users`），而 `AlertDialogTrigger` 必须拿到子节点的 DOM ref 才能定位锚点，所以按钮必须前向 ref；`Badge`/`BreadcrumbLink` 虽也支持 `asChild`，但没有任何消费方给它们传 ref，因此保持不前向 ref。
 - 新增任何 `<X asChild>` 组合（radix `Slot`）时，先确认 `<X>` 的子节点能把 ref 落到真实 DOM；否则改用 `<Button onClick>` 手动受控，或把 asChild 放到真正的前向 ref 组件上。
 - 该 ref 链在 jsdom 下不报错也不告警：未前向 ref 时 radix 只是拿不到锚点，jsdom 没有真实布局，测试仍会通过。因此**功能正常不等于契约成立**，判定只能靠读源码或真实浏览器。
 

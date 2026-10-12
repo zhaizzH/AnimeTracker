@@ -113,4 +113,4 @@
 ### 主题状态
 
 `useThemeStore` 仅持久化非敏感 UI 偏好；`resolveMode` 在 followSystem 时读取 `prefers-color-scheme`。持久化新字段前先确认不含身份、令牌或服务端权威数据。
-当前 followSystem 只读取一次媒体查询值，未订阅系统主题变化；补订阅时必须在 effect 中注册/清理监听，并覆盖浏览器不支持 matchMedia 的降级路径。
+followSystem 已订阅系统主题变化：两端 `theme-bridge.tsx` 在 effect 内以 `media.addEventListener('change', apply)` 注册（旧浏览器回退 `addListener`），并在清理函数中注销监听。浏览器不支持 `matchMedia` 时的降级路径以各端源码为准。

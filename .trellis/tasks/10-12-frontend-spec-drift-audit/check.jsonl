@@ -1,0 +1,5 @@
+{"file": ".trellis/tasks/10-12-frontend-spec-drift-audit/prd.md", "reason": "验收标准:陈旧点修正、新 ADR、真实验证、文本与门禁四项"}
+{"file": ".trellis/tasks/10-12-frontend-spec-drift-audit/research/spec-drift-audit.md", "reason": "对照清单:逐条核验是否已修入文档,file:line 指针是否仍正确"}
+{"file": ".trellis/tasks/10-12-frontend-spec-drift-audit/research/runtime-verification.md", "reason": "核验文档新增陈述与实测一致"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "审计结论为干净;检查新 ADR 是否需在关键约束区被引用"}
+{"file": ".trellis/spec/adr/README.md", "reason": "检查 0021 已登记、README 取舍清单未被误改"}

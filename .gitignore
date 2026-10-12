@@ -148,3 +148,4 @@ CLAUDE.md
 .agents
 .codex
 docs/deploy
+.playwright-mcp

@@ -19,9 +19,9 @@ CI 当前未强制 Vitest 和 build；不要在 spec 中把它们描述为已启
 
 ## 测试现状
 
-- 当前测试文件共 18 个：shared 3（`api/files.test.ts`、`api/http.test.ts`、`hooks/useAgentChat.enabled.test.tsx`）、client 5（`src/test/` 下首页/Agent Markdown/浮层/infra smoke/shell guards）、admin 10（`guards.test.tsx` 与 `layouts`/`pages` 下各页）。重建提交 `41a2c44a` 自述 Vitest 合计 79 例（shared 10 / client 14 / admin 55），属带日期的历史基线；改动后须重新实测替换，**不得沿用历史通过数**。
+- 当前测试文件共 20 个：shared 3（`api/files.test.ts`、`api/http.test.ts`、`hooks/useAgentChat.enabled.test.tsx`）、client 6（`src/test/` 下首页/Agent Markdown/浮层/infra smoke/shell guards/not-found）、admin 11（`guards.test.tsx`、`layouts/AdminLayout.test.tsx`、`pages` 下各页与 `components/auth/auth-page.test.tsx`）。重建提交 `41a2c44a` 自述 Vitest 合计 79 例（shared 10 / client 14 / admin 55），属带日期的历史基线；改动后须重新实测替换，**不得沿用历史通过数**。
 - admin 曾只有 `src/guards.test.tsx` 一个测试（覆盖 `RequireAdmin` 的未登录跳转、非管理员拒绝和管理员放行）；重建后各页与 `AdminLayout` 均已有测试。
-- Vitest 使用 jsdom；浏览器能力 shim 位于 `client/src/test/matchMedia.ts`。
+- Vitest 使用 jsdom；浏览器能力 shim 内联在 `client/src/test/setup.ts`（`matchMedia` 等），不是独立文件。
 - admin 的 `vitest.setup.ts` 已注册 `@testing-library/jest-dom/vitest`，并补齐 radix-ui 在 jsdom 下必需的最小 polyfill（`hasPointerCapture`/`setPointerCapture`/`releasePointerCapture`/`scrollIntoView` 与 `ResizeObserver`）。新增用到 radix 原语的测试直接复用，不要重复定义。
 - 测试中 mock 的查询必须在 `render` 之前完成赋值：多数页面在首次 effect 就会取数，render 后再改 mock 不会触发重取。
 - 新增关键 guard、mutation、SSE 或管理写操作时补最小测试，不以现有稀疏覆盖为标准。
@@ -31,9 +31,10 @@ CI 当前未强制 Vitest 和 build；不要在 spec 中把它们描述为已启
 
 - client 开发端口为 5173，admin 为 5174；两个 Vite 配置都把 `/api` 代理到 Business `:8080`，并通过 `@shared` 指向 shared 源码。
 - **`/media` 也必须代理到 MinIO**：两个 `vite.config.mts` 各有 `'/media': { target: 'http://localhost:9000/anime-tracker', rewrite: p => p.replace(/^\/media/, '') }`。浏览器前缀 `/media` 在开发环境由 Vite 重写并转发到 MinIO 桶根，生产环境由 nginx 同源提供（见 [MinIO 公开 URL 与反代前缀](../backend/database-guidelines.md#scenario-minio-图片公开-url-与反代前缀)）。目标是 `/media/{object_name}`（前缀已映射桶根，**不含桶名**），与后端 `MINIO_PUBLIC_BASE_URL=/media` 必须一致；`subject.image` / `user.avatar` 直接作为 `<img src>` 使用，前端不拼接。改动前端代理时若漏掉 `/media`，本地封面/头像全 404。
-- client 额外预打包常用 React、Query、Axios、Zustand 依赖（`vite.config.mts` 的 `optimizeDeps.include`，**不含 Ant Design**）；admin 的分包规则为 `vendor-react`（React 运行时）、`vendor-data`（TanStack/axios/zustand）、`vendor-ui`（radix-ui/sonner）。两个应用都使用显式 manual chunks，`chunkSizeWarningLimit` 为 560 kB（仅警告，不是硬失败阈值）。
+- client 额外预打包 `optimizeDeps.include`（`vite.config.mts`）中的 React/Query/Axios/Zustand，以及 `react-router-dom`、`react-markdown`、`remark-gfm`、`sonner`、`react-dom/client`（**不含 Ant Design**）；admin 的分包规则为 `vendor-react`（React 运行时）、`vendor-data`（TanStack/axios/zustand）、`vendor-ui`（radix-ui/sonner）。两个应用都使用显式 manual chunks，`chunkSizeWarningLimit` 为 560 kB（仅警告，不是硬失败阈值）。
 - admin 已完全去除 Ant Design 与 ECharts 运行时依赖；图表使用 recharts（随 Dashboard 懒加载 chunk 走，不单独拆包）。若构建产物出现 `vendor-antd*` chunk，说明新代码重新引入了 Ant Design，应视为回归。
 - 根 `npm test` 必须实际遍历 workspaces；共享出口、认证、HTTP/SSE 变更至少同时检查 client/admin 消费方。
+- 允许仓库内存在**未被引用的文件**（未接线脚手架、历史遗留）；目录规范只登记被引用的活代码。这类文件不得进入构建产物——若出现在构建输出或 chunk 中，说明它已被接线，应同步更新目录规范。
 
 ## 管理端守卫测试约定
 
