@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "验收：差异清单的判据是否正确套用（ref 链、三态、可访问性）"}
+{"file": ".trellis/tasks/10-12-admin-verify/prd.md", "reason": "本任务 AC1–AC4 原文：差异清单、是否需要改动结论、typecheck/test 基线、无外链"}
+{"file": ".trellis/tasks/10-12-admin-verify/implement.md", "reason": "核对核验是否覆盖外壳/导航/卡片/六页/契约五个维度"}
+{"file": ".trellis/tasks/10-12-rebuild-prep/research/dashboard5-gaps.md", "reason": "核对 conclu 与上游发现一致，未把已对齐项重复列为差异"}

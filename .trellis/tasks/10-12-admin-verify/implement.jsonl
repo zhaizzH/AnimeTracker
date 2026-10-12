@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "核验判据：admin UI 原语契约（asChild 需 forwardRef、jsdom 不报错只能读源码）、卡片三态与可访问性"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "基线门禁：admin typecheck 与 test 作为核验不动代码的对照"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "核验看板卡片与列表页的 query/mutation 契约、AgentChat 的 SSE 归属"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "admin 目录归属与路由约定，作为形态对齐的基准"}
+{"file": ".trellis/tasks/10-12-rebuild-prep/research/dashboard5-gaps.md", "reason": "本任务由该发现触发；含逐卡片真实数据映射与模板 liability 现状"}
+{"file": ".trellis/tasks/10-12-admin-verify/implement.md", "reason": "核验步骤与验证命令"}

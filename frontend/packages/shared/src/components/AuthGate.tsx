@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { useAuthStatus } from '../hooks/useAuthStatus';
 
-// 本组件为 UI 无关外壳：不依赖 antd 主题上下文，也不假设消费应用自带 .auth-gate 样式。
-// 以下字面量取自 client `index.css` 的「暖纸玻璃」令牌，作为两个 app 的共同兜底；
-// client 侧仍由 .od-auth-gate 规则覆盖，admin 则可直接使用这套默认视觉。
+// 本组件为 UI 无关外壳：不依赖主题上下文，也不假设消费应用自带 .auth-gate 样式。
+// 以下字面量是自包含兜底视觉；两端重建以 shadcn 令牌为准后，此处调色板待跟进替换。
+// TODO(ui-infra): 令牌落地后改用 var(--background)/var(--foreground) 等 shadcn 变量，去除硬编码「暖纸玻璃」色值。
 const SHELL = {
   background: '#F7F5F0',
   color: '#23261F',
@@ -71,7 +71,7 @@ export function AuthGate({ children, className }: { children: ReactNode; classNa
     borderRadius: PANEL.borderRadius,
     boxShadow: PANEL.boxShadow,
   } as const;
-  // checking 态的自绘 spinner：client 侧由 .od-auth-gate 的动画规则接管。
+  // checking 态的自绘 spinner：自包含实现，不依赖消费应用的外部动画规则。
   const spinnerStyle = {
     width: 32,
     height: 32,

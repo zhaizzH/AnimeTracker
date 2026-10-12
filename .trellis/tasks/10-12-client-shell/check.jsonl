@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "验收：路由变更须跑 typecheck 与 build"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "核对 fallback 宽度、可访问性（导航可达、图标按钮有 label）、布局壳归属"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "核对路由注册位置与 guards 归属符合规范"}
+{"file": ".trellis/tasks/10-12-client-shell/prd.md", "reason": "本子任务 AC1–AC5 原文：导航跳转、守卫重定向带 state.from、PublicOnly 重定向、typecheck、Agent 挂载"}
+{"file": ".trellis/tasks/10-12-client-shell/implement.md", "reason": "核对模板件处理（删除 dashboard-skeleton/latest-change）、导航改写、路由重建"}

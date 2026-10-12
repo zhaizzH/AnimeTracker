@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Query/mutation/SSE/认证/Zustand 与 URL 状态约定：筛选与 query key、mutation 后失效范围、SSE 消费"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "异步三态显式渲染、0 不作空态、列表 key 用业务 ID、可访问性（aria-live、图标按钮 label、不只靠颜色）"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "页面归属与 @shared 入口导入规则"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "硬约束：JSON 由拦截器解包不二次 .data、SSE 走 streamSse、不使用 any"}
+{"file": ".trellis/tasks/10-12-frontend-rebuild/design.md", "reason": "共享技术设计 §3 数据流与契约、§4 测试策略"}
+{"file": ".trellis/tasks/10-12-client-pages/design.md", "reason": "页面接线对照表与测试契约表：无障碍名/焦点 id 作为测试锚点须先落定"}
+{"file": ".trellis/tasks/10-12-client-pages/implement.md", "reason": "本子任务的有序执行清单与验证命令"}

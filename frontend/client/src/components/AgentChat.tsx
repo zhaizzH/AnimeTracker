@@ -1,6 +1,11 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { Button, Collapse, Empty, Input, message, Space, Typography } from 'antd';
+import { toast } from 'sonner';
+import { ChevronRightIcon } from 'lucide-react';
 import { agentApi, type ChatMsg, useAgentChat } from '@shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 import AgentMarkdown from './AgentMarkdown';
 
 const clientAgentApi = {
@@ -36,19 +41,17 @@ export function useClientAgentChat() {
 
 function ThinkingCollapse({ text, streaming }: { text: string; streaming: boolean }) {
   const [open, setOpen] = useState(true);
-  useEffect(() => { if (!streaming) setOpen(false); }, [streaming]);
+  useEffect(() => {
+    if (!streaming) setOpen(false);
+  }, [streaming]);
   return (
-    <Collapse
-      ghost
-      size="small"
-      activeKey={open ? 'thinking' : []}
-      onChange={(keys) => setOpen(keys.includes('thinking'))}
-      items={[{
-        key: 'thinking',
-        label: <Typography.Text type="secondary">思考过程</Typography.Text>,
-        children: <Typography.Text type="secondary" className="od-agent-thinking">{text}</Typography.Text>,
-      }]}
-    />
+    <Collapsible open={open} onOpenChange={setOpen} className="mb-1">
+      <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+        <ChevronRightIcon className={cn('size-3.5 transition-transform', open && 'rotate-90')} />
+        思考过程
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pt-1 text-xs whitespace-pre-wrap text-muted-foreground">{text}</CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -58,7 +61,9 @@ export function AgentConversation() {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { activate(); }, [activate]);
+  useEffect(() => {
+    activate();
+  }, [activate]);
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
@@ -67,7 +72,7 @@ export function AgentConversation() {
   const prevHealth = useRef(health);
   useEffect(() => {
     if (health === 'unavailable' && prevHealth.current !== 'unavailable') {
-      message.warning({ content: 'AI 助手连接失败，请检查服务', duration: 3 });
+      toast.warning('AI 助手连接失败，请检查服务');
     }
     prevHealth.current = health;
   }, [health]);
@@ -79,37 +84,51 @@ export function AgentConversation() {
   };
 
   const renderMessage = (message: ChatMsg) => (
-    <div key={message.id} className={`od-agent-message od-agent-message--${message.role}`}>
+    <div
+      key={message.id}
+      className={cn(
+        'rounded-lg px-3 py-2 text-sm',
+        message.role === 'user' ? 'ml-auto max-w-[85%] bg-primary text-primary-foreground' : 'mr-auto max-w-[95%] bg-muted',
+      )}
+    >
       {message.thinking && <ThinkingCollapse text={message.thinking} streaming={streaming} />}
-      {message.role === 'assistant' && !message.content ? <Typography.Text type="secondary">思考中…</Typography.Text> : <AgentMarkdown>{message.content}</AgentMarkdown>}
+      {message.role === 'assistant' && !message.content ? (
+        <span className="text-muted-foreground">思考中…</span>
+      ) : (
+        <AgentMarkdown>{message.content}</AgentMarkdown>
+      )}
     </div>
   );
 
   return (
-    <section className="od-agent-conversation" aria-label="AI 对话">
-      <div ref={scrollRef} className="od-agent-messages" aria-live="polite">
-        {messages.length > 0 ? messages.map(renderMessage) : (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={activeId ? '开始一段对话吧' : '正在连接 AI 助手…'} />
+    <section className="flex min-h-0 flex-1 flex-col" aria-label="AI 对话">
+      <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3" aria-live="polite">
+        {messages.length > 0 ? (
+          messages.map(renderMessage)
+        ) : (
+          <p className="m-auto text-sm text-muted-foreground">{activeId ? '开始一段对话吧' : '正在连接 AI 助手…'}</p>
         )}
       </div>
-      <Space.Compact className="od-agent-composer">
+      <div className="flex items-center gap-2 border-t p-2">
         <Input
           aria-label="发送给 AI 助手的消息"
           placeholder="输入消息…"
           value={input}
           disabled={!ready || !activeId}
           onChange={(event) => setInput(event.target.value)}
-          onPressEnter={submit}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.nativeEvent.isComposing) submit();
+          }}
         />
         <Button
-          type="primary"
-          danger={streaming}
+          type="button"
+          variant={streaming ? 'destructive' : 'default'}
           disabled={!ready || !activeId}
           onClick={streaming ? stop : submit}
         >
           {streaming ? '停止' : '发送'}
         </Button>
-      </Space.Compact>
+      </div>
     </section>
   );
 }

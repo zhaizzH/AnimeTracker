@@ -1,16 +1,15 @@
 import { Link } from 'react-router-dom';
 import type { SubjectListItem } from '../types';
 
-// 本组件不再依赖 antd 主题上下文，但仍需跟随 client 的明暗切换：原 theme.useToken() 会随
-// ConfigProvider 解析出对应主题的色值。这里改用 client 已定义的 --od-* 变量（其亮/暗取值与
-// antdTheme / antdThemeDark 逐一对齐）：colorText→--od-ink、colorTextSecondary→--od-ink-2、
-// colorTextTertiary→--od-ink-3、colorBorderSecondary→--od-line；字面量为兜底（与亮色主题一致）。
-// CSS 变量在 React 内联样式里可正常求值并参与级联，故 .dark 翻转时自动跟随。
+// 本组件不依赖任何主题上下文，靠 CSS 变量跟随应用明暗切换。两端重建为 shadcn/Tailwind 后
+// 统一使用 shadcn 令牌：foreground→正文、muted-foreground→次级/三级文字、border→占位底色；
+// 字面量为兜底（与亮色主题一致）。CSS 变量在 React 内联样式里可正常求值并参与级联，
+// 故 .dark 翻转时自动跟随。
 const TOKEN = {
-  border: 'var(--od-line, #ECE9E1)',
-  textTertiary: 'var(--od-ink-3, #A2A69A)',
-  text: 'var(--od-ink, #23261F)',
-  textSecondary: 'var(--od-ink-2, #6E7266)',
+  border: 'var(--border, #E5E5E5)',
+  textTertiary: 'var(--muted-foreground, #A3A3A3)',
+  text: 'var(--foreground, #0A0A0A)',
+  textSecondary: 'var(--muted-foreground, #737373)',
 } as const;
 
 interface Props { subject: SubjectListItem }
@@ -21,7 +20,7 @@ export function SubjectCard({ subject }: Props) {
     : [subject.airDate && subject.airDate.slice(0, 4), subject.eps > 0 && `${subject.eps} 集`].filter(Boolean).join(' · ') || '暂无收录';
   return (
     <Link to={`/subject/${subject.id}`} style={{ display: 'block', color: 'inherit', textDecoration: 'none' }}>
-      <div className="od-card-img" style={{ aspectRatio: '3/4', background: TOKEN.border, overflow: 'hidden' }}>
+      <div style={{ aspectRatio: '3/4', borderRadius: 8, background: TOKEN.border, overflow: 'hidden' }}>
         {subject.image
           ? <img src={subject.image} alt={subject.nameCn ?? subject.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
           : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: TOKEN.textTertiary }}>暂无封面</div>}

@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "验收门禁判定依据：本次是交付型变更（路由、依赖、构建配置全动），typecheck + test + build 三条必须全绿"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "逐条核对硬约束是否仍成立：/api 相对路径、access token 只在内存、JSON 解包不二次 .data、SSE 走 streamSse、shared 命名空间导出、client/admin 不互相导入"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "检查项：可访问性（图标按钮 label、流式区 aria-live、不只用颜色表状态、保留键盘可达）、异步状态显式渲染、0 不作空态、列表 key 用稳定业务 ID、类型所有权与 ID 领域映射未被破坏"}
+{"file": ".trellis/tasks/10-12-frontend-rebuild/prd.md", "reason": "验收标准 AC1–AC7 的原文：含测试覆盖不减少、@shared 重接完整、admin 看板接真实数据、其余六页 loading/empty/error、client 行为对齐现状"}
+{"file": ".trellis/tasks/10-12-frontend-rebuild/implement.md", "reason": "检查实施是否按清单执行、验证命令是否全部运行、deferred 项是否登记、spec 是否按第 9 步更新"}

@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "导入规则：@ 别名指向各应用 src、@shared 入口；本子任务为 client 补齐 @ 别名与 Tailwind 说明的依据"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "样式体系与深色模式约定：主题统一到 html.dark、client 样式体系切换为 Tailwind/shadcn 的依据"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "门禁：路由/依赖/构建配置变更须跑 build"}
+{"file": ".trellis/tasks/10-12-frontend-rebuild/design.md", "reason": "共享技术设计 §2.1 client 基础设施对照表、§2.2 主题统一到 .dark"}
+{"file": ".trellis/tasks/10-12-ui-infra/implement.md", "reason": "本子任务的有序执行清单与验证命令"}

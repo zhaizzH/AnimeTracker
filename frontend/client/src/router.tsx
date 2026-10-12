@@ -1,11 +1,16 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
-import { Spin } from 'antd';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ClientLayout } from './layouts/ClientLayout';
 import { RequireAuth, PublicOnly } from './guards';
 
-// fallback 与页面同宽居中，避免 chunk 加载时从无约束宽 Spinner 跳到 1100 窄容器
-const withLoading = (el: React.ReactNode) => <Suspense fallback={<div style={{ maxWidth: 1100, margin: '0 auto', padding: 24 }}><Spin style={{ display: 'block', margin: '40px auto' }} /></div>}>{el}</Suspense>;
+// fallback 与页面同宽居中，避免 chunk 加载时从无约束宽 Spinner 跳到 1100 窄容器。
+const withLoading = (el: React.ReactNode) => (
+  <Suspense fallback={<div className="mx-auto w-full max-w-[1100px] p-6"><Skeleton className="mx-auto my-10 h-8 w-24" aria-hidden /></div>}>
+    {el}
+  </Suspense>
+);
+
 const Home = lazy(() => import('./pages/Home'));
 const AnimeIndex = lazy(() => import('./pages/AnimeIndex'));
 const Schedule = lazy(() => import('./pages/Schedule'));

@@ -1,0 +1,32 @@
+{
+  "id": "frontend-rebuild",
+  "name": "frontend-rebuild",
+  "title": "重构用户端 client 为 shadcn app-shell-2 外壳",
+  "description": "在 frontend/client 引入 Tailwind v4 + shadcn 基础设施，用 app-shell-2 块替换 Ant Design 布局外壳（ClientLayout），保留现有 12 个页面、路由守卫、认证与主题行为",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "zhaizzH",
+  "assignee": "zhaizzH",
+  "createdAt": "2026-10-12",
+  "completedAt": null,
+  "branch": "feat/frontend-rebuild",
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "10-12-rebuild-prep",
+    "10-12-ui-infra",
+    "10-12-client-shell",
+    "10-12-client-pages",
+    "10-12-admin-verify"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

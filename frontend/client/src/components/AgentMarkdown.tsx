@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 
 function MarkdownTable({ children, ...props }: ComponentPropsWithoutRef<'table'>) {
   return (
-    <div className="od-agent-table-scroll" role="region" aria-label="表格，可横向滚动" tabIndex={0}>
+    <div className="overflow-x-auto" role="region" aria-label="表格，可横向滚动" tabIndex={0}>
       <table {...props}>{children}</table>
     </div>
   );
@@ -12,11 +12,10 @@ function MarkdownTable({ children, ...props }: ComponentPropsWithoutRef<'table'>
 
 export default function AgentMarkdown({ children }: { children: string }) {
   return (
-    <div className="od-agent-markdown">
+    <div className="agent-markdown">
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ table: MarkdownTable }}>
         {children}
       </ReactMarkdown>
     </div>
   );
 }
-

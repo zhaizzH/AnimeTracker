@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "验收：typecheck 与 build 全绿"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "核对 @ 与 @shared 别名并存未冲突、client/admin 未互相导入"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "核对主题写入点唯一（ThemeBridge）、无渲染期副作用"}
+{"file": ".trellis/tasks/10-12-ui-infra/prd.md", "reason": "本子任务 AC1–AC5 原文：两端空壳启动、typecheck、无 antd、暗色实时跟随、build"}
+{"file": ".trellis/tasks/10-12-ui-infra/implement.md", "reason": "核对执行是否覆盖配置三处别名、runner CSS、theme-bridge 移植"}

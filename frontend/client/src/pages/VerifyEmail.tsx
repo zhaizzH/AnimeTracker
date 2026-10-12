@@ -1,33 +1,56 @@
-import { Button, Card, Form, Input, message } from 'antd';
+import { useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { authApi, publishSessionAvailable, useAuthStore } from '@shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { AuthShell, Field } from '@/components/auth/auth-shell';
 
 export default function VerifyEmail() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const email = params.get('email') ?? '';
   const setAuthenticated = useAuthStore((s) => s.setAuthenticated);
-  const onFinish = async (v: { code: string }) => {
+  const [code, setCode] = useState('');
+  const [error, setError] = useState<string>();
+  const [busy, setBusy] = useState(false);
+
+  const onSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (code.length !== 6) return setError('请输入 6 位验证码');
+    setBusy(true);
+    setError(undefined);
     try {
-      const data = await authApi.verifyEmail({ email, code: v.code });
+      const data = await authApi.verifyEmail({ email, code });
       setAuthenticated(data);
       publishSessionAvailable();
-      message.success('邮箱验证成功');
+      toast.success('邮箱验证成功');
       navigate('/', { replace: true });
-    } catch (e) { message.error((e as Error).message); }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
   };
+
   return (
-    <div className="od-auth">
-      <div className="od-brand">AnimeTracker</div>
-      <Card title="验证邮箱">
-        <p style={{ marginTop: 0 }}>验证码已发送至：{email || '（未提供邮箱）'}</p>
-        <Form layout="vertical" onFinish={onFinish}>
-          <Form.Item name="code" label="验证码" rules={[{ required: true, len: 6 }]}>
-            <Input aria-label="验证码" maxLength={6} placeholder="6 位验证码" />
-          </Form.Item>
-          <Button type="primary" htmlType="submit" block>验证</Button>
-        </Form>
-      </Card>
-    </div>
+    <AuthShell title="验证邮箱">
+      <p className="mt-0 mb-4 text-sm text-muted-foreground">验证码已发送至：{email || '（未提供邮箱）'}</p>
+      <form className="grid gap-4" onSubmit={onSubmit} noValidate>
+        <Field id="verify-code" label="验证码" error={error}>
+          <Input
+            id="verify-code"
+            aria-label="验证码"
+            maxLength={6}
+            placeholder="6 位验证码"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+          />
+        </Field>
+        <Button type="submit" className="w-full" disabled={busy}>
+          {busy ? '验证中…' : '验证'}
+        </Button>
+      </form>
+    </AuthShell>
   );
 }

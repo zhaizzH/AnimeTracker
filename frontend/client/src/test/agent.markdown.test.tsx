@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import AgentMarkdown from '../components/AgentMarkdown';
+import AgentMarkdown from '@/components/AgentMarkdown';
 
 describe('AgentMarkdown', () => {
   it('将 GFM 表格渲染为可横向滚动的语义表格', () => {
@@ -18,4 +18,3 @@ describe('AgentMarkdown', () => {
     expect(scrollRegion.querySelector('table')).toBe(table);
   });
 });
-

@@ -2,9 +2,9 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { ClientLayout } from '../layouts/ClientLayout';
-import Agent from '../pages/Agent';
-import { AgentChatProvider, AgentConversation } from '../components/AgentChat';
+import { ClientLayout } from '@/layouts/ClientLayout';
+import Agent from '@/pages/Agent';
+import { AgentChatProvider, AgentConversation } from '@/components/AgentChat';
 import { useAgentChat } from '@shared';
 
 const chat = {
@@ -26,7 +26,7 @@ const authState = vi.hoisted(() => ({
   user: {
     id: 1, username: 'tester', email: 'tester@example.com', nickname: '测试用户',
     role: 'USER', enabled: true, createdAt: '2026-01-01',
-  },
+  } as unknown,
 }));
 
 vi.mock('@shared', async (importOriginal) => {
@@ -47,6 +47,7 @@ vi.mock('@shared', async (importOriginal) => {
       mode: 'light',
       followSystem: false,
       setMode: vi.fn(),
+      toggleFollowSystem: vi.fn(),
     }),
   };
 });
@@ -63,7 +64,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
-  authState.user = { ...authState.user, id: 1, username: 'tester' };
+  authState.user = { ...(authState.user as Record<string, unknown>), id: 1, username: 'tester' };
 });
 afterAll(() => vi.restoreAllMocks());
 
@@ -122,7 +123,7 @@ describe('全局 AI 助手浮窗', () => {
     renderApp();
 
     await user.click(screen.getByRole('button', { name: '打开 AI 助手' }));
-    await user.click(screen.getByRole('link', { name: '前往日程' }));
+    await user.click(screen.getAllByRole('link', { name: '前往日程' })[0]);
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'AI 助手' })).toBeNull());
 
     await user.click(screen.getByRole('button', { name: '打开 AI 助手' }));
@@ -136,7 +137,7 @@ describe('全局 AI 助手浮窗', () => {
     await user.click(screen.getByRole('button', { name: '打开 AI 助手' }));
     expect(screen.getByRole('dialog', { name: 'AI 助手' })).not.toBeNull();
 
-    authState.user = { ...authState.user, id: 2, username: 'another-user' };
+    authState.user = { ...(authState.user as Record<string, unknown>), id: 2, username: 'another-user' };
     view.rerender(app());
 
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'AI 助手' })).toBeNull());

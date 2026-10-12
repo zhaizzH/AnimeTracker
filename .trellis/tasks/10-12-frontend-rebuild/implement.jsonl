@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "前端硬约束：/api 相对路径、token 只存内存、JSON 拦截器解包、SSE 独立通道、shared 命名空间导出；本次变更推翻『两套 UI 体系不混用』一条，实施时按其余约束执行，Phase 3 更新该条"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "组件职责、样式体系（client od-* / admin shadcn 的现状描述）、类型所有权、跨层同步清单；重建后 client 样式体系改为 Tailwind/shadcn、主题写 .dark，需据此改写本文档"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "代码归属与导入规则：@ 别名指向各应用 src、应用统一从 @shared 入口导入、client/admin 不互相导入；重建后需补 client 的 components/ui 与 Tailwind 说明"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Query/mutation/SSE/认证/Zustand 与 URL 状态的既有约定；重建页面时的接线方式须遵循"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "质量门禁：typecheck 强制、按受影响 workspace 跑 test、路由/依赖/构建配置变更再跑 build；本次为交付型变更，三条全跑"}
+{"file": ".trellis/tasks/10-12-frontend-rebuild/design.md", "reason": "本次重建的技术设计：边界与不变量、client 基础设施对照表、主题统一到 .dark、shared 的 antd 清理、dashboard-5 演示资产处理、风险与回滚点"}
+{"file": ".trellis/tasks/10-12-frontend-rebuild/implement.md", "reason": "有序执行清单：0 准备 → 1 保住 shared → 2 删除 → 3 基础设施 → 4 装块 → 5/6 client → 7 admin → 8 门禁 → 9 spec，含验证命令与分阶段回滚点"}

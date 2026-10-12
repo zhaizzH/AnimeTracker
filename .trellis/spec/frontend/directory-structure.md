@@ -4,9 +4,9 @@
 
 ```text
 frontend/
-├── client/                    # 用户端 React，Vite :5173（Ant Design + `od-*` 样式）
+├── client/                    # 用户端 React，Vite :5173（shadcn/ui + Tailwind v4，外壳 @efferd/app-shell-2）
 │   └── src/{pages,components,layouts,test}
-├── admin/                     # 管理端 React，Vite :5174（shadcn/ui + Tailwind）
+├── admin/                     # 管理端 React，Vite :5174（shadcn/ui + Tailwind v4，外壳 @efferd/app-shell-5）
 │   └── src/{pages,components,components/ui,layouts,lib}
 └── packages/shared/           # @animetracker/shared
     └── src/{api,auth,components,hooks,store,types}
@@ -42,4 +42,5 @@ frontend/
 - client 入口：`frontend/client/src/main.tsx`、`router.tsx`
 - admin 入口：`frontend/admin/src/main.tsx`、`router.tsx`
 - admin UI primitives：`frontend/admin/src/components/ui`
+- client UI primitives：`frontend/client/src/components/ui`
 - shared 出口：`frontend/packages/shared/src/index.ts`

@@ -1,33 +1,73 @@
 import { useState } from 'react';
-import { Button, Layout, List, Space, theme } from 'antd';
-import { MenuFoldOutlined, MenuUnfoldOutlined, DeleteOutlined } from '@ant-design/icons';
-import { AgentConversation, useClientAgentChat } from '../components/AgentChat';
-
-const { Sider, Content } = Layout;
+import { TrashIcon, PanelLeftCloseIcon, PanelLeftOpenIcon } from 'lucide-react';
+import { AgentConversation, useClientAgentChat } from '@/components/AgentChat';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function Agent() {
-  const { token } = theme.useToken();
   const { chat } = useClientAgentChat();
   const { sessions, activeId, streaming, ready, select, create, remove } = chat;
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <Layout style={{ height: 'calc(100vh - 64px)' }}>
-      <Sider className="od-sider" theme="light" width={240} breakpoint="lg" collapsedWidth={0} trigger={null} collapsed={collapsed} onCollapse={(c) => setCollapsed(c)} style={{ borderRight: `1px solid ${token.colorBorderSecondary}`, background: token.colorBgContainer }}>
-        <Button type="primary" block style={{ borderRadius: 0, marginBottom: 12 }} disabled={!ready || streaming} onClick={create}>新建会话</Button>
-        <List size="small" dataSource={sessions} renderItem={(s: Record<string, unknown>) => (
-          <List.Item style={{ cursor: ready ? 'pointer' : 'default', padding: '8px 12px', background: String(s.id) === activeId ? token.colorPrimaryBg : undefined }} onClick={() => { if (ready && !streaming) void select(String(s.id)); }}>
-            <Space className="od-session-row">
-              <span className="od-session-title">{String((s as { title?: unknown }).title ?? (s as { id?: unknown }).id)}</span>
-              <Button type="text" danger size="small" className="od-session-delete" icon={<DeleteOutlined />} aria-label="删除会话" disabled={!ready || streaming} onClick={(e) => { e.stopPropagation(); void remove(String(s.id)); }} />
-            </Space>
-          </List.Item>
-        )} />
-      </Sider>
-      <Content style={{ display: 'flex', flexDirection: 'column', padding: 16 }}>
-        <Button type="text" style={{ alignSelf: 'flex-start', marginBottom: 8 }} aria-label={collapsed ? '展开会话列表' : '收起会话列表'} icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed(!collapsed)} />
+    <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-xl border">
+      <aside
+        className={cn('shrink-0 border-r bg-card transition-all', collapsed ? 'w-0 overflow-hidden' : 'w-60')}
+        aria-label="会话列表"
+      >
+        <div className="p-3">
+          <Button className="w-full" disabled={!ready || streaming} onClick={create}>新建会话</Button>
+        </div>
+        <ul className="max-h-full overflow-y-auto px-2 pb-2">
+          {sessions.map((s) => {
+            const id = String((s as { id?: unknown }).id);
+            const title = String((s as { title?: unknown }).title ?? id);
+            return (
+              <li key={id}>
+                <div
+                  className={cn(
+                    'flex items-center gap-1 rounded-md px-2 py-1.5 text-sm',
+                    id === activeId && 'bg-accent text-accent-foreground',
+                  )}
+                >
+                  <button
+                    type="button"
+                    className="min-w-0 flex-1 truncate text-left disabled:cursor-default"
+                    disabled={!ready || streaming}
+                    onClick={() => { if (ready && !streaming) void select(id); }}
+                  >
+                    {title}
+                  </button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="删除会话"
+                    disabled={!ready || streaming}
+                    onClick={() => void remove(id)}
+                  >
+                    <TrashIcon />
+                  </Button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col p-4">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="mb-2 self-start"
+          aria-label={collapsed ? '展开会话列表' : '收起会话列表'}
+          onClick={() => setCollapsed((c) => !c)}
+        >
+          {collapsed ? <PanelLeftOpenIcon /> : <PanelLeftCloseIcon />}
+        </Button>
         <AgentConversation />
-      </Content>
-    </Layout>
+      </div>
+    </div>
   );
 }

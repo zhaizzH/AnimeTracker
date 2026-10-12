@@ -2,8 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import Home from '../pages/Home';
-import './matchMedia';
+import Home from '@/pages/Home';
 
 vi.mock('@shared', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@shared')>();
@@ -14,7 +13,7 @@ vi.mock('@shared', async (importOriginal) => {
       list: vi.fn().mockResolvedValue({ content: [], total: 0 }),
       schedule: vi.fn().mockResolvedValue({
         content: [1, 2, 3].map((i) => ({
-          id: i, name: `anime${i}`, nameCn: null, image: '',
+          id: String(i), name: `anime${i}`, nameCn: null, image: '',
           score: 8, eps: 12, airWeekday: 4, collectionTotal: 100,
         })),
         total: 3, page: 1, size: 50,
@@ -29,13 +28,14 @@ vi.mock('@shared', async (importOriginal) => {
 const renderHome = async () => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(<QueryClientProvider client={qc}><MemoryRouter><Home /></MemoryRouter></QueryClientProvider>);
-  for (let i = 0; i < 30 && !document.querySelector('.od-hero__slide'); i++) {
+  for (let i = 0; i < 30 && !document.querySelector('[data-testid="hero-slide"]'); i++) {
     await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
   }
 };
 
+// 新锚点：当前激活幻灯片的标题（替代旧 .od-hero__slide.is-active .od-hero__title）
 const activeTitle = () =>
-  document.querySelector('.od-hero__slide.is-active .od-hero__title')?.textContent;
+  document.querySelector('[data-testid="hero-slide"][data-active="true"] [data-testid="hero-title"]')?.textContent;
 
 describe('Home hero 自动轮播', () => {
   it('真实计时下按 1→2→3 连续切换', async () => {

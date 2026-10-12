@@ -11,7 +11,7 @@
 
 - Page 负责路由级数据组合；可复用交互拆到 `components`。
 - client/admin 共同使用且不依赖单一应用路由、全局 CSS 或专属运行时的展示组件才进入 shared；`SubjectCard.tsx` 当前依赖 client 的 `.od-card-img` 样式和 `react-router-dom`，属于待治理的共享边界债务。
-- shared 组件必须在 `packages/shared/package.json` 声明自身运行时依赖，不能依赖消费应用“碰巧”安装的包，也不能假设 client 的全局样式一定存在。历史漂移已收敛：shared 曾声明源码未使用的 `react-markdown`（实际使用方是 client/admin），该依赖现已在两个 consumer 的 `package.json` 中声明；`SubjectCard.tsx` 使用的 `react-router-dom` 已在 shared 声明。注意 shared 仍保留 `antd` 依赖（供 client 的 `antdTheme` 使用），shared 源码不直接 import antd 运行时组件。
+- shared 组件必须在 `packages/shared/package.json` 声明自身运行时依赖，不能依赖消费应用“碰巧”安装的包，也不能假设 client 的全局样式一定存在。历史漂移已收敛：shared 曾声明源码未使用的 `react-markdown`（实际使用方是 client/admin），该依赖现已在两个 consumer 的 `package.json` 中声明；`SubjectCard.tsx` 使用的 `react-router-dom` 已在 shared 声明。shared 已不再声明 `antd` 依赖（`antdTheme`/`antdThemeDark` 随本次重建移除），亦不 import 任何 UI 库运行时组件。
 - 复杂状态共享优先 Provider + 自定义 Hook，参考 `AgentChatProvider` 与 `useClientAgentChat`。
 - 路由页面使用 `lazy + Suspense`（client 全量；admin 除 `AdminLogin` 外，该页是静态导入）；fallback 保持接近最终内容宽度，避免布局跳动。
 - 不把 API URL、鉴权刷新或 SSE 解析复制进页面组件。
@@ -28,13 +28,13 @@
 
 ### 样式
 
-- **admin 与 client 是两套独立的 UI 体系，不要混用：**
-  - admin：shadcn/ui（`admin/src/components/ui/*`）+ Tailwind CSS v4。UI 基础使用 `components/ui` 下的 primitive，不要在新代码里引入 Ant Design。
-  - client：Ant Design 与 shared 主题 token。
-- client 的页面视觉使用 `index.css` 中 `od-*` 类名；不要在组件中扩散大段重复 inline style。
-- 少量一次性布局可使用布局工具类或 inline style，重复后提取 class/组件。
-- 深色模式由 client `Shell` 同步 `html.dark` 与 `color-scheme`。
-- admin 已支持暗色（`next-themes` + Tailwind `dark:` 变体 + `@custom-variant`），其 `index.css` 中共享 AntD reset 的遗留注释已不再对应实际实现。
+- **client 与 admin 使用同一套 UI 栈（shadcn/ui + Tailwind v4 + shadcn 令牌），不要引入其他 UI 库：**
+  - admin：shadcn/ui（`admin/src/components/ui/*`）+ Tailwind CSS v4 + shadcn 令牌。UI 基础使用 `components/ui` 下的 primitive，不要在新代码里引入其他 UI 库。
+  - client：与 admin 同栈——shadcn/ui（`client/src/components/ui/*`）+ Tailwind CSS v4 + shadcn 令牌，外壳为 `@efferd/app-shell-2`。
+- client 的页面样式使用 shadcn/Tailwind 令牌（`bg-background`、`text-foreground`、`text-muted-foreground`、`border` 等）；不要在组件中扩散大段重复 inline style。
+- 深色模式由两端的 `ThemeBridge` 同步 `html.dark` 与 `color-scheme`（唯一写入点）。
+- 两端均支持暗色（Tailwind `dark:` 变体 + `@custom-variant dark (&:is(.dark *))`），统一以 `html.dark` 为切换开关。
+- 令牌来源：各应用 `src/index.css` 的 `@theme inline` 块（shadcn CSS 变量，light/`.dark` 双套）；新颜色/圆角一律用令牌，不要硬编码色值。
 
 ### UI 原语契约（admin）
 
@@ -54,7 +54,7 @@
 ### 副作用与当前债务
 
 - DOM 写入、主题订阅和通知等副作用必须放在 effect 或用户事件中；不要在 render 阶段调用 `message`、导航或直接修改 DOM。
-- 当前 `client/src/main.tsx` 在主题同步上直接操作 DOM，后续修复必须补对应测试。（`admin/src/guards.tsx` 的 render 阶段通知已在 admin 迁移中修复：改为 `useEffect` + `@/lib/toast`。）
+- 主题同步的唯一写入点是两端各自的 `src/components/theme-bridge.tsx`（含 `matchMedia` 跟随系统）；不得在 `main.tsx` 或 render 阶段直接操作 DOM。
 
 ### 常见错误
 

@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "验收：client 测试通过且覆盖不减少（对照原 16 用例）、typecheck 通过"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "逐页核对三态渲染、0 空态、key、可访问性与键盘可达"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "核对 mutation 后失效权威 query、筛选状态与 URL 同步、SSE 消费未复制进组件"}
+{"file": ".trellis/tasks/10-12-client-pages/prd.md", "reason": "本子任务 AC1–AC6 原文：接真实 API、行为对齐、三态、测试覆盖、无 antd、无障碍"}
+{"file": ".trellis/tasks/10-12-client-pages/implement.md", "reason": "核对页面清单与测试重写是否全部执行"}

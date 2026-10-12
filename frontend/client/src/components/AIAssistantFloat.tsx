@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Tooltip } from 'antd';
-import { CloseOutlined, ExpandOutlined, RobotOutlined } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { BotIcon, MaximizeIcon, XIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 import { AgentConversation } from './AgentChat';
 
 export default function AIAssistantFloat() {
@@ -10,7 +12,9 @@ export default function AIAssistantFloat() {
   const navigate = useNavigate();
   const wasOpen = useRef(false);
 
-  useEffect(() => { setOpen(false); }, [location.key]);
+  useEffect(() => {
+    setOpen(false);
+  }, [location.key]);
   useEffect(() => {
     if (!open) return;
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -20,16 +24,15 @@ export default function AIAssistantFloat() {
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [open]);
   useEffect(() => {
-    if (open) document.getElementById('od-agent-float-close')?.focus();
-    else if (wasOpen.current) document.getElementById('od-agent-float-trigger')?.focus();
+    if (open) document.getElementById('agent-float-close')?.focus();
+    else if (wasOpen.current) document.getElementById('agent-float-trigger')?.focus();
     wasOpen.current = open;
   }, [open]);
 
+  // 冗余尾斜杠视为同一路径（`/agent/` 与 `/agent`）。
   if (location.pathname.replace(/\/+$/, '') === '/agent') return null;
 
-  const toggle = () => {
-    setOpen((current) => !current);
-  };
+  const toggle = () => setOpen((current) => !current);
   const openFullAgent = () => {
     setOpen(false);
     navigate('/agent');
@@ -37,37 +40,56 @@ export default function AIAssistantFloat() {
 
   return (
     <>
-      <Tooltip title="AI 助手" placement="left">
-        <Button
-          id="od-agent-float-trigger"
-          className={`od-agent-float-trigger${open ? ' od-agent-float-trigger--open' : ''}`}
-          type="primary"
-          shape="circle"
-          icon={<RobotOutlined />}
-          aria-label={open ? '关闭 AI 助手' : '打开 AI 助手'}
-          aria-expanded={open}
-          onClick={toggle}
-        />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            id="agent-float-trigger"
+            type="button"
+            size="icon"
+            className={cn('fixed right-6 bottom-6 z-40 size-12 rounded-full shadow-lg', open && 'ring-2 ring-ring')}
+            aria-label={open ? '关闭 AI 助手' : '打开 AI 助手'}
+            aria-expanded={open}
+            onClick={toggle}
+          >
+            <BotIcon />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="left">AI 助手</TooltipContent>
       </Tooltip>
       {open && (
-        <section id="od-agent-float-panel" className="od-agent-float-panel" role="dialog" aria-modal="false" aria-label="AI 助手">
-          <header className="od-agent-float-title">
-            <h2>AI 助手</h2>
-            <div className="od-agent-float-actions">
-            <Tooltip title="打开完整助手">
-              <Button type="text" size="small" icon={<ExpandOutlined />} aria-label="打开完整助手" onClick={openFullAgent} />
-            </Tooltip>
+        <section
+          id="agent-float-panel"
+          role="dialog"
+          aria-modal="false"
+          aria-label="AI 助手"
+          className="fixed right-6 bottom-24 z-40 flex h-[28rem] w-[22rem] max-w-[calc(100vw-3rem)] flex-col rounded-xl border bg-background shadow-2xl"
+        >
+          <header className="flex items-center gap-2 border-b p-3">
+            <h2 className="text-sm font-medium">AI 助手</h2>
+            <div className="ml-auto flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon-sm" aria-label="打开完整助手" onClick={openFullAgent}>
+                    <MaximizeIcon />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>打开完整助手</TooltipContent>
+              </Tooltip>
               <Button
-                id="od-agent-float-close"
-                type="text"
-                size="small"
-                icon={<CloseOutlined />}
+                id="agent-float-close"
+                type="button"
+                variant="ghost"
+                size="icon-sm"
                 aria-label="关闭 AI 助手对话框"
                 onClick={() => setOpen(false)}
-              />
+              >
+                <XIcon />
+              </Button>
             </div>
           </header>
-          <div className="od-agent-float-body"><AgentConversation /></div>
+          <div className="flex min-h-0 flex-1 flex-col">
+            <AgentConversation />
+          </div>
         </section>
       )}
     </>

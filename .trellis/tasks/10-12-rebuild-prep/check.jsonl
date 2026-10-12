@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "验收：shared 的 typecheck 与 test 必须通过才算清理完成"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "核对 SubjectCard 的 od-* 依赖改写后是否仍满足组件规范；类型映射未被破坏"}
+{"file": ".trellis/tasks/10-12-rebuild-prep/prd.md", "reason": "本子任务 AC1–AC5 原文：tag、核对表、字段缺口回报、shared 校验、无 antd 残留"}
+{"file": ".trellis/tasks/10-12-rebuild-prep/implement.md", "reason": "核对执行是否覆盖全部步骤与验证命令"}

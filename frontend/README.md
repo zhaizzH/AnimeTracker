@@ -29,7 +29,7 @@ frontend/
 │       ├── pages/           # Home / AnimeIndex / SubjectDetail / Schedule / MyCollections / Profile / Agent / 认证页
 │       ├── components/ layouts/ hooks/ styles/ guards.tsx router.tsx
 │       └── test/            # vitest 用例
-├── admin/                   # 管理端 SPA（Vite :5174，含 Tailwind）
+├── admin/                   # 管理端 SPA（Vite :5174，shadcn/ui + Tailwind）
 │   ├── vite.config.mts      # /api → http://localhost:8080 代理
 │   └── src/
 │       ├── pages/           # Dashboard / Subjects / Users / Import / Logs / AgentChat / AgentConfig / AdminLogin
@@ -54,7 +54,7 @@ frontend/
 | TypeScript | 5 | 类型 |
 | Vite | 5 | 构建与开发服务器 |
 | Vitest | 2 | 单元测试 |
-| Ant Design | 5（shared 固定 `^5.29.3`） | 组件库 |
+| shadcn/ui + Tailwind CSS | 4 | 组件库与样式（两端同栈；client `@efferd/app-shell-2`，admin `@efferd/app-shell-5`） |
 | TanStack Query | 5 | 服务端状态 |
 | Zustand | 4 | 客户端状态 |
 | React Router | 7 | 路由 |
@@ -92,5 +92,5 @@ npm run build       # client + admin 产物构建
 
 ## 待补充
 
-1. **页面/组件开发规范**：路由守卫、TanStack Query 键约定、antd 主题定制的成文规范暂无。
+1. **页面/组件开发规范**：路由守卫、TanStack Query 键约定、shadcn 令牌定制的成文规范暂无。
 2. **shared 包发布边界**：`@animetracker/shared` 仅供仓内消费，无独立版本与发布流程。

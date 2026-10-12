@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "准备阶段的校验依据：shared 清理后按受影响 workspace 跑 typecheck 与 test"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "类型所有权与 ID 领域映射（string vs number）：核对表与 shared 清理时不得破坏既有映射"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "硬约束清单：确认删除后 shared 仍满足 /api 相对路径、token 只存内存、命名空间导出等"}
+{"file": ".trellis/tasks/10-12-frontend-rebuild/design.md", "reason": "共享技术设计的边界与不变量一节：删除范围与保留范围的定义"}
+{"file": ".trellis/tasks/10-12-rebuild-prep/implement.md", "reason": "本子任务的有序执行清单与验证命令"}

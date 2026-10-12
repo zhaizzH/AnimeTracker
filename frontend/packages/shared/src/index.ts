@@ -8,7 +8,6 @@ export type { ThemeMode } from './store/theme';
 export { SubjectCard } from './components/SubjectCard';
 export * from './api/http';
 export * from './sse';
-export { antdTheme, antdThemeDark } from './theme';
 export { useBootstrapAuth } from './hooks/useBootstrapAuth';
 export { AuthGate } from './components/AuthGate';
 export { useAuthStatus } from './hooks/useAuthStatus';

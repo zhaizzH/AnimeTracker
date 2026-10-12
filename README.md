@@ -132,7 +132,7 @@ flowchart LR
 
 | 领域 | 选型与版本 | 用途与说明 |
 |:---|:---|:---|
-| **用户端 / 管理端** | React 18, TypeScript 5, Vite 5, Ant Design 5, TanStack Query 5, Zustand 4, React Router 7 | 响应式单页应用，通过 npm Workspaces 共享 `@animetracker/shared` 逻辑包 |
+| **用户端 / 管理端** | React 18, TypeScript 5, Vite 5, shadcn/ui + Tailwind CSS v4, TanStack Query 5, Zustand 4, React Router 7 | 响应式单页应用，通过 npm Workspaces 共享 `@animetracker/shared` 逻辑包 |
 | **数据可视化** | ECharts 6, `echarts-for-react` 3 | 管理端数据看板图表与统计分析 |
 | **业务后端** | Java 21, Spring Boot 3.2.0, MyBatis-Plus 3.5.5, JJWT 0.12.3 | 核心 REST API、端口适配器分层架构、JWT 鉴权、Agent 请求代理 |
 | **AI 智能体** | Python 3.10+, FastAPI, LangGraph, LangChain, SSE | 状态图路由、工具编排、上下文与多轮对话管理、流式事件派发 |

@@ -1,0 +1,62 @@
+client/src/components/AgentChat.tsx:3:import { agentApi, type ChatMsg, useAgentChat } from '@shared';
+client/src/components/CollectionActions.tsx:3:import { collectionsApi, useAuthStore } from '@shared';
+client/src/components/CollectionActions.tsx:4:import type { CollectionType } from '@shared';
+client/src/components/ProgressPreviewModal.tsx:3:import { collectionsApi } from '@shared';
+client/src/components/ProgressPreviewModal.tsx:4:import type { ExecuteResultVO, ProgressPreviewVO } from '@shared';
+client/src/components/SubjectGrid.tsx:2:import { SubjectCard } from '@shared';
+client/src/components/SubjectGrid.tsx:3:import type { SubjectListItem } from '@shared';
+client/src/guards.tsx:3:import { useAuthStore } from '@shared';
+client/src/layouts/ClientLayout.tsx:5:import { useAuthStore, authApi, completeLogout, useThemeStore, resolveMode } from '@shared';
+client/src/main.tsx:6:import { antdTheme, antdThemeDark, AuthGate, useBootstrapAuth, useThemeStore, resolveMode } from '@shared';
+client/src/pages/AnimeIndex.tsx:5:import { subjectsApi, tagsApi } from '@shared';
+client/src/pages/ForgotPassword.tsx:3:import { authApi } from '@shared';
+client/src/pages/Home.tsx:5:import { subjectsApi } from '@shared';
+client/src/pages/Login.tsx:3:import { authApi, publishSessionAvailable, useAuthStore } from '@shared';
+client/src/pages/MyCollections.tsx:5:import { collectionsApi } from '@shared';
+client/src/pages/MyCollections.tsx:6:import type { CollectionType } from '@shared';
+client/src/pages/Profile.tsx:6:import { authApi, filesApi, useAuthStore, formatDate, publishSignedOut } from '@shared';
+client/src/pages/Register.tsx:3:import { authApi } from '@shared';
+client/src/pages/ResetPassword.tsx:3:import { authApi } from '@shared';
+client/src/pages/Schedule.tsx:5:import { subjectsApi } from '@shared';
+client/src/pages/SubjectDetail.tsx:4:import { SubjectCard, subjectsApi, formatDate } from '@shared';
+client/src/pages/VerifyEmail.tsx:3:import { authApi, publishSessionAvailable, useAuthStore } from '@shared';
+client/src/test/agent.float.test.tsx:8:import { useAgentChat } from '@shared';
+client/src/test/agent.float.test.tsx:32:vi.mock('@shared', async (importOriginal) => {
+client/src/test/agent.float.test.tsx:33:  const actual = await importOriginal<typeof import('@shared')>();
+client/src/test/home.hero.test.tsx:8:vi.mock('@shared', async (importOriginal) => {
+client/src/test/home.hero.test.tsx:9:  const actual = await importOriginal<typeof import('@shared')>();
+admin/src/components/dashboard/audience-mix.tsx:3:import type { CollectionStatsVO } from '@shared';
+admin/src/components/dashboard/browser-share.tsx:3:import type { SubjectStatsVO } from '@shared';
+admin/src/components/dashboard/top-countries.tsx:3:import type { SubjectStatsVO } from '@shared';
+admin/src/components/dashboard/top-pages.tsx:3:import type { HotItemVO } from '@shared';
+admin/src/components/dashboard/top-referrers.tsx:3:import type { SubjectStatsVO } from '@shared';
+admin/src/components/dashboard/traffic-sources-chart.tsx:3:import type { CollectionStatsVO } from '@shared';
+admin/src/components/dashboard/visitors-chart.tsx:5:import type { TrendPointVO } from '@shared';
+admin/src/components/nav-user.tsx:2:import { useAuthStore } from '@shared';
+admin/src/components/theme-bridge.tsx:2:import { resolveMode, useThemeStore } from '@shared';
+admin/src/components/theme-switcher.tsx:2:import { useThemeStore } from '@shared';
+admin/src/guards.test.tsx:16:vi.mock('@shared', () => ({
+admin/src/guards.tsx:5:import { useAuthStore } from '@shared';
+admin/src/layouts/AdminLayout.test.tsx:6:import { useThemeStore } from '@shared';
+admin/src/layouts/AdminLayout.test.tsx:21:vi.mock('@shared', async (importOriginal) => {
+admin/src/layouts/AdminLayout.test.tsx:22:  const actual = await importOriginal<typeof import('@shared')>();
+admin/src/layouts/AdminLayout.tsx:3:import { authApi, completeLogout } from '@shared';
+admin/src/main.tsx:6:import { AuthGate, useBootstrapAuth } from '@shared';
+admin/src/pages/AdminLogin.test.tsx:13:vi.mock('@shared', () => ({
+admin/src/pages/AdminLogin.tsx:3:import { authApi, publishSessionAvailable, useAuthStore } from '@shared';
+admin/src/pages/AgentChat.test.tsx:22:vi.mock('@shared', () => ({
+admin/src/pages/AgentChat.tsx:3:import { adminAgentApi, useAgentChat, type ChatMsg } from '@shared';
+admin/src/pages/AgentConfig.test.tsx:14:vi.mock('@shared', () => ({ adminAgentApi }));
+admin/src/pages/AgentConfig.tsx:3:import { adminAgentApi } from '@shared';
+admin/src/pages/Dashboard.test.tsx:17:vi.mock('@shared', async (importOriginal) => {
+admin/src/pages/Dashboard.test.tsx:18:  const actual = await importOriginal<typeof import('@shared')>();
+admin/src/pages/Dashboard.tsx:3:import { adminDashboardApi } from '@shared';
+admin/src/pages/Import.test.tsx:15:vi.mock('@shared', () => ({ adminImportApi }));
+admin/src/pages/Import.tsx:3:import { adminImportApi } from '@shared';
+admin/src/pages/Logs.test.tsx:8:vi.mock('@shared', () => ({ adminLogsApi }));
+admin/src/pages/Logs.tsx:3:import { adminLogsApi } from '@shared';
+admin/src/pages/Subjects.test.tsx:15:vi.mock('@shared', () => ({ subjectsApi, tagsApi, adminSubjectsApi }));
+admin/src/pages/Subjects.tsx:3:import { adminSubjectsApi, subjectsApi, tagsApi } from '@shared';
+admin/src/pages/Users.test.tsx:6:import type { UserVO } from '@shared';
+admin/src/pages/Users.test.tsx:16:vi.mock('@shared', () => ({ adminUsersApi }));
+admin/src/pages/Users.tsx:3:import { adminUsersApi, type UserRole, type UserVO } from '@shared';
