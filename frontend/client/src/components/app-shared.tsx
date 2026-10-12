@@ -47,8 +47,6 @@ const PATH_TITLES: Array<[RegExp, string]> = [
   [/^\/my-collections/, '我的追番'],
   [/^\/agent/, 'AI 助手'],
   [/^\/profile/, '个人中心'],
-  [/^\/login/, '登录'],
-  [/^\/register/, '注册'],
   [/^\/verify-email/, '邮箱验证'],
   [/^\/forgot-password/, '找回密码'],
   [/^\/reset-password/, '重置密码'],

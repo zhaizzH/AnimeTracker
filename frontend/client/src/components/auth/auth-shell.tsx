@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 
 export function AuthShell({ title, children, footer }: { title: string; children: ReactNode; footer?: ReactNode }) {
   return (
-    <div className="mx-auto flex min-h-[60vh] w-full max-w-sm flex-col justify-center gap-4 py-8">
+    <div className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center gap-4 py-8">
       <div className="text-center text-xl font-semibold tracking-tight">AnimeTracker</div>
       <div className="rounded-xl border bg-card p-6 shadow-sm">
         <h1 className="mb-4 text-lg font-medium">{title}</h1>

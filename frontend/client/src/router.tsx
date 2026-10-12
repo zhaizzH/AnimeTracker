@@ -18,13 +18,19 @@ const SubjectDetail = lazy(() => import('./pages/SubjectDetail'));
 const MyCollections = lazy(() => import('./pages/MyCollections'));
 const Agent = lazy(() => import('./pages/Agent'));
 const Profile = lazy(() => import('./pages/Profile'));
-const Login = lazy(() => import('./pages/Login'));
-const Register = lazy(() => import('./pages/Register'));
+const Login = lazy(() => import('./components/auth/auth-page').then((m) => ({ default: m.AuthPage })));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 
 export const router = createBrowserRouter([
+  // 认证页面独立于 AppShell：登录/注册等页面独占整屏，不渲染侧栏与顶栏。
+  { path: '/login', element: <PublicOnly>{withLoading(<Login />)}</PublicOnly> },
+  // 注册已并入登录面板（同一面板内切换），保留旧路径并重定向。
+  { path: '/register', element: <PublicOnly><Navigate to="/login" replace /></PublicOnly> },
+  { path: '/verify-email', element: <PublicOnly>{withLoading(<VerifyEmail />)}</PublicOnly> },
+  { path: '/forgot-password', element: <PublicOnly>{withLoading(<ForgotPassword />)}</PublicOnly> },
+  { path: '/reset-password', element: <PublicOnly>{withLoading(<ResetPassword />)}</PublicOnly> },
   {
     path: '/',
     element: <ClientLayout />,
@@ -36,11 +42,6 @@ export const router = createBrowserRouter([
       { path: 'my-collections', element: <RequireAuth>{withLoading(<MyCollections />)}</RequireAuth> },
       { path: 'agent', element: <RequireAuth>{withLoading(<Agent />)}</RequireAuth> },
       { path: 'profile', element: <RequireAuth>{withLoading(<Profile />)}</RequireAuth> },
-      { path: 'login', element: <PublicOnly>{withLoading(<Login />)}</PublicOnly> },
-      { path: 'register', element: <PublicOnly>{withLoading(<Register />)}</PublicOnly> },
-      { path: 'verify-email', element: <PublicOnly>{withLoading(<VerifyEmail />)}</PublicOnly> },
-      { path: 'forgot-password', element: <PublicOnly>{withLoading(<ForgotPassword />)}</PublicOnly> },
-      { path: 'reset-password', element: <PublicOnly>{withLoading(<ResetPassword />)}</PublicOnly> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
