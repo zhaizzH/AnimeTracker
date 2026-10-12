@@ -4,9 +4,9 @@
 
 ```text
 frontend/
-├── client/                    # 用户端 React，Vite :5173（shadcn/ui + Tailwind v4，外壳 @efferd/app-shell-2）
+├── client/                    # 用户端 React，Vite :5173（shadcn/ui + Tailwind v4，外壳 components/app-shell.tsx）
 │   └── src/{pages,components,layouts,test}
-├── admin/                     # 管理端 React，Vite :5174（shadcn/ui + Tailwind v4，外壳 @efferd/app-shell-5）
+├── admin/                     # 管理端 React，Vite :5174（shadcn/ui + Tailwind v4，外壳 layouts/AdminLayout.tsx）
 │   └── src/{pages,components,components/ui,layouts,lib}
 └── packages/shared/           # @animetracker/shared
     └── src/{api,auth,components,hooks,store,types}
@@ -35,7 +35,7 @@ frontend/
 
 - 页面：`Dashboard`、`Users`、`Subjects`、`Import`、`Logs`、`AgentConfig`、`AgentChat`、`AdminLogin`。
 - 除 `AdminLogin` 静态导入外，其余页面在 `router.tsx` 中 `lazy` + Suspense。
-- `AdminLogin` 用独立的 `AdminLoginShell` 布局；其余页共享 `AdminLayout`。
+- `AdminLogin` 是独立路由页，不经任何 shell 包裹，直接渲染；其余页共享 `AdminLayout`。
 
 ## 参考
 

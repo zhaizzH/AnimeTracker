@@ -26,7 +26,7 @@
 - 普通 JSON 响应由 shared HTTP 拦截器解包；SSE 使用 fetch 流，不能混用。
 - shared API 以命名空间导出，避免 `list/remove/schedule` 等同名冲突。
 - client 与 admin 不互相导入源码，共享能力进入 `@animetracker/shared`。
-- client 与 admin 统一为 shadcn/ui（`components/ui`）+ Tailwind CSS v4 + shadcn 令牌；已全面移除 Ant Design。client 外壳用 `@efferd/app-shell-2`，admin 用 `@efferd/app-shell-5`，两端各自维护 `components/ui`。
+- client 与 admin 统一为 shadcn/ui（`components/ui`）+ Tailwind CSS v4 + shadcn 令牌；已全面移除 Ant Design。外壳是各应用自己维护的**本地代码**（client 为 `client/src/components/app-shell.tsx` 的 `AppShell`，admin 为 `admin/src/layouts/AdminLayout.tsx`），不存在可安装的 `@efferd/app-shell-*` 包——`@efferd` 只是 `components.json` 里的 shadcn **registry 源**（`https://efferd.com/r/{style}/{name}.json`），经它 `add` 进来的组件必须按本地约定手工修正后再用。两端各自维护 `components/ui`。
 - Agent 工具能力由后端角色路由决定，不能从前端页面或“思考过程”文本推断 RAG 已启用；联调时阅读 [Agent 运行与提示词契约](../backend/agent-guidelines.md#agent-角色提示词与流式输出契约)。
 
 ## 质量检查

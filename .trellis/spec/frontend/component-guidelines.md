@@ -10,7 +10,7 @@
 ### 组件职责
 
 - Page 负责路由级数据组合；可复用交互拆到 `components`。
-- client/admin 共同使用且不依赖单一应用路由、全局 CSS 或专属运行时的展示组件才进入 shared；`SubjectCard.tsx` 当前依赖 client 的 `.od-card-img` 样式和 `react-router-dom`，属于待治理的共享边界债务。
+- client/admin 共同使用且不依赖单一应用路由、全局 CSS 或专属运行时的展示组件才进入 shared；`SubjectCard.tsx` 当前仍依赖 `react-router-dom`，属于待治理的共享边界债务（历史债务 `.od-card-img` 与 `--od-*` 变量层已随本次重建退场，shared 组件改用 shadcn 令牌）。
 - shared 组件必须在 `packages/shared/package.json` 声明自身运行时依赖，不能依赖消费应用“碰巧”安装的包，也不能假设 client 的全局样式一定存在。历史漂移已收敛：shared 曾声明源码未使用的 `react-markdown`（实际使用方是 client/admin），该依赖现已在两个 consumer 的 `package.json` 中声明；`SubjectCard.tsx` 使用的 `react-router-dom` 已在 shared 声明。shared 已不再声明 `antd` 依赖（`antdTheme`/`antdThemeDark` 随本次重建移除），亦不 import 任何 UI 库运行时组件。
 - 复杂状态共享优先 Provider + 自定义 Hook，参考 `AgentChatProvider` 与 `useClientAgentChat`。
 - 路由页面使用 `lazy + Suspense`（client 全量；admin 除 `AdminLogin` 外，该页是静态导入）；fallback 保持接近最终内容宽度，避免布局跳动。
@@ -30,7 +30,7 @@
 
 - **client 与 admin 使用同一套 UI 栈（shadcn/ui + Tailwind v4 + shadcn 令牌），不要引入其他 UI 库：**
   - admin：shadcn/ui（`admin/src/components/ui/*`）+ Tailwind CSS v4 + shadcn 令牌。UI 基础使用 `components/ui` 下的 primitive，不要在新代码里引入其他 UI 库。
-  - client：与 admin 同栈——shadcn/ui（`client/src/components/ui/*`）+ Tailwind CSS v4 + shadcn 令牌，外壳为 `@efferd/app-shell-2`。
+  - client：与 admin 同栈——shadcn/ui（`client/src/components/ui/*`）+ Tailwind CSS v4 + shadcn 令牌，外壳为本应用自维护的 `client/src/components/app-shell.tsx`。
 - client 的页面样式使用 shadcn/Tailwind 令牌（`bg-background`、`text-foreground`、`text-muted-foreground`、`border` 等）；不要在组件中扩散大段重复 inline style。
 - 深色模式由两端的 `ThemeBridge` 同步 `html.dark` 与 `color-scheme`（唯一写入点）。
 - 两端均支持暗色（Tailwind `dark:` 变体 + `@custom-variant dark (&:is(.dark *))`），统一以 `html.dark` 为切换开关。

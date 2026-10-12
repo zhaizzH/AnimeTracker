@@ -66,7 +66,7 @@ backend/agent/                # FastAPI + LangGraph，:8090
 
 证据：`backend/agent/main.py`、`backend/agent/app/agent/dependencies.py`。
 
-### app/rag 模块结构（ADR 0001，2026-10-05，提交 `08799fdb`）
+### app/rag 模块结构（2026-10-05，提交 `08799fdb`）
 
 `retrieval.py` 曾达 1030 行、23 个方法，按管线阶段拆四模块（move-only，行为零变化）：
 

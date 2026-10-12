@@ -1,6 +1,6 @@
 # AnimeTracker 文档目录
 
-> **一句话定位**：本目录存放项目级文档——数据库建表脚本与版本化迁移、OpenAPI 接口规范、后端编码规范，以及复盘与规划记录。
+> **一句话定位**：本目录存放项目级文档——数据库建表脚本、OpenAPI 接口规范，以及复盘记录。后端编码规范与 AI 面向的可执行契约已统一收敛到 `.trellis/spec/`，本目录不再单独维护。
 
 > 返回项目总览：[`../README.md`](../README.md)
 
@@ -9,8 +9,8 @@
 - **新环境搭建**：用 `database/db-schema.sql` 初始化 MySQL 库表。
 - **存量库结构变更**：仓库不提供前向迁移脚本，需按评审结论手工执行 `ALTER` 或走重建流程（见下文「数据库」）。
 - **接口对接**：用 `spec/openapi.yaml` 查看 business 对外 REST 接口的请求与响应结构。
-- **后端开发**：用 `conventions/backend-conventions.md` 对齐错误拦截与代码注释规范。
-- **了解项目演进**：用 `retrospective/` 与 `superpowers/` 回溯设计决策与实施计划。
+- **后端开发**：用 `../.trellis/spec/backend/error-handling.md` 与 `../.trellis/spec/backend/quality-guidelines.md` 对齐错误拦截、统一响应与代码注释规范。
+- **了解项目演进**：用 `retrospective/` 与 `superpowers/` 回溯设计决策与实施计划；长期架构决策见 [`../.trellis/spec/adr/`](../.trellis/spec/adr/README.md)。
 
 ---
 
@@ -18,14 +18,13 @@
 
 | 目录 | 说明 | 是否纳入版本控制 |
 |------|------|-----------------|
-| [`conventions/`](conventions/) | 项目规范：[`backend-conventions.md`](conventions/backend-conventions.md)（后端错误拦截与代码注释规范） | 是 |
-| [`database/`](database/) | 数据库脚本：`db-schema.sql`（完整建表）与两份版本化前向迁移 | 是 |
+| [`database/`](database/) | 数据库脚本：`db-schema.sql`（完整建表）；**不提供版本化前向迁移** | 是 |
 | [`spec/`](spec/) | API 规范：[`openapi.yaml`](spec/openapi.yaml)（OpenAPI 3.0 接口定义，共 68 个路径） | 是 |
 | [`retrospective/`](retrospective/) | 项目复盘：[`项目复盘.md`](retrospective/项目复盘.md) | 是 |
 | `superpowers/` | 规划文档：`handoff/`（交接说明）、`plans/`（实施计划）、`specs/`（设计文档），按日期命名 | **否**（已被 `.gitignore` 忽略） |
 | `api/` | 第三方 Bangumi API 文档（独立 Git 仓库，非本项目源码） | **否**（已被 `.gitignore` 忽略） |
 
-> 历史上提到的 `architecture/`（模块边界与 ADR）与 `test/`（测试计划与报告）目录在当前代码树中不存在，相关链接已移除。模块边界约束现已由 `backend/business/app/src/test/java/top/zhaizz/app/architecture/ArchitectureBoundaryTest.java` 以 ArchUnit 落地强制。
+> 本目录实际只含 `database/`、`spec/`、`retrospective/` 三项（`api/`、`superpowers/` 为本地未入库产物）。历史上提到的 `conventions/`、`architecture/`（模块边界与 ADR）、`test/` 目录在当前代码树中不存在，相关链接已移除：后端编码规范并入 `../.trellis/spec/backend/`，架构决策并入 [`../.trellis/spec/adr/`](../.trellis/spec/adr/README.md)。模块边界约束现已由 `backend/business/app/src/test/java/top/zhaizz/app/architecture/ArchitectureBoundaryTest.java` 以 ArchUnit 落地强制。
 
 ---
 
@@ -47,7 +46,7 @@
 
 | 脚本 | 用途 | 幂等性 |
 |------|------|--------|
-| [`db-schema.sql`](database/db-schema.sql) | **全新空库**的完整结构事实来源，共 20 张表 | 否，必须空库执行 |
+| [`db-schema.sql`](database/db-schema.sql) | **全新空库**的完整结构事实来源，共 20 张表（`docs/database/` 下唯一脚本） | 否，必须空库执行 |
 
 > 仓库不提供前向迁移脚本（历史 `migration-002` / `migration-003` 已移除）。存量库的结构变更需经评审后手工执行 `ALTER` / 数据回填；涉及删表合并时走重建流程：备份用户表 → 全量执行 `db-schema.sql` → 恢复用户表 → full import 重灌派生数据。
 
@@ -88,7 +87,7 @@
 | `search_document` | MySQL `ngram` FULLTEXT 词法投影（按实体类型与版本分行） | indexer |
 | `search_index_release` | 索引激活版本指针（**唯一权威**，替代已废弃的 Redis alias） | indexer |
 
-> entity 的 Javadoc 注释需按本脚本描述撰写，详见 [`conventions/backend-conventions.md`](conventions/backend-conventions.md)。
+> entity 的 Javadoc 注释需按本脚本描述撰写，详见 [`../.trellis/spec/backend/quality-guidelines.md`](../.trellis/spec/backend/quality-guidelines.md)。
 
 ---
 
@@ -163,7 +162,7 @@ SELECT * FROM search_index_release;
 
 ### 对照规范写后端代码
 
-新增 Controller / Service 前先读 [`conventions/backend-conventions.md`](conventions/backend-conventions.md)，其中约定了：
+新增 Controller / Service 前先读 [`../.trellis/spec/backend/error-handling.md`](../.trellis/spec/backend/error-handling.md) 与 [`../.trellis/spec/backend/quality-guidelines.md`](../.trellis/spec/backend/quality-guidelines.md)，其中约定了：
 
 - 错误码一律等于 HTTP 状态码，经 `ErrorType` 枚举 + `BizException` 抛出；
 - 安全层 401/403 与业务异常的响应路径区别；
@@ -201,9 +200,9 @@ A：查 `search_index_release` 中的激活版本，并确认 `search_document` 
 
 | 文档 | 关联对象 |
 |------|---------|
-| [`database/db-schema.sql`](database/db-schema.sql) 与两份迁移 | `backend/business`（读写业务表）、`backend/agent/jobs/*`（写入导入、回填、索引表） |
+| [`database/db-schema.sql`](database/db-schema.sql) | `backend/business`（读写业务表）、`backend/agent/jobs/*`（写入导入、回填、索引表） |
 | [`spec/openapi.yaml`](spec/openapi.yaml) | `backend/business` 的 Controller 层 |
-| [`conventions/backend-conventions.md`](conventions/backend-conventions.md) | `backend/business` 全部 Java 代码 |
+| [`../.trellis/spec/backend/`](../.trellis/spec/backend/index.md) | `backend/business` 与 `backend/agent` 的编码规范 |
 | `retrospective/`、`superpowers/` | 项目级决策记录，供全团队参考 |
 
 其他入口：

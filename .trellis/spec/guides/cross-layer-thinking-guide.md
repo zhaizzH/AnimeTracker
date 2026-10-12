@@ -58,8 +58,8 @@ React client/admin
 - shared `streamSse` 负责分行，`useAgentChat` 负责事件状态机。
 - 新事件需要兼容旧消费者或同步发布前端。
 - 验证增量文本、工具 start/end、结束标记、Abort 和网络中断。
-- wire 响应必须声明 `text/event-stream`，以空行分帧；每帧 `data:` JSON 至少包含 `type`、`content`、`is_end`，并按 `answer|thinking|function_call|status|end` 联合类型演进。
-- `function_call.state` 的 `start|end|error` 必须在前端映射为 running → done/error；结束事件或 `is_end=true` 后不得继续写入消息。
+- wire 响应必须声明 `text/event-stream`，以空行分帧；每帧 `data:` JSON 至少包含 `type`、`content`、`is_end`。事件 `type` 取值为 `answer|thinking|function_call|status` 四值，**不存在 `type=end`**——结束由 `is_end=true` 表达（与 [Agent 运行与提示词契约](../backend/agent-guidelines.md#agent-角色提示词与流式输出契约) 一致）。
+- `function_call.state` 的 `start|end` 必须在前端映射为 running → done，失败以 `end` + `result=error` 表达；`state=error` 只出现在 `status` 事件上。结束标记或 `is_end=true` 后不得继续写入消息。
 - 当前 `docs/spec/openapi.yaml` 未完整表达 SSE content type、事件联合、刷新 Cookie、Bearer security 和 `X-Request-ID`；这是契约债务，本轮只在 spec 中记录，改动 API 时必须同步修复。
 
 ### Agent 写操作
@@ -103,14 +103,14 @@ React client/admin
 
 跨层共享术语。只定义词汇，不含实现细节与决策理由。新术语在含义被钉死时立即写入，不批量补。
 
+**领域术语已迁至 [`.trellis/spec/GLOSSARY.md`](../GLOSSARY.md)**（Subject、Collection、Evidence、gate、PendingAction 等）。本表只保留**工程约定类**词汇——它们是本项目的做事方式，不是领域概念，故不进 glossary。
+
 | 术语 | 定义 |
 |---|---|
-| **gate / 发布门禁** | RAG 索引激活前的强制检查：`jobs/indexer/gate.py` 校验同 `indexVersion/profileVersion` 的五份报告与阈值，任一缺失/不一致/不达标即 fail-closed；gate 通过 + 人工确认后才允许 `--activate`。 |
 | **基线数字** | spec 中带日期的实测测试通过数（如「2026-10-05：629 passed, 6 xfailed」）。代码变更后必须重新实测并替换日期与数字，**不得沿用历史通过数**。 |
-| **move-only 重构** | 只移动代码、不改行为的重构：不改逻辑、参数、fail-closed 语义；私有方法转模块级函数后原类以 `staticmethod` 委托别名保留旧调用点；验收标准为测试数与拆前一致。模板见 [app/rag 模块结构](../backend/directory-structure.md#apprag-模块结构adr-00012026-10-05提交-08799fdb)。 |
+| **move-only 重构** | 只移动代码、不改行为的重构：不改逻辑、参数、fail-closed 语义；私有方法转模块级函数后原类以 `staticmethod` 委托别名保留旧调用点；验收标准为测试数与拆前一致。模板见 [app/rag 模块结构](../backend/directory-structure.md#apprag-模块结构2026-10-05提交-08799fdb)。 |
 | **flaky / 测试隔离问题** | 单跑通过、全量偶发失败、重跑全绿的测试；指向测试间状态泄漏或顺序依赖而非源码缺陷。登记于 `backend/quality-guidelines.md`「已知 flaky 测试」。禁止把「重跑即绿」当常态接受。 |
 | **xfail(strict=True)** | Python 侧已知缺陷的登记方式；严格模式在缺陷修复后强制用例失败，倒逼清理标记。当前 6 处标记对应缺陷见 `backend/agent-guidelines.md`。 |
-| **Evidence 权威回查** | RAG 候选必须经 Business 权威回查 + Evidence API 双重校验；超时、错误、缺项、非法/inactive/NSFW、重复 subjectId 均整批 fail-closed（`available=false` + 空候选），绝不静默降级取部分结果。 |
 
 ## 代码复用检查指南
 

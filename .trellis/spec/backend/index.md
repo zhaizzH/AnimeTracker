@@ -14,7 +14,7 @@
 
 | 主题 | 内容 |
 |---|---|
-| [架构与模块边界](./directory-structure.md) | 目标九模块、现有实现对照、Auth/Infrastructure/Java Agent 设计、app/rag 拆分（ADR 0001）、pojo/Converter 与迁移验收 |
+| [架构与模块边界](./directory-structure.md) | 目标九模块、现有实现对照、Auth/Infrastructure/Java Agent 设计、app/rag 拆分（2026-10-05）、pojo/Converter 与迁移验收 |
 | [Agent 编排与运行](./agent-guidelines.md) | 角色工具、Prompt、运行契约、SSE 与编排 |
 | [数据与存储](./database-guidelines.md) | MySQL、MyBatis、SQLAlchemy、Redis、MinIO 公开 URL、Schema 与存储约束 |
 | [RAG 检索与版本发布](./rag-retrieval-contract.md) | 检索、发布 gate、灰度、回滚与 Evidence 边界 |
@@ -47,9 +47,9 @@ CI 当前执行 Java `mvn -B test`、Python `uv run pytest` 和前端 typecheck�
 
 - Business reactor 当前包含 `common`、`pojo`、`infrastructure`、`auth`、`log`、`agent`、`client`、`admin`、`app` 九个 Maven 模块；模块上限和实际职责以 [目录与依赖边界](./directory-structure.md) 及 `ArchitectureBoundaryTest` 为准
 - `mvn -B test -f backend/business/pom.xml`：全 reactor 合计 220 个测试通过，0 失败，0 错误（Lombok 移除后各模块测试全部计入；2026-09-21 的 95 为历史基线）
-- `uv run pytest`（`backend/agent`）：629 passed, 6 xfailed；2026-09-29 的 585 passed、2026-09-21 的 413 passed 为历史基线
+- `uv run pytest`（`backend/agent`）：2026-10-06（提交 `392cd873`）为 650 passed；2026-10-05 的 629 passed, 6 xfailed、2026-09-29 的 585 passed、2026-09-21 的 413 passed 均为历史基线。数字取自提交记录，改动后必须重新实测替换
 - `check_javadoc.py` 自动化检查器已随提交 `721d5c71`（2026-10-04）删除；Javadoc 规范仍有效，恢复前以人工审查为准，详见 [质量门禁](./quality-guidelines.md#声明与语法检查自动化检查器已退役)
-- `app/rag` 已于 2026-10-05 按管线阶段拆分（提交 `08799fdb`），详见 [app/rag 模块结构（ADR 0001）](./directory-structure.md#apprag-模块结构adr-00012026-10-05提交-08799fdb)
+- `app/rag` 已于 2026-10-05 按管线阶段拆分（提交 `08799fdb`），详见 [app/rag 模块结构](./directory-structure.md#apprag-模块结构2026-10-05提交-08799fdb)
 
 ## 合并前路径对照
 

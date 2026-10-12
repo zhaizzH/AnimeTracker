@@ -12,7 +12,7 @@
 
 源码：`backend/agent/main.py`、`backend/agent/app/rag/retrieval.py`、`backend/agent/app/rag/use_case.py`、`backend/agent/app/agent/client/rag_tools.py`。
 
-> **模块结构**：2026-10-05 起 `app/rag` 按管线阶段拆分（`lexical.py` / `entity_resolution.py` / `authority.py` / `rerank.py`），结构与决策见 [app/rag 模块结构（ADR 0001）](./directory-structure.md#apprag-模块结构adr-00012026-10-05提交-08799fdb)；下文引用路径均已更新为新归属。
+> **模块结构**：2026-10-05 起 `app/rag` 按管线阶段拆分（`lexical.py` / `entity_resolution.py` / `authority.py` / `rerank.py`），结构与决策见 [app/rag 模块结构](./directory-structure.md#apprag-模块结构2026-10-05提交-08799fdb)；下文引用路径均已更新为新归属。
 
 | 边界 | 当前实现 | 必须保留的说明 |
 |---|---|---|

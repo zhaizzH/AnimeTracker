@@ -29,7 +29,7 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 
 ### 当前测试基线
 
-2026-10-05 本轮文档复核实测：`backend/agent` 执行 `uv run pytest` 为 **629 passed, 6 xfailed**；Java 侧 `mvn -B test -f backend/business/pom.xml` 全 reactor 合计 **220 个测试通过、0 失败、0 错误**（Lombok 移除后各模块测试全部计入，旧基线 95 已失效）。`check_javadoc.py` 及其回归 `test_check_javadoc.py` 已随提交 `721d5c71` 删除（Lombok 移除工作遗留的一次性脚本），历史基线 255 文件/1658 声明/0 违规不再可复跑；恢复前 Javadoc 检查以人工审查为准，见下文「可重复的声明与语法检查」。2026-09-29 的 585 passed、2026-09-21 的 413 passed、2026-09-12 的 284 passed 均为带日期的历史基线。不得沿用历史通过数。
+`backend/agent` 的 `uv run pytest` 最新记录为 **650 passed**（提交 `392cd873`，2026-10-06，随 MinIO 公开 URL 修复新增 `tests/jobs/importer/test_storage_public_url.py`）；2026-10-05 的 **629 passed, 6 xfailed** 为上一基线，2026-09-29 的 585 passed、2026-09-21 的 413 passed、2026-09-12 的 284 passed 均为更早的带日期历史基线。Java 侧 `mvn -B test -f backend/business/pom.xml` 全 reactor 合计 **220 个测试通过、0 失败、0 错误**（Lombok 移除后各模块测试全部计入，旧基线 95 已失效）。`check_javadoc.py` 及其回归 `test_check_javadoc.py` 已随提交 `721d5c71` 删除（Lombok 移除工作遗留的一次性脚本），历史基线 255 文件/1658 声明/0 违规不再可复跑；恢复前 Javadoc 检查以人工审查为准，见下文「可重复的声明与语法检查」。以上数字均取自提交记录，改动后必须重新实测替换。不得沿用历史通过数。
 
 - Java `app` 模块包含配置迁移回归测试：`AppConfigurationBindingTest`、`SecurityConfigAuthorizationTest`、`CookieOriginFilterTest`、`AgentConfigTest` 与 `ArchitectureBoundaryTest`。
 - Python 已有 importer、indexer gate、shadow eval、release store、容量报告和 RAG 故障矩阵回归用例。
