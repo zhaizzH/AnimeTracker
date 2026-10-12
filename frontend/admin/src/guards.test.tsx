@@ -35,11 +35,11 @@ function LoginPage() {
 
 function TestApp() {
   return (
-    <MemoryRouter initialEntries={['/admin/users?page=2#selected']}>
+    <MemoryRouter initialEntries={['/users?page=2#selected']}>
       <Routes>
-        <Route path="/admin/login" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route
-          path="/admin/users"
+          path="/users"
           element={<RequireAdmin><main>受保护内容</main></RequireAdmin>}
         />
       </Routes>
@@ -60,7 +60,7 @@ describe('RequireAdmin', () => {
 
     expect(screen.getByRole('heading', { name: '管理端登录' })).not.toBeNull();
     expect(screen.getByRole('status', { name: '登录后返回地址' }).textContent)
-      .toBe('/admin/users?page=2#selected');
+      .toBe('/users?page=2#selected');
     expect(screen.queryByText('受保护内容')).toBeNull();
   });
 

@@ -32,7 +32,7 @@
   - admin：shadcn/ui（`admin/src/components/ui/*`）+ Tailwind CSS v4 + shadcn 令牌。UI 基础使用 `components/ui` 下的 primitive，不要在新代码里引入其他 UI 库。
   - client：与 admin 同栈——shadcn/ui（`client/src/components/ui/*`）+ Tailwind CSS v4 + shadcn 令牌，外壳为本应用自维护的 `client/src/components/app-shell.tsx`。
 - client 的页面样式使用 shadcn/Tailwind 令牌（`bg-background`、`text-foreground`、`text-muted-foreground`、`border` 等）；不要在组件中扩散大段重复 inline style。
-- 深色模式由两端的 `ThemeBridge` 同步 `html.dark` 与 `color-scheme`（唯一写入点）。
+- 深色模式由两端的 `ThemeBridge` 同步 `html.dark` 与 `color-scheme`（唯一写入点）。`ThemeBridge` 挂在路由**之上**（`main.tsx`，`<ThemeBridge />` 与 `AuthGate`/`RouterProvider` 同级），不得挂进 `ClientLayout`/`AdminLayout`：挂进外壳会让外壳之外的路由（未登录的 login、`path: '*'` 的 404）拿不到 `html.dark`，表现为这些页面不跟随已保存的深浅色。
 - 两端均支持暗色（Tailwind `dark:` 变体 + `@custom-variant dark (&:is(.dark *))`），统一以 `html.dark` 为切换开关。
 - 令牌来源：各应用 `src/index.css` 的 `@theme inline` 块（shadcn CSS 变量，light/`.dark` 双套）；新颜色/圆角一律用令牌，不要硬编码色值。
 

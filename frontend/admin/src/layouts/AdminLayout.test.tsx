@@ -2,9 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom';
 import { useThemeStore } from '@shared';
 import { AdminLayout } from './AdminLayout';
+import { ThemeBridge } from '@/components/theme-bridge';
 
 type AuthState = {
   status: 'authenticated';
@@ -52,19 +53,22 @@ class ResizeObserverMock {
   disconnect() {}
 }
 
-function TestApp({ initialEntry = '/admin/subjects?tab=all' }: { initialEntry?: string }) {
+function TestApp({ initialEntry = '/subjects?tab=all' }: { initialEntry?: string }) {
   return (
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
-        <Route path="/admin/login" element={<div>登录页</div>} />
-        <Route path="/admin/*" element={<AdminLayout />}>
-          <Route path="dashboard" element={<div>看板内容</div>} />
-          <Route path="subjects" element={<div>番剧内容</div>} />
-          <Route path="users" element={<div>用户内容</div>} />
-          <Route path="import" element={<div>导入内容</div>} />
-          <Route path="logs" element={<div>日志内容</div>} />
-          <Route path="agent-config" element={<div>Agent 配置内容</div>} />
-          <Route path="agent-chat" element={<div>Agent 对话内容</div>} />
+        {/* ThemeBridge 由 main.tsx 挂在路由之上（登录/404 页也要跟随主题），测试里同层复现。 */}
+        <Route element={<><ThemeBridge /><Outlet /></>}>
+          <Route path="/login" element={<div>登录页</div>} />
+          <Route path="/*" element={<AdminLayout />}>
+            <Route path="dashboard" element={<div>看板内容</div>} />
+            <Route path="subjects" element={<div>番剧内容</div>} />
+            <Route path="users" element={<div>用户内容</div>} />
+            <Route path="import" element={<div>导入内容</div>} />
+            <Route path="logs" element={<div>日志内容</div>} />
+            <Route path="agent-config" element={<div>Agent 配置内容</div>} />
+            <Route path="agent-chat" element={<div>Agent 对话内容</div>} />
+          </Route>
         </Route>
       </Routes>
     </MemoryRouter>
@@ -154,7 +158,7 @@ describe('AdminLayout', () => {
     await waitFor(() => expect(toastError).toHaveBeenCalledWith('退出失败，请重试'));
   });
 
-  it('uses the shared theme store and follows system changes without a second provider', async () => {
+  it('主题来自路由层的 ThemeBridge，随 store 与系统变化而非布局内部再挂一层', async () => {
     const user = userEvent.setup();
     const { unmount } = render(<TestApp />);
 

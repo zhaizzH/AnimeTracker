@@ -23,13 +23,13 @@ function Destination() {
   return <output aria-label="到达">{location.pathname}</output>;
 }
 
-function renderLogin(initialEntry = '/admin/login') {
+function renderLogin(initialEntry = '/login') {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/dashboard" element={<Destination />} />
-        <Route path="/admin/users" element={<Destination />} />
+        <Route path="/login" element={<AdminLogin />} />
+        <Route path="/dashboard" element={<Destination />} />
+        <Route path="/users" element={<Destination />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -69,11 +69,11 @@ describe('AdminLogin', () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter
-        initialEntries={[{ pathname: '/admin/login', state: { from: '/admin/users?page=2' } }]}
+        initialEntries={[{ pathname: '/login', state: { from: '/users?page=2' } }]}
       >
         <Routes>
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/users" element={<Destination />} />
+          <Route path="/login" element={<AdminLogin />} />
+          <Route path="/users" element={<Destination />} />
         </Routes>
       </MemoryRouter>,
     );
@@ -81,12 +81,12 @@ describe('AdminLogin', () => {
     await user.type(screen.getByLabelText('密码'), 'p');
     await user.click(screen.getByRole('button', { name: '登录' }));
 
-    await waitFor(() => expect(screen.getByLabelText('到达')).toHaveProperty('textContent', '/admin/users'));
+    await waitFor(() => expect(screen.getByLabelText('到达')).toHaveProperty('textContent', '/users'));
     expect(setAuthenticated).toHaveBeenCalled();
     expect(publishSessionAvailable).toHaveBeenCalled();
   });
 
-  it('无 from 时默认跳转 /admin/dashboard', async () => {
+  it('无 from 时默认跳转 /dashboard', async () => {
     authApi.login.mockResolvedValue({ user: { role: 'ADMIN' } });
     const user = userEvent.setup();
     renderLogin();
@@ -95,7 +95,7 @@ describe('AdminLogin', () => {
     await user.click(screen.getByRole('button', { name: '登录' }));
 
     await waitFor(() =>
-      expect(screen.getByLabelText('到达')).toHaveProperty('textContent', '/admin/dashboard'),
+      expect(screen.getByLabelText('到达')).toHaveProperty('textContent', '/dashboard'),
     );
   });
 });

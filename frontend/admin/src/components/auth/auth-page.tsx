@@ -78,7 +78,7 @@ export default function AdminLogin() {
       }
       setAuthenticated(data);
       publishSessionAvailable();
-      const from = (location.state as { from?: string } | null)?.from ?? '/admin/dashboard';
+      const from = (location.state as { from?: string } | null)?.from ?? '/dashboard';
       navigate(from, { replace: true });
     } catch (err) {
       toastError((err as Error).message);

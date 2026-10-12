@@ -33,9 +33,10 @@ frontend/
 
 ## admin 页面与路由
 
-- 页面：`Dashboard`、`Users`、`Subjects`、`Import`、`Logs`、`AgentConfig`、`AgentChat`、`AdminLogin`。
+- 页面：`Dashboard`、`Users`、`Subjects`、`Import`、`Logs`、`AgentConfig`、`AgentChat`、`AdminLogin`、`NotFound`。
 - 除 `AdminLogin` 静态导入外，其余页面在 `router.tsx` 中 `lazy` + Suspense。
-- `AdminLogin` 是独立路由页，不经任何 shell 包裹，直接渲染；其余页共享 `AdminLayout`。
+- `AdminLogin` 是独立路由页，不经任何 shell 包裹，直接渲染；其余页共享 `AdminLayout`；`NotFound`（`path: '*'`）在 `AdminLayout` 之外，避免未匹配路径套上外壳。
+- **admin 路由不带 `/admin` 前缀**（`/login`、`/dashboard`……），页面以站点根为基路径。管理端生产部署在独立端口 `:8081` 的站点根（`docs/deploy/nginx/animetracker.conf`），本地开发为 `:5174`；给路由加 `/admin` 前缀会让本地与生产的可用路径不一致，违反 [ADR 0018](../adr/0018-admin-on-separate-port-not-subpath.md)「不得改用用户端子路径部署」的约束。
 
 ## 参考
 

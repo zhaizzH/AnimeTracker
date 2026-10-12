@@ -17,6 +17,6 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
     if (denied) toastError('无管理权限');
   }, [denied]);
 
-  if (status === 'unauthenticated' || denied) return <Navigate to="/admin/login" replace state={{ from: returnTo(location) }} />;
+  if (status === 'unauthenticated' || denied) return <Navigate to="/login" replace state={{ from: returnTo(location) }} />;
   return <>{children}</>;
 }

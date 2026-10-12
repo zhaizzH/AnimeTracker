@@ -20,14 +20,16 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 
+// 管理端生产部署在独立端口 :8081 的站点根（见 docs/deploy/nginx/animetracker.conf），
+// 路径不含 /admin 前缀；此处 path 同时用于导航跳转与 AdminLayout 的面包屑查找。
 export const ADMIN_NAV_ITEMS = [
-  { path: '/admin/dashboard', label: '看板', icon: LayoutDashboard },
-  { path: '/admin/subjects', label: '番剧管理', icon: Clapperboard },
-  { path: '/admin/users', label: '用户管理', icon: Users },
-  { path: '/admin/import', label: '导入管理', icon: Upload },
-  { path: '/admin/logs', label: '日志审计', icon: ScrollText },
-  { path: '/admin/agent-config', label: 'Agent 配置', icon: Bot },
-  { path: '/admin/agent-chat', label: 'Agent 对话', icon: MessagesSquare },
+  { path: '/dashboard', label: '看板', icon: LayoutDashboard },
+  { path: '/subjects', label: '番剧管理', icon: Clapperboard },
+  { path: '/users', label: '用户管理', icon: Users },
+  { path: '/import', label: '导入管理', icon: Upload },
+  { path: '/logs', label: '日志审计', icon: ScrollText },
+  { path: '/agent-config', label: 'Agent 配置', icon: Bot },
+  { path: '/agent-chat', label: 'Agent 对话', icon: MessagesSquare },
 ] as const;
 
 export function isAdminNavItemActive(pathname: string, path: string): boolean {
@@ -40,7 +42,7 @@ export function AppSidebar() {
   return (
     <Sidebar variant="inset">
       <SidebarHeader>
-        <Link className="flex items-center gap-2 rounded-md px-2 py-2 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring" to="/admin/dashboard">
+        <Link className="flex items-center gap-2 rounded-md px-2 py-2 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring" to="/dashboard">
           <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">A</span>
           <span>AnimeTracker 后台</span>
         </Link>

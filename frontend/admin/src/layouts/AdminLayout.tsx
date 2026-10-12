@@ -20,7 +20,7 @@ export function AdminLayout() {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
     try {
-      if (await completeLogout(authApi.logout)) navigate('/admin/login');
+      if (await completeLogout(authApi.logout)) navigate('/login');
       else toastError('退出失败，请重试');
     } finally {
       setIsLoggingOut(false);
@@ -29,7 +29,6 @@ export function AdminLayout() {
 
   return (
     <SidebarProvider>
-      <ThemeBridge />
       <AppSidebar />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
