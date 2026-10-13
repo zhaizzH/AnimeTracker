@@ -99,20 +99,21 @@ describe('AdminLayout', () => {
   it('renders all seven routes and highlights the current route despite query parameters', () => {
     render(<TestApp />);
 
-    // 每个导航项在侧栏与页脚各出现一次，取 DOM 首项（侧栏）断言。
-    expect(screen.getAllByRole('link', { name: '看板' })[0]).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '看板' })).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: '番剧管理' })[0]).toHaveAttribute('aria-current', 'page');
     expect(screen.getByText('番剧内容')).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: '用户管理' })[0]).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: '导入管理' })[0]).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: '日志审计' })[0]).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: 'Agent 配置' })[0]).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: 'Agent 对话' })[0]).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '用户管理' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '导入管理' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '日志审计' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Agent 配置' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Agent 对话' })).toBeInTheDocument();
   });
 
-  it('内容页渲染页脚（配置页以外的管理页面）', () => {
+  it('内容页渲染页脚，且导航项不重复（页脚已去掉 nav 段）', () => {
     render(<TestApp />);
-    expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+    const footer = screen.getByRole('contentinfo');
+    expect(footer).toHaveTextContent('AnimeTracker');
+    expect(screen.getAllByRole('link', { name: '看板' })).toHaveLength(1);
   });
 
   it('对话页 /agent-chat 不渲染页脚', () => {
@@ -125,7 +126,7 @@ describe('AdminLayout', () => {
     const user = userEvent.setup();
     render(<TestApp />);
 
-    await user.click(screen.getAllByRole('link', { name: '看板' })[0]);
+    await user.click(screen.getByRole('link', { name: '看板' }));
 
     expect(await screen.findByText('看板内容')).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: '看板' })[0]).toHaveAttribute('aria-current', 'page');

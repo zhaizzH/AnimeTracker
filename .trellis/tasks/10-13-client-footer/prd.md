@@ -47,7 +47,8 @@
 
 ### R3 内容本地化（保留骨架，最小改动）
 
-- `navLinks` 由 `href="#"` 替换为**真实路由**；client 用 React Router `Link`，admin 用管理端路由。
+- **\(已被用户后续决定覆盖\) `nav` 段整体删除**：两端顶栏/侧栏已承载导航，页脚再列一遍属重复（见 R7 决策项）。
+- `navLinks` 由 `href="#"` 替换为**真实路由**；client 用 React Router `Link`，admin 用管理端路由。（若保留 nav 段时的方案；最终已删段。）
 - `Logo` 复用两端既有 `components/logo.tsx`，点击回到各自首页（client `/`，admin `/dashboard`）。
 - 版权改为 `© {year} AnimeTracker`。
 - 删除 `Built by Shaban` 外链与其 github 头像 `<img>` 外链（保留 efferd 的「右侧署名位」布局，但内容改为项目自身文案或留空，见 R7 待定项）。
@@ -75,6 +76,7 @@
 ### R7 决策项（已在 design 收敛）
 
 - `Built by Shaban` 位 → **删除 X 外链**；GitHub 图标替换为 `https://github.com/zhaizzH`；底行保留 `© {year} AnimeTracker`。
+- 页脚 `nav` 段 → **两端整体删除**（用户决定）：client 顶栏已有公开项、admin 侧栏常驻，页脚再列导航重复。
 - 社交图标 → **仅保留 GitHub**（无 X 账号）。
 - `/agent` 与 `/agent-chat` 全高对话页 → **不显示页脚**（用户在 `ClientLayout` / `AdminLayout` 内按路径显式排除）。
 - admin 页脚宽度 → **不对齐 client 的 1400，保持管理端全宽**（admin 内容区本就无 `max-w`）。
@@ -84,7 +86,7 @@
 
 - [ ] 顺序依赖满足：`10-13-client-topnav-shell` 已提交，本任务在其之上开工。
 - [ ] client 与 admin **分别**存在本地 `footer` 组件，无跨应用导入；`frontend/packages/shared` 未被写入 UI 组件。
-- [ ] 页脚 DOM 保持 efferd footer-1 骨架（上：Logo + 右侧图标位；中：`nav` 链接列表；下：`border-t` 分隔的版权行）。
+- [ ] 页脚 DOM 保持 efferd footer-1 骨架的上/下两段（上：Logo + 右侧图标位；下：`border-t` 分隔的版权行）；**中段 `nav` 已删除**，两端导航不重复。
 - [ ] 页脚内**无 `href="#"` 死链、无 efferd 署名、无 `x.com/shabanhr` / `github.com/shabanhr.png` 外链**；版权为 AnimeTracker。
 - [ ] client 7 个 `ClientLayout` 内页面均显示页脚；404、`/login`、`/verify-email`、`/forgot-password`、`/reset-password` 均**不显示**页脚。
 - [ ] admin `AdminLayout` 内页面均显示页脚；admin 404 与 `/login` 均**不显示**页脚。

@@ -101,11 +101,12 @@ describe('client 路由守卫与外壳', () => {
     expect(screen.getByRole('link', { name: '登录' })).toHaveAttribute('href', '/login');
   });
 
-  it('外壳内页面渲染页脚，页脚导航项与顶栏公开项一致', () => {
+  it('外壳内页面渲染页脚，且不含 nav 段（导航项不重复）', () => {
     renderAt('/my-collections');
-    expect(screen.getByRole('contentinfo')).toBeInTheDocument();
-    expect(linkCount('番剧索引')).toBe(2); // 顶栏 + 页脚
-    expect(linkCount('每周日程')).toBe(2);
+    const footer = screen.getByRole('contentinfo');
+    expect(footer).toHaveTextContent('AnimeTracker');
+    expect(linkCount('番剧索引')).toBe(1); // 仅顶栏；页脚已去掉 nav 段
+    expect(linkCount('每周日程')).toBe(1);
   });
 
   it('对话页 /agent 不渲染页脚', () => {

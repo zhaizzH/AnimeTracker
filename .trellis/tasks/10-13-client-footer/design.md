@@ -141,7 +141,11 @@ export function Footer(): JSX.Element
 - **admin 内容区无 `max-w`**（仅 `p-4 md:p-6`），确认 design 的「admin 不对齐 1400」结论。
 - **`ADMIN_NAV_ITEMS` 为 `as const`，7 项**；`isAdminNavItemActive` 用 `pathname === path` 精确匹配（与 client 的 `isNavItemActive` 前缀语义不同）——页脚若做高亮需用 admin 自己的判据。
 
-## 测试改动契约（重要）
+## 测试改动契约（nav 段删除后的最终形态）
+
+页脚已删除 nav 段，不再复用 `ADMIN_NAV_ITEMS`，**admin 导航链接重新只出现一次**。因此 `AdminLayout.test.tsx` 的链接断言**保持原有单数形式即可**（无需 `getAllByRole`）——保留 `番剧管理` 处既有的 `getAllByRole(...)[0]` 原样未动。测试改为断言页脚存在（`contentinfo`）且「看板」链接恰有 1 个。
+
+以下为 nav 段删除**之前**的核对记录，保留作历史依据：
 
 页脚复用 `ADMIN_NAV_ITEMS` 后，admin 每个导航链接会出现**两次**（侧栏 + 页脚）。`AdminLayout.test.tsx` 现有断言：
 
@@ -156,6 +160,6 @@ export function Footer(): JSX.Element
 - **`h-4.5`**：Tailwind v4 支持任意小数间距；若无该工具类，退化为 `h-4` 或 inline style。
 - **admin 测试断言收敛**：见上「测试改动契约」，属必要的测试同步而非功能回归。
 - **`ADMIN_NAV_ITEMS` 复用**：admin 页脚直接 import 该常量 → 页脚与侧栏导航永不脱钩；副作用是 `app-sidebar` 被页脚引入，若未来拆 admin 导航定义需同步。可接受。
-- **admin 页脚导航与侧栏冗余**：管理端侧栏常驻，页脚再列一遍导航在 UX 上属冗余；但为满足「保留 efferd 骨架」而保留 `nav` 段。若后续认为冗余，删除页脚 `nav` 段是局部改动。
+- ~~**admin 页脚导航与侧栏冗余**~~：已按用户决定**删除两端页脚的 nav 段**。理由：client 顶栏已有首页/日程/索引三项、admin 侧栏常驻，页脚再列一遍导航重复；删除后两端页脚仍保持同骨架（只留 Logo + 图标位与版权行）。连带影响见下条测试改动契约的修订。
 - **行尾**：改 `.trellis/spec/frontend/*.md` 时保持混合 CRLF/LF，用定点 Edit，勿整文件 Write。
 - **回滚**：删除两个 `footer.tsx`、还原两处布局挂载与两处测试断言即可，无数据/状态副作用。

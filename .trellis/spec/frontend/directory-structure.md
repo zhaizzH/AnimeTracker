@@ -46,7 +46,7 @@ frontend/
 
 ## 两端页脚
 
-- client 与 admin 各持一份本地页脚 `components/footer.tsx`（同骨架、导航/Logo 目标各异），由 `ClientLayout` / `AdminLayout` 在内容区尾部渲染，使短内容页页脚贴底、长内容页位于文档末尾。骨架源自 efferd `footer-1`，但已改为手工落地（不跑 `shadcn add`），并去除上游署名、社交外链与 `href="#"` 死链。
+- client 与 admin 各持一份本地页脚 `components/footer.tsx`（同骨架，Logo 目标各异），由 `ClientLayout` / `AdminLayout` 在内容区尾部渲染，使短内容页页脚贴底、长内容页位于文档末尾。骨架源自 efferd `footer-1`，但已改为手工落地（不跑 `shadcn add`），并**删除上游 nav 段**（与两端各自的顶栏/侧栏导航重复）与署名外链、`href="#"` 死链。页脚只保留「Logo + GitHub 图标位」一行与版权行。
 - 页脚**默认随布局外壳显示**；404 与认证页位于布局之外，**天然不显示**；全高对话页（client `/agent`、admin `/agent-chat`）在布局内以 `FOOTERLESS_PATHS` 显式排除。
 - GitHub 图标 `components/icons/github-icon.tsx` 与 admin 的 `components/logo.tsx` 均为**各端本地副本**（lucide-react 已不含品牌图标；admin 暂无自有图标，暂用 client 同款）。按 [ADR 0021](../adr/0021-shared-contract-visuals-vs-app-local-decorations.md)，装饰件各端自持、允许逐字节重复，不下沉 `packages/shared`。
 
