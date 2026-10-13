@@ -207,7 +207,7 @@ A：`JWT_SECRET` 与 business 的 `jwt.secret` 不一致。两者默认值都是
 A：这是告警而非致命错误，服务会继续启动，但会话与历史消息功能不可用。修复 Redis 地址后重启即可。
 
 **Q：`mvn test` 现在跑哪些用例？**
-A：business 现有 31 个测试类，按模块分布（详见 [`business/README.md`](business/README.md) 的测试一节）：架构边界（ArchUnit）、安全与 Cookie Origin、配置绑定、认证会话、Evidence 服务与 Mapper、词法检索、审计日志、infrastructure 网关、pojo 数据语义等。Agent 侧共 468 个 pytest 用例，位于 [`agent/tests/`](agent/tests/)。
+A：business 现有 30 个测试类（`find backend -name '*Test.java' | wc -l` → 30，2026-10-13；另有 3 个 ArchUnit 夹具不计入），按模块分布（详见 [`business/README.md`](business/README.md) 的测试一节）：架构边界（ArchUnit）、安全与 Cookie Origin、配置绑定、认证会话、Evidence 服务与 Mapper、词法检索、审计日志、infrastructure 网关、pojo 数据语义等。Agent 侧共 525 个 pytest 用例（`grep -rE 'def test_' backend/agent/tests | wc -l` → 525，2026-10-13；具体通过数未复核），位于 [`agent/tests/`](agent/tests/)。
 
 **Q：词法检索报错或返回空？**
 A：`POST /api/client/subjects/lexical-search` 依赖 `search_document` 表的 `ngram` FULLTEXT 投影与 `search_index_release` 中的激活版本。若尚未运行 `jobs/indexer` 构建并激活索引，该接口没有可召回的数据。
@@ -221,13 +221,13 @@ A：托管提示词优先读 Redis（键 `agent:prompt:{key}`，启动时加载�
 ## 与相邻模块的关联
 
 - **前端**（`../frontend/`）：通过 Vite 代理访问 `/api/**`，只依赖 business；Agent 能力由 business 代理层间接暴露。
-- **文档**（`../docs/`）：数据库脚本（含两份迁移）、OpenAPI 规范、后端编码规范与规划文档的存放地。
+- **文档**（`../docs/`）：数据库脚本（仅 `db-schema.sql`，不提供前向迁移）、OpenAPI 规范、规划文档的存放地；后端编码规范在 [`../.trellis/spec/backend/`](../.trellis/spec/backend/index.md)。
 - **CI**（`../.github/workflows/ci.yml`）：`backend-java` 作业运行 `mvn -B test`，`backend-python` 作业运行 `uv sync --dev && uv run pytest`。
 - **项目总览**：[`../README.md`](../README.md)
 
 ## 待补充
 
-1. **生产部署形态**：仓库中不存在 Docker Compose、Nginx 或进程守护配置，business 与 agent 的生产启动方式（JVM 参数、uvicorn worker 数、反向代理）无代码依据。`application.yml` 注释提到的 `application-prod.yml` 在 `app/src/main/resources/` 下不存在，生产 profile 的落地方式待确认。
+1. **生产部署形态**：仓库中不存在 Docker Compose、Nginx 或进程守护配置；服务器本地另有未入库的部署套件（`../docs/deploy/`：nginx / systemd / 部署方案.md），但不随仓库分发。business 与 agent 的生产启动方式（JVM 参数、uvicorn worker 数、反向代理）无代码依据。`application.yml` 注释提到的 `application-prod.yml` 在 `app/src/main/resources/` 下不存在，生产 profile 的落地方式待确认。
 2. **MinIO 桶的初始化**：`MINIO_BUCKET`（公开封面）与 `MINIO_RAW_BUCKET`（原始快照私有桶）需预先创建，仓库中无桶策略或生命周期配置脚本，权限设置方式待确认。
 3. **管理端细粒度权限**：`at.admin.superadmin-id` 表明当前以超级管理员 ID 做粗粒度控制，角色与权限矩阵未在代码中形成可文档化的规则。
 4. **`jobs/indexer` 门禁阈值**：五份报告（quality / capacity / eval / latency / human）的合格线随数据规模与嵌入额度变化，代码中未固化建议值。

@@ -220,7 +220,7 @@ A：导入阶段写入的是摘要字段，详情由 [`jobs/backfill`](../backfi
 
 ## 待补充
 
-1. **运行期产物未纳入 `.gitignore`**：`import.log` 已被 `*.log` 规则忽略，但 `importer.pid`（本目录）与 `indexer-remaining.json`（`backend/agent/` 根）未被忽略，建议补充规则。
+1. **运行期产物均已纳入 `.gitignore`**（2026-10-13 复核）：`import.log`（`*.log`）、`importer.pid`（本目录）与 `indexer-remaining.json`（`backend/agent/` 根）现均由根 `.gitignore` 覆盖，不再需要补充规则。
 2. **质量报告与容量门禁的判读阈值**：`quality.py` 生成的报告可被 `jobs/indexer/gate.py` 消费，但各项指标（覆盖率、NSFW 计数、内容哈希一致性）的合格线随数据规模变化，尚无文档化建议值，代码中也未固化基准。
 3. **Bangumi 限流的具体额度**：代码中按 429 响应动态退避，`BANGUMI_ACCESS_TOKEN` 能提升额度但具体配额取决于 Bangumi 平台策略，无法从代码推断。
 4. **实体导入的覆盖边界**：导入会写入人物/角色实体与关系，但哪些字段属于「摘要」、哪些依赖 `backfill` 补齐，在 `normalize.py` 与 `repository.py` 中分散体现，缺少集中说明；若需精确文档化建议由维护者补充字段清单。

@@ -9,8 +9,8 @@
 - **新环境搭建**：用 `database/db-schema.sql` 初始化 MySQL 库表。
 - **存量库结构变更**：仓库不提供前向迁移脚本，需按评审结论手工执行 `ALTER` 或走重建流程（见下文「数据库」）。
 - **接口对接**：用 `spec/openapi.yaml` 查看 business 对外 REST 接口的请求与响应结构。
-- **后端开发**：用 `../.trellis/spec/backend/error-handling.md` 与 `../.trellis/spec/backend/quality-guidelines.md` 对齐错误拦截、统一响应与代码注释规范。
-- **了解项目演进**：用 `retrospective/` 与 `superpowers/` 回溯设计决策与实施计划；长期架构决策见 [`../.trellis/spec/adr/`](../.trellis/spec/adr/README.md)。
+- **后端开发**：用 [`../.trellis/spec/backend/`](../.trellis/spec/backend/index.md)（错误拦截、统一响应、注释规范等编码规范已统一收敛至此）。
+- **了解项目演进**：用 `retrospective/` 回溯设计决策；长期架构决策见 [`../.trellis/spec/adr/`](../.trellis/spec/adr/README.md)。
 
 ---
 
@@ -21,10 +21,11 @@
 | [`database/`](database/) | 数据库脚本：`db-schema.sql`（完整建表）；**不提供版本化前向迁移** | 是 |
 | [`spec/`](spec/) | API 规范：[`openapi.yaml`](spec/openapi.yaml)（OpenAPI 3.0 接口定义，共 68 个路径） | 是 |
 | [`retrospective/`](retrospective/) | 项目复盘：[`项目复盘.md`](retrospective/项目复盘.md) | 是 |
+| `deploy/` | 服务器本地部署套件：nginx 反代、systemd 单元、`部署方案.md`、导入后处理脚本 | **否**（已被 `.gitignore` 忽略） |
 | `superpowers/` | 规划文档：`handoff/`（交接说明）、`plans/`（实施计划）、`specs/`（设计文档），按日期命名 | **否**（已被 `.gitignore` 忽略） |
 | `api/` | 第三方 Bangumi API 文档（独立 Git 仓库，非本项目源码） | **否**（已被 `.gitignore` 忽略） |
 
-> 本目录实际只含 `database/`、`spec/`、`retrospective/` 三项（`api/`、`superpowers/` 为本地未入库产物）。历史上提到的 `conventions/`、`architecture/`（模块边界与 ADR）、`test/` 目录在当前代码树中不存在，相关链接已移除：后端编码规范并入 `../.trellis/spec/backend/`，架构决策并入 [`../.trellis/spec/adr/`](../.trellis/spec/adr/README.md)。模块边界约束现已由 `backend/business/app/src/test/java/top/zhaizz/app/architecture/ArchitectureBoundaryTest.java` 以 ArchUnit 落地强制。
+> 纳入版本控制的只有 `database/`、`spec/`、`retrospective/` 三项；`api/`、`superpowers/`、`deploy/` 为本地未入库产物。历史上提到的 `conventions/`、`architecture/`（模块边界与 ADR）、`test/` 目录在当前代码树中不存在，相关链接已移除：后端编码规范并入 `../.trellis/spec/backend/`，架构决策并入 [`../.trellis/spec/adr/`](../.trellis/spec/adr/README.md)。模块边界约束现已由 `backend/business/app/src/test/java/top/zhaizz/app/architecture/ArchitectureBoundaryTest.java` 以 ArchUnit 落地强制。
 
 ---
 
@@ -34,7 +35,7 @@
 
 | 用途 | 工具 |
 |------|------|
-| 执行建表与迁移脚本 | MySQL **8.4** 客户端（`mysql`）；迁移脚本使用 `INFORMATION_SCHEMA` 条件 DDL，需要 8.x 支持 |
+| 执行建表脚本 | MySQL **8.4** 客户端（`mysql`）；`db-schema.sql` 使用 `ngram` FULLTEXT 等 8.4 特性 |
 | 查看接口规范 | 任意 OpenAPI 3.0 查看器（Swagger UI、VS Code 插件或在线编辑器） |
 | 其余文档 | 任意 Markdown 阅读器 |
 
@@ -133,18 +134,22 @@ docker run -p 8081:8080 -e SWAGGER_JSON=/spec/openapi.yaml \
 
 ### 按领域检索 OpenAPI 路径
 
-`spec/openapi.yaml` 共 68 个路径，按前缀分布：
+`spec/openapi.yaml` 共 68 个路径（`grep -cE '^  /' docs/spec/openapi.yaml` → 68，2026-10-13），按前缀分布：
 
-| 前缀 | 数量级 | 说明 |
+| 前缀 | 数量 | 说明 |
 |------|-------|------|
 | `/api/client/auth/*` | 8 | 注册、登录、邮箱验证、刷新、登出、找回与重置密码 |
-| `/api/client/subjects/*` | 7 | 列表、搜索、**词法检索**、季度、放送表、批量、详情、年份、剧集 |
-| `/api/client/collections/*` | 8+ | 收藏 CRUD、计数、追番日程、剧集状态、进度预览与执行 |
-| `/api/client/me/*` | 4 | 个人信息、改密、邮箱验证码 |
+| `/api/client/subjects/*` | 9 | 列表、搜索、**词法检索**、季度、放送表、批量、详情、年份、剧集 |
+| `/api/client/collections/*` | 10 | 收藏 CRUD、计数、追番日程、剧集状态、进度预览与执行 |
+| `/api/client/me/*` | 5 | 个人信息、改密、邮箱验证码 |
+| `/api/client/tags/*` | 2 | 标签相关 |
 | `/api/client/evidence/*` | 2 | `batch`（批量取证据）、`resolve`（解析指定实体证据） |
-| `/api/client/agent/*` | 5+ | 流式对话与会话管理（由 business 代理到 Agent） |
-| `/api/admin/*` | 10+ | 仪表盘、条目、用户、导入、日志 |
-| `/api/admin/agent/*` | 6+ | 提示词、模型配置、管理员会话 |
+| `/api/client/files/*` | 1 | 文件上传 |
+| `/api/client/agent/*` | 5 | 流式对话与会话管理（由 business 代理到 Agent） |
+| `/api/admin/*`（dashboard/subjects/users/import/logs/files 合计） | 16 | 仪表盘、条目、用户、导入、日志、文件 |
+| `/api/admin/agent/*` | 10 | 提示词、模型配置、管理员会话 |
+
+> 上表各前缀之和 = 68；改动接口后请重跑上面的 `grep` 命令并同步更新本表与总数。
 
 ### 校验建库结果
 
@@ -203,7 +208,8 @@ A：查 `search_index_release` 中的激活版本，并确认 `search_document` 
 | [`database/db-schema.sql`](database/db-schema.sql) | `backend/business`（读写业务表）、`backend/agent/jobs/*`（写入导入、回填、索引表） |
 | [`spec/openapi.yaml`](spec/openapi.yaml) | `backend/business` 的 Controller 层 |
 | [`../.trellis/spec/backend/`](../.trellis/spec/backend/index.md) | `backend/business` 与 `backend/agent` 的编码规范 |
-| `retrospective/`、`superpowers/` | 项目级决策记录，供全团队参考 |
+| [`retrospective/`](retrospective/) | 项目级复盘，供全团队参考 |
+| `deploy/`（未入库） | 服务器本地部署套件（nginx / systemd / 部署方案），不随仓库分发 |
 
 其他入口：
 
@@ -220,4 +226,5 @@ A：查 `search_index_release` 中的激活版本，并确认 `search_document` 
 1. **缺少前向迁移机制**：`database/` 下只有全量 `db-schema.sql`，历史 `migration-002` / `migration-003` 已移除。当前存量库改结构依赖人工 `ALTER` 或整库重建，没有版本化迁移工具，变更记录也无固定归档位置。
 2. **重建流程未脚本化**：备份用户三表 → 全量建库 → 恢复 → full import 这一流程目前只有文档描述，没有可复用的脚本，每次执行靠手工步骤，易漏项。
 3. **接口规范的完整性**：`spec/openapi.yaml` 为手工维护，与 `backend/business` 现有 Controller 的一致性未经自动校验，可能存在遗漏或过期定义。
+4. **部署套件未入库**：`deploy/`（nginx 反代、systemd 单元、`部署方案.md`）为服务器本地产物，被根 `.gitignore` 忽略，新环境需另行获取，仓库无对应的可复现部署声明。
 4. **旧索引链路的退役计划**：`job` 表中 `type='RAG_INDEX'` 的旧 Subject 兼容队列与 `type='SEARCH_INDEX'` 新链路并存，`--queue` 默认 `both`；旧链路何时下线、`RAG_INDEX` 任务何时停止登记未在代码或文档中标注。

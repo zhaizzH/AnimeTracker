@@ -483,7 +483,7 @@ uv run python -m jobs.backfill.main --batch-size 5 --report-json
 uv run pytest
 ```
 
-pytest 配置在 `pyproject.toml`（`pythonpath = ["."]`、`asyncio_mode = "auto"`）。截至本次文档核对共 468 个 `def test_` 用例，覆盖：
+pytest 配置在 `pyproject.toml`（`pythonpath = ["."]`、`asyncio_mode = "auto"`）。截至本次文档核对共 525 个 `def test_` 用例（`grep -rE 'def test_' backend/agent/tests | wc -l` → 525，2026-10-13；**未复核**，具体通过数需重新实测），覆盖：
 
 | 目录 | 覆盖范围 |
 |------|----------|
@@ -548,6 +548,6 @@ A：这是既有设计，删除会话使用 POST 而非 DELETE。
 ## 待补充
 
 1. **门禁阈值未文档化**：`quality` / `capacity` / `eval` / `latency` / `human` 五份报告的合格线由 `jobs/indexer/gate.py` 解释，但其数值随数据规模与嵌入额度变化，代码与文档中均无建议基准。
-3. **评测框架的使用入口**：`tests/evals/` 提供 metrics / runner / golden case 生成器，`generate_golden_cases.py` 有 `--output` 参数，但评测的整体执行方式（是否仅经 pytest 驱动、是否有独立 CLI）在代码中未见统一入口，待确认。
-4. **旧索引链路退役计划**：统一 `job` 表中的旧 `type='RAG_INDEX'` 队列与 `type='SEARCH_INDEX'` + `search_document` 新链路并存，`--queue` 默认 `both`；何时收窄为 `search` 并停止登记 `RAG_INDEX` 任务未在代码中标注。
-5. **运行期产物未纳入 `.gitignore`**：`jobs/importer/importer.pid` 与 `indexer-remaining.json` 为任务运行时生成，当前未被忽略规则覆盖。
+2. **评测框架的使用入口**：`tests/evals/` 提供 metrics / runner / golden case 生成器，`generate_golden_cases.py` 有 `--output` 参数，但评测的整体执行方式（是否仅经 pytest 驱动、是否有独立 CLI）在代码中未见统一入口，待确认。
+3. **旧索引链路退役计划**：统一 `job` 表中的旧 `type='RAG_INDEX'` 队列与 `type='SEARCH_INDEX'` + `search_document` 新链路并存，`--queue` 默认 `both`；何时收窄为 `search` 并停止登记 `RAG_INDEX` 任务未在代码中标注。
+4. **生产部署套件未入库**：服务器本地存在部署套件（`../docs/deploy/`：nginx / systemd / 部署方案.md），但被根 `.gitignore` 忽略，不随仓库分发，新检出需另行获取。

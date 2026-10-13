@@ -33,7 +33,7 @@
 - **管理端运营**：仪表盘统计、番剧 / 用户 / 导入任务 / 操作审计日志管理，以及提示词与模型配置热更新。
 - **全栈工程参考**：覆盖前后端分离、多模块后端、端口与适配器分层、SSE 流式、跨层契约校验、结构化日志、发布门禁与 CI 的完整链路。
 
-**不适合的场景**：仓库不提供托管部署编排与在线演示，也不含容器镜像与反向代理配置，需要自行准备 MySQL、Redis、MinIO 与 LLM API Key 后逐模块本地启动。
+**不适合的场景**：仓库不提供托管部署编排与在线演示，也不含容器镜像与反向代理配置（服务器本地另有未入库的部署套件，见 [`docs/README.md`](docs/README.md)），需要自行准备 MySQL、Redis、MinIO 与 LLM API Key 后逐模块本地启动。
 
 ---
 
@@ -59,7 +59,7 @@
   - 支持改密、注销、角色变更等多端会话秒级失效与 CORS 严格同源防御。
 - 📊 **现代企业级双端架构**：
   - **用户端**：番剧索引、多条件筛选、放送日历、个性化收藏管理、流式 AI 助手。
-  - **管理端**：ECharts 数据可视化看板、番剧/用户/操作审计日志管理、Redis 动态 Prompt 提示词/模型配置热更新、管理员专属数据抓取 Agent。
+  - **管理端**：Recharts 数据可视化看板、番剧/用户/操作审计日志管理、Redis 动态 Prompt 提示词/模型配置热更新、管理员专属数据抓取 Agent。
 
 ---
 
@@ -133,7 +133,7 @@ flowchart LR
 | 领域 | 选型与版本 | 用途与说明 |
 |:---|:---|:---|
 | **用户端 / 管理端** | React 18, TypeScript 5, Vite 5, shadcn/ui + Tailwind CSS v4, TanStack Query 5, Zustand 4, React Router 7 | 响应式单页应用，通过 npm Workspaces 共享 `@animetracker/shared` 逻辑包 |
-| **数据可视化** | ECharts 6, `echarts-for-react` 3 | 管理端数据看板图表与统计分析 |
+| **数据可视化** | Recharts 3（经 shadcn `chart` 原语） | 管理端数据看板图表与统计分析（原 ECharts 规划已废弃，以 `frontend/admin/package.json` 为准） |
 | **业务后端** | Java 21, Spring Boot 3.2.0, MyBatis-Plus 3.5.5, JJWT 0.12.3 | 核心 REST API、端口适配器分层架构、JWT 鉴权、Agent 请求代理 |
 | **AI 智能体** | Python 3.10+, FastAPI, LangGraph, LangChain, SSE | 状态图路由、工具编排、上下文与多轮对话管理、流式事件派发 |
 | **LLM 接入** | DeepSeek 直连 或 阿里云百炼 DashScope | 通过 `LLM_PROVIDER` 显式切换模型底座与推理服务 |
@@ -173,10 +173,10 @@ AnimeTracker/
 │       ├── resources/            # 预置本地提示词 Markdown (支持 Redis 托管热更新)
 │       └── tests/                # pytest 测试与确定性评测框架
 ├── docs/                         # 项目全量文档中心
-│   ├── database/                 # 数据库初始化脚本与版本化前向迁移
+│   ├── database/                 # 数据库建表脚本 (db-schema.sql，唯一结构事实来源，无版本化迁移)
 │   ├── spec/                     # OpenAPI 3.0 接口规范定义 (openapi.yaml)
-│   ├── conventions/              # 后端架构规范与编码守则 (backend-conventions.md)
 │   ├── retrospective/            # 阶段性设计复盘
+│   ├── deploy/                   # 部署套件：nginx / systemd / 部署方案.md（本地产物，不入版本控制）
 │   └── superpowers/              # 规划、设计与交接文档（本地产物，不入版本控制）
 ├── .trellis/                     # Trellis 任务与工作区管理（开发流程工具链）
 └── .github/workflows/            # GitHub Actions 持续集成工作流
@@ -421,7 +421,9 @@ curl -X POST http://localhost:8080/api/client/subjects/lexical-search \
 
 ## 📚 子模块与扩展文档导航
 
-- 📘 [后端开发与架构规范](docs/conventions/backend-conventions.md)
+- 📘 [后端开发与架构规范](.trellis/spec/backend/index.md)
+- 🎨 [前端开发规范](.trellis/spec/frontend/index.md)
+- 🧭 [跨层开发指南与领域术语表](.trellis/spec/guides/index.md)
 - 🗄️ [数据库建表脚本 (db-schema.sql)](docs/database/db-schema.sql)
 - 📑 [OpenAPI 3.0 接口规范定义 (openapi.yaml)](docs/spec/openapi.yaml)
 - 🖥️ [前端总览](frontend/README.md)
@@ -435,13 +437,14 @@ curl -X POST http://localhost:8080/api/client/subjects/lexical-search \
 
 ## ⚠️ 待补充
 
-以下事项在本次文档核对时无法仅从代码确定，需维护者确认后补齐：
+以下事项在 2026-10-13 文档核对时逐条复核，仍无法仅从代码确定，需维护者确认后补齐：
 
-1. **前端子包 README**：`frontend/` 已新增总览 README；`client/`、`admin/`、`packages/shared/` 三个子包的细粒度文档（页面结构、状态管理约定、组件规范）待补。
-2. **生产部署形态缺失**：仓库中不存在 `deploy/` 目录、`compose.yml` / `compose.prod.yml`、Nginx 配置或进程守护配置。`application.yml` 注释中提到的 `application-prod.yml`（由 `SPRING_PROFILES_ACTIVE=prod` 激活）在 `app/src/main/resources/` 下不存在，生产配置的落地方式待确认。
-3. **`.trellis/` 归档任务文档**：`.trellis/tasks/archive/` 下存在两处 README（任务文档索引与历史报告说明）。它们是被版本跟踪的历史审查记录，且自带「不直接删除审查证据」的维护规则，故本次未按模块文档结构重写；如需一并更新请明确指示。
-4. **运行期产物未纳入 `.gitignore`**：`backend/agent/jobs/importer/importer.pid` 与 `backend/agent/indexer-remaining.json` 由任务运行时生成，当前未被忽略规则覆盖（`*.log` 已被忽略）。
-5. **`jobs/indexer` 门禁阈值**：`quality` / `capacity` / `eval` / `latency` / `human` 五份报告的合格线随数据规模与嵌入额度变化，代码中未固化建议值，暂无文档化判读基准。
+1. **生产部署形态**：仓库不跟踪部署编排与反代配置；服务器本地存在未入库的部署套件（`docs/deploy/`：nginx / systemd / `部署方案.md`），但不随仓库分发、无法据此复现。`application.yml` 注释提到的 `application-prod.yml`（`SPRING_PROFILES_ACTIVE=prod`）在 `app/src/main/resources/` 下不存在，生产 profile 的落地方式待确认。
+2. **`jobs/indexer` 门禁阈值**：`quality` / `capacity` / `eval` / `latency` / `human` 五份报告的合格线随数据规模与嵌入额度变化，代码中未固化建议值，暂无文档化判读基准。
+3. **旧索引链路退役计划**：`job` 表中 `type='RAG_INDEX'` 旧队列与 `type='SEARCH_INDEX'` 新链路并存，`--queue` 默认 `both`；下线时间与 `RAG_INDEX` 停止登记时机未在代码或文档中标注。
+4. **测试基线未复核**：本仓库文档中的 Java/Python 测试通过数为带日期的**历史基线**（详见 [`.trellis/spec/backend/index.md`](.trellis/spec/backend/index.md)），本次未重跑测试套件；引用前需按其中命令重新实测。
+
+> 已解决并移出本清单：前端三份子包 README 已补建；`importer.pid` / `indexer-remaining.json` 已由 `.gitignore` 覆盖。
 
 ---
 

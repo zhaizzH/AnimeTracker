@@ -88,7 +88,7 @@ business/
 - `import` 是 Java 关键字，故导入相关包统一命名为 `imprt`。
 - 命名后缀：入参/请求体 `XxxDTO`、列表/查询筛选 `XxxQueryDTO`、出参 `XxxVO`；DTO 约束注解一律带中文 `message`。
 
-> pojo 模块要求所有字段都加 Javadoc 注释，entity 按 `docs/database/db-schema.sql` 描述撰写，详见 [`../../docs/conventions/backend-conventions.md`](../../docs/conventions/backend-conventions.md)。
+> pojo 模块要求所有字段都加 Javadoc 注释，entity 按 `docs/database/db-schema.sql` 描述撰写，详见 [`../../.trellis/spec/backend/quality-guidelines.md`](../../.trellis/spec/backend/quality-guidelines.md)。
 
 ## 分层约定
 
@@ -116,7 +116,7 @@ converter/    # 实体 ⇄ DTO/VO 转换
 - 响应体统一 `{code, message, data}`；禁止向客户端透传内部细节（resourcePath、SQL、堆栈）。
 - `DataIntegrityViolationException` → 409，方法级鉴权失败 → 403，未知异常 → 500。
 
-完整规范见 [`../../docs/conventions/backend-conventions.md`](../../docs/conventions/backend-conventions.md)。
+完整规范见 [`../../.trellis/spec/backend/error-handling.md`](../../.trellis/spec/backend/error-handling.md)。
 
 ## 关键依赖
 
@@ -264,7 +264,7 @@ business 的 `agent` 模块会把请求代理到 `http://${at.agent.host}:${at.a
 mvn test
 ```
 
-当前共 31 个测试类，按模块分布：
+当前共 30 个测试类（`find backend -name '*Test.java' | wc -l` → 30，2026-10-13；`archfixture/` 下 3 个 ArchUnit 夹具不计入），按模块分布：
 
 | 模块 | 测试 | 覆盖范围 |
 |------|------|---------|
@@ -310,7 +310,7 @@ A：确认 MinIO 已启动且 `at.minio.bucket` 对应的桶已存在。multipar
 
 - **Python Agent**（[`../agent/README.md`](../agent/README.md)）：business 通过 `at.agent.*` 指向它；两者共享 `JWT_SECRET`，Agent 本地验签。business 同时是 Agent 检索链路的上游契约方（`lexical-search` / `batch` / `evidence`）。
 - **共享数据库**：`import_record`、实体/关系表与任务表由 Agent 侧 `jobs/` 写入；`search_document` / `search_index_release` 由 `jobs/indexer` 维护，business 只读。
-- **文档**：接口规范 [`../../docs/spec/openapi.yaml`](../../docs/spec/openapi.yaml)、编码规范 [`../../docs/conventions/backend-conventions.md`](../../docs/conventions/backend-conventions.md)、库表与迁移 [`../../docs/database/`](../../docs/database/)。
+- **文档**：接口规范 [`../../docs/spec/openapi.yaml`](../../docs/spec/openapi.yaml)、编码规范 [`../../.trellis/spec/backend/`](../../.trellis/spec/backend/index.md)、库表脚本 [`../../docs/database/`](../../docs/database/)。
 - **后端总览**：[`../README.md`](../README.md) · **项目总览**：[`../../README.md`](../../README.md)
 
 ## 待补充

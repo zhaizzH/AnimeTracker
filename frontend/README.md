@@ -7,7 +7,7 @@
 ## 适用场景
 
 - 用户端：番剧索引、多条件筛选、放送日历、收藏与追番进度管理、流式 AI 助手。
-- 管理端：ECharts 数据看板、番剧/用户/导入/操作日志管理、Agent 提示词与模型配置、管理员 Agent 对话。
+- 管理端：Recharts 数据看板、番剧/用户/导入/操作日志管理、Agent 提示词与模型配置、管理员 Agent 对话。
 - 共享包：双端共用的 API 封装、鉴权协调、SSE 消费、类型与公共组件。
 
 ## 前置依赖
@@ -54,12 +54,12 @@ frontend/
 | TypeScript | 5 | 类型 |
 | Vite | 5 | 构建与开发服务器 |
 | Vitest | 2 | 单元测试 |
-| shadcn/ui + Tailwind CSS | 4 | 组件库与样式（两端同栈；client `@efferd/app-shell-2`，admin `@efferd/app-shell-5`） |
+| shadcn/ui + Tailwind CSS | 4 | 组件库与样式（两端同栈，各自维护 `components/ui`；外壳是**本地代码**：client `src/components/app-shell.tsx`、admin `src/layouts/AdminLayout.tsx`——`@efferd` 只是 `components.json` 的 shadcn registry 源，不存在可安装的 `@efferd/app-shell-*` 包） |
 | TanStack Query | 5 | 服务端状态 |
 | Zustand | 4 | 客户端状态 |
 | React Router | 7 | 路由 |
 | react-markdown | 9 | Agent 回答渲染 |
-| ECharts 6 + echarts-for-react | — | 管理端看板 |
+| recharts | 3 | 管理端看板图表（经 shadcn `components/ui/chart.tsx` 原语消费） |
 
 ## 快速开始
 
@@ -84,13 +84,20 @@ npm run typecheck   # 全部 workspace 的 tsc
 npm run build       # client + admin 产物构建
 ```
 
+## 子包文档
+
+- 🧑 [用户端 client](./client/README.md)：页面结构、路由守卫、SSE 消费与组件规范。
+- 🛠️ [管理端 admin](./admin/README.md)：页面结构、布局、图表原语与鉴权。
+- 📦 [共享包 shared](./packages/shared/README.md)：API 命名空间、认证协调、SSE、类型与公共组件。
+
 ## 与相邻模块的关联
 
 - **business**（[`../backend/business/README.md`](../backend/business/README.md)）：唯一 API 来源；Agent 对话走 business 代理层 `/api/{client,admin}/agent/*`，不直连 :8090。
-- **接口契约**：[`../docs/spec/openapi.yaml`](../docs/spec/openapi.yaml)（手工维护）。
+- **接口契约**：[`../docs/spec/openapi.yaml`](../docs/spec/openapi.yaml)（手工维护，共 68 个路径）。
+- **前端开发规范**：[`../.trellis/spec/frontend/`](../.trellis/spec/frontend/index.md)（目录、组件、Hook、质量门禁）。
 - **项目总览**：[`../README.md`](../README.md)。
 
 ## 待补充
 
-1. **页面/组件开发规范**：路由守卫、TanStack Query 键约定、shadcn 令牌定制的成文规范暂无。
-2. **shared 包发布边界**：`@animetracker/shared` 仅供仓内消费，无独立版本与发布流程。
+1. **shared 包发布边界**：`@animetracker/shared` 仅供仓内消费，无独立版本与发布流程。
+2. **生产部署形态**：前端构建产物如何由反向代理承载（admin 独立端口 `:8081`）属本地产物（`../docs/deploy/`，未入库），仓库未提供构建与发布编排。
