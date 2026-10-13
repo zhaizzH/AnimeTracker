@@ -1,0 +1,6 @@
+{"file": ".trellis/tasks/10-13-client-footer/prd.md", "reason": "验收标准:顺序依赖、组件形态、内容本地化、显示/隐藏范围、布局对齐、测试、R7 四项待定项待收敛"}
+{"file": ".trellis/tasks/10-13-client-footer/design.md", "reason": "契约对照:上游骨架保留点、组件契约、挂载点方案 B、不显示清单、宽度对齐、测试策略"}
+{"file": ".trellis/tasks/10-13-client-footer/implement.md", "reason": "执行清单与验证命令对照,确认每步已落地且前置门禁满足"}
+{"file": ".trellis/spec/adr/0021-shared-contract-visuals-vs-app-local-decorations.md", "reason": "核验页脚与 logo 未被下沉 shared、两端无交叉导入"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "核验 typecheck/test/build 结果与门禁分层一致"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "核验页脚可访问性(语义 footer、图标按钮 aria-label)与无 render 阶段副作用"}

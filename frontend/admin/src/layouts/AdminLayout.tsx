@@ -5,16 +5,21 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/co
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar, ADMIN_NAV_ITEMS } from '@/components/app-sidebar';
+import { Footer } from '@/components/footer';
 import { NavUser } from '@/components/nav-user';
 import { ThemeBridge } from '@/components/theme-bridge';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import { toastError } from '@/lib/toast';
+
+// 对话页是全高布局（页面自持 calc(100vh-120px)），页脚进入会撑出滚动条，故排除。
+const FOOTERLESS_PATHS = new Set(['/agent-chat']);
 
 export function AdminLayout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const currentLabel = ADMIN_NAV_ITEMS.find((item) => item.path === pathname)?.label;
+  const showFooter = !FOOTERLESS_PATHS.has(pathname);
 
   const onLogout = async () => {
     if (isLoggingOut) return;
@@ -45,6 +50,7 @@ export function AdminLayout() {
           </div>
         </header>
         <div className="min-w-0 flex-1 p-4 md:p-6"><Outlet /></div>
+        {showFooter && <Footer />}
       </SidebarInset>
     </SidebarProvider>
   );

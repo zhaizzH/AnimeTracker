@@ -44,6 +44,7 @@ function renderAt(initial: string) {
           <Route index element={<div data-testid="page">首页</div>} />
           <Route path="login" element={<><FromProbe /><div data-testid="page">登录页</div></>} />
           <Route path="my-collections" element={<RequireAuth><div data-testid="page">我的追番</div></RequireAuth>} />
+          <Route path="agent" element={<RequireAuth><div data-testid="page">AI 助手</div></RequireAuth>} />
           <Route path="public-only" element={<PublicOnly><div data-testid="page">仅未登录</div></PublicOnly>} />
         </Route>
       </Routes>
@@ -98,5 +99,18 @@ describe('client 路由守卫与外壳', () => {
     expect(linkCount('个人中心')).toBe(0);
     expect(linkCount('每周日程')).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: '登录' })).toHaveAttribute('href', '/login');
+  });
+
+  it('外壳内页面渲染页脚，页脚导航项与顶栏公开项一致', () => {
+    renderAt('/my-collections');
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+    expect(linkCount('番剧索引')).toBe(2); // 顶栏 + 页脚
+    expect(linkCount('每周日程')).toBe(2);
+  });
+
+  it('对话页 /agent 不渲染页脚', () => {
+    renderAt('/agent');
+    expect(screen.getByTestId('page')).toHaveTextContent('AI 助手');
+    expect(screen.queryByRole('contentinfo')).toBeNull();
   });
 });

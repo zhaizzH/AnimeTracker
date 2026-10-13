@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "关键约束:client/admin 不互相导入源码;两端各自维护 components/ui 与本地组件副本;@efferd 只是 registry 源,经它 add 的组件须按本地约定手工修正后再用"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "样式契约:shadcn/ui + Tailwind v4 + 令牌;可访问性(图标按钮需 aria-label、焦点可达);副作用不得在 render 阶段;组件职责边界"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "待改文档:登记两端新增 footer.tsx 与 admin 新增 logo.tsx;同时是目录归属与导入规则的判据;改时须保持混合 CRLF/LF"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "质量门禁分层(typecheck/test/build)与「未接线文件不得进构建产物」总则;不得沿用历史通过数作为测试计数"}
+{"file": ".trellis/spec/adr/0021-shared-contract-visuals-vs-app-local-decorations.md", "reason": "本任务核心边界依据:页脚属装饰件,必须各端自持、允许逐字节重复,不上提 shared;admin 复制 logo 亦据此"}
