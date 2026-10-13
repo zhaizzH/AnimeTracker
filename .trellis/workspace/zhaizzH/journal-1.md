@@ -715,3 +715,43 @@ DB 迁移 7201 行改为 `/media/covers/...`，残留 0。`:80`/`:8081` 实测 2
 - `at-import-full`（systemd 瞬态 system scope，PPID=1，**关会话不受影响**；机器重启会丢）
   - `--mode full --workers 10`，日志 `/opt/animetracker/logs/full.log`
   - 收尾脚本已就位：`bash /opt/animetracker/post_import.sh`（幂等，会拒绝在导入未结束时空跑）
+
+
+## Session 25: 两端页脚接入 efferd footer-1 并收尾归档
+<!-- trellis-session: v=2 fp=652aebb4300b3a4d -->
+
+**Date**: 2026-10-13
+**Task**: 两端页脚接入 efferd footer-1 并收尾归档
+**Branch**: `feat/footer-efferd`
+
+### Summary
+
+拉取 @efferd/footer-1 后确认其为 efferd 营销站页脚（占位链接与上游署名），改为按骨架手工落地两端本地页脚；404/认证/对话页不显示；按用户决定删除 nav 段。
+
+### Main Changes
+
+- client/admin 各新增 components/footer.tsx 与 components/icons/github-icon.tsx；admin 复制 client 的 logo.tsx（lucide-react 1.47 已无品牌图标）。
+- 页脚挂载于 ClientLayout/AdminLayout 内容区尾部，内容区补 flex-1 使页脚贴底；404 与认证路由在布局外天然排除，/agent 与 /agent-chat 以 FOOTERLESS_PATHS 显式排除。
+- 内容本地化：GitHub 指向 github.com/zhaizzH，删除 efferd 署名与 x.com 外链，版权改 AnimeTracker；nav 段按用户决定删除以免与顶栏/侧栏重复。
+- 修复页脚缺 w-full 被 flex 列挤成内容宽而居中悬浮的问题，使其与顶栏齐宽左对齐。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3827551d` | feat(frontend): 两端接入 efferd 骨架页脚，404/认证/对话页不显示 |
+| `6277b74` | refactor(frontend): 页脚删除 nav 段，避免与顶栏/侧栏导航重复 |
+
+### Testing
+
+- [OK] cd frontend && npm run typecheck && npm test && npm run build 全绿（client 6 文件/19 用例，admin 11 文件/59 用例，未新增测试文件）。
+- [OK] 浏览器免登录验证：/anime、/schedule 有页脚且宽度与顶栏对齐、短页贴底；/login 与 404 无页脚；页脚内 nav 已不存在。
+- [OK] trellis-check 独立复核 10 个文件，零缺陷、零自修。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- feat/footer-efferd 分支合入 main（或先开 PR）。

@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 23
-- **Last Active**: 2026-10-05
+- **Total Sessions**: 25
+- **Last Active**: 2026-10-13
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~674 | Active |
+| `journal-1.md` | ~757 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 25 | 2026-10-13 | 两端页脚接入 efferd footer-1 并收尾归档 | `3827551d`, `6277b74` | `feat/footer-efferd` |
 | 23 | 2026-10-05 | rag retrieval 按管线阶段拆分 | `08799fdb` | `main` |
 | 22 | 2026-09-29 | admin 全页面迁移到 shadcn 并移除 Ant Design | `2faddc55`, `056acfa3`, `40003f1f`, `7d3c878a`, `78378fa9`, `1b909fda`, `80b3c4d8` | `feat/backend-lombok-removal` |
 | 21 | 2026-09-28 | 完成后端 Lombok 移除：9 模块手写化并移除依赖 | `690de064`, `ef248cf0`, `a392c93f`, `313f46cd`, `667bd8a2`, `a09b11d9`, `9429a0b0`, `b02431af`, `256d2630`, `f2642b76`, `522f6ad2`, `e2fb74a8`, `d983bfc6` | `feat/admin-dashboard-block` |
