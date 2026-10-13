@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { SubjectCard, subjectsApi, formatDate } from '@shared';
+import { SubjectCard, subjectsApi } from '@shared';
 import { CollectionActions } from '@/components/CollectionActions';
+import { SubjectInfoCards } from '@/components/subject-info-cards';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-const SUBJECT_TYPE_LABEL: Record<number, string> = { 1: '书籍', 2: '动画', 3: '音乐', 4: '游戏', 6: '三次元' };
 const EP_STATUS_LABEL: Record<string, string> = { Air: '已播出', Today: '今日', NA: '未播出' };
 
 export default function SubjectDetail() {
@@ -59,20 +59,14 @@ export default function SubjectDetail() {
             <span className="text-lg font-semibold tabular-nums">{sub.score > 0 ? sub.score.toFixed(1) : '未评分'}</span>
           </section>
 
-          <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm md:grid-cols-3">
-            {[
-              ['排名', sub.rank || '—'],
-              ['集数', sub.eps],
-              ['放送', formatDate(sub.airDate)],
-              ['类型', SUBJECT_TYPE_LABEL[sub.type] ?? `未知(${sub.type})`],
-              ['收藏', sub.collectionTotal],
-            ].map(([label, value]) => (
-              <div key={String(label)}>
-                <dt className="text-muted-foreground">{label}</dt>
-                <dd>{String(value)}</dd>
-              </div>
-            ))}
-          </dl>
+          <SubjectInfoCards
+            className="mt-4"
+            rank={sub.rank}
+            eps={sub.eps}
+            airDate={sub.airDate}
+            type={sub.type}
+            collectionTotal={sub.collectionTotal}
+          />
 
           {sub.summary && (
             <section className="mt-6">

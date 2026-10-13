@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "新增两个 client 本地组件的命名/目录/写法约定"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "新组件归属 client/src/components，需同步登记；含 client 目录现状"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "活代码门禁与可复用性检查口径"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "前端 spec 索引与总则入口"}

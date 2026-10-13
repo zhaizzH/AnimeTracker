@@ -50,6 +50,12 @@ frontend/
 - 页脚**默认随布局外壳显示**；404 与认证页位于布局之外，**天然不显示**；全高对话页（client `/agent`、admin `/agent-chat`）在布局内以 `FOOTERLESS_PATHS` 显式排除。
 - GitHub 图标 `components/icons/github-icon.tsx` 与 admin 的 `components/logo.tsx` 均为**各端本地副本**（lucide-react 已不含品牌图标；admin 暂无自有图标，暂用 client 同款）。按 [ADR 0021](../adr/0021-shared-contract-visuals-vs-app-local-decorations.md)，装饰件各端自持、允许逐字节重复，不下沉 `packages/shared`。
 
+## 条目详情信息卡片
+
+- `components/subject-info-cards.tsx`（条目详情 `dl`）与 `components/full-width-divider.tsx`（其上下分隔线）为 efferd `contact-1` 骨架的本地落地：外层仍 `<dl>`、每卡 `<dt>`/`<dd>`，图标用 `lucide-react`，不引入上游 `IconPlaceholder` 与 `@efferd/*` registry 依赖。
+- 分隔线用 `contained` 模式（与卡片网格同宽），因内容列不在视口中心，上游默认 full-bleed 会横向溢出。
+- 占位符区分两种情形：**缺值**（`rank <= 0`、无 `airDate`）显示 `—`；**有值但枚举未映射**保留原始码 `未知(n)`。
+
 ## 未接线脚手架
 
 - `components/portal.tsx`、`hooks/use-scroll.ts`、`components/mobile-nav.tsx` 原为 efferd registry 收录的营销页头脚手架，现已接线进入 client 外壳：`client/src/components/app-shell.tsx` 只渲染「吸顶顶栏 + 内容区」，无侧栏；`components/app-header.tsx` 用 `useScroll` 驱动滚动背景态，移动端复用 `Portal`/`PortalBackdrop` 全屏抽屉。`components/header.tsx`（脚手架 `Header` 与占位 `navLinks`）已删除，侧栏链（`app-sidebar`/`nav-group`/`app-breadcrumbs`/`custom-sidebar-trigger`/`ui/sidebar`/`ui/sheet`/`ui/kbd`/`hooks/use-mobile`）一并移除。
