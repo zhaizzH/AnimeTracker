@@ -36,7 +36,7 @@ frontend/
 - 页面：`Dashboard`、`Users`、`Subjects`、`Import`、`Logs`、`AgentConfig`、`AgentChat`、`NotFound`。登录页是 `components/auth/auth-page.tsx`（默认导出 `AdminLogin`），**不是** `pages/` 下的路由页面。
 - 除登录页 `components/auth/auth-page.tsx` 静态导入外，其余页面在 `router.tsx` 中 `lazy` + Suspense。
 - 登录页是独立路由页，不经任何 shell 包裹，直接渲染；其余页共享 `AdminLayout`；`NotFound`（`path: '*'`）在 `AdminLayout` 之外，避免未匹配路径套上外壳。
-- **admin 路由不带 `/admin` 前缀**（`/login`、`/dashboard`……），页面以站点根为基路径。管理端生产部署在独立端口 `:8081` 的站点根（`docs/deploy/nginx/animetracker.conf`），本地开发为 `:5174`；给路由加 `/admin` 前缀会让本地与生产的可用路径不一致，违反 [ADR 0018](../adr/0018-admin-on-separate-port-not-subpath.md)「不得改用用户端子路径部署」的约束。当前路由表是这条 ADR 的**落地**：此前代码曾带 `/admin` 前缀，现已对齐 ADR。
+- **admin 路由不带 `/admin` 前缀**（`/login`、`/dashboard`……），页面以站点根为基路径。管理端生产部署在独立端口 `:8081` 的站点根（由反向代理承载，同域不同端口/路径，前端 `baseURL` 固定 `/api`；本地产物示例见 `docs/deploy/`，未入库），本地开发为 `:5174`；给路由加 `/admin` 前缀会让本地与生产的可用路径不一致，违反 [ADR 0018](../adr/0018-admin-on-separate-port-not-subpath.md)「不得改用用户端子路径部署」的约束。当前路由表是这条 ADR 的**落地**：此前代码曾带 `/admin` 前缀，现已对齐 ADR。
 
 ## client 认证与 404
 

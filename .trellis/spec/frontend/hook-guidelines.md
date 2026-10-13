@@ -34,20 +34,43 @@
 - 网络失败进入 `retryable-error`，401/403 才进入 `unauthenticated`。
 - 跨标签页只广播“会话可用/已退出”，不广播 Access Token。
 
-#### 双 HTTP 客户端与认证时序
+#### Scenario: 前端 HTTP 与 SSE 认证/刷新契约
 
-- `http`（Axios）负责普通 JSON：从内存 store 注入 Bearer、解包 `ApiResult<T>.data`，401 最多刷新并重放原请求一次；刷新接口本身不得再次触发刷新。
-- `sessionHttp` 只负责 refresh 等会话请求，不依赖普通请求拦截器；`streamSse` 使用原生 fetch，不会自动执行 Axios 的 401 刷新。
-- SSE 收到 401/403 时，调用方必须保留 Abort 语义，按“刷新一次 → 重新打开同一流一次”或直接进入未认证状态处理，禁止无限重试。
-- `refreshWithLock` 只保证同一标签页 Promise 复用及 Navigator Locks 串行；跨标签页广播不会携带 token，也不保证复用另一标签页的刷新结果，失败仍按 `retryable-error`/未认证矩阵处理。
+**1. Scope / Trigger**：改动 `packages/shared/src/api/http.ts`、`auth/coordinator.ts`、`sse.ts` 或 `hooks/useAgentChat.ts` 的请求注入、401 刷新或 SSE 帧消费行为时适用。这是前端 → Business/Agent 的跨层认证与流式契约。
 
-#### SSE 事件与帧边界
+**2. Signatures**：`http`（Axios 实例，`baseURL='/api'`、`withCredentials`）、`sessionHttp`（仅 refresh 等会话请求）、`streamSse(url, body, { token, signal })`（原生 fetch）、`refreshWithLock()`（标签页内 Promise 复用 + Navigator Locks）。
 
-- `streamSse` 的请求必须是 POST JSON，携带可选 Bearer 和 `AbortSignal`；响应应为 `text/event-stream`，帧以空行结束，最后一个无换行帧也必须被处理。
-- 事件 `type` 取值为 `answer`、`thinking`、`function_call`、`status`，不存在 `type=end` 帧；结束由 `is_end=true` 表达。`function_call.state` 当前只有 `start|end`，失败以 `end` + `result=error` 表达；`state=error` 只出现在 `status` 事件上。
-- 工具状态当前只有 running/done（见 [类型安全规范](./component-guidelines.md#类型安全规范)），不得永久停在 running；新增 `error` 状态需先扩展 `ToolStep` 并同步事件处理。
-- `is_end=true` 或明确 end 事件后停止写入；Abort、网络断开和解析失败必须分别保留可重试的用户语义。
-- 当前 `packages/shared/src/sse.ts` 只按单个换行切分、未校验 Content-Type、未 flush 尾帧。`useAgentChat` 未单独处理 status 与 function_call error；含 `content.text` 的其他事件还可能落入正文拼接分支。`is_end` 仅跳过当前事件，没有锁住后续帧。这些是已知债务，新增 SSE 改动必须补 parser、状态机、断开和鉴权失败测试。
+**3. Contracts**：
+- `http` 从内存 store 注入 `Authorization: Bearer`，解包 `ApiResult<T>.data`；`code!==200` 以 `message` 拒绝。
+- 这些端点把 401/403 当业务结果、不触发静默刷新重试：`/client/auth/(login|register|verify-email|resend-code|refresh|forgot-password|reset-password)`；`logout` 不在列内（令牌过期仍应先刷新再重放）。
+- `streamSse` 不发 Axios 拦截器，因此**不会**自动 401 刷新；消费方必须自行处理。
+- SSE 事件 `type` 只有 `answer / thinking / function_call / status`，**不存在 `type=end`**；结束由 `is_end=true` 表达（生产者契约见 [Agent SSE 事件契约](../backend/agent-guidelines.md#scenario-agent-sse-事件契约)）。
+
+**4. Validation & Error Matrix**：
+
+| 情况 | 契约行为 |
+|---|---|
+| 普通 JSON 401（非 AUTH_ENDPOINT、未重试过） | `refreshWithLock()` 成功后重放原请求**一次** |
+| 普通 JSON 401（已重试过 / 刷新失败） | 拒绝，进入未认证或 `retryable-error` |
+| AUTH_ENDPOINT 401/403 | 直接拒绝，不刷新 |
+| SSE 401/403 | 保留 Abort 语义：「刷新一次 → 重开同一流一次」或进入未认证；**禁止无限重试** |
+| 工具失败 | `function_call` `state=end` + `result=error`（**不是** `state=error`；`state=error` 只在 `status` 事件） |
+| 网络断开 / 解析失败 / 主动 Abort | 三者分别保留可重试的用户语义，不混为一类 |
+| 收到 `is_end=true` | 停止写入；消费方不得假设后续无帧 |
+| 字段缺失 | 生产者 `exclude_none`，`content` 子字段必须视为可选 |
+
+**5. Good / Base / Bad Cases**：
+- Good：SSE 401 时刷新一次并重开单条流，或直接进未认证；工具状态从不会永久停在 running。
+- Base：普通 JSON 走 `http` 自动刷新，SSE 路径独立处理鉴权。
+- Bad：对 SSE 401 无限重试；把 `type=end` 当真实帧；用当前输入值判据回填受控表单。
+
+**6. Tests Required**：SSE 改动必须补 parser、状态机、断开与鉴权失败测试；对 HTTP 改动补 401/403、网络失败、Abort、尾帧与错误状态用例（见 [质量门禁](./quality-guidelines.md)）。
+
+**7. Wrong vs Correct**：
+- Wrong：假设 `streamSse` 会自动刷新，或把 `end` 当作 `type` 枚举值。
+- Correct：SSE 独立处理 401；结束语义以 `is_end=true` 为准。
+
+> **已知债务**：当前 `packages/shared/src/sse.ts` 只按单个换行切分、未校验 Content-Type、未 flush 尾帧；`useAgentChat` 未单独处理 `status` 与 `function_call` error，含 `content.text` 的其他事件可能落入正文拼接分支，`is_end` 仅跳过当前事件而未锁住后续帧。新增 SSE 改动必须一并补测试。
 
 #### thinking 展示的现状
 

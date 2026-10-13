@@ -45,9 +45,11 @@ CI 当前执行 Java `mvn -B test`、Python `uv run pytest` 和前端 typecheck�
 
 ### 2026-10-05 Backend 复核基线
 
-- Business reactor 当前包含 `common`、`pojo`、`infrastructure`、`auth`、`log`、`agent`、`client`、`admin`、`app` 九个 Maven 模块；模块上限和实际职责以 [目录与依赖边界](./directory-structure.md) 及 `ArchitectureBoundaryTest` 为准
-- `mvn -B test -f backend/business/pom.xml`：全 reactor 合计 220 个测试通过，0 失败，0 错误（Lombok 移除后各模块测试全部计入；2026-09-21 的 95 为历史基线）
-- `uv run pytest`（`backend/agent`）：2026-10-06（提交 `392cd873`）为 650 passed；2026-10-05 的 629 passed, 6 xfailed、2026-09-29 的 585 passed、2026-09-21 的 413 passed 均为历史基线。数字取自提交记录，改动后必须重新实测替换
+> **2026-10-13 文档刷新未重跑测试套件**：以下通过数一律为**未复核**的历史基线。静态规模可即时核对：Java 测试类 `find backend -name '*Test.java' | wc -l` → 30；Python 用例 `grep -rE 'def test_' backend/agent/tests | wc -l` → 525（均 2026-10-13）。
+
+- Business reactor 当前包含 `common`、`pojo`、`infrastructure`、`auth`、`log`、`agent`、`client`、`admin`、`app` 九个 Maven 模块（`grep -cE '<module>' backend/business/pom.xml` → 9，2026-10-13）；模块上限和实际职责以 [目录与依赖边界](./directory-structure.md) 及 `ArchitectureBoundaryTest` 为准
+- `mvn -B test -f backend/business/pom.xml`：全 reactor 最后实测合计 220 个测试通过，0 失败，0 错误——**未复核**（Lombok 移除后各模块测试全部计入；2026-09-21 的 95 为历史基线）
+- `uv run pytest`（`backend/agent`）：最后实测 2026-10-06（提交 `392cd873`）为 650 passed——**未复核**；2026-10-05 的 629 passed, 6 xfailed、2026-09-29 的 585 passed、2026-09-21 的 413 passed 均为历史基线。数字取自提交记录，改动后必须重新实测替换
 - `check_javadoc.py` 自动化检查器已随提交 `721d5c71`（2026-10-04）删除；Javadoc 规范仍有效，恢复前以人工审查为准，详见 [质量门禁](./quality-guidelines.md#声明与语法检查自动化检查器已退役)
 - `app/rag` 已于 2026-10-05 按管线阶段拆分（提交 `08799fdb`），详见 [app/rag 模块结构](./directory-structure.md#apprag-模块结构2026-10-05提交-08799fdb)
 

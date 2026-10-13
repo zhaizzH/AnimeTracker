@@ -156,17 +156,54 @@ matches = entity_name_lookup(query.entity_name, entity_kind=query.entity_kind, l
 allowed = resolve_evidence(match.entity_kind, ids, token=token)
 ```
 
-### SSE 契约
+### Scenario: Agent SSE 事件契约
 
-- 运行时只产生 `AgentEvent`，事件类型为 `answer / thinking / function_call / status / end`。
-- `app/api/sse.py` 是序列化单一入口；结束事件必须设置 `is_end=true`。
-- 保持 `text/event-stream`、`Cache-Control: no-cache`、`X-Accel-Buffering: no`。
-- 改事件字段时同步 `schemas/sse.py` 与前端 `useAgentChat.ts`；`docs/spec/openapi.yaml` 的 `/api/client/agent/stream` 当前只有通用透传 schema，未记录事件字段，不能作为该契约的核对依据。
-- 浏览器只请求 Spring 代理路径，不配置或直连 Agent 的 `:8090`。
-- **wire 帧格式（不得凭 spec 文字推断）**：每帧只有 `data:` 行、`\n\n` 分帧、类型在 JSON 内部的 `type` 字段；不使用 `event:`/`id:`/`retry:` 行。
-- **`end` 事件不是 `type` 枚举值**：`MessageType` 只有 `answer/thinking/function_call/status`；结束帧为 `type="answer"`（默认值）+ `is_end=true` + 空 `content`。spec 文字或任务描述中写「五值联合（含 end）」是不准确的，实现以 `app/api/sse.py:10-11` 为准。
+#### 1. Scope / Trigger
+
+- Trigger：任何新增/修改 `/api/client/agent/stream`、`/api/admin/agent/chat/stream` 的事件字段、帧格式或结束语义。这是 Python 生产方 → Spring 透传 → 浏览器消费方的跨层契约，改动会同时影响 `schemas/sse.py`、`app/api/sse.py` 与前端 `useAgentChat.ts`。
+
+#### 2. Signatures
+
+- 序列化单一入口：`app/api/sse.py`；结束事件必须设置 `is_end=true`。
+- 出站 schema：`backend/agent/app/schemas/sse.py` 的 `AgentEvent` / `MessageType`。
+- 传输路径：浏览器只请求 Spring 代理路径（`/api/{client,admin}/agent/...`），不配置或直连 Agent 的 `:8090`。
+- **wire 帧格式（不得凭 spec 文字推断）**：每帧只有 `data:` 行、`\n\n` 分帧、类型在 JSON 内部的 `type` 字段；不使用 `event:` / `id:` / `retry:` 行。
+
+#### 3. Contracts
+
+- 响应头保持 `Content-Type: text/event-stream`、`Cache-Control: no-cache`、`X-Accel-Buffering: no`。
+- `MessageType` 只有 `answer / thinking / function_call / status` —— **不存在 `end` 类型**。
+- 结束帧为 `type="answer"`（默认值）+ `is_end=true` + 空 `content`。
 - `exclude_none=True` 使每帧字段集随事件类型变化；前端因此必须把 `content` 子字段视为可选。`meta={}` 会保留，`meta=None` 被剔除。
-- 帧格式回归由 `tests/api/test_sse_serialization.py` 钉住（帧形态、`exclude_none`、`end` 语义、响应头、逐帧消费）。
+- 改事件字段时同步 `schemas/sse.py` 与前端 `useAgentChat.ts`；`docs/spec/openapi.yaml` 的 `/api/client/agent/stream` 当前只有通用透传 schema，未记录事件字段，不能作为该契约的核对依据。
+
+#### 4. Validation & Error Matrix
+
+| 情况 | 契约行为 |
+|---|---|
+| 正常增量 | 逐帧 `data:` + `\n\n`，`is_end=false` |
+| 结束 | `type="answer"` + `is_end=true` + 空 `content`；消费方据此停止写入 |
+| 工具开始/结束 | `function_call` 帧，`state=start|end` |
+| 工具失败 | `function_call` `state=end` + `result=error`（**不是** `state=error`） |
+| 执行异常（回答落库 / PendingAction 持久化） | 发送 `status` 错误事件后结束流；客户端视为可重试的部分失败，不显示为保存成功 |
+| 客户端断开 | `asyncio.CancelledError`，不记普通 500 |
+| 字段缺失 | 因 `exclude_none`，消费方不得假设字段恒存在 |
+
+#### 5. Good / Base / Bad Cases
+
+- Good：新增事件字段时同步 `schemas/sse.py`、`app/api/sse.py` 与前端 `useAgentChat.ts`，并补帧格式回归。
+- Base：只改内部实现，不动 wire 契约。
+- Bad：在 spec 或任务描述里写「五值联合（含 end）」，或在 JSON 外新增 `event:` 行。
+
+#### 6. Tests Required
+
+- `tests/api/test_sse_serialization.py` 钉住帧形态、`exclude_none`、`end` 语义、响应头与逐帧消费（当前回归入口）。
+- 新增/修改事件字段时同步断言 `MessageType` 取值与结束帧形态。
+
+#### 7. Wrong vs Correct
+
+- Wrong：把 `end` 当作 `type` 枚举值（旧 spec 文字曾如此表述）；或假设每个帧都带 `content` 子字段。
+- Correct：类型枚举只有四值，结束由 `is_end=true` 表达；消费方把 `content` 子字段视为可选。实现以 `app/api/sse.py:10-11` 为准，spec 文字与之冲突时以代码为权威。
 
 ### Gateway 路由结果解析
 
@@ -178,7 +215,7 @@ allowed = resolve_evidence(match.entity_kind, ids, token=token)
 ### Business 响应守卫
 
 - `HttpBusinessGateway.request` 返回类型为 `dict | list | None`：Java 成功响应缺 `data` 时**显式 `return None`**（`business_http.py:68`）。
-- 消费方一律以 `if isinstance(data, dict) and data.get("error")` 守卫，**不得裸调 `response.get(...)`**。既有守卫见 `collection_state.py:24`、`collection_type.py:141`、`subject_resolution.py`（5 处）、`wishlist.py:107`、`collections.py:76`。
+- 消费方一律以 `if isinstance(data, dict) and data.get("error")` 守卫，**不得裸调 `response.get(...)`**。既有守卫见 `app/agent/client/actions/collection_state.py:24`、`actions/collection_type.py:141`、`actions/subject_resolution.py`（5 处）、`actions/wishlist.py:107`，以及 `app/agent/client/collections.py:76`（唯一不在 `actions/` 子目录的消费方）。
 - **已知缺陷**：`collection_progress.py:44,65` 缺该守卫，None 响应抛 `AttributeError`。修复时保持 2 条 `xfail(strict=True)` 用例转绿。
 
 ### 安全写操作
