@@ -755,3 +755,42 @@ DB 迁移 7201 行改为 `/media/covers/...`，残留 0。`:80`/`:8081` 实测 2
 ### Next Steps
 
 - feat/footer-efferd 分支合入 main（或先开 PR）。
+
+
+## Session 26: 条目详情信息栏改用 efferd contact-1 卡片
+<!-- trellis-session: v=2 fp=8c0ab4859e7d6469 -->
+
+**Date**: 2026-10-13
+**Task**: 条目详情信息栏改用 efferd contact-1 卡片
+**Branch**: `main`
+
+### Summary
+
+按 @efferd/contact-1 骨架手工落地条目详情页信息卡片（不跑 shadcn add），外层保留 <dl>/<dt>/<dd> 语义，图标换 lucide，并用 contained 分隔线规避 full-bleed 横向溢出。
+
+### Main Changes
+
+- 新增 components/subject-info-cards.tsx 与 components/full-width-divider.tsx（上游逐字移植、双模式）；SubjectDetail.tsx 的 <dl> 替换为 <SubjectInfoCards>，移除 SUBJECT_TYPE_LABEL 与 formatDate 导入。
+- 占位符区分缺值 —（rank<=0、无 airDate）与未映射枚举 未知(n)；rank 判空改用 rank > 0 避开 truthiness 写法，行为等价。
+- 响应式加固：文本列 min-w-0、值 break-words、图标框 shrink-0。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f7c7144` | feat(client): 条目详情信息栏改用 efferd contact-1 卡片网格 |
+
+### Testing
+
+- [OK] cd frontend && npm run typecheck && npm test && npm run build 全绿（client 7 文件/24 用例）。
+- [OK] 真后端逐档实测 375/640/768/1024/1440：单列/三列切换正确，五档 hOverflow=0，分隔线与卡片网格 left/width 完全一致。
+- [OK] 真实数据覆盖 rank 0 → —（subject 115）与 airDate null → —（subject 118）；未知(n) 仅由单测覆盖（后端数据 type 全为 2）。
+- [OK] trellis-check 独立复核 5 文件、7 组验收标准全通过，零缺陷零自修。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 无。main 领先 origin/main 8 个提交，待 push。

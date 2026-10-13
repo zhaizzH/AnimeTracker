@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 25
+- **Total Sessions**: 26
 - **Last Active**: 2026-10-13
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~757 | Active |
+| `journal-1.md` | ~796 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 26 | 2026-10-13 | 条目详情信息栏改用 efferd contact-1 卡片 | `f7c7144` | `main` |
 | 25 | 2026-10-13 | 两端页脚接入 efferd footer-1 并收尾归档 | `3827551d`, `6277b74` | `feat/footer-efferd` |
 | 23 | 2026-10-05 | rag retrieval 按管线阶段拆分 | `08799fdb` | `main` |
 | 22 | 2026-09-29 | admin 全页面迁移到 shadcn 并移除 Ant Design | `2faddc55`, `056acfa3`, `40003f1f`, `7d3c878a`, `78378fa9`, `1b909fda`, `80b3c4d8` | `feat/backend-lombok-removal` |
