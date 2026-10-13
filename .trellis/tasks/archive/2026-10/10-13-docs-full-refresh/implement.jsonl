@@ -1,0 +1,12 @@
+{"file": ".trellis/spec/GLOSSARY.md", "reason": "领域术语单一来源，README 用词须与之对齐"}
+{"file": ".trellis/spec/guides/index.md", "reason": "跨层指南索引与易腐数字口径约定"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "跨层契约与文档级校验规则"}
+{"file": ".trellis/spec/backend/index.md", "reason": "后端规范索引与 2026-10-05 复核基线（测试数口径）"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "source_active 计数与 schema 约束漂移源"}
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "Agent 编排/SSE 契约与 collection_state 路径漂移源"}
+{"file": ".trellis/spec/backend/rag-retrieval-contract.md", "reason": "检索与发布 gate 契约，判定 7 段缺口"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "统一响应/日志契约，判定 7 段缺口"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "@efferd registry 与本地外壳契约的权威陈述"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "admin 部署契约与 docs/deploy 引用漂移源"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "前端测试文件计数漂移源"}
+{"file": ".trellis/spec/adr/README.md", "reason": "ADR 索引，确认不重写既有 21 篇"}
