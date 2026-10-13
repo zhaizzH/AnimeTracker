@@ -1,12 +1,14 @@
-import { cn } from '@/lib/utils';
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { AppHeader } from '@/components/app-header';
-import { AppSidebar } from '@/components/app-sidebar';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { AppPathContext, ShellUserContext, type ShellUser } from '@/components/app-shared';
 
 /**
  * 应用外壳。不直接依赖 react-router，便于在测试与不同路由形态下复用；
- * 由 `path` / `user` 注入路由与登录态。
+ * 由 `path` / `user` 注入路由与登录态。外壳只提供吸顶顶栏与布局栈，
+ * 页面容器（宽度与内边距）由各页面自持。
+ *
+ * `TooltipProvider` 挂在根部：原 `SidebarProvider` 曾隐式提供，去侧栏后需显式补回，
+ * 供全局悬浮 AI 助手等外壳内组件使用。
  */
 export function AppShell({
   children,
@@ -20,15 +22,12 @@ export function AppShell({
   return (
     <ShellUserContext.Provider value={user}>
       <AppPathContext.Provider value={path}>
-        <SidebarProvider className={cn('[--app-wrapper-max-width:80rem]')}>
-          <AppSidebar />
-          <SidebarInset>
+        <TooltipProvider delayDuration={0}>
+          <div className="flex min-h-svh w-full flex-col">
             <AppHeader />
-            <div className={cn('flex flex-1 flex-col p-4 md:p-6', 'mx-auto w-full max-w-(--app-wrapper-max-width)')}>
-              {children}
-            </div>
-          </SidebarInset>
-        </SidebarProvider>
+            {children}
+          </div>
+        </TooltipProvider>
       </AppPathContext.Provider>
     </ShellUserContext.Provider>
   );

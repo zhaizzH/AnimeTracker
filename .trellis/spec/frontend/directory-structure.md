@@ -4,7 +4,7 @@
 
 ```text
 frontend/
-├── client/                    # 用户端 React，Vite :5173（shadcn/ui + Tailwind v4，外壳 components/app-shell.tsx）
+├── client/                    # 用户端 React，Vite :5173（shadcn/ui + Tailwind v4，外壳 components/app-shell.tsx，顶栏 + 移动抽屉、无侧栏）
 │   └── src/{pages,components,layouts,test}
 ├── admin/                     # 管理端 React，Vite :5174（shadcn/ui + Tailwind v4，外壳 layouts/AdminLayout.tsx）
 │   └── src/{pages,components,components/ui,layouts,lib}
@@ -46,7 +46,7 @@ frontend/
 
 ## 未接线脚手架
 
-- `components/header.tsx`、`components/mobile-nav.tsx`、`components/portal.tsx`、`hooks/use-scroll.ts` 是从 efferd registry 收录的**营销页头脚手架**，当前**无任何引用、不参与构建产物**（仅彼此互相 import）。登记在此是为了避免被误认为现行页头实现；接线后再据实描述。
+- `components/portal.tsx`、`hooks/use-scroll.ts`、`components/mobile-nav.tsx` 原为 efferd registry 收录的营销页头脚手架，现已接线进入 client 外壳：`client/src/components/app-shell.tsx` 只渲染「吸顶顶栏 + 内容区」，无侧栏；`components/app-header.tsx` 用 `useScroll` 驱动滚动背景态，移动端复用 `Portal`/`PortalBackdrop` 全屏抽屉。`components/header.tsx`（脚手架 `Header` 与占位 `navLinks`）已删除，侧栏链（`app-sidebar`/`nav-group`/`app-breadcrumbs`/`custom-sidebar-trigger`/`ui/sidebar`/`ui/sheet`/`ui/kbd`/`hooks/use-mobile`）一并移除。
 - 仓库允许存在其他未被引用的文件；目录规范只登记被引用的活代码（门禁见 [quality-guidelines.md](./quality-guidelines.md)）。
 
 ## 参考

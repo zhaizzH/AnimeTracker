@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ClientLayout } from '@/layouts/ClientLayout';
 import { RequireAuth, PublicOnly } from '@/guards';
@@ -32,7 +33,7 @@ function FromProbe() {
   return <output aria-label="来源">{state?.from ?? ''}</output>;
 }
 
-// shadcn Sidebar 同时渲染桌面侧栏与移动 Sheet，导航链会出现两份；断言用「存在/不存在」而非唯一匹配。
+// 顶栏公开项构成桌面导航；个人项不在顶栏，只挂在头像下拉/移动抽屉中（默认不挂载）。
 const linkCount = (name: string) => screen.queryAllByRole('link', { name }).length;
 
 function renderAt(initial: string) {
@@ -56,11 +57,25 @@ describe('client 路由守卫与外壳', () => {
     authState.user = { id: 1, username: 'tester', nickname: '测试用户', role: 'USER' };
   });
 
-  it('已登录用户可进入 RequireAuth 页面（外壳渲染）', () => {
+  it('已登录用户可进入 RequireAuth 页面（外壳渲染顶栏）', () => {
     renderAt('/my-collections');
     expect(screen.getByTestId('page')).toHaveTextContent('我的追番');
-    expect(linkCount('我的追番')).toBeGreaterThan(0);
     expect(linkCount('首页')).toBeGreaterThan(0);
+    expect(linkCount('每周日程')).toBeGreaterThan(0);
+    expect(linkCount('番剧索引')).toBeGreaterThan(0);
+  });
+
+  it('登录后个人项收进头像菜单，展开后才出现', async () => {
+    const user = userEvent.setup();
+    renderAt('/');
+    expect(linkCount('我的追番')).toBe(0);
+
+    await user.click(screen.getByRole('button', { name: '账号菜单：测试用户' }));
+
+    expect(await screen.findByRole('menuitem', { name: '我的追番' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'AI 助手' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: '个人中心' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: '退出登录' })).toBeInTheDocument();
   });
 
   it('未登录访问 RequireAuth 页面重定向到 /login 且带 state.from', () => {
@@ -82,5 +97,6 @@ describe('client 路由守卫与外壳', () => {
     expect(linkCount('我的追番')).toBe(0);
     expect(linkCount('个人中心')).toBe(0);
     expect(linkCount('每周日程')).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: '登录' })).toHaveAttribute('href', '/login');
   });
 });

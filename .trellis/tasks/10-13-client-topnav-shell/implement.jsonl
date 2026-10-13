@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "关键约束:client/admin 不互相导入;两端各自维护 components/ui;@efferd 只是 registry 源,add 进来的组件须按本地约定手工修正"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "样式契约:client 用 shadcn/ui + Tailwind v4 + 令牌;UI 原语 ref 链判据;可访问性(图标按钮 label、焦点可达);副作用不得在 render 阶段"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "待改文档:未接线脚手架段(header 簇)需改写;同时是目录归属与导入规则的判据"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "质量门禁分层(typecheck/test/build)与「未接线文件不得进构建产物」总则;测试计数不得沿用历史通过数"}
+{"file": ".trellis/spec/adr/0021-shared-contract-visuals-vs-app-local-decorations.md", "reason": "视觉件各端自持的边界依据:本次只动 client,不得下沉 shared,也不得触碰 admin"}

@@ -1,0 +1,5 @@
+{"file": ".trellis/tasks/10-13-client-topnav-shell/prd.md", "reason": "验收标准:外壳形态、顶栏、移动抽屉、头像菜单、死代码删除、垂直偏移、测试、文档八项"}
+{"file": ".trellis/tasks/10-13-client-topnav-shell/design.md", "reason": "契约对照:外壳不再提供内边距/宽度、导航数据结构、交互状态表"}
+{"file": ".trellis/tasks/10-13-client-topnav-shell/implement.md", "reason": "执行清单与验证命令对照,确认每步已落地"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "核验 typecheck/test/build 结果与门禁分层一致,且未新增未被引用文件"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "核验顶栏与抽屉的可访问性(label/aria)、asChild ref 链、无 render 阶段副作用"}

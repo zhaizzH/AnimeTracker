@@ -9,7 +9,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { UserIcon, LayoutGridIcon, LogOutIcon } from 'lucide-react';
+import { LogOutIcon } from 'lucide-react';
+import { memberNavItems } from '@/components/app-shared';
 import { authApi, completeLogout, useAuthStore } from '@shared';
 import { toast } from 'sonner';
 
@@ -51,14 +52,12 @@ export function NavUser() {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem onSelect={() => navigate('/profile')}>
-            <UserIcon />
-            个人中心
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => navigate('/my-collections')}>
-            <LayoutGridIcon />
-            我的追番
-          </DropdownMenuItem>
+          {memberNavItems.map((item) => (
+            <DropdownMenuItem key={item.title} onSelect={() => navigate(item.path ?? '/')}>
+              {item.icon}
+              {item.title}
+            </DropdownMenuItem>
+          ))}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
