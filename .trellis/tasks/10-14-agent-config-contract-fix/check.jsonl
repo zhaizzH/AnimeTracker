@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "核对是否违反前端关键约束（HTTP 解包、queryKey、两应用不互导）"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "质量门禁逐项核对"}

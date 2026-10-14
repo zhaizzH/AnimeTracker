@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "前端规范索引与关键约束（HTTP 解包、queryKey/mutation 失效、shadcn 令牌）"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Query/mutation 约定：本任务涉及 useQuery 错误态、mutation onError 与失效范围"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "组件职责与类型所有权：表单字段补齐与 HTTP 类型边界"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "质量门禁：typecheck / Vitest / 审查要求"}

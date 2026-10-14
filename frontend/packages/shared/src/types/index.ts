@@ -8,6 +8,10 @@ export interface LoginVO { token: string; user: UserVO }
 
 export interface SubjectListItem { id: string; name: string; nameCn?: string | null; image?: string | null; score: number; rank: number; eps: number; airDate?: string | null; type: number; airWeekday: number; collectionTotal: number }
 export interface TagVO { id: number; name: string; count: number }
+// 管理端提示词（PromptOut 契约）：GET /admin/agent/prompts 返回 PromptVO 数组。
+export interface PromptVO { promptKey: string; promptContent: string }
+// 运行时模型配置（ModelConfig 契约）。后端 config/update 为整体替换，故字段全可选。
+export interface ModelConfigVO { model?: string | null; modelRoute?: string | null; temperature?: number | null; maxTokens?: number | null; thinkingBudget?: number | null; reasoningEffort?: string | null }
 export interface RelationVO { relation: string; relatedSubject: SubjectListItem }
 export interface SubjectDetail extends SubjectListItem { bangumiId: number; summary?: string | null; volumes?: number | null; nsfw: boolean; tags: TagVO[]; relations: RelationVO[]; createdAt: string; updatedAt: string }
 export interface EpisodeVO { id: number; subjectId: string; type: number; sort: number; name: string; nameCn?: string | null; duration?: string | null; airdate?: string | null; description?: string | null; status: 'Air' | 'Today' | 'NA' }

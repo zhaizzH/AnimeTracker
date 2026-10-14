@@ -1,10 +1,11 @@
 import { get, post } from '../http';
-export const prompts = () => get<Record<string, unknown>>('/admin/agent/prompts');
-export const promptDetail = (key: string) => get<Record<string, unknown>>(`/admin/agent/prompts/${encodeURIComponent(key)}`);
-export const promptUpdate = (key: string, d: Record<string, unknown>) => post<Record<string, unknown>>(`/admin/agent/prompts/${encodeURIComponent(key)}/update`, d);
+import type { ModelConfigVO, PromptVO } from '../../types';
+export const prompts = () => get<PromptVO[]>('/admin/agent/prompts');
+export const promptDetail = (key: string) => get<PromptVO>(`/admin/agent/prompts/${encodeURIComponent(key)}`);
+export const promptUpdate = (key: string, d: { promptContent: string }) => post<PromptVO>(`/admin/agent/prompts/${encodeURIComponent(key)}/update`, d);
 export const promptReset = (key: string) => post<void>(`/admin/agent/prompts/${encodeURIComponent(key)}/reset`);
-export const config = () => get<Record<string, unknown>>('/admin/agent/config');
-export const configUpdate = (d: Record<string, unknown>) => post<void>('/admin/agent/config/update', d);
+export const config = () => get<ModelConfigVO>('/admin/agent/config');
+export const configUpdate = (d: ModelConfigVO) => post<void>('/admin/agent/config/update', d);
 export const chatSessions = () => get<Record<string, unknown>[]>('/admin/agent/chat/sessions');
 export const chatCreateSession = () => post<Record<string, unknown>>('/admin/agent/chat/sessions', {});
 export const chatHistory = (sessionId: string) => get<Record<string, unknown>[]>(`/admin/agent/chat/sessions/${encodeURIComponent(sessionId)}/history`);
