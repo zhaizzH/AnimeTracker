@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 26
-- **Last Active**: 2026-10-13
+- **Total Sessions**: 27
+- **Last Active**: 2026-10-14
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~796 | Active |
+| `journal-1.md` | ~818 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 27 | 2026-10-14 | Agent 模型配置默认值回显与稀疏保存 | `07ee4f3c` | `main` |
 | 26 | 2026-10-13 | 条目详情信息栏改用 efferd contact-1 卡片 | `f7c7144` | `main` |
 | 25 | 2026-10-13 | 两端页脚接入 efferd footer-1 并收尾归档 | `3827551d`, `6277b74` | `feat/footer-efferd` |
 | 23 | 2026-10-05 | rag retrieval 按管线阶段拆分 | `08799fdb` | `main` |

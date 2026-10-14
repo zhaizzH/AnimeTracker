@@ -794,3 +794,25 @@ DB 迁移 7201 行改为 `/media/covers/...`，残留 0。`:80`/`:8081` 实测 2
 ### Next Steps
 
 - 无。main 领先 origin/main 8 个提交，待 push。
+
+
+## Session 27: Agent 模型配置默认值回显与稀疏保存
+<!-- trellis-session: v=2 fp=1382c940ac2850bc -->
+
+**Date**: 2026-10-14
+**Task**: Agent 模型配置默认值回显与稀疏保存
+**Branch**: `main`
+
+### Summary
+
+GET /admin/agent/config 改为返回生效值 + _sources 逐字段来源；前端继承默认字段留空并以 placeholder 展示，提交只发送显式填写的字段（稀疏提交），避免把 .env 默认值固化进 Redis。新增 AdminConfigService.get_effective_config()，与 agent_factory 解析链逐字对齐；空提交为 no-op，清空字段即撤销其覆盖。后端新增 13 例测试，pytest 663 passed/6 xfailed；前端 typecheck 通过、npm test 124。Spec 固化：agent-guidelines.md 新增配置回显契约，component-guidelines.md 新增稀疏提交约定。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `07ee4f3c` | feat(admin): Agent 模型配置回显生效值并稀疏保存，避免固化 .env 默认值 |
+
+### Status
+
+[OK] **Completed**
