@@ -65,15 +65,6 @@ def _patch_chat_openai_reasoning():
 _patch_chat_openai_reasoning()
 
 
-_SLOT_DEFAULTS: dict[AgentChatModelSlot, dict[str, float]] = {
-    AgentChatModelSlot.CLIENT_ROUTE: {"temperature": 0.0},
-    AgentChatModelSlot.CLIENT_SEARCH: {},
-    AgentChatModelSlot.CLIENT_DISCOVER: {},
-    AgentChatModelSlot.CLIENT_RECOMMEND: {},
-    AgentChatModelSlot.ADMIN_NODE: {},
-}
-
-
 def create_llm(*, provider: Literal["deepseek", "dashscope"], model: str, temperature: float,
                api_key: str, max_tokens: int, base_url: str | None = None,
                thinking_budget: int = 2048, reasoning_effort: str = "high"):
@@ -119,7 +110,6 @@ class AgentLlmFactory:
         temperature: float | None = None,
         provider_config: ResolvedLlmProviderConfig | None = None,
     ):
-        cfg = _SLOT_DEFAULTS[slot]
         runtime = self._model_configs.get() or {}
         resolved = provider_config or resolve_llm_provider(self._settings)
         if slot is AgentChatModelSlot.CLIENT_ROUTE:
@@ -127,7 +117,7 @@ class AgentLlmFactory:
         else:
             model = runtime.get("model") or resolved.model
         resolved_temp = temperature if temperature is not None else runtime.get(
-            "temperature", cfg.get("temperature", self._settings.llm_temperature)
+            "temperature", self._settings.llm_temperature
         )
         max_tokens = runtime.get("maxTokens") or self._settings.llm_max_tokens
         budget = runtime.get("thinkingBudget", self._settings.llm_thinking_budget)
