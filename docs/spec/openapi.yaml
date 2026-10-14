@@ -2671,7 +2671,7 @@ paths:
   /api/admin/agent/config:
     get:
       summary: "读取模型配置"
-      description: "读取模型配置"
+      description: "读取模型配置：返回生效值 + 逐字段来源（_sources）。Redis 未设置的字段回退 .env/Settings 默认。"
       parameters:
       - name: "Authorization"
         in: "header"
@@ -2693,12 +2693,53 @@ paths:
                     type: "string"
                     description: ""
                   data:
-                    type: "string"
-                    description: ""
+                    type: "object"
+                    description: "生效值 + 逐字段来源（_sources）"
+                    properties:
+                      model:
+                        type: "string"
+                        description: "生效模型名"
+                      modelRoute:
+                        type: "string"
+                        description: "路由模型名（CLIENT_ROUTE slot）"
+                      temperature:
+                        type: "number"
+                        description: "采样温度，0~2"
+                      maxTokens:
+                        type: "integer"
+                        description: "最大生成 token"
+                      thinkingBudget:
+                        type: "integer"
+                        description: "思考预算"
+                      reasoningEffort:
+                        type: "string"
+                        description: "推理强度"
+                      _sources:
+                        type: "object"
+                        description: "逐字段来源：default=继承 .env 默认（前端留空并展示 placeholder）；override=Redis 显式覆盖"
+                        properties:
+                          model:
+                            type: "string"
+                            enum: ["default", "override"]
+                          modelRoute:
+                            type: "string"
+                            enum: ["default", "override"]
+                          temperature:
+                            type: "string"
+                            enum: ["default", "override"]
+                          maxTokens:
+                            type: "string"
+                            enum: ["default", "override"]
+                          thinkingBudget:
+                            type: "string"
+                            enum: ["default", "override"]
+                          reasoningEffort:
+                            type: "string"
+                            enum: ["default", "override"]
   /api/admin/agent/config/update:
     post:
       summary: "更新模型配置"
-      description: "更新模型配置"
+      description: "更新模型配置：整体替换，只应提交被显式修改的字段；未提交字段回退继承 .env 默认（前端稀疏提交）。空对象提交为 no-op。"
       parameters:
       - name: "Authorization"
         in: "header"
@@ -2710,11 +2751,26 @@ paths:
           application/json:
             schema:
               type: "object"
+              description: "只提交被修改的字段；全部可选，未提交字段不写入 Redis。"
               properties:
-                key:
-                  type: "object"
-                  properties: {}
-              description: ""
+                model:
+                  type: "string"
+                  description: "模型名"
+                modelRoute:
+                  type: "string"
+                  description: "路由模型名"
+                temperature:
+                  type: "number"
+                  description: "采样温度，须在 0~2 之间"
+                maxTokens:
+                  type: "integer"
+                  description: "最大生成 token，须为正整数"
+                thinkingBudget:
+                  type: "integer"
+                  description: "思考预算"
+                reasoningEffort:
+                  type: "string"
+                  description: "推理强度"
       responses:
         "200":
           description: ""
@@ -2730,8 +2786,27 @@ paths:
                     type: "string"
                     description: ""
                   data:
-                    type: "string"
-                    description: ""
+                    type: "object"
+                    description: "更新后的生效值 + 逐字段来源（_sources），形状同 GET /api/admin/agent/config"
+                    properties:
+                      model:
+                        type: "string"
+                      modelRoute:
+                        type: "string"
+                      temperature:
+                        type: "number"
+                      maxTokens:
+                        type: "integer"
+                      thinkingBudget:
+                        type: "integer"
+                      reasoningEffort:
+                        type: "string"
+                      _sources:
+                        type: "object"
+                        description: "逐字段来源：default=继承 .env 默认；override=Redis 显式覆盖"
+                        additionalProperties:
+                          type: "string"
+                          enum: ["default", "override"]
   /api/admin/agent/chat/stream:
     post:
       summary: "管理端 Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）"
