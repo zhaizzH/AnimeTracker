@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "Agent 模型/提示词契约与配置解析链"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "前端关键约束（HTTP 解包、queryKey、类型边界）"}
