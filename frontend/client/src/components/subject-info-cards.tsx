@@ -25,6 +25,8 @@ type Props = {
  * 占位符区分两种情形：**缺值**（`rank <= 0`、无 `airDate`）显示 `—`；
  * **有值但枚举未映射**（后端新增 type）保留原始码 `未知(n)`，便于发现映射缺口。
  * 分隔线用 `contained`（与卡片网格同宽），因内容列不在视口中心，full-bleed 会横向溢出。
+ *
+ * 列数用 auto-fit + 最小列宽自适应，而不是固定 `grid-cols-3`：固定 3 列时宽屏 5 项会在末行留空位。
  */
 export function SubjectInfoCards({ rank, eps, airDate, type, collectionTotal, className }: Props) {
 	const rows: InfoRow[] = [
@@ -38,9 +40,9 @@ export function SubjectInfoCards({ rank, eps, airDate, type, collectionTotal, cl
 	return (
 		<div className={cn('relative', className)}>
 			<FullWidthDivider contained position="top" />
-			<dl className="grid gap-px overflow-hidden bg-border px-px md:grid-cols-3">
+			<dl className="grid gap-px overflow-hidden bg-border px-px sm:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]">
 				{rows.map(({ label, value, Icon }) => (
-					<div key={label} className="flex items-center gap-3 bg-background p-2 shadow-xs">
+					<div key={label} className="flex min-w-0 items-center gap-3 bg-background p-2 shadow-xs">
 						<div
 							aria-hidden="true"
 							className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted/50 [&_svg]:size-4 [&_svg]:text-muted-foreground"

@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 
 const QUARTERS = { spring: '春', summer: '夏', autumn: '秋', winter: '冬' } as const;
+const QUARTER_KEYS = ['winter', 'spring', 'summer', 'autumn'] as const;
+const quarterOf = (d: Date) => QUARTER_KEYS[Math.floor(d.getMonth() / 3)];
 const WEEK = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 const weekdayIndex = (w: number) => (w + 6) % 7; // JS getDay() 0=周日 → 周一=0
 // 后端 airWeekday/weekday: 0=周日…6=周六；标签页下标 i: 0=周一…6=周日，互转
@@ -15,7 +17,7 @@ export default function Schedule() {
   const now = new Date();
   const [params, setParams] = useSearchParams();
   const year = Number(params.get('year') ?? now.getFullYear());
-  const quarter = params.get('quarter') ?? 'summer';
+  const quarter = params.get('quarter') ?? quarterOf(now);
   const active = params.get('tab') ?? String(weekdayIndex(now.getDay()));
   const patch = (p: Record<string, string>) => setParams({ year: String(year), quarter, tab: active, ...p });
 

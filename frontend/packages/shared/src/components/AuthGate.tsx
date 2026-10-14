@@ -2,53 +2,71 @@ import type { ReactNode } from 'react';
 import { useAuthStatus } from '../hooks/useAuthStatus';
 
 // 本组件为 UI 无关外壳：不依赖主题上下文，也不假设消费应用自带 .auth-gate 样式。
-// 以下字面量是自包含兜底视觉；两端重建以 shadcn 令牌为准后，此处调色板待跟进替换。
-// TODO(ui-infra): 令牌落地后改用 var(--background)/var(--foreground) 等 shadcn 变量，去除硬编码「暖纸玻璃」色值。
-const SHELL = {
-  background: '#F7F5F0',
-  color: '#23261F',
+// 视觉一律走 shadcn 令牌的 CSS 变量（与 SubjectCard 同款约定）：内联样式里的 var() 会正常
+// 参与级联，故 .dark 翻转时自动跟随；逗号后的字面量是兜底，取值与亮色主题一致，
+// 仅在消费应用未定义令牌时生效。shared 无 Tailwind 依赖，两端也未 @source 本包，
+// 故此处不能用 utility class。
+const TOKEN = {
+  background: 'var(--background, oklch(1 0 0))',
+  foreground: 'var(--foreground, oklch(0.145 0 0))',
+  card: 'var(--card, oklch(1 0 0))',
+  border: 'var(--border, oklch(0.922 0 0))',
+  mutedForeground: 'var(--muted-foreground, oklch(0.556 0 0))',
+  primary: 'var(--primary, oklch(0.205 0 0))',
+  primaryForeground: 'var(--primary-foreground, oklch(0.985 0 0))',
+  // 原为 antd colorWarning 的赭黄；告警语义在 shadcn 里由 destructive 承担。
+  destructive: 'var(--destructive, oklch(0.577 0.245 27.325))',
+  fontSans: 'var(--font-sans, system-ui, sans-serif)',
 } as const;
+
+// 面板对齐 auth-shell（AuthShell 卡片为 rounded-xl border bg-card shadow-sm），
+// rounded-xl = radius-lg + 4px，故此处照抄该偏移，使恢复态与验证邮箱/找回密码等页面观感一致。
 const PANEL = {
-  background: 'rgba(255, 255, 255, 0.62)',
-  border: '1px solid rgba(255, 255, 255, 0.7)',
-  borderRadius: 14,
-  boxShadow: '0 10px 30px rgba(35, 38, 31, 0.08)',
+  background: TOKEN.card,
+  border: `1px solid ${TOKEN.border}`,
+  borderRadius: 'calc(var(--radius, 0.625rem) + 4px)',
+  boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
 } as const;
 const BRAND = {
-  marginBottom: 24,
-  fontFamily: "'Noto Serif SC', 'Songti SC', SimSun, serif",
-  fontSize: 26,
-  fontWeight: 700,
-  letterSpacing: '0.02em',
+  marginBottom: 20,
+  fontFamily: TOKEN.fontSans,
+  fontSize: 20,
+  fontWeight: 600,
+  letterSpacing: '-0.025em',
 } as const;
 const TITLE = {
-  margin: '0 0 12px',
-  fontSize: 24,
+  margin: '0 0 8px',
+  fontSize: 20,
   fontWeight: 500,
-  lineHeight: 1.15,
+  lineHeight: 1.3,
 } as const;
 const SUBTITLE = {
   margin: 0,
-  color: '#6E7266',
+  fontSize: 14,
+  lineHeight: 1.6,
+  color: TOKEN.mutedForeground,
 } as const;
 // 原为 antd <Result status="warning">，其图标为 fontSizeHeading3 * 3 = 72px、
-// 取色 colorWarning；antd 的警告图标本身是「实心圆 + 感叹号」。
+// 取色 colorWarning；antd 的警告图标本身是「实心圆 + 感叹号」。尺寸收到 56 以贴近
+// shadcn 空状态的比例。
 const ICON = {
-  width: 72,
-  height: 72,
-  color: '#B58A3C',
+  width: 56,
+  height: 56,
+  color: TOKEN.destructive,
 } as const;
-// 原为 antd <Button type="primary">：controlHeight 38 / borderRadius 10 / 青色底白字。
+// 对齐 shadcn Button 默认档：h-9 / rounded-md / px-4 / text-sm / font-medium，
+// 底色改用 primary 令牌（原为 antd 青色 #2DD4BF）。
 const RETRY = {
   marginTop: 20,
-  height: 38,
-  padding: '0 22px',
-  border: '1px solid #2DD4BF',
-  borderRadius: 10,
-  background: '#2DD4BF',
-  color: '#FFFFFF',
-  fontFamily: 'inherit',
+  height: 36,
+  padding: '0 16px',
+  border: `1px solid ${TOKEN.primary}`,
+  borderRadius: 'calc(var(--radius, 0.625rem) - 2px)',
+  background: TOKEN.primary,
+  color: TOKEN.primaryForeground,
+  fontFamily: TOKEN.fontSans,
   fontSize: 14,
+  fontWeight: 500,
   cursor: 'pointer',
 } as const;
 
@@ -59,25 +77,23 @@ export function AuthGate({ children, className }: { children: ReactNode; classNa
     display: 'grid',
     placeItems: 'center',
     padding: 24,
-    background: SHELL.background,
-    color: SHELL.color,
+    background: TOKEN.background,
+    color: TOKEN.foreground,
+    fontFamily: TOKEN.fontSans,
   } as const;
   const panelStyle = {
-    width: 'min(100%, 480px)',
+    width: 'min(100%, 420px)',
     padding: '40px 32px',
     textAlign: 'center',
-    background: PANEL.background,
-    border: PANEL.border,
-    borderRadius: PANEL.borderRadius,
-    boxShadow: PANEL.boxShadow,
+    ...PANEL,
   } as const;
   // checking 态的自绘 spinner：自包含实现，不依赖消费应用的外部动画规则。
   const spinnerStyle = {
     width: 32,
     height: 32,
     margin: '8px auto 20px',
-    border: '3px solid #E3E0D7',
-    borderTopColor: '#2DD4BF',
+    border: `3px solid ${TOKEN.border}`,
+    borderTopColor: TOKEN.primary,
     borderRadius: '50%',
     animation: 'auth-gate-spin 0.8s linear infinite',
   } as const;

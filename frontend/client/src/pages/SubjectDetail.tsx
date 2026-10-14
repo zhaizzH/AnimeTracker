@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { SubjectCard, subjectsApi } from '@shared';
 import { CollectionActions } from '@/components/CollectionActions';
 import { SubjectInfoCards } from '@/components/subject-info-cards';
+import { tagChipClass } from '@/components/TagChip';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -79,7 +80,11 @@ export default function SubjectDetail() {
             <section className="mt-4">
               <h2 className="mb-2 text-lg font-medium">标签</h2>
               <div className="flex flex-wrap gap-2">
-                {sub.tags.map((t) => <Badge key={t.id} variant="secondary" className="rounded-full">{t.name}</Badge>)}
+                {sub.tags.map((t) => (
+                  <Link key={t.id} to={`/anime?tag=${encodeURIComponent(t.name)}`} className={tagChipClass(false)}>
+                    {t.name}
+                  </Link>
+                ))}
               </div>
             </section>
           )}
