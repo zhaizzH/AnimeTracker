@@ -63,6 +63,18 @@
 - mutation 成功后只改局部 UI，不失效权威 query。
 - client 组件被复制到 admin，而不是提取真正共享部分。
 
+### 表单回显与稀疏提交（整体替换型后端）
+
+后端 `set()` 为整体替换（非合并）时，表单不得用「GET 原始对象打底 + 表单字段覆盖」的方式提交——
+这会把继承来的默认值固化进存储，之后改 `.env` 静默失效。约定：
+
+- GET 返回**生效值 + 逐字段来源**（如 `_sources: 'default' | 'override'`）。
+- `default` 字段：`value` 留空，用 `placeholder` 显示 `继承默认 {值}（.env）`；`override` 字段填实际值。
+- 提交只含**非空字段**（稀疏提交）。未填字段不进请求体 → 整体替换后该键消失 → 回退继承默认。
+  这同时实现了「清空某字段即撤销其覆盖」。
+- `0`、`false` 等假值是合法输入，判「未设置」用空串判定（`v.trim() === ''`），不能用真值判断。
+- 参考实现：`frontend/admin/src/pages/AgentConfig.tsx`（`toForm` / `toDefaults` / `toSparseBody` / `ConfigInput`）。
+
 ## 类型安全规范
 
 ### 类型所有权

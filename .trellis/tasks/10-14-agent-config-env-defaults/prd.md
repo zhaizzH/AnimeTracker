@@ -33,15 +33,30 @@ reasoningEffort = runtime.get("reasoningEffort", resolved.reasoning_effort)
 
 ## Acceptance Criteria
 
-- [ ] **AC1** Redis 为空时，GET 返回全部 6 个字段的生效值与 `source=default`。
-- [ ] **AC2** 某字段被 Redis 覆盖时，该字段 `source=override`，其余仍为 `default`。
-- [ ] **AC3** `.env` 改值后（Redis 空），GET 反映新值——证明回显确实来自 Settings 而非缓存常量。
-- [ ] **AC4** 页面只填 1 个字段保存后，Redis 中仅存在该字段；其余仍继承 `.env`。
-- [ ] **AC5** 前端区分显示继承（placeholder）与覆盖（value）。
-- [ ] **AC6** 提供清除单个字段覆盖、回退继承默认的操作。
-- [ ] **AC7** 既有 `configUpdate` 语义与调用方不破坏（前端仍能提交部分字段）。
-- [ ] **AC8** 后端测试与 admin 前端测试补充；`uv run pytest`、`npm run typecheck`、`npm test` 全绿（记录实际数字）。
-- [ ] **AC9** 不改 `agent_factory.py` 的解析语义（仅新增只读的"生效值"查询路径）。
+- [x] **AC1** Redis 为空时，GET 返回全部 6 个字段的生效值与 `source=default`。
+- [x] **AC2** 某字段被 Redis 覆盖时，该字段 `source=override`，其余仍为 `default`。
+- [x] **AC3** `.env` 改值后（Redis 空），GET 反映新值——证明回显确实来自 Settings 而非缓存常量。
+- [x] **AC4** 页面只填 1 个字段保存后，Redis 中仅存在该字段；其余仍继承 `.env`。
+- [x] **AC5** 前端区分显示继承（placeholder）与覆盖（value）。
+- [x] **AC6** 提供清除单个字段覆盖、回退继承默认的操作。
+- [x] **AC7** 既有 `configUpdate` 语义与调用方不破坏（前端仍能提交部分字段）。
+- [x] **AC8** 后端测试与 admin 前端测试补充；`uv run pytest`、`npm run typecheck`、`npm test` 全绿（记录实际数字）。
+- [x] **AC9**（**已修订**）`agent_factory.py` 的 `_SLOT_DEFAULTS` slot 特例被移除，5 个 slot 统一走「Redis → `.env`」解析，temperature 可由管理页统一修改。
+
+## 决策记录
+
+### D1 temperature 不再是 slot 特例（AC9）
+
+原 `_SLOT_DEFAULTS` 给 `CLIENT_ROUTE` 硬编码 `temperature: 0.0`，其余 4 个 slot 落到 `settings.llm_temperature`。核查三条依据后移除该特例：
+
+1. **无消费方依赖**：`create()` 的 `temperature` 形参全仓零使用，`_SLOT_DEFAULTS` 仅 `create()` 内部一处引用。
+2. **无测试/文档断言**：`tests/` 无任何断言路由温度为 0.0 的用例。
+3. **与 spec 冲突**：`agent-guidelines.md:398` 规定「LLM 模型/温度等运行时配置优先读取 Redis，Redis 不可用时回退环境配置」——slot 硬编码恰好违反该条。
+
+**行为变化**：空 Redis 时意图路由温度 `0.0` → `0.3`（settings.llm_temperature）。Redis 已配置时新旧行为一致。用户明确要求 temperature 可修改、不应固定为 0。
+
+移除后 `_SLOT_DEFAULTS` 与 `create()` 内的 `cfg` 局部变量一并删除（避免死代码）。
+
 
 ## Out of Scope
 

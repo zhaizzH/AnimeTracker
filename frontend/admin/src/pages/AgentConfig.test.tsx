@@ -30,11 +30,21 @@ const PROMPTS = [
   { promptKey: 'planner', promptContent: '规划提示词' },
 ];
 
+// GET /admin/agent/config 返回生效值 + 逐字段来源（_sources）。
+const cfgView = (overrides = {}, sources = {}) => ({
+  model: 'gpt-x', modelRoute: 'route-y', temperature: 0.7, maxTokens: 4000, thinkingBudget: 100, reasoningEffort: 'high',
+  _sources: {
+    model: 'default', modelRoute: 'default', temperature: 'default', maxTokens: 'default',
+    thinkingBudget: 'default', reasoningEffort: 'default', ...sources,
+  },
+  ...overrides,
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
   adminAgentApi.prompts.mockResolvedValue(PROMPTS);
   adminAgentApi.promptDetail.mockResolvedValue({ promptKey: 'system', promptContent: '默认提示词' });
-  adminAgentApi.config.mockResolvedValue({ model: 'gpt-x', temperature: 0.7, maxTokens: 4000, thinkingBudget: 100 });
+  adminAgentApi.config.mockResolvedValue(cfgView());
 });
 afterEach(cleanup);
 
@@ -138,51 +148,100 @@ describe('AgentConfig', () => {
     expect(screen.getByRole('button', { name: '保存提示词' })).toHaveProperty('disabled', true);
   });
 
-  it('模型配置回填并保留 staleTime: Infinity', async () => {
+  it('模型配置查询保留 staleTime: Infinity', async () => {
     const { qc } = renderPage();
-    expect(await screen.findByDisplayValue('gpt-x')).not.toBeNull();
+    await screen.findByRole('button', { name: 'system' });
     const opts = qc.getQueryCache().findAll({ queryKey: ['agent-config'] })[0]?.options;
     expect((opts as { staleTime?: number })?.staleTime).toBe(Infinity);
-    expect(screen.getByDisplayValue('0.7')).not.toBeNull();
+  });
+});
+
+describe('AgentConfig 默认值回显', () => {
+  it('default 字段留空并以 placeholder 展示继承值', async () => {
+    renderPage();
+    // 等待配置查询 resolve 后再断言：输入框随 label 立即渲染，值异步到达
+    const model = await screen.findByLabelText('model');
+    await waitFor(() => expect(model.getAttribute('placeholder')).toContain('gpt-x'));
+    // 继承默认不填进 value，否则用户一保存就把它固化进 Redis
+    expect((model as HTMLInputElement).value).toBe('');
+
+    const temp = screen.getByLabelText('temperature');
+    expect((temp as HTMLInputElement).value).toBe('');
+    expect(temp.getAttribute('placeholder')).toContain('0.7');
   });
 
-  it('提交配置保留服务端已有但表单未改动的字段，不被整体替换抹掉', async () => {
-    // modelRoute / reasoningEffort 由服务端预置，页面上可见可编辑
-    adminAgentApi.config.mockResolvedValue({
-      model: 'gpt-x', modelRoute: 'client-route', temperature: 0.7, maxTokens: 4000, thinkingBudget: 100, reasoningEffort: 'high',
-    });
+  it('override 字段填入实际值，不留 placeholder', async () => {
+    adminAgentApi.config.mockResolvedValue(cfgView({ model: 'custom-x' }, { model: 'override' }));
+    renderPage();
+
+    const model = await screen.findByLabelText('model');
+    await waitFor(() => expect((model as HTMLInputElement).value).toBe('custom-x'));
+    expect(model.getAttribute('placeholder')).toBeNull();
+  });
+
+  it('override 的 0 值正常展示，不被当成未设置', async () => {
+    adminAgentApi.config.mockResolvedValue(cfgView({ temperature: 0 }, { temperature: 'override' }));
+    renderPage();
+
+    const temp = await screen.findByLabelText('temperature');
+    await waitFor(() => expect((temp as HTMLInputElement).value).toBe('0'));
+  });
+});
+
+describe('AgentConfig 稀疏提交', () => {
+  it('只提交被填写的字段，继承默认的字段不进请求体', async () => {
     adminAgentApi.configUpdate.mockResolvedValue({});
     const u = userEvent.setup();
     renderPage();
-    await screen.findByDisplayValue('gpt-x');
+    const model = await screen.findByLabelText('model');
+
+    await u.type(model, 'new-model');
+    await u.click(screen.getByRole('button', { name: '保存模型配置' }));
+
+    await waitFor(() => expect(adminAgentApi.configUpdate).toHaveBeenCalled());
+    // 全部 default 字段都不应出现——这正是"不固化 .env 默认值"的保证
+    expect(adminAgentApi.configUpdate.mock.calls[0]![0]).toEqual({ model: 'new-model' });
+  });
+
+  it('完全不动表单时提交空对象', async () => {
+    adminAgentApi.configUpdate.mockResolvedValue({});
+    const u = userEvent.setup();
+    renderPage();
+    await screen.findByLabelText('model');
 
     await u.click(screen.getByRole('button', { name: '保存模型配置' }));
 
     await waitFor(() => expect(adminAgentApi.configUpdate).toHaveBeenCalled());
-    const sent = adminAgentApi.configUpdate.mock.calls[0]![0] as Record<string, unknown>;
-    expect(sent.modelRoute).toBe('client-route');
-    expect(sent.reasoningEffort).toBe('high');
+    expect(adminAgentApi.configUpdate.mock.calls[0]![0]).toEqual({});
   });
 
-  it('modelRoute 与 reasoningEffort 可在表单中编辑并提交', async () => {
+  it('清空已覆盖字段即撤销该覆盖', async () => {
+    adminAgentApi.config.mockResolvedValue(cfgView({ model: 'custom-x', maxTokens: 512 }, { model: 'override', maxTokens: 'override' }));
     adminAgentApi.configUpdate.mockResolvedValue({});
     const u = userEvent.setup();
     renderPage();
-    await screen.findByDisplayValue('gpt-x');
+    const model = await screen.findByLabelText('model');
+    await waitFor(() => expect((model as HTMLInputElement).value).toBe('custom-x'));
 
-    const route = screen.getByLabelText('modelRoute');
-    await u.clear(route);
-    await u.type(route, 'admin-route');
-    const effort = screen.getByLabelText('reasoningEffort');
-    await u.clear(effort);
-    await u.type(effort, 'low');
-
+    await u.clear(model);
     await u.click(screen.getByRole('button', { name: '保存模型配置' }));
 
     await waitFor(() => expect(adminAgentApi.configUpdate).toHaveBeenCalled());
-    const sent = adminAgentApi.configUpdate.mock.calls[0]![0] as Record<string, unknown>;
-    expect(sent.modelRoute).toBe('admin-route');
-    expect(sent.reasoningEffort).toBe('low');
+    // model 已清空 → 不在提交体；maxTokens 仍覆盖 → 保留
+    expect(adminAgentApi.configUpdate.mock.calls[0]![0]).toEqual({ maxTokens: 512 });
+  });
+
+  it('数字字段以数值类型提交，而非字符串', async () => {
+    adminAgentApi.configUpdate.mockResolvedValue({});
+    const u = userEvent.setup();
+    renderPage();
+    const temp = await screen.findByLabelText('temperature');
+
+    await u.type(temp, '1.5');
+    await u.click(screen.getByRole('button', { name: '保存模型配置' }));
+
+    await waitFor(() => expect(adminAgentApi.configUpdate).toHaveBeenCalled());
+    expect(adminAgentApi.configUpdate.mock.calls[0]![0]).toEqual({ temperature: 1.5 });
   });
 
   it('temperature 超出 0-2 被拦截，不发请求', async () => {
@@ -204,7 +263,7 @@ describe('AgentConfig', () => {
     adminAgentApi.configUpdate.mockResolvedValue({});
     const u = userEvent.setup();
     const { qc } = renderPage();
-    await screen.findByDisplayValue('gpt-x');
+    await screen.findByLabelText('model');
     const spy = vi.spyOn(qc, 'invalidateQueries');
 
     await u.click(screen.getByRole('button', { name: '保存模型配置' }));

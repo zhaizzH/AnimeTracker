@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { adminAgentApi, type ModelConfigVO } from '@shared';
+import { adminAgentApi, type ModelConfigVO, type ModelConfigViewVO } from '@shared';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,13 +19,93 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toastError, toastSuccess } from '@/lib/toast';
 
-// 后端 ModelConfig 共 6 个字段（见 backend/agent/app/api/schemas/admin_config.py）；
-// 表单只呈现其中一部分，其余靠 serverCfg 原样带回，避免被整体替换抹掉。
-type ConfigForm = { model?: string; modelRoute?: string; temperature?: string; maxTokens?: string; thinkingBudget?: string; reasoningEffort?: string };
-type AgentConfigData = ModelConfigVO;
+// 后端 ModelConfig 共 6 个字段（见 backend/agent/app/api/schemas/admin_config.py）。
+// GET 返回生效值 + 逐字段来源：来源为 default 的字段表单留空、placeholder 显示
+// 继承值，提交时不发送，从而不会把 .env 默认值固化进 Redis（后端 set() 是整体替换）。
+type ConfigField = 'model' | 'modelRoute' | 'temperature' | 'maxTokens' | 'thinkingBudget' | 'reasoningEffort';
+type ConfigForm = Record<ConfigField, string>;
+type AgentConfigData = ModelConfigViewVO;
 
-const toNumber = (v: string | undefined) => (v === undefined || v === '' ? undefined : Number(v));
-const toText = (v: string | undefined) => (v === undefined || v === '' ? undefined : v);
+const CONFIG_FIELDS: ConfigField[] = ['model', 'modelRoute', 'temperature', 'maxTokens', 'thinkingBudget', 'reasoningEffort'];
+const EMPTY_FORM: ConfigForm = { model: '', modelRoute: '', temperature: '', maxTokens: '', thinkingBudget: '', reasoningEffort: '' };
+
+// 空串即「未设置」：不进入提交体，后端整体替换后该键消失，回退继承默认。
+// 逐字段显式赋值：TS 对 union key 的写入会把目标类型收窄成交集，用下标赋值无法通过类型检查。
+const numOrUndef = (v: string) => (v.trim() === '' ? undefined : Number(v.trim()));
+const textOrUndef = (v: string) => (v.trim() === '' ? undefined : v.trim());
+
+/** 提交体只含非空字段，用于撤销未填写字段的覆盖。 */
+function toSparseBody(form: ConfigForm): ModelConfigVO {
+  const body: ModelConfigVO = {};
+  const assign = <K extends ConfigField>(k: K, v: ModelConfigVO[K]) => { if (v !== undefined) body[k] = v; };
+  assign('model', textOrUndef(form.model));
+  assign('modelRoute', textOrUndef(form.modelRoute));
+  assign('temperature', numOrUndef(form.temperature));
+  assign('maxTokens', numOrUndef(form.maxTokens));
+  assign('thinkingBudget', numOrUndef(form.thinkingBudget));
+  assign('reasoningEffort', textOrUndef(form.reasoningEffort));
+  return body;
+}
+
+/** 从 GET 响应提取「继承默认」字段的值，供 placeholder 展示。 */
+function toDefaults(d: AgentConfigData): ModelConfigVO {
+  const defs: ModelConfigVO = {};
+  const sources = d._sources ?? {};
+  const assign = <K extends ConfigField>(k: K, v: ModelConfigVO[K]) => {
+    if (v !== null && v !== undefined && sources[k] !== 'override') defs[k] = v;
+  };
+  assign('model', d.model);
+  assign('modelRoute', d.modelRoute);
+  assign('temperature', d.temperature);
+  assign('maxTokens', d.maxTokens);
+  assign('thinkingBudget', d.thinkingBudget);
+  assign('reasoningEffort', d.reasoningEffort);
+  return defs;
+}
+
+/** override 字段回填 value；default 字段留空。 */
+function toForm(d: AgentConfigData): ConfigForm {
+  const next = { ...EMPTY_FORM };
+  const sources = d._sources ?? {};
+  for (const f of CONFIG_FIELDS) {
+    const v = d[f];
+    if (v !== null && v !== undefined && sources[f] === 'override') next[f] = String(v);
+  }
+  return next;
+}
+
+/**
+ * 单个模型配置项。默认来源（未被 Redis 覆盖）的字段 value 留空、以 placeholder
+ * 展示继承值，使"留空=继承"在视觉与提交语义上一致；已覆盖字段填实际值。
+ */
+function ConfigInput({
+  id, field, label, cfg, defaults, setCfg, ...inputProps
+}: {
+  id: string;
+  field: ConfigField;
+  label: string;
+  cfg: ConfigForm;
+  defaults: ModelConfigVO;
+  setCfg: React.Dispatch<React.SetStateAction<ConfigForm>>;
+} & Pick<React.ComponentProps<typeof Input>, 'type' | 'min' | 'max' | 'step'>) {
+  const inherited = defaults[field];
+  // placeholder 只用于表达「留空即继承默认 X」。已覆盖字段有真实值，无需占位；
+  // 且 defaults 中的条目仅来自 default 来源，故无值时即表示该字段已被覆盖。
+  const placeholder = inherited === undefined || inherited === null ? undefined : `继承默认 ${String(inherited)}（.env）`;
+  return (
+    <div className="flex flex-col gap-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
+        aria-label={field}
+        value={cfg[field]}
+        placeholder={placeholder}
+        onChange={(e) => setCfg((c) => ({ ...c, [field]: e.target.value }))}
+        {...inputProps}
+      />
+    </div>
+  );
+}
 
 export default function AgentConfig() {
   const qc = useQueryClient();
@@ -35,7 +115,7 @@ export default function AgentConfig() {
   // 区分「加载失败」与「合法的空提示词」：只有成功取回内容才允许保存，
   // 否则 404 时 content 为空串，点保存会把线上提示词覆盖成空。
   const [loaded, setLoaded] = useState(false);
-  const [cfg, setCfg] = useState<ConfigForm>({});
+  const [cfg, setCfg] = useState<ConfigForm>(EMPTY_FORM);
   const [cfgError, setCfgError] = useState('');
   const promptsData = useQuery({ queryKey: ['prompts'], queryFn: adminAgentApi.prompts, staleTime: Infinity });
   const modelCfg = useQuery({ queryKey: ['agent-config'], queryFn: adminAgentApi.config, staleTime: Infinity });
@@ -50,23 +130,15 @@ export default function AgentConfig() {
     }
   }, [promptsData.data]);
 
-  // 模型配置首次到达后回填（对照 antd Form 的 initialValues 语义）。
+  // 模型配置首次到达后回填：仅 override 字段填入 value，default 字段留空由 placeholder 呈现。
   // 仅在尚未初始化时回填，避免后台刷新把用户正在编辑的值覆盖掉。
   const [cfgInitialized, setCfgInitialized] = useState(false);
-  // GET 的原始对象：提交时作为基底，保全表单未呈现的字段（后端 set() 是整体替换，不是合并）。
-  const [serverCfg, setServerCfg] = useState<Record<string, unknown>>({});
+  const [defaults, setDefaults] = useState<ModelConfigVO>({});
   useEffect(() => {
     const d = modelCfg.data as AgentConfigData | undefined;
     if (d && !cfgInitialized) {
-      setServerCfg(d as Record<string, unknown>);
-      setCfg({
-        model: d.model ?? '',
-        modelRoute: d.modelRoute ?? '',
-        temperature: d.temperature === undefined ? '' : String(d.temperature),
-        maxTokens: d.maxTokens === undefined ? '' : String(d.maxTokens),
-        thinkingBudget: d.thinkingBudget === undefined ? '' : String(d.thinkingBudget),
-        reasoningEffort: d.reasoningEffort ?? '',
-      });
+      setCfg(toForm(d));
+      setDefaults(toDefaults(d));
       setCfgInitialized(true);
     }
   }, [modelCfg.data, cfgInitialized]);
@@ -91,7 +163,7 @@ export default function AgentConfig() {
   const savePrompt = useMutation({ mutationFn: () => adminAgentApi.promptUpdate(selected!, { promptContent: content }), onSuccess: () => toastSuccess('提示词已更新'), onError: (e) => toastError((e as Error).message) });
   const resetPrompt = useMutation({ mutationFn: (k: string) => adminAgentApi.promptReset(k), onSuccess: () => { toastSuccess('已重置为默认'); if (selected) loadDetail(selected); }, onError: (e) => toastError((e as Error).message) });
   const saveCfg = useMutation({
-    mutationFn: (v: Record<string, unknown>) => adminAgentApi.configUpdate(v),
+    mutationFn: (v: ModelConfigVO) => adminAgentApi.configUpdate(v),
     onSuccess: () => { toastSuccess('配置已更新'); qc.invalidateQueries({ queryKey: ['agent-config'] }); },
     onError: (e) => toastError((e as Error).message),
   });
@@ -99,22 +171,15 @@ export default function AgentConfig() {
   const submitCfg = (e: React.FormEvent) => {
     e.preventDefault();
     // temperature 必须落在 [0,2]（对照 antd rules: min 0 / max 2）
-    const temp = toNumber(cfg.temperature);
+    const temp = numOrUndef(cfg.temperature);
     if (temp !== undefined && (temp < 0 || temp > 2)) {
       setCfgError('temperature 必须在 0 到 2 之间');
       return;
     }
     setCfgError('');
-    saveCfg.mutate({
-      // 以服务端返回值打底，再覆盖表单字段 —— 后端是整体替换，缺字段即被抹除。
-      ...serverCfg,
-      model: toText(cfg.model),
-      modelRoute: toText(cfg.modelRoute),
-      temperature: temp,
-      maxTokens: toNumber(cfg.maxTokens),
-      thinkingBudget: toNumber(cfg.thinkingBudget),
-      reasoningEffort: toText(cfg.reasoningEffort),
-    });
+    // 只提交非空字段：default 字段不进请求体，故不会被固化进 Redis；
+    // 清空已覆盖字段 → 该键消失 → 后端整体替换后回退继承默认。
+    saveCfg.mutate(toSparseBody(cfg));
   };
 
   return (
@@ -209,41 +274,22 @@ export default function AgentConfig() {
         </CardHeader>
         <CardContent>
           <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" onSubmit={submitCfg}>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="cfg-model">模型</Label>
-              <Input id="cfg-model" aria-label="模型" value={cfg.model ?? ''}
-                onChange={(e) => setCfg((c) => ({ ...c, model: e.target.value }))} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="cfg-modelRoute">modelRoute（路由模型）</Label>
-              <Input id="cfg-modelRoute" aria-label="modelRoute" value={cfg.modelRoute ?? ''}
-                onChange={(e) => setCfg((c) => ({ ...c, modelRoute: e.target.value }))} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="cfg-temperature">temperature（0-2）</Label>
-              <Input id="cfg-temperature" type="number" min={0} max={2} step={0.1} aria-label="temperature"
-                value={cfg.temperature ?? ''}
-                onChange={(e) => setCfg((c) => ({ ...c, temperature: e.target.value }))} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="cfg-maxTokens">maxTokens</Label>
-              <Input id="cfg-maxTokens" type="number" min={1} aria-label="maxTokens"
-                value={cfg.maxTokens ?? ''}
-                onChange={(e) => setCfg((c) => ({ ...c, maxTokens: e.target.value }))} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="cfg-thinkingBudget">thinkingBudget</Label>
-              <Input id="cfg-thinkingBudget" type="number" min={0} aria-label="thinkingBudget"
-                value={cfg.thinkingBudget ?? ''}
-                onChange={(e) => setCfg((c) => ({ ...c, thinkingBudget: e.target.value }))} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="cfg-reasoningEffort">reasoningEffort（推理强度）</Label>
-              <Input id="cfg-reasoningEffort" aria-label="reasoningEffort" value={cfg.reasoningEffort ?? ''}
-                onChange={(e) => setCfg((c) => ({ ...c, reasoningEffort: e.target.value }))} />
-            </div>
+            <ConfigInput id="cfg-model" field="model" label="模型" cfg={cfg} defaults={defaults} setCfg={setCfg} />
+            <ConfigInput id="cfg-modelRoute" field="modelRoute" label="modelRoute（路由模型）" cfg={cfg} defaults={defaults} setCfg={setCfg} />
+            <ConfigInput id="cfg-temperature" field="temperature" label="temperature（0-2）" cfg={cfg} defaults={defaults} setCfg={setCfg}
+              type="number" min={0} max={2} step={0.1} />
+            <ConfigInput id="cfg-maxTokens" field="maxTokens" label="maxTokens" cfg={cfg} defaults={defaults} setCfg={setCfg}
+              type="number" min={1} />
+            <ConfigInput id="cfg-thinkingBudget" field="thinkingBudget" label="thinkingBudget" cfg={cfg} defaults={defaults} setCfg={setCfg}
+              type="number" min={0} />
+            <ConfigInput id="cfg-reasoningEffort" field="reasoningEffort" label="reasoningEffort（推理强度）" cfg={cfg} defaults={defaults} setCfg={setCfg} />
             {cfgError && <p role="alert" className="text-sm text-destructive sm:col-span-2 lg:col-span-3">{cfgError}</p>}
-            <Button type="submit" className="justify-self-start">保存模型配置</Button>
+            <div className="flex items-start gap-3 sm:col-span-2 lg:col-span-3">
+              <Button type="submit" disabled={saveCfg.isPending}>保存模型配置</Button>
+              <p className="text-xs text-muted-foreground">
+                留空表示继承 .env 默认值；清空某个已设置的字段即回退为默认。
+              </p>
+            </div>
           </form>
         </CardContent>
       </Card>

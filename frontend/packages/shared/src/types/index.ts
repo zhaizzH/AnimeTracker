@@ -12,6 +12,11 @@ export interface TagVO { id: number; name: string; count: number }
 export interface PromptVO { promptKey: string; promptContent: string }
 // 运行时模型配置（ModelConfig 契约）。后端 config/update 为整体替换，故字段全可选。
 export interface ModelConfigVO { model?: string | null; modelRoute?: string | null; temperature?: number | null; maxTokens?: number | null; thinkingBudget?: number | null; reasoningEffort?: string | null }
+/** 单字段取值来源：Redis 显式覆盖，或回退 Settings(.env) 默认。 */
+export type ModelConfigFieldSource = 'default' | 'override';
+export type ModelConfigFields = keyof ModelConfigVO;
+/** GET /admin/agent/config 响应：生效值 + 逐字段来源（线上键名 `_sources`）。 */
+export interface ModelConfigViewVO extends ModelConfigVO { _sources: Record<ModelConfigFields, ModelConfigFieldSource> }
 export interface RelationVO { relation: string; relatedSubject: SubjectListItem }
 export interface SubjectDetail extends SubjectListItem { bangumiId: number; summary?: string | null; volumes?: number | null; nsfw: boolean; tags: TagVO[]; relations: RelationVO[]; createdAt: string; updatedAt: string }
 export interface EpisodeVO { id: number; subjectId: string; type: number; sort: number; name: string; nameCn?: string | null; duration?: string | null; airdate?: string | null; description?: string | null; status: 'Air' | 'Today' | 'NA' }

@@ -408,6 +408,93 @@ result = business.save_collection(sid, collection_type=target, token=token)
 - 授权为**两层有意不一致**（不得当作缺陷「修复」）：经 Spring 代理的浏览器路径由 `ClientAgentController` 必填 `Authorization` + `SecurityConfig` 的 `/api/client/**` `.authenticated()` 强制登录；直连 Agent `:8090` 的 Python 侧匿名。`tests/api/test_health.py::test_health_is_anonymous` 钉住该行为。
 - 变更健康检查时必须明确：检查项、HTTP 状态、依赖不可用时的响应、公开字段和是否允许匿名访问。
 
+#### Scenario: 管理端模型配置回显与稀疏保存（2026-10-14）
+
+##### 1. Scope / Trigger
+
+- Trigger：`GET /api/admin/agent/config` 原先直接返回 Redis 原始内容（`get() or {}`）。Redis 空时返回 `{}`，
+  管理页表单全空，管理员看不到 `.env` 里实际生效的值。
+- 关键风险：`RedisModelConfigRepository.set()` 是 `SET` 整体替换。若把「继承的默认值」填进表单再保存，
+  默认值会被固化进 Redis，此后改 `.env` **不再生效**（工厂侧 `or` / `runtime.get(k, default)` 会让 Redis 值永久压过 Settings）。
+- 故：**回显生效值 + 标注逐字段来源**，且**保存只写显式覆盖的字段**。两者不可分离。
+
+##### 2. Signatures
+
+- `GET /api/admin/agent/config` → `ModelConfigView`（6 个配置字段 + `_sources`）
+- `POST /api/admin/agent/config/update` body: `ModelConfig`（**无** `_sources`）→ `ModelConfigView`
+- `AdminConfigService(model_configs, prompts, settings)` — 构造签名含 `settings`；唯一构造点 `main.py` lifespan
+- `AdminConfigService.get_effective_config() -> dict`
+
+##### 3. Contracts
+
+| 字段 | 类型 | 来源 |
+|---|---|---|
+| `model` | `str` | `resolve_llm_provider(settings).model` |
+| `modelRoute` | `str` | `resolve_llm_provider(settings).route_model` |
+| `temperature` | `float` | `settings.llm_temperature` |
+| `maxTokens` | `int` | `settings.llm_max_tokens` |
+| `thinkingBudget` | `int` | `settings.llm_thinking_budget` |
+| `reasoningEffort` | `str` | `resolve_llm_provider(settings).reasoning_effort` |
+| `_sources` | `Record<field, "default" \| "override">` | 只读派生；GET 响应专有 |
+
+- 线上键名 `_sources` 由 `Field(alias="_sources")` 产生。FastAPI 响应路径默认 `by_alias=True`，
+  实测 `TestClient` 返回体即为 `_sources`；**无需**再加 `serialization_alias`（重复且易误导）。
+- 请求侧仍是 `ModelConfig`：`_sources` 是只读派生信息，不进入入参。
+- 空对象 `{}` 提交 = **没有修改**（service 直接返回现值、不写存储），不是「全部回退」。
+
+##### 4. Validation & Error Matrix
+
+| 条件 | 行为 |
+|---|---|
+| `temperature` 不在 `[0,2]` | `ValueError` → HTTP 400 |
+| `maxTokens <= 0` | `ValueError` → HTTP 400 |
+| 提交体为空 `{}` | 不写存储，返回现值（no-op） |
+| `model`/`modelRoute` 为空串 | 视为未设置，回退 Settings，标 `default` |
+| 数值字段值为 `0` | **合法覆盖**，不得当作未设置（`temperature=0`、`thinkingBudget=0`） |
+| 提交体缺少某字段 | 整体替换后该键消失 → 回退继承默认（即「清空字段 = 撤销覆盖」） |
+
+##### 5. Good/Base/Bad Cases
+
+- Good：Redis 空 → 6 字段均为 `.env` 值 + `_sources` 全 `default`；页面留空并以 placeholder 显示继承值。
+- Base：仅 `{"temperature":0.9}` 覆盖 → 该字段 `override`，其余 `default`。
+- Bad：GET 返回的生效值直接填进表单 value 并整体提交 → `.env` 默认值被固化进 Redis，`.env` 变更静默失效。
+
+##### 6. Tests Required
+
+`backend/agent/tests/admin/test_config_service.py`（13 例，钉住断言点）：
+
+- Redis 空 → 全 `default` 且值等于 Settings（AC1）
+- 局部覆盖 → 仅该字段 `override`（AC2）
+- `temperature=0` / `thinkingBudget=0` → 保留且标 `override`（边界，防误判未设置）
+- 空串 `model` → 回退默认（与工厂 `or` 语义对齐）
+- 改 Settings（`llm_temperature`/`llm_max_tokens`）→ 回显随之变化（AC3，证明值来自 Settings 非常量）
+- 稀疏提交 → `repo.set_calls == [{"model":"custom-x"}]`，其余仍 `default`（AC4）
+- 空提交 → `set_calls == []` 且既有覆盖保留（D2 no-op）
+- 越界 `temperature` / `maxTokens<=0` → `ValueError` 且未写存储
+
+前端 `frontend/admin/src/pages/AgentConfig.test.tsx`：default 留空 + placeholder、override 填值、override 的 `0` 值、
+稀疏提交（含空对象、清空撤销、数值类型、越界拦截）。
+
+##### 7. Wrong vs Correct
+
+###### Wrong
+
+```python
+# 用 GET 的"生效值"打底再覆盖表单字段 —— 会把 .env 默认值整体写回 Redis
+saveCfg.mutate({ ...serverCfg, temperature: 0.9 })
+```
+
+###### Correct
+
+```python
+# 只提交被显式填写的字段；未填字段不进提交体 → 整体替换后该键消失 → 回退继承
+saveCfg.mutate(toSparseBody(cfg))   # -> {"temperature": 0.9}
+```
+
+> **Warning**：回显值必须与 `agent_factory.AgentLlmFactory.create()` 的解析链**逐字对齐**，否则管理页显示的值
+> 与运行时实际使用的值会分叉。两类语义不可互换：`model`/`modelRoute` 走 `or`（空串 = 未设置），
+> 其余看键是否存在（`0` 是合法值）。
+
 ### 离线任务
 
 - importer、indexer、scheduler 使用 `python -m jobs.<name>...` 运行并返回明确退出码。

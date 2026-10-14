@@ -258,7 +258,7 @@ async def lifespan(app: FastAPI):
     model_configs = RedisModelConfigRepository(settings.redis_url)
     prompts = RedisPromptRepository(settings.redis_url)
     prompts.initialize_snapshot()
-    app.state.admin_config_service = AdminConfigService(model_configs, prompts)
+    app.state.admin_config_service = AdminConfigService(model_configs, prompts, settings)
     app.state.import_service = ImportService(SubprocessImportJobLauncher())
 
     logger.info("构建 client agent 图...")

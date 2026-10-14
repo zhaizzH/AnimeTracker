@@ -1,10 +1,11 @@
 import { get, post } from '../http';
-import type { ModelConfigVO, PromptVO } from '../../types';
+import type { ModelConfigVO, ModelConfigViewVO, PromptVO } from '../../types';
 export const prompts = () => get<PromptVO[]>('/admin/agent/prompts');
 export const promptDetail = (key: string) => get<PromptVO>(`/admin/agent/prompts/${encodeURIComponent(key)}`);
 export const promptUpdate = (key: string, d: { promptContent: string }) => post<PromptVO>(`/admin/agent/prompts/${encodeURIComponent(key)}/update`, d);
 export const promptReset = (key: string) => post<void>(`/admin/agent/prompts/${encodeURIComponent(key)}/reset`);
-export const config = () => get<ModelConfigVO>('/admin/agent/config');
+// GET 返回生效值 + 逐字段来源；POST 只提交被修改的字段（稀疏），故入参仍是 ModelConfigVO。
+export const config = () => get<ModelConfigViewVO>('/admin/agent/config');
 export const configUpdate = (d: ModelConfigVO) => post<void>('/admin/agent/config/update', d);
 export const chatSessions = () => get<Record<string, unknown>[]>('/admin/agent/chat/sessions');
 export const chatCreateSession = () => post<Record<string, unknown>>('/admin/agent/chat/sessions', {});

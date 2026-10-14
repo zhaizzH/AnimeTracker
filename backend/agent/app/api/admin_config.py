@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
 from app.api.deps import verify_token
-from app.api.schemas.admin_config import ModelConfig, PromptOut, PromptUpdateRequest
+from app.api.schemas.admin_config import ModelConfig, ModelConfigView, PromptOut, PromptUpdateRequest
 from app.chat.user import UserInfo
 
 router = APIRouter(prefix="/api/admin/agent")
@@ -50,13 +50,15 @@ def reset_prompt(key: str, request: Request):
 
 @router.get("/config", dependencies=[Depends(require_admin)])
 def get_config(request: Request):
-    return ModelConfig(**_admin_service(request).get_model_config())
+    return ModelConfigView(**_admin_service(request).get_effective_config())
 
 
 @router.post("/config/update", dependencies=[Depends(require_admin)])
 def update_config(body: ModelConfig, request: Request):
+    # exclude_none：未提交的字段为 None，不进入覆盖集（前端只提交被修改的字段）。
+    # 注意 0 是合法值，exclude_none 只剔除 None，不会误删 0。
     cfg = body.model_dump(exclude_none=True)
     try:
-        return ModelConfig(**_admin_service(request).update_model_config(cfg))
+        return ModelConfigView(**_admin_service(request).update_model_config(cfg))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
