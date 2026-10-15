@@ -81,10 +81,33 @@ describe('useAgentChat 延迟初始化', () => {
     await waitFor(() => expect(result.current.activeId).toBe('session-1'));
     await waitFor(() => expect(result.current.ready).toBe(true));
 
+    vi.mocked(api.listSessions).mockResolvedValue([]);
     await act(async () => { await result.current.remove('session-1'); });
 
     expect(api.deleteSession).toHaveBeenCalledWith('session-1');
     expect(api.createSession).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(result.current.activeId).toBe('session-2'));
+    expect(result.current.ready).toBe(true);
+  });
+
+  it('删除当前会话但还有其他会话时，选中剩余首个会话而不新建', async () => {
+    const api = createApi();
+    vi.mocked(api.listSessions).mockResolvedValue([
+      { session_id: 'session-1' },
+      { session_id: 'session-2' },
+    ]);
+    const { result } = renderHook(() => useAgentChat(api));
+
+    await waitFor(() => expect(result.current.activeId).toBe('session-1'));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    // 删当前激活的 session-1 后，列表还剩 session-2
+    vi.mocked(api.listSessions).mockResolvedValue([{ session_id: 'session-2' }]);
+    vi.mocked(api.history).mockResolvedValue([]);
+    await act(async () => { await result.current.remove('session-1'); });
+
+    expect(api.deleteSession).toHaveBeenCalledWith('session-1');
+    expect(api.createSession).not.toHaveBeenCalled();
     await waitFor(() => expect(result.current.activeId).toBe('session-2'));
     expect(result.current.ready).toBe(true);
   });

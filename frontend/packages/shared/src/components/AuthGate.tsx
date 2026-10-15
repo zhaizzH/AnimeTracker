@@ -50,8 +50,10 @@ const SUBTITLE = {
 // 取色 colorWarning；antd 的警告图标本身是「实心圆 + 感叹号」。尺寸收到 56 以贴近
 // shadcn 空状态的比例。
 const ICON = {
+  display: 'block',
   width: 56,
   height: 56,
+  margin: '0 auto',
   color: TOKEN.destructive,
 } as const;
 // 对齐 shadcn Button 默认档：h-9 / rounded-md / px-4 / text-sm / font-medium，
