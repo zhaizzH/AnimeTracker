@@ -24,18 +24,6 @@ class CleanupResult:
     manual_review: int
 
 
-def write_cleanup_plan(report, path: str | Path) -> str:
-    try:
-        payload = report.as_dict() if hasattr(report, "as_dict") else dict(report)
-    except (TypeError, ValueError) as error:
-        raise ConfirmationMismatch("质量报告无效") from error
-    _validate_report(payload)
-    target = Path(path)
-    content = json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2).encode("utf-8") + b"\n"
-    target.write_bytes(content)
-    return hashlib.sha256(content).hexdigest()
-
-
 def apply_cleanup_plan(path: str | Path, confirm_sha256: str | None, db, minio, *, commit: str | None = None, dirty: bool | None = None) -> CleanupResult:
     target = Path(path)
     try:

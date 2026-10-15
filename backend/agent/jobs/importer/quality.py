@@ -306,11 +306,6 @@ def _expected_content_hashes(db, index_version: str) -> dict[int, str]:
     return result
 
 
-def _subject_digest(subject: Mapping[str, Any]) -> str:
-    content = json.dumps(dict(subject), ensure_ascii=False, sort_keys=True, default=str).encode("utf-8")
-    return hashlib.sha256(content).hexdigest()
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="生成只读的 RAG 数据质量报告")
     parser.add_argument("--output", required=True)

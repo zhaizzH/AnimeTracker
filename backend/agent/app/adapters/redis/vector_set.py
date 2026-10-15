@@ -14,7 +14,7 @@ from typing import Any, Mapping, Sequence
 from redis.exceptions import ResponseError
 
 from app.adapters.redis.command_info import command_info_present
-from app.adapters.redis.subject_index import VECTOR_DIMENSIONS, vector_bytes
+from app.adapters.redis.subject_index import vector_bytes
 from app.entities.enums import EntityKind
 
 
@@ -207,10 +207,6 @@ class RedisVectorSet:
                 raise VectorSetUnavailable("Redis Vector Set VSIM 不可用") from exc
             raise
         return parse_vsim_response(raw)
-
-    def card(self, entity_kind: EntityKind | str, index_version: str) -> int:
-        raw = self._redis.execute_command("VCARD", self.key(entity_kind, index_version))
-        return int(raw or 0)
 
     def embedding(self, entity_kind: EntityKind | str, index_version: str, entity_id: int) -> bytes | None:
         raw = self._redis.execute_command("VEMB", self.key(entity_kind, index_version), vector_member(entity_kind, entity_id), "RAW")

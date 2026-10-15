@@ -48,7 +48,3 @@ def emit_function_call(*, node, state, message=None, result=None, name=None, arg
         arguments=arguments,
         parent_node=parent_node,
     ))
-
-
-def emit_status(*, node, state, message=None, result=None) -> None:
-    emit_event(AgentEvent(type=AgentEventType.STATUS, node=node, state=state, message=message, result=result))

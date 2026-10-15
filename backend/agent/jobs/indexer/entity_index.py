@@ -52,9 +52,6 @@ class RedisEntityIndex:
     def vector_key(self, entity_kind: EntityKind, index_version: str) -> str:
         return self._vectors.key(entity_kind, index_version)
 
-    def document_key(self, index_version: str, entity_kind: EntityKind, entity_id: int) -> str:
-        return f"{self.vector_key(entity_kind, index_version)}:{entity_kind.value}:{int(entity_id)}"
-
     def ensure_version(self, index_version: str) -> str:
         self._vectors.ensure_version(index_version)
         return self.vector_key(EntityKind.SUBJECT, index_version)

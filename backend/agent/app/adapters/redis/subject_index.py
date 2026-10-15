@@ -84,10 +84,6 @@ class RedisSubjectIndex:
     def vector_key(self, index_version: str) -> str:
         return f"{self._key_prefix}SUBJECT:{self._validate_version(index_version)}"
 
-    def document_key(self, index_version: str, subject_id: int) -> str:
-        self._validate_subject_id(subject_id)
-        return f"{self.vector_key(index_version)}:{subject_id}"
-
     def ensure_version(self, index_version: str) -> str:
         self._validate_version(index_version)
         for command in ("VADD", "VSIM", "VREM"):

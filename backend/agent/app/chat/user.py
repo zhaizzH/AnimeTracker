@@ -7,9 +7,3 @@ class UserInfo(BaseModel):
     username: str
     role: Literal["USER", "ADMIN"]
     token: str = ""
-
-
-class AuthResult(BaseModel):
-    ok: bool
-    user: UserInfo | None = None
-    error: str | None = None

@@ -16,7 +16,6 @@ from dataclasses import dataclass
 import logging
 import os
 import random
-import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -39,15 +38,13 @@ from app.shared.observability import log_event
 
 try:
     from .client import BangumiClient
-    from .db import upsert_subject, upsert_episodes, upsert_tags, \
-        upsert_relations, create_import_record, complete_import_record, update_import_progress, load_resume_record, resume_import_record
+    from .db import create_import_record, complete_import_record, update_import_progress, load_resume_record, resume_import_record
     from .normalize import normalize_subject
     from .repository import ImportBundle, ImportCheckpoint, ImportRepository
     from .storage import ObjectStorage
 except ImportError:
     from client import BangumiClient
-    from db import upsert_subject, upsert_episodes, upsert_tags, \
-        upsert_relations, create_import_record, complete_import_record, update_import_progress, load_resume_record, resume_import_record
+    from db import create_import_record, complete_import_record, update_import_progress, load_resume_record, resume_import_record
     from normalize import normalize_subject
     from repository import ImportBundle, ImportCheckpoint, ImportRepository
     from storage import ObjectStorage
@@ -272,15 +269,6 @@ def _resume_batch_ids(ids, checkpoint: ImportCheckpoint):
     return ids[checkpoint.offset:]
 
 
-def _progress(done: int, total: int | None = None):
-    elapsed = time.time() - _start_time
-    if total:
-        pct = done * 100 // total
-        logger.info("  进度: %d/%d (%d%%) [%s]", done, total, pct, _fmt_duration(elapsed))
-    else:
-        logger.info("  进度: %d 个条目已导入 [%s]", done, _fmt_duration(elapsed))
-
-
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Bangumi 数据导入器")
     parser.add_argument("--mode", required=True,
@@ -379,37 +367,6 @@ def parse_season_key(key: str):
         raise ValueError(f"无效的 season: {season}")
     ms, me = season_month_range(season)
     return year, ms, me
-
-
-def _fetch_related(client, bangumi_id):
-    """网络预取关联条目（subject + 封面 + 剧集），不写库；nsfw 返回 None。"""
-    data = client.get_subject(bangumi_id)
-    if data.get("type") != 2 or data.get("nsfw"):
-        return None
-
-    storage = _get_object_storage()
-    storage.put_raw_subject(data["id"], data)
-    cover = storage.put_cover(data["id"], (data.get("images") or {}).get("large") or "")
-
-    episodes = []
-    total_eps = data.get("eps") or data.get("total_episodes") or 0
-    if total_eps > 0:
-        episodes = client.get_all_episodes(bangumi_id)
-
-    return {"data": data, "cover": cover, "episodes": episodes}
-
-
-def _write_related(db, pkg):
-    """把预取的关联条目写入 DB（仅在 _db_lock 内调用）。"""
-    data = pkg["data"]
-    subject_id = upsert_subject(db, data, pkg["cover"])
-
-    tags = data.get("tags") or []
-    if tags:
-        upsert_tags(db, subject_id, tags)
-
-    if pkg["episodes"]:
-        upsert_episodes(db, subject_id, pkg["episodes"])
 
 
 def import_single_subject(client, db, bangumi_id, resume, *, import_record_id=None):

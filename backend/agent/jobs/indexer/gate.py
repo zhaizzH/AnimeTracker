@@ -243,11 +243,6 @@ def activate_release(release_store: Any, index_version: str) -> None:
     activate(index_version)
 
 
-def activate_alias(_redis_client: Any, _index_version: str, *, alias: str | None = None) -> None:
-    """兼容性守卫：刻意不支持 Redis 别名。"""
-    raise RuntimeError("Redis alias 已移除；请通过 MySQL search_index_release 激活")
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="检查并可选地激活 RAG 索引门禁")
     parser.add_argument("--index-version", required=True)
@@ -475,11 +470,6 @@ def _human_values(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 def _validate_name(value: str, label: str) -> None:
     if not _valid_version(value):
         raise ValueError(f"{label} 无效")
-
-
-def _validate_alias(value: str) -> None:
-    if not value or not all(char.isalnum() or char in "._:-" for char in value):
-        raise ValueError("索引别名无效")
 
 
 if __name__ == "__main__":
