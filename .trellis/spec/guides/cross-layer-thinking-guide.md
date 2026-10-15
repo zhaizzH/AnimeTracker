@@ -60,7 +60,7 @@ React client/admin
 - 验证增量文本、工具 start/end、结束标记、Abort 和网络中断。
 - wire 响应必须声明 `text/event-stream`，以空行分帧；每帧 `data:` JSON 至少包含 `type`、`content`、`is_end`。事件 `type` 取值为 `answer|thinking|function_call|status` 四值，**不存在 `type=end`**——结束由 `is_end=true` 表达（与 [Agent 运行与提示词契约](../backend/agent-guidelines.md#agent-角色提示词与流式输出契约) 一致）。
 - `function_call.state` 的 `start|end` 必须在前端映射为 running → done，失败以 `end` + `result=error` 表达；`state=error` 只出现在 `status` 事件上。结束标记或 `is_end=true` 后不得继续写入消息。
-- 当前 `docs/spec/openapi.yaml` 未完整表达 SSE content type、事件联合、刷新 Cookie、Bearer security 和 `X-Request-ID`；这是契约债务，本轮只在 spec 中记录，改动 API 时必须同步修复。
+- `docs/spec/openapi.yaml` 已表达 SSE content type（`text/event-stream` + 单帧 `SSEFrame` schema）、事件联合、刷新 Cookie（`at_refresh` + `Set-Cookie`）、Bearer securityScheme（`bearerAuth`）与 `X-Request-ID`；未同步项登记在 `openapi.yaml` 的 `info.description`「已知债务」节与任务 `research/contract-alignment-table.md`。仍**无 CI 自动校验漂移**，改动 API 时必须同步并重新对照。
 
 ### Agent 写操作
 

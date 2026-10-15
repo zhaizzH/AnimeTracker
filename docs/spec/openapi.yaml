@@ -2,9 +2,44 @@ openapi: "3.0.1"
 info:
   title: "API Documentation"
   version: "1.0"
+  description: |
+    手工维护的描述性契约。权威来源是可执行源码与测试（`backend/business` Controller、
+    `backend/agent` Router、`frontend/packages/shared` 类型）。二者冲突时以源码为准。
+    未经 CI 自动校验漂移。
+
+    #### SSE 契约
+
+    两个 stream 端点（`POST /api/admin/agent/chat/stream`、`POST /api/client/agent/stream`）
+    响应 `text/event-stream`。帧格式：每帧一行 `data: <JSON>` 后跟一个空行（`\n\n`）分帧；
+    事件类型写在 JSON 体内，不是 SSE `event:` 字段。本文件按 OpenAPI 3.0.1 建模，
+    无法表达 `itemSchema`，故以「单帧 JSON 对象」schema + 本段说明表达。
+
+    单帧字段：`type` ∈ `{answer, thinking, function_call, status}`；`content` 子字段
+    `{text, node, parent_node, state, message, result, name, arguments}` 全部可选；
+    `is_end`、`timestamp` 必在。**结束帧以 `is_end=true` 表达，`type` 枚举不含 `end`**
+    （实现见 `backend/agent/app/api/sse.py`）。响应头另含 `Cache-Control: no-cache`、
+    `Connection: keep-alive`、`X-Accel-Buffering: no`。
+
+    #### 已知债务（未同步项）
+
+    1. `end` 事件建模歧义：wire 上以 `type:"answer"` + `is_end:true` 表达，无独立
+       `type=end`。本文件如实描述 wire 事实。
+    2. 删除端点路径分层不一致：Python agent 用 `/sessions/{id}`，Spring 对外暴露
+       `/sessions/{sessionId}/remove`。本文件记录 **Spring 对外层路径**（浏览器只访问
+       `/api/**`，由 Spring 代理转发）。
+    3. Spring 逐行转发上游 SSE 时的空行处理未静态确定（是否可能写出空 `data:` 行取决于
+       `agentService.stream` 的分行实现）；见 `AdminAgentController.java:123`、
+       `ClientAgentController.java:61`。
+    4. stream 端点的错误响应（上游 4xx/5xx 在响应提交前的 JSON 错误体、提交后无法回落的
+       情况）未建模。
+
+    交叉引用：`.trellis/spec/guides/cross-layer-thinking-guide.md`（SSE 变更节）。
+security:
+  - bearerAuth: []
 paths:
   /api/client/tags:
     get:
+      security: []
       summary: "获取标签列表"
       description: "获取标签列表"
       responses:
@@ -40,6 +75,7 @@ paths:
                       description: "标签信息 VO"
   /api/client/tags/{tag}/subjects:
     get:
+      security: []
       summary: "获取标签下的番剧列表"
       description: "获取标签下的番剧列表"
       parameters:
@@ -136,6 +172,7 @@ paths:
                     description: ""
   /api/client/auth/register:
     post:
+      security: []
       summary: "register"
       description: "register"
       requestBody:
@@ -183,6 +220,7 @@ paths:
                     description: ""
   /api/client/auth/verify-email:
     post:
+      security: []
       summary: "verifyEmail"
       description: "verifyEmail"
       requestBody:
@@ -256,6 +294,7 @@ paths:
                     description: ""
   /api/client/auth/resend-code:
     post:
+      security: []
       summary: "resendCode"
       description: "resendCode"
       requestBody:
@@ -290,6 +329,7 @@ paths:
                     description: ""
   /api/client/auth/login:
     post:
+      security: []
       summary: "login"
       description: "login"
       requestBody:
@@ -311,6 +351,11 @@ paths:
       responses:
         "200":
           description: ""
+          headers:
+            Set-Cookie:
+              description: "刷新令牌 Cookie：`at_refresh`，HttpOnly、Path=/api/client/auth、SameSite=Lax、Secure 可配（`AuthCookieProperties`）。"
+              schema:
+                type: "string"
           content:
             application/json:
               schema:
@@ -360,6 +405,7 @@ paths:
                     description: ""
   /api/client/auth/forgot-password:
     post:
+      security: []
       summary: "forgotPassword"
       description: "forgotPassword"
       requestBody:
@@ -394,6 +440,7 @@ paths:
                     description: ""
   /api/client/auth/reset-password:
     post:
+      security: []
       summary: "resetPassword"
       description: "resetPassword"
       requestBody:
@@ -440,11 +487,24 @@ paths:
                     description: ""
   /api/client/auth/refresh:
     post:
+      security: []
       summary: "refresh"
       description: "refresh"
+      parameters:
+      - name: "at_refresh"
+        in: "cookie"
+        description: "刷新令牌（HttpOnly、Path=/api/client/auth、SameSite=Lax、Secure 可配）。"
+        required: false
+        schema:
+          type: "string"
       responses:
         "200":
           description: ""
+          headers:
+            Set-Cookie:
+              description: "刷新令牌 Cookie：`at_refresh`，HttpOnly、Path=/api/client/auth、SameSite=Lax、Secure 可配（`AuthCookieProperties`）。"
+              schema:
+                type: "string"
           content:
             application/json:
               schema:
@@ -494,11 +554,24 @@ paths:
                     description: ""
   /api/client/auth/logout:
     post:
+      security: []
       summary: "logout"
       description: "logout"
+      parameters:
+      - name: "at_refresh"
+        in: "cookie"
+        description: "刷新令牌（HttpOnly、Path=/api/client/auth、SameSite=Lax、Secure 可配）。"
+        required: false
+        schema:
+          type: "string"
       responses:
         "200":
           description: ""
+          headers:
+            Set-Cookie:
+              description: "刷新令牌 Cookie：`at_refresh`，HttpOnly、Path=/api/client/auth、SameSite=Lax、Secure 可配（`AuthCookieProperties`）。"
+              schema:
+                type: "string"
           content:
             application/json:
               schema:
@@ -739,6 +812,7 @@ paths:
                     description: ""
   /api/client/subjects:
     get:
+      security: []
       summary: "获取番剧列表"
       description: "获取番剧列表"
       parameters:
@@ -848,6 +922,7 @@ paths:
                     description: ""
   /api/client/subjects/search:
     get:
+      security: []
       summary: "搜索番剧"
       description: "搜索番剧"
       parameters:
@@ -1010,6 +1085,7 @@ paths:
                     description: ""
   /api/client/subjects/lexical-search:
     post:
+      security: []
       summary: "按 active release 执行 MySQL FULLTEXT 词法召回"
       description: "仅接受普通搜索词和结构化过滤；返回的 indexVersion 必须用于同版本 Vector Set 查询，详细事实继续通过 Evidence API 回查。"
       requestBody:
@@ -1078,6 +1154,7 @@ paths:
           description: "没有 active search release"
   /api/client/subjects/season:
     get:
+      security: []
       summary: "按季度筛选用户番剧"
       description: "按季度筛选用户番剧"
       parameters:
@@ -1188,6 +1265,7 @@ paths:
                     description: ""
   /api/client/subjects/schedule:
     get:
+      security: []
       summary: "每周追番列表"
       description: "每周追番列表"
       parameters:
@@ -1308,6 +1386,7 @@ paths:
                     description: ""
   /api/client/subjects/batch:
     post:
+      security: []
       summary: "批量回查候选条目的权威可见状态。"
       description: "批量回查候选条目的权威可见状态。"
       requestBody:
@@ -1407,6 +1486,7 @@ paths:
                     description: ""
   /api/client/evidence/batch:
     post:
+      security: []
       summary: "批量回查番剧证据（兼容接口）"
       description: "仅返回已导入、动画类型且非 NSFW 的番剧；不存在或不安全的 ID 会被省略。"
       requestBody:
@@ -1442,6 +1522,7 @@ paths:
                       $ref: "#/components/schemas/EvidenceCandidate"
   /api/client/evidence/resolve:
     post:
+      security: []
       summary: "按人物、角色、声优关系或条目批量解析番剧证据"
       description: "ids 使用本地数据库主键；PERSON/ACTOR 为 person.id，CHARACTER 为 character.id，SUBJECT 为 subject.id；RELATION_SUBJECT 沿 subject_relation 双向扩展关联作品。仅返回已导入、动画类型且非 NSFW 的番剧。"
       requestBody:
@@ -1484,6 +1565,7 @@ paths:
           description: "实体类型缺失、ID 非正数或批量超过 50"
   /api/client/subjects/{id}:
     get:
+      security: []
       summary: "获取番剧详情"
       description: "获取番剧详情"
       parameters:
@@ -1631,6 +1713,7 @@ paths:
                     description: ""
   /api/client/subjects/years:
     get:
+      security: []
       summary: "获取库中实际存在的番剧年份列表"
       description: "获取库中实际存在的番剧年份列表"
       responses:
@@ -1654,6 +1737,7 @@ paths:
                       type: "integer"
   /api/client/subjects/{id}/episodes:
     get:
+      security: []
       summary: "获取番剧剧集列表"
       description: "获取番剧剧集列表"
       parameters:
@@ -2537,11 +2621,18 @@ paths:
       summary: "提示词列表"
       description: "提示词列表"
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: ""
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
           description: ""
@@ -2570,11 +2661,18 @@ paths:
         required: true
         schema:
           type: "string"
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: ""
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
           description: ""
@@ -2603,11 +2701,18 @@ paths:
         required: true
         schema:
           type: "string"
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: ""
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       requestBody:
         content:
           application/json:
@@ -2646,11 +2751,18 @@ paths:
         required: true
         schema:
           type: "string"
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: ""
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
           description: ""
@@ -2673,11 +2785,18 @@ paths:
       summary: "读取模型配置"
       description: "读取模型配置：返回生效值 + 逐字段来源（_sources）。Redis 未设置的字段回退 .env/Settings 默认。"
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: ""
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
           description: ""
@@ -2741,11 +2860,18 @@ paths:
       summary: "更新模型配置"
       description: "更新模型配置：整体替换，只应提交被显式修改的字段；未提交字段回退继承 .env 默认（前端稀疏提交）。空对象提交为 no-op。"
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: ""
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       requestBody:
         content:
           application/json:
@@ -2812,34 +2938,55 @@ paths:
       summary: "管理端 Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）"
       description: "管理端 Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）"
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: ""
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: "object"
-              properties:
-                key:
-                  type: "object"
-                  properties: {}
-              description: ""
+              $ref: "#/components/schemas/ChatRequest"
       responses:
         "200":
-          description: "No Content"
+          description: |-
+            SSE 流。每帧一行 `data: <SSEFrame JSON>` 后跟空行分帧；结束帧 `is_end=true`。
+            响应头另含 `Cache-Control: no-cache`、`Connection: keep-alive`、`X-Accel-Buffering: no`。
+          headers:
+            X-Request-ID:
+              description: "回写请求级 traceId。"
+              schema:
+                type: "string"
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/SSEFrame"
   /api/admin/agent/chat/sessions:
     get:
       summary: "获取管理端会话列表"
       description: "获取管理端会话列表"
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: ""
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
           description: ""
@@ -2861,11 +3008,18 @@ paths:
       summary: "创建管理端会话"
       description: "创建管理端会话"
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: ""
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       requestBody:
         content:
           application/json:
@@ -2904,11 +3058,18 @@ paths:
         required: true
         schema:
           type: "string"
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: ""
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
           description: ""
@@ -2937,11 +3098,18 @@ paths:
         required: true
         schema:
           type: "string"
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: ""
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
           description: ""
@@ -3005,34 +3173,55 @@ paths:
       summary: "Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）"
       description: "Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）"
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: ""
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: "object"
-              properties:
-                key:
-                  type: "object"
-                  properties: {}
-              description: ""
+              $ref: "#/components/schemas/ChatRequest"
       responses:
         "200":
-          description: "No Content"
+          description: |-
+            SSE 流。每帧一行 `data: <SSEFrame JSON>` 后跟空行分帧；结束帧 `is_end=true`。
+            响应头另含 `Cache-Control: no-cache`、`Connection: keep-alive`、`X-Accel-Buffering: no`。
+          headers:
+            X-Request-ID:
+              description: "回写请求级 traceId。"
+              schema:
+                type: "string"
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/SSEFrame"
   /api/client/agent/sessions:
     get:
       summary: "获取会话列表"
       description: "获取会话列表"
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: ""
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
           description: ""
@@ -3054,11 +3243,18 @@ paths:
       summary: "创建新会话"
       description: "创建新会话"
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: ""
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       requestBody:
         content:
           application/json:
@@ -3097,11 +3293,18 @@ paths:
         required: true
         schema:
           type: "string"
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: ""
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
           description: ""
@@ -3130,11 +3333,18 @@ paths:
         required: true
         schema:
           type: "string"
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: ""
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
           description: ""
@@ -4446,7 +4656,88 @@ paths:
                           format: "int64"
                       description: "热门榜条目"
 components:
+  securitySchemes:
+    bearerAuth:
+      type: "http"
+      scheme: "bearer"
+      bearerFormat: "JWT"
+      description: |
+        访问令牌经 `Authorization: Bearer <token>` 传递。
+        客户端 access token 由前端内存持有；refresh token 走 HttpOnly Cookie（`at_refresh`）。
   schemas:
+    ChatRequest:
+      type: "object"
+      description: "Agent 流式对话请求体。与 `backend/agent/app/api/schemas/chat.py` 的 `ChatRequest` 一致。"
+      required:
+      - "session_id"
+      - "content"
+      properties:
+        session_id:
+          type: "string"
+          description: "会话 ID。"
+        content:
+          type: "string"
+          minLength: 1
+          maxLength: 4096
+          description: "用户输入文本，1..4096 字符。"
+    SSEFrame:
+      type: "object"
+      description: |
+        SSE 单帧载荷（`text/event-stream` 的 `data:` 行 JSON）。
+        分帧方式为每帧一行 `data: <JSON>` 后跟空行（`\n\n`），事件类型写在 JSON 体内。
+        **结束帧为 `is_end=true`，`type` 枚举不含 `end`。**
+        序列化使用 `exclude_none=True`，空值字段不出现在 wire 上。
+        实现见 `backend/agent/app/api/schemas/sse.py`。
+      required:
+      - "content"
+      - "type"
+      - "is_end"
+      - "timestamp"
+      properties:
+        type:
+          type: "string"
+          enum: ["answer", "thinking", "function_call", "status"]
+          description: "事件类型；无 `end` 取值。"
+        content:
+          type: "object"
+          description: "事件载荷；各子字段均可选，空值不序列化。"
+          properties:
+            text:
+              type: "string"
+              description: "增量文本。"
+            node:
+              type: "string"
+              description: "当前图节点。"
+            parent_node:
+              type: "string"
+              description: "父图节点。"
+            state:
+              type: "string"
+              description: "工具/节点状态：`start` | `end`（工具）；`status` 事件上可为 `error`。"
+            message:
+              type: "string"
+              description: "状态文案。"
+            result:
+              type: "string"
+              description: "工具结果；失败以 `state=end` + `result=error` 表达。"
+            name:
+              type: "string"
+              description: "工具名。"
+            arguments:
+              type: "string"
+              description: "工具入参（JSON 字符串）。"
+        meta:
+          type: "object"
+          nullable: true
+          additionalProperties: true
+          description: "附加元数据；空时不出现在 wire 上。"
+        is_end:
+          type: "boolean"
+          description: "是否为流结束帧。"
+        timestamp:
+          type: "integer"
+          format: "int64"
+          description: "毫秒时间戳。"
     标签信息 VO:
       type: "object"
       properties:
