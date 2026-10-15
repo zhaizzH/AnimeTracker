@@ -98,18 +98,11 @@ def test_missing_route_target_raises(body: str) -> None:
     with pytest.raises(ValueError, match="不支持的 route_target"):
         _resolve_routing_result(_payload(content=body))
 
-@pytest.mark.xfail(
-    reason="已知缺陷：JSON 为标量/数组时 `data.get` 抛 AttributeError 而非 ValueError（见 T-gateway-scalar-json）",
-    raises=AttributeError,
-    strict=True,
-)
 @pytest.mark.parametrize("content", ['"x"', "123", "true", '["a"]'])
 def test_scalar_or_array_json_should_raise_value_error(content: str) -> None:
-    """JSON 合法但非对象 → 应归入非法 route_target 语义，而非 AttributeError。
+    """JSON 合法但非对象 → 归入非法 route_target 语义，不得抛 AttributeError。
 
-    当前实现直接对 ``data`` 调 ``.get``；``data`` 为 str/int/bool/list 时抛
-    ``AttributeError``，不是 ``ValueError`` 子类，调用方按 ``ValueError`` 捕获会漏掉。
-    生产代码修复后本用例转为通过断言（去掉 xfail 标记）。
+    非 mapping 的 ``data`` 一律按「无 route_target」处理（``gateway.py:129``）。
     """
     with pytest.raises(ValueError, match="不支持的 route_target"):
         _resolve_routing_result(_payload(content=content))

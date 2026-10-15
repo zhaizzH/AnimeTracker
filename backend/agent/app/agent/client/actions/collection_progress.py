@@ -37,7 +37,8 @@ def build_collection_progress_tools(business: BusinessGateway):
         if err:
             return err
         data = business.request("POST", "/api/client/collections/progress-preview", token=user.token)
-        if not data.get("error") and data.get("previewId"):
+        # 网关对空成功信封返回 None（business_http.py:68），非 dict 即无可用预览。
+        if isinstance(data, dict) and not data.get("error") and data.get("previewId"):
             emit_pending_action_set(_preview_data_to_pending_action(data, user))
         return data
 
@@ -58,6 +59,9 @@ def build_collection_progress_tools(business: BusinessGateway):
             return gate
         data = business.request("POST", f"/api/client/collections/progress-preview/{preview_id}/execute",
                                 token=user.token)
+        if not isinstance(data, dict):
+            # 无响应体即无状态可依据：不清理动作，原样返回供上层判断。
+            return data
         if data.get("error"):
             if data.get("code") == 404 or (
                     data.get("code") == 409 and "重新生成" in data.get("message", "")):

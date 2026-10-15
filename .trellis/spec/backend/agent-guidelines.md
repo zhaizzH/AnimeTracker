@@ -208,15 +208,14 @@ allowed = resolve_evidence(match.entity_kind, ids, token=token)
 ### Gateway 路由结果解析
 
 - `gateway.py::_resolve_routing_result` 是结构化路由结果的唯一解析入口；`route_target` 必须属于 `("search_agent", "discover_agent", "recommend_agent")`，否则**抛错而非静默回退默认路由**——路由错误会导致幻觉工具调用。
-- 解析顺序（`tests/agent/test_gateway_routing_result.py` 逐条钉住）：非 mapping → `messages` 空 → 末条 content 空 → JSON 非法 → `route_target` 缺失/非法。前四条与末条均 `ValueError`。
+- 解析顺序（`tests/agent/test_gateway_routing_result.py` 逐条钉住）：非 mapping 载荷 → `messages` 空 → 末条 content 空 → JSON 非法 → JSON 非对象 → `route_target` 缺失/非法。全部路径均 `ValueError`；JSON 为标量/数组（`"x"`/`123`/`true`/`["a"]`）归入「`route_target` 缺失」而非 `AttributeError`。
 - `extract_text`（`runtime.py:27`）统一处理「字符串 content」与「content 块列表」两种模型返回形态；无 `text` 项时返回空串。
 - **已知缺陷**：JSON 为标量/数组（`"x"`/`123`/`true`/`["a"]`）时 `(data or {}).get` 抛 `AttributeError` 而非 `ValueError`；调用方无本地捕获，异常穿透图执行层。修复时保持 4 条 `xfail(strict=True)` 用例转绿。
 
 ### Business 响应守卫
 
 - `HttpBusinessGateway.request` 返回类型为 `dict | list | None`：Java 成功响应缺 `data` 时**显式 `return None`**（`business_http.py:68`）。
-- 消费方一律以 `if isinstance(data, dict) and data.get("error")` 守卫，**不得裸调 `response.get(...)`**。既有守卫见 `app/agent/client/actions/collection_state.py:24`、`actions/collection_type.py:141`、`actions/subject_resolution.py`（5 处）、`actions/wishlist.py:107`，以及 `app/agent/client/collections.py:76`（唯一不在 `actions/` 子目录的消费方）。
-- **已知缺陷**：`collection_progress.py:44,65` 缺该守卫，None 响应抛 `AttributeError`。修复时保持 2 条 `xfail(strict=True)` 用例转绿。
+- 消费方一律以 `if isinstance(data, dict) and data.get("error")` 守卫，**不得裸调 `response.get(...)`**。既有守卫见 `app/agent/client/actions/collection_state.py:24`、`actions/collection_type.py:141`、`actions/subject_resolution.py`（5 处）、`actions/wishlist.py:107`、`actions/collection_progress.py:44,65`，以及 `app/agent/client/collections.py:76`（唯一不在 `actions/` 子目录的消费方）。
 
 ### 安全写操作
 

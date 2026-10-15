@@ -126,7 +126,8 @@ def _resolve_routing_result(raw_payload: Any) -> dict[str, str]:
         data = json.loads(content.strip())
     except json.JSONDecodeError as exc:
         raise ValueError("gateway 返回的 JSON 无效") from exc
-    target = str((data or {}).get("route_target") or "").strip()
+    # JSON 合法但非对象（"x"/123/true/["a"]）→ 与其余判定一致抛 ValueError。
+    target = str(data.get("route_target") or "").strip() if isinstance(data, dict) else ""
     if target not in _ALLOWED_TARGETS:
         raise ValueError(f"不支持的 route_target: {target}")
     return {"route_target": target}

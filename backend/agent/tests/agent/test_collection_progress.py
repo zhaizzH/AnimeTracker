@@ -113,15 +113,6 @@ def test_preview_without_usable_preview_id_emits_nothing(collector, response) ->
 
     assert collector() is None
 
-@pytest.mark.xfail(
-    reason=(
-        "已知缺陷：Business 成功但 data 为 null 时 ``request`` 返回 None"
-        "（business_http.py:68），``data.get`` 抛 AttributeError。"
-        "同目录其它 5 个模块均用 isinstance 守卫（见 T-collection-progress-none-guard）"
-    ),
-    raises=AttributeError,
-    strict=True,
-)
 def test_preview_none_response_should_not_emit_and_not_crash(collector) -> None:
     """网关成功但无 data（``request`` 返回 None）时不得抛 AttributeError。"""
     business = _Business([None])
@@ -132,11 +123,6 @@ def test_preview_none_response_should_not_emit_and_not_crash(collector) -> None:
     assert result is None
     assert collector() is None
 
-@pytest.mark.xfail(
-    reason="同 T-collection-progress-none-guard：``execute_weekly_collection_progress:65`` 同样缺 isinstance 守卫",
-    raises=AttributeError,
-    strict=True,
-)
 def test_execute_none_response_should_not_crash(collector) -> None:
     business = _Business([None])
     _, execute, _ = _tools(business)
