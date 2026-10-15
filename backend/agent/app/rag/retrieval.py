@@ -14,10 +14,8 @@ from app.rag.authority import (
     matches_query_filters,
 )
 from app.rag.entity_resolution import (
-    EntityNameLookup,
     EntityResolveLookup,
     is_error,
-    lookup_entity_name,
     resolve_entity_subject_ids,
 )
 from app.rag.lexical import expressions, lexical_terms
@@ -66,7 +64,6 @@ class RagRetrievalService:
         business_search: AuthorityLookup,
         evidence_lookup: EvidenceLookup | None = None,
         resolve_evidence_lookup: EntityResolveLookup | None = None,
-        entity_name_lookup: EntityNameLookup | None = None,
         lexical_search: AuthorityLookup | None = None,
     ) -> None:
         self._index = index
@@ -75,7 +72,6 @@ class RagRetrievalService:
         self._business_search = business_search
         self._evidence_lookup = evidence_lookup
         self._resolve_evidence_lookup = resolve_evidence_lookup
-        self._entity_name_lookup = entity_name_lookup
         self._lexical_search = lexical_search
 
     def retrieve(
@@ -88,28 +84,12 @@ class RagRetrievalService:
         business_search: AuthorityLookup | None = None,
         evidence_lookup: EvidenceLookup | None = None,
         resolve_evidence_lookup: EntityResolveLookup | None = None,
-        entity_name_lookup: EntityNameLookup | None = None,
         lexical_search: AuthorityLookup | None = None,
     ) -> RetrievalResult:
-        entity_name_matches, entity_name_error = lookup_entity_name(
-            query,
-            lookup=entity_name_lookup or self._entity_name_lookup,
-        )
-        if entity_name_error:
-            return self._complete(
-                RetrievalResult(available=False, items=[], reason=entity_name_error),
-                personalization_missing,
-            )
-        if query.entity_name and not entity_name_matches:
-            return self._complete(
-                RetrievalResult(available=True, items=[], reason="no_results"),
-                personalization_missing,
-            )
         entity_subject_ids, entity_resolution_error = resolve_entity_subject_ids(
             query,
             token=token,
             resolve_lookup=resolve_evidence_lookup or self._resolve_evidence_lookup,
-            name_matches=entity_name_matches,
         )
         if entity_resolution_error:
             return self._complete(

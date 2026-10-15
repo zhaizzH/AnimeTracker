@@ -17,7 +17,6 @@
 | 边界 | 当前实现 | 必须保留的说明 |
 |---|---|---|
 | 普通用户 / 管理员 | 客户端三个节点注册各自 rag_*；admin 只注册目录/导入/时间工具 | 不得笼统宣称所有 Agent 都有 RAG 工具 |
-| 实体名称 | `entity_name_lookup=None`，有名称即 `entity_resolution_unavailable`（`entity_resolution.py::lookup_entity_name`） | 名称参数和 Prompt 已存在不等于在线名称解析可用；显式 ID 的 Business `/resolve` 已接线 |
 | 查询版本 | lexical 响应 indexVersion 决定 Subject VSIM key | Python 未独立校验响应 profileVersion；MySQL JOIN 和发布 gate 承担对应版本约束 |
 | 收藏画像向量 | `_subject_vector_lookup` 在 `rag_enabled` 启动时读取 MySQL `search_index_release` 的 ACTIVE `index_version`，不再使用配置 `rag_index_version` | 已对齐权威指针，但取版本路径与主检索不同（主链经 Business lexical 响应，画像链直读同一张表）；解析失败或无 ACTIVE 时返回 `None` 并告警，个性化降级而非静默 |
 | 工具错误 | use case 返回 available/reason/personalizationNotice；工具 `_items` 保留 `{available:false,reason,items:[]}` | 模型可区分不可用和正常无结果，但仍需真实回放验证回答是否正确解释 |
@@ -57,11 +56,13 @@ RRF 按两路排名计算 `Σ 1/(60+rank)`，每路上限 50，权威回查后�
 
 ### API / 存储
 
-- `POST /api/client/subjects/lexical-search`：请求包含 `q` 及可选结构化过滤；成功响应至少包含 `{indexVersion, profileVersion, candidates[]}`。
+- `POST /api/client/subjects/lexical-search`：请求字段 `q/tags/scoreMin/scoreMax/year/weekday/subjectIds/limit`；成功响应至少包含 `{indexVersion, profileVersion, candidates[]}`，无 active release 返回 503。
 - `search_document(entity_kind, entity_id, index_version, profile_version, ...)`：MySQL 可重建 lexical shadow 投影。
 - `search_index_release(index_version, profile_version, status, activated_at, retired_at, active_slot)`：MySQL 唯一发布指针；最多一个 `ACTIVE`。
 - Redis Vector Set key：`rag:vectors:{entity_kind}:{indexVersion}`；Redis 只保存数据平面，不保存发布决定权。
 - `MySqlReleaseStore.active_version() -> str | None`、`activate(index_version) -> None`；只有该适配器可以切换发布状态。
+- `ShadowIndexManager.prepare_switch(index_version, *, quality_report_path=None, gate_passed=False, gate_reasons=()) -> SwitchPlan`、`execute_switch(plan) -> SwitchResult`、`rollback(previous_version) -> SwitchResult`；`build_capacity_report(sample_bytes, sample_count, catalog_count, redis_used_memory, available_bytes)`。落地位置：`jobs/indexer/shadow.py`、`jobs/indexer/report.py`。
+- 容量投影利用率必须不高于 60%；空样本报告必须 `allowed=false`；`rollback` 只切回已验证的 MySQL release，不删除任何 Redis Vector Set 或 MySQL 投影。
 
 ### 发布命令
 
@@ -118,7 +119,7 @@ python -m jobs.indexer.gate `
 
 - `backend/agent/tests/jobs/indexer/test_gate.py`：断言五份报告完整、版本/embedding 契约一致、阈值和 `RELEASE_CANDIDATE` 门禁；缺失或失败时不得激活。
 - `backend/agent/tests/jobs/indexer/test_entity_loader_and_shadow.py`：断言 gate 失败拒绝切换、MySQL release 激活、rollback 只切回已验证版本且不删投影。
-- `backend/agent/tests/jobs/indexer/test_shadow_eval.py`：断言 shadow 评测不写 `search_index_release`，报告携带同一 index/profile 版本。
+- `backend/agent/tests/jobs/indexer/test_shadow_eval.py`：断言 shadow 评测不写 `search_index_release`，报告携带同一 index/profile 版本；容量报告单测断言投影、空样本拒绝和 JSON 字段稳定。
 - `backend/agent/tests/rag`：断言 `RAG_ENABLED` 关闭 fallback、缺 `indexVersion` fail-closed、Evidence 缺项/异常为空候选。
 - Business `SubjectMapperLexicalSqlCompatibilityTest` 与相关 Controller/Service 测试：断言无 active release 为 503，成功响应含 `indexVersion/profileVersion`。
 - 真实交付复核：`mvn -B clean test`、`uv run pytest`、gate CLI、健康检查、词法 API 成功请求，以及灰度观察/回滚记录；命令和结果必须写入运行审计。

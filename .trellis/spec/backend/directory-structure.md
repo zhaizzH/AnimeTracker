@@ -79,7 +79,7 @@ backend/agent/                # FastAPI + LangGraph，:8090
 
 `retrieval.py`（402 行）只留 `RetrievalCandidate`/`RetrievalResult` dataclass 与 `RagRetrievalService` 编排。关键取舍：
 
-1. **move-only**：不改逻辑、参数、fail-closed 语义；验收锚点是 pytest 通过数拆前拆后一致（629 passed, 6 xfailed）。
+1. **move-only**：不改逻辑、参数、fail-closed 语义；验收锚点是 pytest 通过数拆前拆后一致。
 2. **`staticmethod` 委托别名**：service 保留 `_enrich_evidence = staticmethod(enrich_evidence)` 等别名，既有调用点与测试不改。新增代码必须直接调模块级函数；别名是过渡产物，未来清理需独立任务。
 3. **authority 三方法留 service**：`_authoritative_result`、`_business_fallback`、`_authoritative_allowlist_result` 依赖 `self` 的 gateway/ports 且承担编排，未移入 `authority.py`。
 4. **文件名以代码为准**：PRD 曾写 `authority_enrich.py`，落地 `authority.py`（职责含回查不止 enrich）。

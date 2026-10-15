@@ -127,9 +127,6 @@ def _build_agent_dependencies(model_configs, prompts, import_service) -> AgentDe
     if settings.rag_enabled:
         rag_redis = redis.Redis.from_url(settings.effective_rag_redis_url)
         index = RedisSubjectIndex(rag_redis)
-        # 名称解析属于业务侧权威工作。旧版 Redis
-        # 文本索引适配器刻意不接入。
-        entity_name_lookup = None
         embeddings = DashScopeEmbeddingClient(settings.dashscope_api_key)
         preference_provider = RedisUserPreferenceProvider(
             rag_redis,
@@ -140,7 +137,6 @@ def _build_agent_dependencies(model_configs, prompts, import_service) -> AgentDe
         )
     else:
         index = _UnavailableIndex()
-        entity_name_lookup = None
         embeddings = _UnavailableEmbeddings()
         preference_provider = _NoPreferenceProvider()
     retrieval = RagRetrievalService(
@@ -150,7 +146,6 @@ def _build_agent_dependencies(model_configs, prompts, import_service) -> AgentDe
         business_search=fallbacks["search"],
         evidence_lookup=business.batch_evidence,
         resolve_evidence_lookup=business.resolve_evidence,
-        entity_name_lookup=entity_name_lookup,
         lexical_search=fallbacks["lexical"],
     )
     return AgentDependencies(

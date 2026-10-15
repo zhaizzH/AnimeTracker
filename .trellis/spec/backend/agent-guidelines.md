@@ -14,14 +14,11 @@
 - `app/agent/graph.py` 先按角色分流；普通用户只允许 `search_agent / discover_agent / recommend_agent`。
 - `ADMIN` 直接进入 `admin_agent`，其当前工具集不含 RAG；角色工具、Prompt 缓存、语言与日期的完整现状见 [Agent 运行与提示词契约](./agent-guidelines.md#agent-角色提示词与流式输出契约)。
 - 每个节点只注册完成职责所需的工具；新增工具先确定最小可见节点。
-- RAG 关闭时使用显式不可用适配器与 Business fallback，不能把检索失败静默伪装为空结果。
-- RAG 索引运行前必须验证 Redis 提供 Vector Set 命令（至少 `VADD`、`VSIM`、`VREM`）；MySQL 8.4 `ngram` FULLTEXT 负责词法召回，Redis 8 Vector Set 只负责语义向量召回。没有 Vector Set 时保持 `RAG_ENABLED=false` 或走 Business fallback，不得宣称已发布 RAG。
-- 2026-09-09 历史记录确认 v1 `subject-profile-v1` release 激活及 24 小时灰度/回滚，但本次源码审计不证明当前运行数据库状态；`RAG_ENABLED` 代码默认仍为 `false`。完整发布、灰度和回滚契约见 [RAG 检索与版本发布契约](./rag-retrieval-contract.md)。
-- 通过权威回查的候选必须经 Evidence API 补充证据字段（`app/rag/authority.py::enrich_evidence`）；Evidence 失败、错误、部分或不安全响应时必须 fail-closed（`available=false`、空候选），并记录 `rag.evidence.enriched` 事件。
 - `RetrievalQuery` 的 `person_ids`、`character_ids`、`actor_ids`、`relation_subject_ids` 只能通过 Business `/api/client/evidence/resolve` 解析为活跃、非 NSFW 动画 Subject allowlist；解析失败不得访问 Redis 或返回未过滤候选。
 - Agent 提示词禁止陈述工具返回中不存在的证据；`app/rag/use_case.py::_compact` 当前输出 20 个键，包含 `airDate`、播出状态、来源、匹配事实和检索解释。字段清单以该函数与 `tests/rag/test_evidence_contract.py` 核对，缺项按字段使用空列表、空字符串或 None；不能用旧字段数量代替契约检查。
 - 故障矩阵必须在测试中覆盖：Redis/Embedding/Business/Evidence 每层独立故障与组合故障，证明 fail-closed 或既定降级行为。
-- 词法响应中的 `indexVersion` 是在线语义查询的唯一版本来源；不得使用配置默认版本或 Redis alias 猜测 active 版本。灰度异常时先关闭功能开关，再通过 MySQL release store 切回已验证 release，旧投影在回滚窗口结束前保留。
+
+> RAG 开关边界、Vector Set 命令门禁、`indexVersion` 唯一版本来源、发布/灰度/回滚历史与 Evidence 权威性均以 [RAG 检索与版本发布契约](./rag-retrieval-contract.md) 为唯一来源，本节不再复制。
 
 #### Scenario: Subject batch 权威边界与 Evidence 过滤顺序
 
@@ -40,7 +37,7 @@
 ##### 3. Contracts
 
 - batch 阶段只校验 `type=2`、`nsfw=false`、`active=true` 和排除 ID；不得在该阶段读取不存在的 `metaTags`/`airStatus` 字段。
-- Evidence 响应必须覆盖候选 ID 的全集；当前实现拒绝缺项、额外 ID、非法 ID、错误类型、NSFW 或 inactive。重复的合法 ID 当前被 `by_id` 覆盖，尚未显式拒绝；唯一性应作为待补校验，不能宣称已经受保护。
+- Evidence 响应必须覆盖候选 ID 的全集；当前实现拒绝缺项、额外 ID、非法 ID、错误类型、NSFW、inactive 和重复合法 ID（整批 fail-closed）。重复 ID 的完整契约与其唯一实现位置见 [RAG 检索与版本发布契约](./rag-retrieval-contract.md#在线装配与当前缺口)。
 - `meta_tags`、评分、评分人数、年份、季度和播出状态过滤只能使用 Evidence 字段；Evidence 缺少需要的字段时必须排除候选，不得用 Redis 详情伪造事实。
 - 所有外部 `id/subjectId` 必须拒绝布尔值、非数字、非正数和溢出转换；坏行不能抛出未处理异常进入 fallback。
 
@@ -95,10 +92,9 @@ safe = [item for item in safe if self._matches_query_filters(item.evidence or {}
 
 #### 2. Signatures
 
-- `RetrievalQuery`: `person_ids`, `character_ids`, `actor_ids`, `relation_subject_ids` 均为最多 50 个正整数；`entity_name` 为最多 48 个可见字符，`entity_kind` 可选值为 `PERSON|CHARACTER|ACTOR|RELATION_SUBJECT`，且不能脱离 `entity_name` 单独使用。
+- `RetrievalQuery`: `person_ids`, `character_ids`, `actor_ids`, `relation_subject_ids` 均为最多 50 个正整数。
 - `POST /api/client/evidence/resolve`: `{ "entityType": "PERSON|CHARACTER|ACTOR|SUBJECT|RELATION_SUBJECT", "ids": [1, ...] }`；`RELATION_SUBJECT` 沿 `subject_relation` 双向扩展。
 - `BusinessGateway.resolve_evidence(entity_type, entity_ids, *, token) -> dict | list | None`（无结果时返回 None）。
-- `RedisEntityNameLookup.lookup(entity_name, *, entity_kind, limit) -> list[EntityNameMatch]`；仅作为 Business typed resolver 的兼容边界，不从 Vector Set 读取名称；名称解析失败必须 fail-closed。
 - `plan_retrieval_query(query) -> RetrievalQuery` 只补全带明确标记的中文年份、季度、播出状态、评分和评分人数；显式结构化字段优先。
 
 #### 3. Contracts
@@ -106,8 +102,6 @@ safe = [item for item in safe if self._matches_query_filters(item.evidence or {}
 - Business 只返回 `type=2`、`nsfw=false`、`active=true` 的证据候选；Agent 仅提取 `subjectId`。
 - 多种实体过滤取交集；allowlist 同时约束 Redis 召回和 Business fallback，再执行 Subject 权威回查与 Evidence 回查。
 - 实体 ID 不得拼接进 Vector Set `FILTER` 或 SQL 字符串。
-- 目标边界：名称应先解析为本地实体 ID，再通过 Business `/resolve` 做关系扩展。当前 `main.py` 在开关两种分支都注入 `entity_name_lookup=None`，`app/rag/entity_resolution.py::lookup_entity_name` 遇到名称立即返回 `entity_resolution_unavailable`；只有显式实体 ID 的 `/resolve` 链已接线。不得把注释中的 Business 名称解析方案描述为已实现。旧 `RedisEntityNameLookup` 未接入在线组合根。
-- 注入名称适配器的测试路径中，PERSON 与 CHARACTER 的名称候选可在名称约束内取并集；与显式 ID/关系字段仍取交集。查询声优关系时必须保留 ACTOR 语义。当前线上装配没有名称适配器，不能把这些单测路径视为已接通。
 
 #### 4. Validation & Error Matrix
 
@@ -117,8 +111,6 @@ safe = [item for item in safe if self._matches_query_filters(item.evidence or {}
 | `/resolve` 超时、错误、异常或返回缺失/不安全字段 | `available=false`、`reason=entity_resolution_unavailable` |
 | `/resolve` 返回空集合 | `available=true`、`reason=no_results`，不得扩大查询范围 |
 | Redis 故障 | Business fallback 仍应用同一 allowlist |
-| 名称索引缺失、返回格式错误或解析异常 | `available=false`、`reason=entity_resolution_unavailable`，不得访问 Subject 索引 |
-| 名称无匹配 | `available=true`、`reason=no_results`，不得扩大查询范围 |
 
 #### 5. Good/Base/Bad Cases
 
@@ -130,9 +122,8 @@ safe = [item for item in safe if self._matches_query_filters(item.evidence or {}
 
 - Schema：严格拒绝字符串、布尔值、非正数和第 51 个 ID。
 - Retrieval：实体解析调用顺序、交集、空集合、异常 fail-closed、Redis 故障 fallback allowlist。
-- Retrieval：名称成功、PERSON/CHARACTER 同名并集、名称无匹配与名称解析故障 fail-closed。
 - Planner：明确条件提取、显式字段优先，以及不明确/越界提示保留在原始语义查询。
-- Adapter：断言 `/api/client/evidence/resolve` 方法、路径、JSON body 和 Authorization；名称查询的转义、类型映射和 malformed response。
+- Adapter：断言 `/api/client/evidence/resolve` 方法、路径、JSON body 和 Authorization，以及 malformed response。
 
 #### 7. Wrong vs Correct
 
@@ -147,13 +138,6 @@ expression = f"@subject_id:{{{query.person_ids[0]}}}"
 ```python
 allowed = resolve_evidence("PERSON", query.person_ids, token=token)
 candidates = [item for item in candidates if item.subject_id in allowed_subject_ids]
-```
-
-名称查询必须经过同一条权威链：
-
-```python
-matches = entity_name_lookup(query.entity_name, entity_kind=query.entity_kind, limit=50)
-allowed = resolve_evidence(match.entity_kind, ids, token=token)
 ```
 
 ### Scenario: Agent SSE 事件契约
@@ -210,7 +194,6 @@ allowed = resolve_evidence(match.entity_kind, ids, token=token)
 - `gateway.py::_resolve_routing_result` 是结构化路由结果的唯一解析入口；`route_target` 必须属于 `("search_agent", "discover_agent", "recommend_agent")`，否则**抛错而非静默回退默认路由**——路由错误会导致幻觉工具调用。
 - 解析顺序（`tests/agent/test_gateway_routing_result.py` 逐条钉住）：非 mapping 载荷 → `messages` 空 → 末条 content 空 → JSON 非法 → JSON 非对象 → `route_target` 缺失/非法。全部路径均 `ValueError`；JSON 为标量/数组（`"x"`/`123`/`true`/`["a"]`）归入「`route_target` 缺失」而非 `AttributeError`。
 - `extract_text`（`runtime.py:27`）统一处理「字符串 content」与「content 块列表」两种模型返回形态；无 `text` 项时返回空串。
-- **已知缺陷**：JSON 为标量/数组（`"x"`/`123`/`true`/`["a"]`）时 `(data or {}).get` 抛 `AttributeError` 而非 `ValueError`；调用方无本地捕获，异常穿透图执行层。修复时保持 4 条 `xfail(strict=True)` 用例转绿。
 
 ### Business 响应守卫
 
@@ -260,7 +243,7 @@ allowed = resolve_evidence(match.entity_kind, ids, token=token)
 
 ##### 3. Contracts
 
-- 顺序：显式 `subject_id` → 跳过名称搜索但仍 `/batch`；否则 Business `/search`（原始标题，仅去外围空白）→ 归一化唯一精确命中 → 仅“成功且候选为空”才回退 RAG（`mode="search"`，只传 `semantic_query`，不传 `entity_name/entity_kind`）。
+- 顺序：显式 `subject_id` → 跳过名称搜索但仍 `/batch`；否则 Business `/search`（原始标题，仅去外围空白）→ 归一化唯一精确命中 → 仅“成功且候选为空”才回退 RAG（`mode="search"`，只传 `semantic_query`）。
 - 归一化只做字符层面：NFKC + casefold + 安全标点当分隔符 + 连续空白折叠 + strip。禁止“第二季/第2季/2nd Season/II”等语义转换；只有真实标题或工具证据 `aliases` 可命中，子串命中不算精确。
 - `/batch` 只保留 `active is True`、`type==2`、`nsfw is False`；`missingIds/filteredIds` 丢弃；`excludeCollected=false`（收藏与否由预览阶段判断，不覆盖既有收藏）。
 - 结果分流：权威校验后 0 → “没有找到匹配项”，不预览不写入；1 且唯一精确 → `build_wishlist_preview`（仍走预览→明确确认→幂等写入）；多个，或“非唯一精确”（含单个歧义/相似候选）→ 保存 `SUBJECT_RESOLUTION`，绝不自动预览。
@@ -274,7 +257,7 @@ allowed = resolve_evidence(match.entity_kind, ids, token=token)
 | Business `/search` 超时/5xx/401/坏响应 | 返回错误语义；不回退 RAG；不建状态；不预览 |
 | Business 成功非空但无唯一精确命中 | 保留安全候选进 `SUBJECT_RESOLUTION`；不得当空结果回退 RAG |
 | Business 成功空结果 | 回退 RAG |
-| RAG `available=false` 或异常 | 返回“名称解析不可用”；不伪装无结果；不预览；不建状态 |
+| RAG `available=false` 或异常 | 返回“候选解析暂时不可用”；不伪装无结果；不预览；不建状态 |
 | RAG 多候选或无唯一精确命中 | 作为候选进 `SUBJECT_RESOLUTION`；相似度最高也不自动预览 |
 | `/batch` 过滤后 0 | “没有找到匹配项”，不预览不写入 |
 | 选择时 user 不匹配 / 过期 / 候选已失效 | `CLEAR` 并返回错误 |
@@ -675,112 +658,6 @@ if isinstance(error, EmbeddingUnavailable):
     code = "EMBEDDING_UNAVAILABLE"
 elif isinstance(error, RedisConnectionError):
     code = "REDIS_UNAVAILABLE"
-```
-
-#### Scenario: Shadow Vector Set 与 MySQL release 发布与回滚
-
-##### 1. Scope / Trigger
-
-- 触发：重建 RAG index version、生成容量/质量报告、切换或回滚 MySQL active release。
-
-##### 2. Signatures
-
-- `ShadowIndexManager.prepare_switch(index_version, *, quality_report_path=None, gate_passed=False, gate_reasons=()) -> SwitchPlan`。
-- `ShadowIndexManager.execute_switch(plan) -> SwitchResult`。
-- `ShadowIndexManager.rollback(previous_version) -> SwitchResult`。
-- `build_capacity_report(sample_bytes, sample_count, catalog_count, redis_used_memory, available_bytes)`。
-
-##### 3. Contracts
-
-- 新版本写入 `rag:vectors:{entity_kind}:{version}` shadow key 和 `search_document` 行；旧版本在回滚窗口内不得删除。
-- 只有 `quality/capacity/eval/latency/human` 五份同一 `indexVersion/profileVersion` 报告通过 gate，`execute_switch` 才能调用 MySQL release store 激活版本；Redis 不提供 active alias。
-- gate 必须满足：正式 eval 为 `RELEASE_CANDIDATE` 且 120/120 通过，Evidence completeness=100%，Recall@20≥0.85、MRR@10≥0.90、nDCG@10≥0.75，Redis P95<250ms、hydrated P95<500ms，容量≤60%，人工检查≥20 且严重错误为 0。
-- 容量投影利用率必须不高于 60%；空样本报告必须 `allowed=false`。
-- `rollback` 只切回已验证的 MySQL release，不删除任何 Redis Vector Set 或 MySQL 投影。
-
-##### 4. Validation & Error Matrix
-
-| 条件 | 必须行为 |
-|---|---|
-| 报告缺失/版本不一致 | gate fail-closed，拒绝 release 切换 |
-| Vector Set `VADD/VSIM/VREM` 不可用 | 不建向量、不激活 release，保持 RAG 关闭 |
-| 容量利用率 > 60% | 报告拒绝发布 |
-| release 切换失败 | 返回失败结果，保留旧 active release |
-| 需要回滚 | 指向已验证的旧版本，保留新索引供排查 |
-
-##### 5. Good/Base/Bad Cases
-
-- Good：先写 MySQL/Vector Set 双 shadow → 生成同版本报告 → gate → 在 MySQL 事务中激活 release → 观察后再清理旧版本。
-- Base：gate 未通过时只保留 shadow 构建结果，不影响在线旧 release。
-- Bad：直接覆盖 active 版本、只写一侧投影、先删除旧版本，或用 `--activate` 绕过报告。
-
-##### 6. Tests Required
-
-- Shadow 单测断言 gate 未通过拒绝切换、旧 release 保留、rollback 调用正确版本。
-- 容量报告单测断言投影、空样本拒绝和 JSON 字段稳定。
-- Redis 门禁断言 `COMMAND INFO VADD/VSIM/VREM` 可用后才允许后续灰度；Business 词法响应缺少 `indexVersion` 时拒绝查询。
-
-##### 7. Wrong vs Correct
-
-```text
-Wrong: 删除旧 Vector Set 后直接把新 key 当作 active，或让 Agent 自己猜版本。
-Correct: 保留旧投影，通过 MySQL `search_index_release` 切换；词法响应携带版本，Agent 查询同版本 Vector Set，异常时回滚 release。
-```
-
-> 详细的 `RAG_ENABLED` 开关边界、灰度观察、回滚顺序和清理窗口见 [RAG 检索与版本发布契约](./rag-retrieval-contract.md)。
-
-### Scenario: MySQL FULLTEXT 与 Vector Set 双投影
-
-#### 1. Scope / Trigger
-
-- 触发：新增或修改 RAG indexer、词法召回 API、Vector Set 查询或索引发布流程。
-
-#### 2. Signatures
-
-- `POST /api/client/subjects/lexical-search`：`q/tags/scoreMin/scoreMax/year/weekday/subjectIds/limit`。
-- 成功响应：`{indexVersion, profileVersion, candidates[]}`；无 active release 返回 503。
-- Vector Set key：`rag:vectors:{entity_kind}:{indexVersion}`；查询命令使用 `VSIM ... WITHSCORES WITHATTRIBS`。
-
-#### 3. Contracts
-
-- MySQL `search_document` 是可重建投影；`search_index_release` 是唯一 active 版本指针。
-- 一个 index job 必须先写 MySQL lexical shadow，再写 Vector Set；任一侧失败不得确认 job 完成。
-- Agent 只使用 Business 返回的 `indexVersion` 查询 Vector Set，禁止跨版本融合。
-
-#### 4. Validation & Error Matrix
-
-| 条件 | 必须行为 |
-|---|---|
-| 缺少 active release 或响应无 `indexVersion` | 词法/混合检索 fail-closed 到既有 Business 搜索 |
-| Vector Set 命令不可用 | 不写入/不发布，返回可重试错误 |
-| MySQL 投影写入失败 | 不写入完成状态，保留任务重试 |
-| 旧版本清理请求 | 仅在回滚窗口结束且人工确认后执行 |
-
-#### 5. Good / Base / Bad Cases
-
-- Good：双投影同一版本、gate 通过后激活 MySQL release，RRF 只融合同版本候选。
-- Base：Vector Set/Embedding 失败时返回 Business 精确或词法 fallback，并记录结构化事件。
-- Bad：把 Redis active alias 当作发布事实，或将 `subjectIds` 排除列表误传为 Business allowlist。
-
-#### 6. Tests Required
-
-- Adapter：断言 `VADD/VSIM/VREM` 参数、版本 key 和属性解析。
-- Retrieval：断言 `candidates`、`indexVersion` 解析和版本缺失 fail-closed。
-- Indexer：断言 MySQL upsert 与 Vector Set 写入任一失败时 job 不完成。
-
-#### 7. Wrong vs Correct
-
-##### Wrong
-
-```python
-redis.execute_command("FT.SEARCH", "idx:rag:subject:active", query)
-```
-
-##### Correct
-
-```python
-release = business.lexical_search(typed_request)
-rows = vectors.vsim(release["indexVersion"], embedding)
 ```
 
 ## Agent 角色、提示词与流式输出契约

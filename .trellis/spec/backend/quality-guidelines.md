@@ -29,10 +29,9 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 
 ### 当前测试基线
 
-> **本任务（2026-10-13 文档刷新）未重跑测试套件**，下列通过数均为**未复核**的带日期历史基线，引用前须重新实测替换。
-> 用例规模可静态核对：`grep -rE 'def test_' backend/agent/tests | wc -l` → 525（2026-10-13）；Java `find backend -name '*Test.java' | wc -l` → 30（2026-10-13）。
+> 实测日期 2026-10-15，提交 `4361a06c`；命令：`cd backend/agent && uv run pytest -q -p no:randomly`、`mvn -B test -f backend/business/pom.xml`。本节是测试基线数字的**唯一来源**；其他规范文件只链接本节。
 
-`backend/agent` 的 `uv run pytest` 最后实测记录为 **650 passed**（提交 `392cd873`，2026-10-06，随 MinIO 公开 URL 修复新增 `tests/jobs/importer/test_storage_public_url.py`）——**未复核（最后实测：`392cd873`）**；2026-10-05 的 **629 passed, 6 xfailed** 为上一基线，2026-09-29 的 585 passed、2026-09-21 的 413 passed、2026-09-12 的 284 passed 均为更早的带日期历史基线。Java 侧 `mvn -B test -f backend/business/pom.xml` 全 reactor 最后实测合计 **220 个测试通过、0 失败、0 错误**——**未复核**（Lombok 移除后各模块测试全部计入，旧基线 95 已失效）。`check_javadoc.py` 及其回归 `test_check_javadoc.py` 已随提交 `721d5c71` 删除（Lombok 移除工作遗留的一次性脚本），历史基线 255 文件/1658 声明/0 违规不再可复跑；恢复前 Javadoc 检查以人工审查为准，见下文「可重复的声明与语法检查」。以上数字均取自提交记录，改动后必须重新实测替换。不得沿用历史通过数。
+`backend/agent` 的 `uv run pytest`：**660 passed, 0 xfailed**，1 warning。Java 侧 `mvn -B test -f backend/business/pom.xml` 按各模块 surefire 报告合计 **111 个测试通过、0 失败、0 错误**（`common` 无用例，其余八模块均有用例；核实：`find backend/business -path "*surefire-reports*" -name "*.txt" -exec grep -h "^Tests run" {} + | awk -F'[ ,]+' '{s+=$3} END {print s}'`）。测试规模：`grep -rE 'def test_' backend/agent/tests | wc -l` → 529；`find backend/business -name '*Test.java' | wc -l` → 30。`check_javadoc.py` 及其回归 `test_check_javadoc.py` 已随提交 `721d5c71` 删除（Lombok 移除工作遗留的一次性脚本），历史基线 255 文件/1658 声明/0 违规不再可复跑；恢复前 Javadoc 检查以人工审查为准，见下文「可重复的声明与语法检查」。改动后必须重新实测并替换日期与数字，不得沿用历史通过数。
 
 - Java `app` 模块包含配置迁移回归测试：`AppConfigurationBindingTest`、`SecurityConfigAuthorizationTest`、`CookieOriginFilterTest`、`AgentConfigTest` 与 `ArchitectureBoundaryTest`。
 - Python 已有 importer、indexer gate、shadow eval、release store、容量报告和 RAG 故障矩阵回归用例。
@@ -45,59 +44,21 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 
 ### 已知 flaky 测试
 
-- **backlog**：`tests/rag/test_air_status.py::test_both_call_sites_use_the_shared_function` 在全量 `uv run pytest` 中偶发失败（2026-10-05 首次观察），单独运行该文件 29 passed、全量重跑 629 passed 全绿。现象指向测试隔离/顺序依赖而非源码缺陷。处置：首次失败先重跑确认；修复隔离另起独立任务。禁止把「重跑即绿」当作常态接受，flaky 会腐蚀门禁信任。
+- **backlog**：`tests/rag/test_air_status.py::test_both_call_sites_use_the_shared_function` 曾于 2026-10-05 在全量 `uv run pytest` 中偶发失败（单独运行该文件通过，现象指向测试隔离/顺序依赖而非源码缺陷）。2026-10-15 全量实测（`-p no:randomly`） 669 passed，未复现。处置：首次失败先重跑确认；修复隔离另起独立任务。禁止把「重跑即绿」当作常态接受，flaky 会腐蚀门禁信任。
 
 ### 已知覆盖债务
 
 - Java 已补充登录、刷新和注销编排单测，以及认证存储/绝对寿命、导入错误分类和 Converter 边界回归；仍缺收藏进度事务、管理写操作和完整 Controller 集成回归。SSE 控制器单测不替代真实代理集成。
 - Python 已有 Agent 图路由、SSE 持久化失败单测，但尚无 SSE 断开、真实 Redis/Business/Embedding 集成、灰度告警采集、importer 锁/恢复和 scheduler 重叠场景的完整自动化覆盖。
-- **`xfail(strict=True)` 是已知缺陷的登记方式**：严格模式在缺陷被修复后会让用例失败，强制清理标记，避免「缺陷已修但标记留存」或「标记被忽略后无人回归」。当前 6 处标记与对应缺陷见 `agent-guidelines.md` 的 SSE/Gateway/Business 响应守卫三节。
 - 当前测试基线只能证明列出的配置与指标用例通过，不能替代上述高风险路径；新改动必须按风险补测试。
+
+> `xfail(strict=True)` 仍是本项目的缺陷登记方式（严格模式在缺陷修复后强制清理标记），但 2026-10-15 实测已 **无任何 xfail 标记**；新增标记时同步更新对应契约章节。
 
 ### Scenario: RAG 发布完成与灰度质量证据
 
-#### 1. Scope / Trigger
+> 完整的 Gate 阈值、双 shadow 顺序、灰度观察、回滚与清理契约统一在 [RAG 检索与版本发布契约](./rag-retrieval-contract.md#3-contracts)，本节不重复。
 
-- 触发：准备激活 MySQL `search_index_release`、打开 `RAG_ENABLED`、完成 24 小时灰度或清理旧投影。
-
-#### 2. Signatures
-
-- Gate 报告：`quality/capacity/eval/latency/human`，必须共享 `indexVersion/profileVersion`。
-- 灰度记录：观察起止时间、release、功能开关状态、成功/错误率、P95、Evidence completeness、告警和回滚结果。
-
-#### 3. Contracts
-
-- gate PASS 后才能激活 release；release ACTIVE 不代表 `RAG_ENABLED` 默认开启。
-- 至少 24 小时灰度稳定且 release/功能开关回滚确认通过后，任务才可标记完成。
-- 回滚窗口结束前不得删除旧 `search_document`、Vector Set 或表；灰度记录不得虚构未采集的数值。
-
-#### 4. Validation & Error Matrix
-
-| 条件 | 必须行为 |
-|---|---|
-| gate 未通过 | 拒绝激活，保留旧 release |
-| 灰度异常 | 关闭 RAG 开关并切回已验证 release |
-| 缺少灰度起止或回滚记录 | 任务保持未完成，不得归档 |
-| 请求清理旧投影 | 检查回滚窗口与独立确认，否则拒绝 |
-
-#### 5. Good / Base / Bad Cases
-
-- Good：gate PASS → 激活 → 单独开启开关 → 观察 24 小时 → 记录回滚演练 → 再规划清理。
-- Base：release ACTIVE 但开关关闭，记录为“索引已发布、Agent RAG 未默认启用”。
-- Bad：用 gate PASS 代替灰度确认，或用人工口头结论补写不存在的 P95/错误率。
-
-#### 6. Tests Required
-
-- gate 单测覆盖版本、阈值、报告缺失和 `RELEASE_CANDIDATE` 门禁。
-- release store 单测覆盖 ACTIVE 唯一性、事务切换和已验证版本 rollback。
-- 交付复核运行 `mvn -B clean test`、`uv run pytest`、gate CLI、健康检查和词法 API；把灰度/回滚结果写入运行审计。
-
-#### 7. Wrong vs Correct
-
-```text
-Wrong: gate=PASS 后直接宣称 RAG 已默认启用，并删除旧投影。
-Correct: 明确区分 release ACTIVE、RAG_ENABLED 和灰度完成；异常先关闭开关、再切回 MySQL release，保留旧投影。
-```
+本文件只加一条质量证据要求：任务归档前必须有可复核的灰度记录（观察起止时间、release、功能开关状态、成功/错误率、P95、Evidence completeness、告警和回滚结果），且 gate 单测覆盖版本/阈值/报告缺失/`RELEASE_CANDIDATE`、release store 单测覆盖 ACTIVE 唯一性与事务切换。缺少灰度起止或回滚记录时任务保持未完成，不得归档；不得用 gate PASS 代替灰度确认，也不得用人工口头结论补写不存在的指标数值。
 
 ### Scenario: 可追溯 Golden Case 评测数据集
 

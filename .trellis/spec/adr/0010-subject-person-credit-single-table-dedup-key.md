@@ -2,7 +2,7 @@
 
 - **状态**：accepted
 - **记录日期**：2026-10-12
-- **相关规范**：[backend/database-guidelines.md](../backend/database-guidelines.md#scenario-主创关系单表-subject_person_credit)
+- **相关规范**：[backend/database-guidelines.md](../backend/database-guidelines.md#scenario-主创关系单表subject_person_credit)
 
 ## 背景
 
