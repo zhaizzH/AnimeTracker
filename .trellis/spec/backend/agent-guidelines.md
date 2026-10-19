@@ -377,6 +377,12 @@ result = business.save_collection(sid, collection_type=target, token=token)
 - 管理路由必须使用 `require_admin`，不能只靠提示词限制。
 - `Settings` 使用 `extra="forbid"`；新增环境变量同步 `app/config.py` 与 `.env.example`。
 - `LLM_PROVIDER` 支持 `deepseek|dashscope`；显式设置时缺少对应 Key 必须失败。未设置时当前实现会按 DeepSeek→DashScope Key 存在性回退并记录 warning，不得把“显式选择”写成必需事实。
+- **两家都走 OpenAI 兼容客户端**（2026-10-19 起）：DeepSeek 用 `langchain-deepseek` 的 `ChatDeepSeek`，百炼用 `langchain-openai` 的 `ChatOpenAI` + `DASHSCOPE_BASE_URL`（默认 `https://dashscope.aliyuncs.com/compatible-mode/v1`）。此前的 `ChatTongyi` 随 `langchain-community` sunset（2026-05-26 归档）一并移除；官方无对应 partner 包（`langchain-tongyi` PyPI 不存在，`langchain-dashscope` 停更于 2024-07、`langchain-qwq` 为个人包），故**不得**为“换回官方包”而重新引入 `langchain-community` 或第三方 Qwen 包。
+- **百炼的三处字段差异是契约、不是 bug**：
+  - `max_tokens` 被 `langchain-openai` 改名发出为 `max_completion_tokens`（百炼 2026-04-20 起的新字段）；DeepSeek 官方端点仍用 `max_tokens`。两者**不得统一**成同一个键。
+  - `enable_thinking` / `thinking_budget` 是非 OpenAI 标准参数，**必须经 `extra_body` 嵌套透传**；摊平到顶层会被供应商当作未知参数忽略，思考静默关闭。
+  - `stream_usage=True` 必须显式传：显式设 `base_url` 后 `langchain-openai` 不再自动开启，漏掉会让 `agent.model.completed` 的 `inputTokens/outputTokens/totalTokens` 从真实值退回全 `None`。
+- `reasoning_content` 捕获补丁（`agent_factory._patch_chat_openai_reasoning`）现在是**两家共用**通道：`langchain-openai` 本身丢弃该字段，由补丁存入 `additional_kwargs`，`runtime._extract_reasoning_content_from_chunk` 读取。该补丁不得按“DeepSeek 专用”删除。
 - LLM 模型/温度等运行时配置优先读取 Redis `agent:config:model`；本地缓存约 5 秒，Redis 不可用时回退环境配置。
 - 托管 Prompt 在启动时从 Redis 建立快照；单项读取失败回退仓库内本地 Prompt，不因 Prompt Redis 不可用阻止启动。
 - 共享 `.env` 中由 importer 使用的字段也必须声明在 `Settings` 中，否则 `extra="forbid"` 会导致启动失败；业务读取仍需说明真实来源。

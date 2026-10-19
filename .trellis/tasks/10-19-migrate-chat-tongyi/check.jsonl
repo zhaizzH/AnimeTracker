@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "复核配置契约与日志约束是否被破坏"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "复核测试基线数字须实测替换，不得沿用历史通过数"}
