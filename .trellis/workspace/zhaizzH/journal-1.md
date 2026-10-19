@@ -816,3 +816,27 @@ GET /admin/agent/config 改为返回生效值 + _sources 逐字段来源；前�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 28: P0 债务清理：前端死文件 + CI 门禁 + 泄露密钥登记
+<!-- trellis-session: v=2 fp=305018d1c2cb44ad -->
+
+**Date**: 2026-10-19
+**Task**: P0 债务清理：前端死文件 + CI 门禁 + 泄露密钥登记
+**Branch**: `main`
+
+### Summary
+
+删 5 个零引用死文件（262 行）；CI 前端 job 补 npm test 与 npm run build；登记历史泄露的开发库密码并建议轮换，不改写历史。前端 125 用例全绿、build 两端成功。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `014627a6` | refactor(frontend): 删除两端零引用死文件 |
+| `e1aa3142` | ci(frontend): 前端 job 补跑 npm test 与 npm run build |
+| `012291aa` | chore(trellis): P0 债务清理任务归档，gitignore 补 .pi |
+
+### Status
+
+[OK] **Completed**
