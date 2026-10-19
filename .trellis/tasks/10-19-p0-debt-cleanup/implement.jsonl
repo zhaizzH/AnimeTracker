@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "删除死文件需遵循前端目录结构契约，不动 ui/ 原语层既定边界"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "删除后需跑前端 typecheck/test/build 三道本地门禁"}

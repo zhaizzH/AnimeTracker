@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "复核删除范围是否越界、是否误删被引用组件"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "复核 CI 改动是否影响跨层契约或引入意外路径"}
