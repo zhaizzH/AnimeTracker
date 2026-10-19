@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 28
+- **Total Sessions**: 29
 - **Last Active**: 2026-10-19
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~842 | Active |
+| `journal-1.md` | ~865 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 29 | 2026-10-19 | SSE 客户端加固：帧解析、错误分类与结束锁 | `d940c160`, `e04025a1` | `main` |
 | 28 | 2026-10-19 | P0 债务清理：前端死文件 + CI 门禁 + 泄露密钥登记 | `014627a6`, `e1aa3142`, `012291aa` | `main` |
 | 27 | 2026-10-14 | Agent 模型配置默认值回显与稀疏保存 | `07ee4f3c` | `main` |
 | 26 | 2026-10-13 | 条目详情信息栏改用 efferd contact-1 卡片 | `f7c7144` | `main` |

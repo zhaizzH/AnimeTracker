@@ -840,3 +840,26 @@ GET /admin/agent/config 改为返回生效值 + _sources 逐字段来源；前�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 29: SSE 客户端加固：帧解析、错误分类与结束锁
+<!-- trellis-session: v=2 fp=302e636e7e477536 -->
+
+**Date**: 2026-10-19
+**Task**: SSE 客户端加固：帧解析、错误分类与结束锁
+**Branch**: `main`
+
+### Summary
+
+shared/sse.ts 由单换行切分改为空行分帧、校验 Content-Type、flush 尾帧，新增 SseError/SseAbortError 区分故障与主动取消；useAgentChat 按 type 白名单分发、is_end 局部锁帧、401/403 独立文案。核对后端源码时发现原设计把工具失败写成 state=error，实际是 state=end + result=error，已修正（否则失败工具会误标 done）；status 的 state=error 持久化失败文案改为追加到回答尾部而非丢弃。前端 143 例全绿（shared 34 / client 38 / admin 71，基线 125），build 两端成功，backend 零改动。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d940c160` | fix(shared): SSE 按空行分帧、校验 Content-Type、flush 尾帧并区分 Abort |
+| `e04025a1` | fix(shared): useAgentChat 按 type 分发、is_end 锁帧、错误分类 |
+
+### Status
+
+[OK] **Completed**
