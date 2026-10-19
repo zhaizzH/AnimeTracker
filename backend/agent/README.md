@@ -310,6 +310,7 @@ Agent 提示词已更新为只可依据工具返回的证据字段陈述事实�
 | `DASHSCOPE_API_KEY` | 空 | 百炼 API Key（启用 RAG 嵌入时必需） |
 | `DASHSCOPE_MODEL` | `qwen3.7-plus` | 百炼领域 Agent 模型 |
 | `DASHSCOPE_MODEL_ROUTE` | `qwen3.7-plus` | 百炼 gateway 路由模型 |
+| `DASHSCOPE_BASE_URL` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | 百炼 OpenAI 兼容端点（区域化 workspace 需覆盖） |
 
 ### 服务与集成
 

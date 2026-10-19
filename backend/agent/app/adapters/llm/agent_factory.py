@@ -1,8 +1,7 @@
-import json
 import logging
 from typing import Literal
 
-from langchain_community.chat_models.tongyi import ChatTongyi
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import AIMessageChunk
 from langchain_deepseek import ChatDeepSeek
 
@@ -11,35 +10,6 @@ from app.admin.ports import ModelConfigRepository
 from app.config import ResolvedLlmProviderConfig, Settings, resolve_llm_provider
 
 logger = logging.getLogger(__name__)
-
-
-def _patch_chat_tongyi():
-    """修复 langchain-community ChatTongyi 流式 delta 合并问题。"""
-    _orig = ChatTongyi.subtract_client_response
-
-    def _patched_subtract(self, resp, prev_resp):
-        resp_copy = json.loads(json.dumps(resp))
-        choice = resp_copy["output"]["choices"][0]
-        message = choice["message"]
-        prev_copy = json.loads(json.dumps(prev_resp))
-        prev_message = prev_copy["output"]["choices"][0]["message"]
-        message["content"] = message["content"].replace(prev_message["content"], "")
-        if message.get("tool_calls") and prev_message.get("tool_calls"):
-            for i, tc in enumerate(message["tool_calls"]):
-                fn = tc["function"]
-                prev_fn = prev_message["tool_calls"][i]["function"]
-                if "name" in fn and "name" in prev_fn:
-                    fn["name"] = fn["name"].replace(prev_fn["name"], "")
-                if "arguments" in fn and "arguments" in prev_fn:
-                    fn["arguments"] = fn["arguments"].replace(prev_fn["arguments"], "")
-        return resp_copy
-
-    _patched_subtract.__name__ = "patched_subtract_client_response"
-    ChatTongyi.subtract_client_response = _patched_subtract
-    logger.info("已应用 chatongyi 流式 delta 合并补丁")
-
-
-_patch_chat_tongyi()
 
 
 def _patch_chat_openai_reasoning():
@@ -59,7 +29,7 @@ def _patch_chat_openai_reasoning():
 
     _patched.__name__ = "patched_convert_delta_to_message_chunk"
     _lc_base._convert_delta_to_message_chunk = _patched
-    logger.info("已应用 deepseek reasoning_content 增量捕获补丁")
+    logger.info("已应用 reasoning_content 增量捕获补丁（DeepSeek 与百炼共用此通道）")
 
 
 _patch_chat_openai_reasoning()
@@ -68,7 +38,7 @@ _patch_chat_openai_reasoning()
 def create_llm(*, provider: Literal["deepseek", "dashscope"], model: str, temperature: float,
                api_key: str, max_tokens: int, base_url: str | None = None,
                thinking_budget: int = 2048, reasoning_effort: str = "high"):
-    """按已解析的 provider 创建对应供应商客户端。DeepSeek 显式开启思考；百炼 qwen3 显式开启 enable_thinking。"""
+    """按已解析的 provider 创建对应供应商客户端。DeepSeek 与百炼均显式开启思考；百炼走 OpenAI 兼容端点。"""
     if provider == "deepseek":
         deepseek_kwargs: dict = {
             "model": model,
@@ -81,16 +51,24 @@ def create_llm(*, provider: Literal["deepseek", "dashscope"], model: str, temper
         if base_url:
             deepseek_kwargs["base_url"] = base_url
         return ChatDeepSeek(**deepseek_kwargs)
-    model_kwargs: dict = {"temperature": temperature, "max_tokens": max_tokens}
+    # 百炼走 OpenAI 兼容端点：enable_thinking/thinking_budget 是非标准参数，
+    # 必须经 extra_body 嵌套透传（摊平到顶层会被供应商忽略）。
+    extra_body: dict = {}
     if model.startswith("qwen3"):
-        model_kwargs["enable_thinking"] = True
+        extra_body["enable_thinking"] = True
         if thinking_budget:
-            model_kwargs["thinking_budget"] = thinking_budget
-    return ChatTongyi(
+            extra_body["thinking_budget"] = thinking_budget
+    return ChatOpenAI(
         model=model,
         api_key=api_key,
+        base_url=base_url or "https://dashscope.aliyuncs.com/compatible-mode/v1",
         streaming=True,
-        model_kwargs=model_kwargs,
+        # 显式设了 base_url 时 langchain-openai 不再自动开 stream_usage，
+        # 不传则 usage_metadata 恒 None、token 日志退回全 None。
+        stream_usage=True,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        extra_body=extra_body or None,
     )
 
 

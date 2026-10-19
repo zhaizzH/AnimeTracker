@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     dashscope_api_key: str = ""
     dashscope_model: str = "qwen3.7-plus"
     dashscope_model_route: str = "qwen3.7-plus"
+    # 百炼 OpenAI 兼容端点；区域化 workspace 需覆盖为 https://{WorkspaceId}.<region>.maas.aliyuncs.com/compatible-mode/v1
+    dashscope_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
     # LLM — DeepSeek 官方直连
     deepseek_api_key: str = ""
@@ -130,7 +132,7 @@ def _resolve_by_key(s: Settings) -> ResolvedLlmProviderConfig:
         return ResolvedLlmProviderConfig(
             provider="dashscope", api_key=SecretStr(s.dashscope_api_key),
             model=s.dashscope_model, route_model=s.dashscope_model_route,
-            reasoning_effort=s.llm_reasoning_effort,
+            reasoning_effort=s.llm_reasoning_effort, base_url=s.dashscope_base_url,
         )
     raise ValueError("LLM API Key 未配置: 请设置 DEEPSEEK_API_KEY 或 DASHSCOPE_API_KEY，或设置 LLM_PROVIDER")
 
@@ -155,7 +157,7 @@ def resolve_llm_provider(s: Settings) -> ResolvedLlmProviderConfig:
         return ResolvedLlmProviderConfig(
             provider="dashscope", api_key=SecretStr(s.dashscope_api_key),
             model=s.dashscope_model, route_model=s.dashscope_model_route,
-            reasoning_effort=s.llm_reasoning_effort,
+            reasoning_effort=s.llm_reasoning_effort, base_url=s.dashscope_base_url,
         )
     # LLM_PROVIDER 未配置 → 回退旧 key 判断，打 warning 提示迁移
     import logging
