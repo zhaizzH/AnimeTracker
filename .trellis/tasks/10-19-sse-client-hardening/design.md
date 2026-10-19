@@ -33,13 +33,12 @@
 - `answer` → 正文累加
 - `thinking` → thinking 累加（现状已对，保留）
 - `function_call` → `tools` 数组；`state: 'start' | 'end'`，**失败是 `state: 'end'` + `result: 'error'`**（`middleware.py:emit_function_call`），不是 `state: 'error'`；两者都要落到 `status: 'error'`，不得把失败工具标成 `done`；
-- `status` → 不进正文；但 `state: 'error'` 时 `message` 是后端给用户看的持久化失败文案（`streaming.py:160,177`），必须追加到回答尾部，不得静默丢弃；
-- `status` → 新增状态通道（`ChatMsg` 加可选 `statusEvents` 或顶层 `statuses`；最小实现是忽略正文、只在 console/调试暴露，本任务取**忽略正文、不渲染**——避免给 UI 引入新面）
-- 结束帧 `{is_end: true}` → 置 `endedRef.current = true`，之后所有帧直接 return（**结束锁**）
+- `status` → 不进正文；但 `state: 'error'` 时 `message` 是后端给用户看的持久化失败文案（`streaming.py:160,177`），必须追加到回答尾部，不得静默丢弃；非 error 的 `status` 不渲染（本任务不引入新的 UI 面）
+- 结束帧 `{is_end: true}` → 置 `ended.current = true`，之后所有帧直接 return（**结束锁**）
 
-### D6 结束锁用 ref 不用 state
+### D6 结束锁用局部对象不用 state
 
-`streaming` 是 state，置位有渲染延迟；结束锁必须同步生效（下一帧到来时立刻拦）。**落点**：`useAgentChat` 内加 `endedRef = useRef(false)`，`send` 开始时重置，`is_end` 时置位，`onEvent` 开头检查。
+`streaming` 是 state，置位有渲染延迟；结束锁必须同步生效（下一帧到来时立刻拦）。**落点**：`send` 内用局部 `const ended = { current: false }`（每次 send 独立生命周期，比 hook 级 ref 更干净），`is_end` 时置位，`onEvent` 开头检查。
 
 ### D7 鉴权失败单独分类
 

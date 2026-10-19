@@ -43,11 +43,11 @@
 
 ## Acceptance Criteria
 
-- [ ] AC1：`sse.ts` 以空行分帧、校验 Content-Type、flush 尾帧、区分 Abort 与故障。
-- [ ] AC2：`useAgentChat.ts` 按 type 分发四类事件，`is_end` 后锁帧，`function_call`/`status` error 单独处理。
-- [ ] AC3：新增 Vitest 用例覆盖上述行为，`cd frontend && npm test` 全绿（用例数较基线 125 增加）。
-- [ ] AC4：`hook-guidelines.md` 的「已知债务」段更新，不再描述已修复的行为。
-- [ ] AC5：不改后端任何文件（`git diff --stat` 无 `backend/**`）。
+- [x] AC1：`sse.ts` 以空行分帧、校验 Content-Type、flush 尾帧、区分 Abort 与故障。
+- [x] AC2：`useAgentChat.ts` 按 type 分发四类事件，`is_end` 后锁帧，`function_call`/`status` error 单独处理。
+- [x] AC3：新增 Vitest 用例覆盖上述行为，`cd frontend && npm test` 全绿（用例数较基线 125 增加）。
+- [x] AC4：`hook-guidelines.md` 的「已知债务」段更新，不再描述已修复的行为。
+- [x] AC5：不改后端任何文件（`git diff --stat` 无 `backend/**`）。
 
 ## 待办（另案，不进本任务）
 
