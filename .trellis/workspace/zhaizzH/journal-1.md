@@ -863,3 +863,29 @@ shared/sse.ts 由单换行切分改为空行分帧、校验 Content-Type、flush
 ### Status
 
 [OK] **Completed**
+
+
+## Session 30: 移除百炼对话模型，只保留 DeepSeek
+<!-- trellis-session: v=2 fp=646234aa0b263167 -->
+
+**Date**: 2026-10-19
+**Task**: 移除百炼对话模型，只保留 DeepSeek
+**Branch**: `main`
+
+### Summary
+
+按用户指令删除阿里云百炼对话模型整条链路：删 dashscope 分支、DASHSCOPE_MODEL/DASHSCOPE_MODEL_ROUTE/DASHSCOPE_BASE_URL、thinkingBudget 全链路（config/schema/admin service/管理页/openapi/.env/README）、以及 _patch_chat_openai_reasoning（实测为 dead code——ChatDeepSeek 在 _convert_chunk_to_generation_chunk 自行捕获 reasoning_content，从不经过被补丁的 _convert_delta_to_message_chunk）。DASHSCOPE_API_KEY 与 dashscope SDK 保留，仅服务 RAG 嵌入 text-embedding-v4。LLM_PROVIDER 只接受 deepseek，其余值明确报错而非静默回退。顺带发现既有测试隔离隐患：main.py 顶层 load_dotenv() 把真实 .env 灌进 os.environ，Settings(_env_file=None) 仍能读到真实 Key，断言「无 Key 应报错」必须显式传 deepseek_api_key=''。门禁：后端 668 passed / 0 warning（-W error::DeprecationWarning 亦全绿），前端 143 例 + typecheck + build 全绿。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fa1673b7` | refactor(agent): ChatTongyi 迁到 ChatOpenAI 百炼兼容端点 |
+| `4c94f8d0` | chore(agent): 移除 langchain-community 依赖 |
+| `ef2b892b` | docs(spec): 登记百炼兼容端点与 max_completion_tokens 契约 |
+| `00993ff3` | refactor(agent): 移除百炼对话模型，只保留 DeepSeek |
+| `71dad667` | docs(task): 追加「删除百炼对话模型」需求并登记旧契约作废 |
+
+### Status
+
+[OK] **Completed**
