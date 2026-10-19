@@ -2827,9 +2827,6 @@ paths:
                       maxTokens:
                         type: "integer"
                         description: "最大生成 token"
-                      thinkingBudget:
-                        type: "integer"
-                        description: "思考预算"
                       reasoningEffort:
                         type: "string"
                         description: "推理强度"
@@ -2847,9 +2844,6 @@ paths:
                             type: "string"
                             enum: ["default", "override"]
                           maxTokens:
-                            type: "string"
-                            enum: ["default", "override"]
-                          thinkingBudget:
                             type: "string"
                             enum: ["default", "override"]
                           reasoningEffort:
@@ -2891,9 +2885,6 @@ paths:
                 maxTokens:
                   type: "integer"
                   description: "最大生成 token，须为正整数"
-                thinkingBudget:
-                  type: "integer"
-                  description: "思考预算"
                 reasoningEffort:
                   type: "string"
                   description: "推理强度"
@@ -2922,8 +2913,6 @@ paths:
                       temperature:
                         type: "number"
                       maxTokens:
-                        type: "integer"
-                      thinkingBudget:
                         type: "integer"
                       reasoningEffort:
                         type: "string"

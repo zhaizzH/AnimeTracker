@@ -17,7 +17,6 @@ class ModelConfig(BaseModel):
     modelRoute: str | None = None
     temperature: float | None = None
     maxTokens: int | None = None
-    thinkingBudget: int | None = None
     reasoningEffort: str | None = None
 
 
@@ -33,7 +32,6 @@ class ModelConfigSources(BaseModel):
     modelRoute: FieldSource
     temperature: FieldSource
     maxTokens: FieldSource
-    thinkingBudget: FieldSource
     reasoningEffort: FieldSource
 
 

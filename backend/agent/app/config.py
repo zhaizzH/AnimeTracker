@@ -8,12 +8,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="forbid")
 
-    # LLM — DashScope 百炼
+    # LLM — DashScope 百炼（仅 RAG 嵌入；不再用于对话模型，见下方 LLM_PROVIDER）
+    # 这个 Key 现仅服务 DashScopeEmbeddingClient（text-embedding-v4）；对话模型只有 DeepSeek。
     dashscope_api_key: str = ""
-    dashscope_model: str = "qwen3.7-plus"
-    dashscope_model_route: str = "qwen3.7-plus"
-    # 百炼 OpenAI 兼容端点；区域化 workspace 需覆盖为 https://{WorkspaceId}.<region>.maas.aliyuncs.com/compatible-mode/v1
-    dashscope_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
     # LLM — DeepSeek 官方直连
     deepseek_api_key: str = ""
@@ -21,14 +18,13 @@ class Settings(BaseSettings):
     deepseek_model: str = "deepseek-v4-flash"
     deepseek_model_route: str = "deepseek-v4-flash"
 
-    # LLM — 供应商显式选择（deepseek/dashscope；空则回退按 key 判断）
+    # LLM — 供应商（仅 deepseek；空则按 Key 存在性判定）
     llm_provider: str = ""
-    # LLM — DeepSeek 思考强度（仅 deepseek 生效；low/high/max，默认 high）
+    # LLM — DeepSeek 思考强度（low/high/max，默认 high）
     llm_reasoning_effort: str = "high"
 
     llm_temperature: float = 0.3
     llm_max_tokens: int = 4096
-    llm_thinking_budget: int = 2048
 
     # 服务
     agent_host: str = "0.0.0.0"
@@ -111,8 +107,12 @@ settings = Settings()
 
 @dataclass(frozen=True)
 class ResolvedLlmProviderConfig:
-    """最终选定的 LLM 供应商配置；由 LLM_PROVIDER 显式决定，未配置时按 key 兜底。"""
-    provider: Literal["deepseek", "dashscope"]
+    """最终选定的 LLM 供应商配置。
+
+    目前只有 DeepSeek 一家；``provider`` 字段保留，因为它是日志/健康检查/管理页的
+    既有字段名，将来再引入第二家时无需改消费方。
+    """
+    provider: Literal["deepseek"]
     api_key: SecretStr
     model: str
     route_model: str
@@ -121,46 +121,35 @@ class ResolvedLlmProviderConfig:
 
 
 def _resolve_by_key(s: Settings) -> ResolvedLlmProviderConfig:
-    """旧行为：按 API Key 存在与否选择（DeepSeek 优先）。用于 LLM_PROVIDER 未配置时兜底。"""
+    """旧行为：按 API Key 存在与否选择。用于 LLM_PROVIDER 未配置时兜底。"""
     if s.deepseek_api_key:
         return ResolvedLlmProviderConfig(
             provider="deepseek", api_key=SecretStr(s.deepseek_api_key),
             model=s.deepseek_model, route_model=s.deepseek_model_route,
             reasoning_effort=s.llm_reasoning_effort, base_url=s.deepseek_base_url,
         )
-    if s.dashscope_api_key:
-        return ResolvedLlmProviderConfig(
-            provider="dashscope", api_key=SecretStr(s.dashscope_api_key),
-            model=s.dashscope_model, route_model=s.dashscope_model_route,
-            reasoning_effort=s.llm_reasoning_effort, base_url=s.dashscope_base_url,
-        )
-    raise ValueError("LLM API Key 未配置: 请设置 DEEPSEEK_API_KEY 或 DASHSCOPE_API_KEY，或设置 LLM_PROVIDER")
+    raise ValueError("LLM API Key 未配置: 请设置 DEEPSEEK_API_KEY，或设置 LLM_PROVIDER=deepseek")
 
 
 def resolve_llm_provider(s: Settings) -> ResolvedLlmProviderConfig:
     provider = s.llm_provider.strip()
-    use = {"deepseek", "dashscope"}
     if provider:
-        if provider not in use:
-            raise ValueError(f"无效的 LLM_PROVIDER={s.llm_provider!r}；仅支持 deepseek|dashscope")
-        if provider == "deepseek":
-            if not s.deepseek_api_key:
-                raise ValueError("LLM_PROVIDER=deepseek 但未配置 DEEPSEEK_API_KEY")
-            return ResolvedLlmProviderConfig(
-                provider="deepseek", api_key=SecretStr(s.deepseek_api_key),
-                model=s.deepseek_model, route_model=s.deepseek_model_route,
-                reasoning_effort=s.llm_reasoning_effort, base_url=s.deepseek_base_url,
+        if provider != "deepseek":
+            # 百炼对话模型已移除；DASHSCOPE_API_KEY 现仅供 RAG 嵌入使用。
+            # 这里明确报错而不是静默回退，避免用户以为切到了 dashscope 却实际在跑 DeepSeek。
+            raise ValueError(
+                f"无效的 LLM_PROVIDER={s.llm_provider!r}；仅支持 deepseek"
+                "（百炼对话模型已移除，DASHSCOPE_API_KEY 现仅用于 RAG 嵌入）"
             )
-        # provider == "dashscope"（仅剩该分支）
-        if not s.dashscope_api_key:
-            raise ValueError("LLM_PROVIDER=dashscope 但未配置 DASHSCOPE_API_KEY")
+        if not s.deepseek_api_key:
+            raise ValueError("LLM_PROVIDER=deepseek 但未配置 DEEPSEEK_API_KEY")
         return ResolvedLlmProviderConfig(
-            provider="dashscope", api_key=SecretStr(s.dashscope_api_key),
-            model=s.dashscope_model, route_model=s.dashscope_model_route,
-            reasoning_effort=s.llm_reasoning_effort, base_url=s.dashscope_base_url,
+            provider="deepseek", api_key=SecretStr(s.deepseek_api_key),
+            model=s.deepseek_model, route_model=s.deepseek_model_route,
+            reasoning_effort=s.llm_reasoning_effort, base_url=s.deepseek_base_url,
         )
     # LLM_PROVIDER 未配置 → 回退旧 key 判断，打 warning 提示迁移
     import logging
     logging.getLogger("app.config").warning(
-        "LLM_PROVIDER 未配置，回退按 API Key 选择供应商；建议在 .env 显式设置 LLM_PROVIDER=deepseek|dashscope")
+        "LLM_PROVIDER 未配置，回退按 API Key 选择供应商；建议在 .env 显式设置 LLM_PROVIDER=deepseek")
     return _resolve_by_key(s)

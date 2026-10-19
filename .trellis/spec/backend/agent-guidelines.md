@@ -377,12 +377,15 @@ result = business.save_collection(sid, collection_type=target, token=token)
 - 管理路由必须使用 `require_admin`，不能只靠提示词限制。
 - `Settings` 使用 `extra="forbid"`；新增环境变量同步 `app/config.py` 与 `.env.example`。
 - `LLM_PROVIDER` 支持 `deepseek|dashscope`；显式设置时缺少对应 Key 必须失败。未设置时当前实现会按 DeepSeek→DashScope Key 存在性回退并记录 warning，不得把“显式选择”写成必需事实。
-- **两家都走 OpenAI 兼容客户端**（2026-10-19 起）：DeepSeek 用 `langchain-deepseek` 的 `ChatDeepSeek`，百炼用 `langchain-openai` 的 `ChatOpenAI` + `DASHSCOPE_BASE_URL`（默认 `https://dashscope.aliyuncs.com/compatible-mode/v1`）。此前的 `ChatTongyi` 随 `langchain-community` sunset（2026-05-26 归档）一并移除；官方无对应 partner 包（`langchain-tongyi` PyPI 不存在，`langchain-dashscope` 停更于 2024-07、`langchain-qwq` 为个人包），故**不得**为“换回官方包”而重新引入 `langchain-community` 或第三方 Qwen 包。
-- **百炼的三处字段差异是契约、不是 bug**：
-  - `max_tokens` 被 `langchain-openai` 改名发出为 `max_completion_tokens`（百炼 2026-04-20 起的新字段）；DeepSeek 官方端点仍用 `max_tokens`。两者**不得统一**成同一个键。
-  - `enable_thinking` / `thinking_budget` 是非 OpenAI 标准参数，**必须经 `extra_body` 嵌套透传**；摊平到顶层会被供应商当作未知参数忽略，思考静默关闭。
-  - `stream_usage=True` 必须显式传：显式设 `base_url` 后 `langchain-openai` 不再自动开启，漏掉会让 `agent.model.completed` 的 `inputTokens/outputTokens/totalTokens` 从真实值退回全 `None`。
-- `reasoning_content` 捕获补丁（`agent_factory._patch_chat_openai_reasoning`）现在是**两家共用**通道：`langchain-openai` 本身丢弃该字段，由补丁存入 `additional_kwargs`，`runtime._extract_reasoning_content_from_chunk` 读取。该补丁不得按“DeepSeek 专用”删除。
+**对话模型只有 DeepSeek 一家**（2026-10-19 起）：`langchain-deepseek` 的 `ChatDeepSeek`，走官方 OpenAI 兼容端点。
+
+- **阿里云百炼已退出对话链路**：`DASHSCOPE_API_KEY` 保留但**仅用于 RAG 嵌入**（`DashScopeEmbeddingClient` / `text-embedding-v4`）。`DASHSCOPE_MODEL`、`DASHSCOPE_MODEL_ROUTE`、`DASHSCOPE_BASE_URL`、`LLM_THINKING_BUDGET` 与 `thinkingBudget` 管理字段均已删除，**不得恢复**。
+- `LLM_PROVIDER` 只接受 `deepseek`。设成 `dashscope`（或任何其它值）**必须报错**，不得静默回退到 DeepSeek——静默回退会让人以为切到了百炼却在跑 DeepSeek。
+- 历史：`ChatTongyi` 曾随 `langchain-community` sunset（2026-05-26 归档）迁到百炼 OpenAI 兼容端点，随后百炼对话模型整体移除。官方从未有通义千问 partner 包（`langchain-tongyi` PyPI 404；`langchain-dashscope` 停更 2024-07；`langchain-qwq` 为个人包），故**不得**为“加回第二家”而引入 `langchain-community` 或第三方 Qwen 包。
+- **DeepSeek 的字段形态是契约、不是 bug**：
+  - `max_tokens` 仍用**旧字段名**发给 DeepSeek。这与百炼相反（百炼 2026-04-20 起用 `max_completion_tokens`）；若将来加回一家用新名的供应商，**不得**把两家统一成同一个键。
+  - 思考经 `extra_body={"thinking": {"type": "enabled"}}` 开启，强度走 `reasoning_effort`（`low`/`high`/`max`）。不要套用 qwen3 的 `enable_thinking`/`thinking_budget`——那不是 DeepSeek 的参数。
+- `reasoning_content` **不需要项目侧补丁**：`ChatDeepSeek._convert_chunk_to_generation_chunk` 自己写入 `additional_kwargs`，`runtime._extract_reasoning_content_from_chunk` 读取。此前的 `_patch_chat_openai_reasoning` 打的是 `_convert_delta_to_message_chunk`，而 `ChatDeepSeek` 从不经过该路径——它是 dead code，已随百炼分支一并删除。回归见 `tests/adapters/test_llm_factory.py::TestReasoningCapture`。
 - LLM 模型/温度等运行时配置优先读取 Redis `agent:config:model`；本地缓存约 5 秒，Redis 不可用时回退环境配置。
 - 托管 Prompt 在启动时从 Redis 建立快照；单项读取失败回退仓库内本地 Prompt，不因 Prompt Redis 不可用阻止启动。
 - 共享 `.env` 中由 importer 使用的字段也必须声明在 `Settings` 中，否则 `extra="forbid"` 会导致启动失败；业务读取仍需说明真实来源。
@@ -408,7 +411,7 @@ result = business.save_collection(sid, collection_type=target, token=token)
 
 ##### 2. Signatures
 
-- `GET /api/admin/agent/config` → `ModelConfigView`（6 个配置字段 + `_sources`）
+- `GET /api/admin/agent/config` → `ModelConfigView`（5 个配置字段 + `_sources`）
 - `POST /api/admin/agent/config/update` body: `ModelConfig`（**无** `_sources`）→ `ModelConfigView`
 - `AdminConfigService(model_configs, prompts, settings)` — 构造签名含 `settings`；唯一构造点 `main.py` lifespan
 - `AdminConfigService.get_effective_config() -> dict`
@@ -421,7 +424,6 @@ result = business.save_collection(sid, collection_type=target, token=token)
 | `modelRoute` | `str` | `resolve_llm_provider(settings).route_model` |
 | `temperature` | `float` | `settings.llm_temperature` |
 | `maxTokens` | `int` | `settings.llm_max_tokens` |
-| `thinkingBudget` | `int` | `settings.llm_thinking_budget` |
 | `reasoningEffort` | `str` | `resolve_llm_provider(settings).reasoning_effort` |
 | `_sources` | `Record<field, "default" \| "override">` | 只读派生；GET 响应专有 |
 
@@ -438,12 +440,12 @@ result = business.save_collection(sid, collection_type=target, token=token)
 | `maxTokens <= 0` | `ValueError` → HTTP 400 |
 | 提交体为空 `{}` | 不写存储，返回现值（no-op） |
 | `model`/`modelRoute` 为空串 | 视为未设置，回退 Settings，标 `default` |
-| 数值字段值为 `0` | **合法覆盖**，不得当作未设置（`temperature=0`、`thinkingBudget=0`） |
+| 数值字段值为 `0` | **合法覆盖**，不得当作未设置（`temperature=0`） |
 | 提交体缺少某字段 | 整体替换后该键消失 → 回退继承默认（即「清空字段 = 撤销覆盖」） |
 
 ##### 5. Good/Base/Bad Cases
 
-- Good：Redis 空 → 6 字段均为 `.env` 值 + `_sources` 全 `default`；页面留空并以 placeholder 显示继承值。
+- Good：Redis 空 → 5 字段均为 `.env` 值 + `_sources` 全 `default`；页面留空并以 placeholder 显示继承值。
 - Base：仅 `{"temperature":0.9}` 覆盖 → 该字段 `override`，其余 `default`。
 - Bad：GET 返回的生效值直接填进表单 value 并整体提交 → `.env` 默认值被固化进 Redis，`.env` 变更静默失效。
 
@@ -453,7 +455,7 @@ result = business.save_collection(sid, collection_type=target, token=token)
 
 - Redis 空 → 全 `default` 且值等于 Settings（AC1）
 - 局部覆盖 → 仅该字段 `override`（AC2）
-- `temperature=0` / `thinkingBudget=0` → 保留且标 `override`（边界，防误判未设置）
+- `temperature=0` → 保留且标 `override`（边界，防误判未设置）
 - 空串 `model` → 回退默认（与工厂 `or` 语义对齐）
 - 改 Settings（`llm_temperature`/`llm_max_tokens`）→ 回显随之变化（AC3，证明值来自 Settings 非常量）
 - 稀疏提交 → `repo.set_calls == [{"model":"custom-x"}]`，其余仍 `default`（AC4）

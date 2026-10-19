@@ -29,14 +29,15 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 
 ### 当前测试基线
 
-> 实测日期 2026-10-19，提交 `c09da73b`；命令：`cd backend/agent && uv run pytest -q -p no:randomly`、`mvn -B test -f backend/business/pom.xml`。本节是测试基线数字的**唯一来源**；其他规范文件只链接本节。
+> 实测日期 2026-10-19，提交 `fa1673b7` 之后（百炼对话模型移除）；命令：`cd backend/agent && uv run pytest -q -p no:randomly`、`mvn -B test -f backend/business/pom.xml`。本节是测试基线数字的**唯一来源**；其他规范文件只链接本节。
 
-`backend/agent` 的 `uv run pytest`：**670 passed, 0 xfailed**，**0 warning**（2026-10-19 迁移 `ChatTongyi` 出 `langchain-community` 后 sunset 告警消失；此前基线为 660 passed / 1 warning）。Java 侧 `mvn -B test -f backend/business/pom.xml` 按各模块 surefire 报告合计 **111 个测试通过、0 失败、0 错误**（`common` 无用例，其余八模块均有用例；核实：`find backend/business -path "*surefire-reports*" -name "*.txt" -exec grep -h "^Tests run" {} + | awk -F'[ ,]+' '{s+=$3} END {print s}'`）。测试规模：`grep -rE 'def test_' backend/agent/tests | wc -l` → 539（52 个测试文件）；`find backend/business -name '*Test.java' | wc -l` → 30。`check_javadoc.py` 及其回归 `test_check_javadoc.py` 已随提交 `721d5c71` 删除（Lombok 移除工作遗留的一次性脚本），历史基线 255 文件/1658 声明/0 违规不再可复跑；恢复前 Javadoc 检查以人工审查为准，见下文「可重复的声明与语法检查」。改动后必须重新实测并替换日期与数字，不得沿用历史通过数。
+`backend/agent` 的 `uv run pytest`：**668 passed, 0 xfailed**，**0 warning**（2026-10-19 移除百炼对话模型后由 670 降至 668：删掉 2 个仅适用于 qwen3 的 `extra_body` 断言，新增 2 个 `dashscope` 拒绝用例，净减 2）。Java 侧 `mvn -B test -f backend/business/pom.xml` 按各模块 surefire 报告合计 **111 个测试通过、0 失败、0 错误**（`common` 无用例，其余八模块均有用例；核实：`find backend/business -path "*surefire-reports*" -name "*.txt" -exec grep -h "^Tests run" {} + | awk -F'[ ,]+' '{s+=$3} END {print s}'`）。测试规模：`grep -rE 'def test_' backend/agent/tests | wc -l` → 537（52 个测试文件）；`find backend/business -name '*Test.java' | wc -l` → 30。`check_javadoc.py` 及其回归 `test_check_javadoc.py` 已随提交 `721d5c71` 删除（Lombok 移除工作遗留的一次性脚本），历史基线 255 文件/1658 声明/0 违规不再可复跑；恢复前 Javadoc 检查以人工审查为准，见下文「可重复的声明与语法检查」。改动后必须重新实测并替换日期与数字，不得沿用历史通过数。
 
 - Java `app` 模块包含配置迁移回归测试：`AppConfigurationBindingTest`、`SecurityConfigAuthorizationTest`、`CookieOriginFilterTest`、`AgentConfigTest` 与 `ArchitectureBoundaryTest`。
 - Python 已有 importer、indexer gate、shadow eval、release store、容量报告和 RAG 故障矩阵回归用例。
 - Python 还有 `tests/jobs/backfill`、`tests/jobs/scheduler`、`tests/adapters`、`tests/entities`、`tests/evals` 与 `tests/agent`。Prompt 字符串断言只证明文件内容，不能证明模型始终使用中文，也不能证明进程已经刷新 Prompt。
-- `tests/adapters/test_llm_factory.py` 是 LLM 工厂的**构造契约**测试（不触网）：钉住百炼的 `max_completion_tokens` 字段名、`extra_body` 思考透传、`stream_usage`、以及「导入工厂不得加载已 sunset 的 `langchain_community`」。本机到 `dashscope.aliyuncs.com` TLS 握手失败，真实调用无法在本地验证，任何依赖真实百炼返回的断言都不得写进单测。
+- `tests/adapters/test_llm_factory.py` 是 LLM 工厂的**构造契约**测试（不触网）：钉住 DeepSeek 的 `max_tokens` 旧字段名、`extra_body.thinking` 思考透传、`reasoning_content` 由 `ChatDeepSeek` 自行捕获（项目侧补丁已删），以及「`provider=dashscope` 必须报错」。
+- 该文件还钉住一条**测试隔离隐患**：某些用例会 import `main.py`，它调用 `load_dotenv()` 把真实 `.env` 灌进 `os.environ`，此时 `Settings(_env_file=None)` 仍能读到真实 Key。断言「无 Key 应报错」时必须显式传 `deepseek_api_key=""`，否则用例会随本地 `.env` 的存在与否而红绿不定。
 - Java 配置迁移必须使用 `clean`，避免旧 `target/classes` 中的配置类造成重复 Bean 或假成功。
 - MyBatis `type-aliases-package` 会把实体简单类名注册为不区分大小写的别名；实体类名若与 MyBatis/JDK 内置类型冲突，必须显式使用 `@Alias` 绑定业务别名（回归见下文「验证粒度」）。
 - 这些用例覆盖配置绑定、授权矩阵、Cookie Origin、Agent 超时/Trace/SSE 和模块边界；不启动完整 `AppApplication`，不连接真实 MySQL、Redis、MinIO 或 Python Agent。

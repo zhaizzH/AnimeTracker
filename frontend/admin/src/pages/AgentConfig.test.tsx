@@ -32,10 +32,10 @@ const PROMPTS = [
 
 // GET /admin/agent/config 返回生效值 + 逐字段来源（_sources）。
 const cfgView = (overrides = {}, sources = {}) => ({
-  model: 'gpt-x', modelRoute: 'route-y', temperature: 0.7, maxTokens: 4000, thinkingBudget: 100, reasoningEffort: 'high',
+  model: 'gpt-x', modelRoute: 'route-y', temperature: 0.7, maxTokens: 4000, reasoningEffort: 'high',
   _sources: {
     model: 'default', modelRoute: 'default', temperature: 'default', maxTokens: 'default',
-    thinkingBudget: 'default', reasoningEffort: 'default', ...sources,
+    reasoningEffort: 'default', ...sources,
   },
   ...overrides,
 });

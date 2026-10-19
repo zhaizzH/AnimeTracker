@@ -47,7 +47,9 @@ class TestEnvTemplateContract:
 
     def test_route_model_keys_are_declared(self):
         keys = template_keys()
-        assert {"DEEPSEEK_MODEL_ROUTE", "DASHSCOPE_MODEL_ROUTE"} <= keys
+        assert "DEEPSEEK_MODEL_ROUTE" in keys
+        # 百炼对话模型已移除，模板不得再出现它的模型/端点键。
+        assert not {"DASHSCOPE_MODEL", "DASHSCOPE_MODEL_ROUTE", "DASHSCOPE_BASE_URL"} & keys
 
     def test_template_is_directly_loadable(self, tmp_path: Path):
         """AC1：照抄模板即可构造 `Settings`，且无额外变量。"""

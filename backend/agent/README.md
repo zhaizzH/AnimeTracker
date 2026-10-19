@@ -14,7 +14,7 @@
 不适合直接暴露给公网：本服务假定由 business 的代理层转发，自身只做本地 JWT 验签。
 
 - **默认端口**：`8090`（Swagger 文档：`/docs`）
-- **LLM**：DeepSeek 官方直连或 DashScope 百炼 Qwen，由 `LLM_PROVIDER` 显式指定
+- **LLM**：DeepSeek 官方直连（对话模型唯一供应商）；阿里云百炼仅用于 RAG 嵌入
 - **存储**：Redis（会话 / 消息、托管提示词、运行时模型配置、待确认动作、Vector Set）+ MySQL（导入记录、索引任务、发布存储）
 
 ## 前置依赖
@@ -27,7 +27,7 @@
 | MySQL | 8.0 以上；RAG 需 **8.4** | `jobs/` 任务与索引发布使用；词法召回依赖 `ngram` FULLTEXT |
 | MinIO | 任意近期版本 | 仅 `jobs/importer` 转存封面与原始快照需要 |
 | Spring Boot business | :8080 | 工具回查与检索契约目标；不启动时所有业务工具调用失败 |
-| LLM API Key | — | `DEEPSEEK_API_KEY` 或 `DASHSCOPE_API_KEY` 至少一个；启用 RAG 还需 `DASHSCOPE_API_KEY` 用于嵌入 |
+| LLM API Key | — | 对话必需 `DEEPSEEK_API_KEY`；启用 RAG 另需 `DASHSCOPE_API_KEY`（仅用于嵌入） |
 
 ## 架构定位
 
@@ -298,19 +298,15 @@ Agent 提示词已更新为只可依据工具返回的证据字段陈述事实�
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `LLM_PROVIDER` | 空 | `deepseek` 或 `dashscope`；留空则回退按 API Key 判断并打印告警 |
-| `LLM_REASONING_EFFORT` | `high` | DeepSeek 思考强度（`low` / `high` / `max`），仅 deepseek 生效 |
+| `LLM_PROVIDER` | 空 | 只有 `deepseek`；留空则回退按 API Key 判断并打印告警 |
+| `LLM_REASONING_EFFORT` | `high` | DeepSeek 思考强度（`low` / `high` / `max`） |
 | `LLM_TEMPERATURE` | `0.3` | 采样温度（route slot 固定为 0.0） |
 | `LLM_MAX_TOKENS` | `4096` | 最大 token |
-| `LLM_THINKING_BUDGET` | `2048` | 百炼思考 token 上限 |
 | `DEEPSEEK_API_KEY` | 空 | DeepSeek 官方 API Key |
 | `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | DeepSeek OpenAI 兼容端点 |
 | `DEEPSEEK_MODEL` | `deepseek-v4-flash` | DeepSeek 领域 Agent 模型 |
 | `DEEPSEEK_MODEL_ROUTE` | `deepseek-v4-flash` | DeepSeek gateway 路由模型 |
-| `DASHSCOPE_API_KEY` | 空 | 百炼 API Key（启用 RAG 嵌入时必需） |
-| `DASHSCOPE_MODEL` | `qwen3.7-plus` | 百炼领域 Agent 模型 |
-| `DASHSCOPE_MODEL_ROUTE` | `qwen3.7-plus` | 百炼 gateway 路由模型 |
-| `DASHSCOPE_BASE_URL` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | 百炼 OpenAI 兼容端点（区域化 workspace 需覆盖） |
+| `DASHSCOPE_API_KEY` | 空 | 百炼 API Key，**仅用于 RAG 嵌入**（`text-embedding-v4`）；启用 RAG 时必需 |
 
 ### 服务与集成
 
@@ -332,7 +328,7 @@ Agent 提示词已更新为只可依据工具返回的证据字段陈述事实�
 | `RAG_EMBEDDING_MODEL` | `text-embedding-v4` | 嵌入模型（当前仅支持该值） |
 | `RAG_EMBEDDING_DIM` | `1024` | 向量维度（当前仅支持该值） |
 
-> ✅ `.env.example` 已与 `app/config.py` 对齐：已移除的 `RAG_INDEX_ALIAS` 不再出现在模板中，且模板补齐了 `DEEPSEEK_MODEL_ROUTE` / `DASHSCOPE_MODEL_ROUTE` 与下方 jobs 透传键。**照抄模板即可启动成功**，无需手动删行。模板中的 Redis 注释也已更正为 Redis 8 Vector Set（不再提 RediSearch / Redis Stack）。
+> ✅ `.env.example` 已与 `app/config.py` 对齐：已移除的 `RAG_INDEX_ALIAS` 不再出现在模板中，且模板补齐了 `DEEPSEEK_MODEL_ROUTE` 与下方 jobs 透传键。**照抄模板即可启动成功**，无需手动删行。模板中的 Redis 注释也已更正为 Redis 8 Vector Set（不再提 RediSearch / Redis Stack）。
 
 ### 数据导入（`jobs/` 使用）
 
@@ -501,10 +497,10 @@ pytest 配置在 `pyproject.toml`（`pythonpath = ["."]`、`asyncio_mode = "auto
 ## 常见问题
 
 **Q：启动即报 `LLM API Key 未配置`？**
-A：`resolve_llm_provider` 在 `lifespan` 阶段就会校验。设置 `LLM_PROVIDER` 并配置对应 Key；两者都留空时直接抛错终止启动。
+A：`resolve_llm_provider` 在 `lifespan` 阶段就会校验。设置 `LLM_PROVIDER=deepseek` 并配置 `DEEPSEEK_API_KEY`；两者都留空时直接抛错终止启动。注意 `DASHSCOPE_API_KEY` **不能**替代它——它只用于 RAG 嵌入。
 
 **Q：启动报 `无效的 LLM_PROVIDER`？**
-A：`LLM_PROVIDER` 只接受 `deepseek` 或 `dashscope`，且必须配套该供应商的 Key。
+A：`LLM_PROVIDER` 只接受 `deepseek`（百炼对话模型已移除）；设为 `dashscope` 会明确报错，而不是静默回退到 DeepSeek。
 
 **Q：启动报 `Extra inputs are not permitted`？**
 A：`Settings` 使用 `extra="forbid"`，`.env` 中存在未在 `app/config.py` 声明的变量（多为变量名拼写错误）。照抄当前 `.env.example` 不会再触发；若此前照抄过旧模板，删除已废弃的 `RAG_INDEX_ALIAS` 行即可。

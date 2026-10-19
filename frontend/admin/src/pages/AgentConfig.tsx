@@ -19,15 +19,15 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toastError, toastSuccess } from '@/lib/toast';
 
-// 后端 ModelConfig 共 6 个字段（见 backend/agent/app/api/schemas/admin_config.py）。
+// 后端 ModelConfig 共 5 个字段（见 backend/agent/app/api/schemas/admin_config.py）。
 // GET 返回生效值 + 逐字段来源：来源为 default 的字段表单留空、placeholder 显示
 // 继承值，提交时不发送，从而不会把 .env 默认值固化进 Redis（后端 set() 是整体替换）。
-type ConfigField = 'model' | 'modelRoute' | 'temperature' | 'maxTokens' | 'thinkingBudget' | 'reasoningEffort';
+type ConfigField = 'model' | 'modelRoute' | 'temperature' | 'maxTokens' | 'reasoningEffort';
 type ConfigForm = Record<ConfigField, string>;
 type AgentConfigData = ModelConfigViewVO;
 
-const CONFIG_FIELDS: ConfigField[] = ['model', 'modelRoute', 'temperature', 'maxTokens', 'thinkingBudget', 'reasoningEffort'];
-const EMPTY_FORM: ConfigForm = { model: '', modelRoute: '', temperature: '', maxTokens: '', thinkingBudget: '', reasoningEffort: '' };
+const CONFIG_FIELDS: ConfigField[] = ['model', 'modelRoute', 'temperature', 'maxTokens', 'reasoningEffort'];
+const EMPTY_FORM: ConfigForm = { model: '', modelRoute: '', temperature: '', maxTokens: '', reasoningEffort: '' };
 
 // 空串即「未设置」：不进入提交体，后端整体替换后该键消失，回退继承默认。
 // 逐字段显式赋值：TS 对 union key 的写入会把目标类型收窄成交集，用下标赋值无法通过类型检查。
@@ -42,7 +42,6 @@ function toSparseBody(form: ConfigForm): ModelConfigVO {
   assign('modelRoute', textOrUndef(form.modelRoute));
   assign('temperature', numOrUndef(form.temperature));
   assign('maxTokens', numOrUndef(form.maxTokens));
-  assign('thinkingBudget', numOrUndef(form.thinkingBudget));
   assign('reasoningEffort', textOrUndef(form.reasoningEffort));
   return body;
 }
@@ -58,7 +57,6 @@ function toDefaults(d: AgentConfigData): ModelConfigVO {
   assign('modelRoute', d.modelRoute);
   assign('temperature', d.temperature);
   assign('maxTokens', d.maxTokens);
-  assign('thinkingBudget', d.thinkingBudget);
   assign('reasoningEffort', d.reasoningEffort);
   return defs;
 }
@@ -280,8 +278,6 @@ export default function AgentConfig() {
               type="number" min={0} max={2} step={0.1} />
             <ConfigInput id="cfg-maxTokens" field="maxTokens" label="maxTokens" cfg={cfg} defaults={defaults} setCfg={setCfg}
               type="number" min={1} />
-            <ConfigInput id="cfg-thinkingBudget" field="thinkingBudget" label="thinkingBudget" cfg={cfg} defaults={defaults} setCfg={setCfg}
-              type="number" min={0} />
             <ConfigInput id="cfg-reasoningEffort" field="reasoningEffort" label="reasoningEffort（推理强度）" cfg={cfg} defaults={defaults} setCfg={setCfg} />
             {cfgError && <p role="alert" className="text-sm text-destructive sm:col-span-2 lg:col-span-3">{cfgError}</p>}
             <div className="flex items-start gap-3 sm:col-span-2 lg:col-span-3">

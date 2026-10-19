@@ -40,7 +40,6 @@ class AdminConfigService:
             "modelRoute": resolved.route_model,
             "temperature": self._settings.llm_temperature,
             "maxTokens": self._settings.llm_max_tokens,
-            "thinkingBudget": self._settings.llm_thinking_budget,
             "reasoningEffort": resolved.reasoning_effort,
         }
 

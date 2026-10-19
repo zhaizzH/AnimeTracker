@@ -53,8 +53,6 @@ def fake_settings(*, rag_enabled: bool = False, llm_configured: bool = True) -> 
         deepseek_model_route="deepseek-v4-flash",
         deepseek_base_url="https://api.deepseek.com",
         dashscope_api_key="",
-        dashscope_model="qwen3.7-plus",
-        dashscope_model_route="qwen3.7-plus",
     )
 
 

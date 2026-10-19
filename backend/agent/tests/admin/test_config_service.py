@@ -41,13 +41,12 @@ class StubPrompts:
 def _settings(**overrides) -> Settings:
     """显式 kwargs 构造，绕开本地 .env，隔离环境漂移。"""
     base = dict(
-        llm_provider="dashscope",
-        dashscope_api_key="k",
-        dashscope_model="MODEL-A",
-        dashscope_model_route="ROUTE-A",
+        llm_provider="deepseek",
+        deepseek_api_key="k",
+        deepseek_model="MODEL-A",
+        deepseek_model_route="ROUTE-A",
         llm_temperature=0.3,
         llm_max_tokens=4096,
-        llm_thinking_budget=2048,
         llm_reasoning_effort="high",
     )
     base.update(overrides)
@@ -69,8 +68,8 @@ class TestEffectiveConfig:
         assert view["modelRoute"] == "ROUTE-A"
         assert view["temperature"] == 0.3
         assert view["maxTokens"] == 4096
-        assert view["thinkingBudget"] == 2048
         assert view["reasoningEffort"] == "high"
+        assert "thinkingBudget" not in view
         assert set(view["_sources"].values()) == {"default"}
 
     def test_partial_override_marks_only_that_field(self):
@@ -90,13 +89,6 @@ class TestEffectiveConfig:
 
         assert view["temperature"] == 0.0
         assert view["_sources"]["temperature"] == "override"
-
-    def test_zero_thinking_budget_is_an_override(self):
-        service, _ = _service({"thinkingBudget": 0})
-        view = service.get_effective_config()
-
-        assert view["thinkingBudget"] == 0
-        assert view["_sources"]["thinkingBudget"] == "override"
 
     def test_blank_model_falls_back_like_the_factory(self):
         """工厂用 `or`：空串视为未设置，回显也必须回退并标 default，否则与运行时不一致。"""
