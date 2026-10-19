@@ -3,7 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { type AgentChatApi, useAgentChat } from './useAgentChat';
 
 const streamSseMock = vi.hoisted(() => vi.fn());
-vi.mock('../sse', () => ({ streamSse: streamSseMock }));
+vi.mock('../sse', async () => {
+  const actual = await vi.importActual<typeof import('../sse')>('../sse');
+  return { ...actual, streamSse: streamSseMock };
+});
 
 const createApi = (): AgentChatApi => ({
   listSessions: vi.fn().mockResolvedValue([]),

@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '../store/auth';
-import { streamSse } from '../sse';
+import { SseAbortError, SseError, streamSse } from '../sse';
 
 export interface ChatMsg { id: string; role: 'user' | 'assistant'; content: string; thinking?: string }
-export interface ToolStep { name: string; status: 'running' | 'done'; message?: string }
+export interface ToolStep { name: string; status: 'running' | 'done' | 'error'; message?: string }
 const nextId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 interface SsePayload {
   type?: string;
   is_end?: boolean;
-  content?: { text?: string; name?: string; state?: string; message?: string };
+  content?: { text?: string; name?: string; state?: string; message?: string; result?: string };
 }
 
 function parseEvent(data: string): SsePayload | null {
@@ -114,23 +114,54 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
     setTools([]);
     setStreaming(true);
     ab.current = new AbortController();
+    // 结束锁用局部对象而非 state：state 置位有渲染延迟，脏帧会在空窗期漏进来。
+    const ended = { current: false };
     try {
       await streamSse({ url: apiRef.current.streamUrl, body: apiRef.current.streamBody(text, sessionId || undefined), token, signal: ab.current.signal, onEvent: (data) => {
+        if (ended.current) return;
         const ev = parseEvent(data);
         if (!ev) return;
-        if (ev.is_end) return;
+        if (ev.is_end) { ended.current = true; return; }
         const c = ev.content ?? {};
-        if (ev.type === 'thinking' && c.text) {
-          // thinking 挂在对应 assistant 消息上，随消息一起渲染在其上方
-          setMessages((m) => m.map((x) => (x.id === assistantId ? { ...x, thinking: (x.thinking ?? '') + c.text! } : x)));
+        // 只认白名单四类事件；曾经用 `c.text` 兜底，导致 status/function_call 的 message 污染正文。
+        switch (ev.type) {
+          case 'thinking':
+            // thinking 挂在对应 assistant 消息上，随消息一起渲染在其上方
+            if (c.text) setMessages((m) => m.map((x) => (x.id === assistantId ? { ...x, thinking: (x.thinking ?? '') + c.text! } : x)));
+            break;
+          case 'answer':
+            if (c.text) setMessages((m) => m.map((x) => (x.id === assistantId ? { ...x, content: x.content + c.text! } : x)));
+            break;
+          case 'function_call':
+            if (!c.name) break;
+            // 失败不以 state=error 表达：后端用 state=end + result=error（middleware.py emit_function_call）。
+            // state=error 只出现在 status 事件上，别把两者混成一条判据。
+            if (c.state === 'end') {
+              const failed = c.result === 'error';
+              setTools((ts) => ts.map((t) => (t.name === c.name ? { ...t, status: failed ? 'error' : 'done', message: c.message } : t)));
+            }
+            else if (c.state === 'start') setTools((ts) => (ts.some((t) => t.name === c.name) ? ts : [...ts, { name: c.name!, status: 'running', message: c.message }]));
+            break;
+          case 'status':
+            // status 不写正文；但 state=error 的 message 是后端给用户看的持久化失败提示（回答/待确认动作
+            // 保存失败），丢弃会让用户以为一切正常，因此非空时追加到当前 assistant 消息尾部。
+            if (c.state === 'error' && c.message) {
+              setMessages((m) => m.map((x) => (x.id === assistantId ? { ...x, content: `${x.content}${x.content ? '\n\n' : ''}${c.message}` } : x)));
+            }
+            break;
+          default:
+            // 其它未登记类型不渲染，避免误落正文。
+            break;
         }
-        else if (ev.type === 'function_call' && c.name) {
-          if (c.state === 'end') setTools((ts) => ts.map((t) => (t.name === c.name ? { ...t, status: 'done', message: c.message } : t)));
-          else if (c.state === 'start') setTools((ts) => (ts.some((t) => t.name === c.name) ? ts : [...ts, { name: c.name!, status: 'running', message: c.message }]));
-        }
-        else if (c.text) setMessages((m) => m.map((x) => (x.id === assistantId ? { ...x, content: x.content + c.text! } : x)));
       } });
-    } catch { setMessages((m) => m.map((x) => (x.id === assistantId && !x.content ? { ...x, content: '(流式中断，请重试)' } : x))); }
+    } catch (err) {
+      // 主动停止是正常路径，不写中断文案；鉴权失败单独提示，别混进通用故障。
+      if (!(err instanceof SseAbortError)) {
+        const unauthorized = err instanceof SseError && (err.status === 401 || err.status === 403);
+        const notice = unauthorized ? '(未认证或无权限，请重新登录)' : '(流式中断，请重试)';
+        setMessages((m) => m.map((x) => (x.id === assistantId && !x.content ? { ...x, content: notice } : x)));
+      }
+    }
     finally { setStreaming(false); void refreshSessions(); }
   }, [token, activeId, streaming, ready, refreshSessions]);
 

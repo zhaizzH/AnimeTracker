@@ -93,7 +93,7 @@
 - 未知 JSON 先用 `unknown` 或最小接口收窄；避免 `any`。
 - 类型断言只允许在 Axios/SSE 等边界，收窄后不要向组件继续传播 `Record<string, unknown>`。
 - 当前没有 Zod 等运行时 schema；服务端字段变化必须靠端到端核对与测试补足。
-- `packages/shared/src/hooks/useAgentChat.ts::parseEvent` 当前仅做 JSON.parse 后断言，`SsePayload.type/state` 仍为可选 string；这不是已实现的判别联合校验。`ToolStep.status` 只有 running/done，新增 error 状态需同时修改事件处理和消费组件。
+- `packages/shared/src/hooks/useAgentChat.ts::parseEvent` 当前仅做 JSON.parse 后断言，`SsePayload.type/state/result` 仍为可选 string；这不是已实现的判别联合校验（10-19 只在消费侧按 `type` 白名单分发，未做运行时 schema 校验）。`ToolStep.status` 已含 `running/done/error`，由 `function_call` 的 `state: 'end'` + `result: 'error'` 驱动（**不是** `state: 'error'`，后者只出现在 `status` 事件上）；新增状态需同时改事件处理与两端 AgentChat 渲染。
 
 ### 跨层同步
 

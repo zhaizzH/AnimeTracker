@@ -70,7 +70,7 @@
 - Wrong：假设 `streamSse` 会自动刷新，或把 `end` 当作 `type` 枚举值。
 - Correct：SSE 独立处理 401；结束语义以 `is_end=true` 为准。
 
-> **已知债务**：当前 `packages/shared/src/sse.ts` 只按单个换行切分、未校验 Content-Type、未 flush 尾帧；`useAgentChat` 未单独处理 `status` 与 `function_call` error，含 `content.text` 的其他事件可能落入正文拼接分支，`is_end` 仅跳过当前事件而未锁住后续帧。新增 SSE 改动必须一并补测试。
+> **现状（10-19 已加固）**：`packages/shared/src/sse.ts` 以空行 `\r?\n\r?\n` 分帧（帧内多行 `data:` 按规范拼接）、校验响应 Content-Type 含 `text/event-stream`、流结束时 flush 尾帧残片，并用 `signal.aborted` 区分主动 Abort（`SseAbortError`）与故障（`SseError`，带 `status`）。`useAgentChat` 按 `type` 白名单分发（`answer` / `thinking` / `function_call` / `status`），不再用 `content.text` 兜底；`is_end=true` 通过局部 `ended` 同步锁住后续帧；工具失败以 `state=end` + `result=error` 落到 `ToolStep.status: 'error'`，而 `status` 事件的 `state=error` 把 `message` 追加到回答尾部（持久化失败提示不得静默丢弃）；401/403 走独立「未认证或无权限」文案，主动停止不写中断文案。测试见 `shared/src/sse.test.ts` 与 `shared/src/hooks/useAgentChat.events.test.tsx`。新增 SSE 改动仍须一并补测试。
 
 #### thinking 展示的现状
 
@@ -78,7 +78,7 @@
 - client 的 `src/components/AgentChat.tsx` 与 admin 的 `src/pages/AgentChat.tsx` 分别渲染折叠区，不能只验证一端。
 - 历史加载只恢复 role/content，不恢复 thinking；刷新后思考区域消失不是翻译成功或服务停止思考的证据。
 - 排查连续英文单词时先确认模型原始 chunk：后端只丢弃空块与重复 payload，不补也不删空格（`normalized = raw.strip()` 仅用于去重比较，追加的是未处理的 `raw`）；不要先在前端插空格。完整链路见 [Agent 运行与提示词契约](../backend/agent-guidelines.md#agent-角色提示词与流式输出契约)。
-- SSE 的 401/403 当前会进入通用中断分支，没有 Axios 自动刷新，也未区分主动 Abort 与故障；“刷新一次/停止重试”是后续应实现的契约。
+- SSE 的 401/403 现已在客户端显式分类（`SseError.status` 判 401/403 → 「未认证或无权限」文案），但**仍未实现自动刷新重试**：没有 Axios 那套「刷新一次 → 重开同一条流」闭环。该闭环是后续应实现的契约（见任务 `10-19-sse-client-hardening` 的 P3 待办）。
 
 #### 服务端写入缓存矩阵
 
