@@ -1,5 +1,8 @@
 # Design：ChatTongyi → ChatOpenAI（百炼 OpenAI 兼容端点）
 
+> **⚠ 本计划已被推翻（2026-10-19）**：这是「保留百炼、只换包」的第一版方案，已按 `fa1673b7` 落地。随后用户要求「删除 aliyun llm，只用 deepseek」，百炼对话链路整体移除（`00993ff3`）。本文件下方的 `ChatOpenAI` / `DASHSCOPE_BASE_URL` / `max_completion_tokens` 内容**不得作为现状依据**，请以 `prd.md` 的「追加需求」与「作废登记」为准。
+
+
 ## 结论先行
 
 `langchain-community` 已于 2026-05-26 sunset 并归档，**没有**官方独立维护的通义千问 partner 包可替换：`langchain-tongyi` 在 PyPI 不存在（404），`langchain-dashscope` 最后发布 2024-07（0.1.8，第三方、仅 6 个版本、无 CLI），`langchain-qwq` 虽被 LangChain 文档收录但作者为个人、依赖里塞了 `json-repair`/`langgraph-checkpoint` 等 12 个包。

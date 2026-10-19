@@ -1,5 +1,8 @@
 # Implement：ChatTongyi → ChatOpenAI（百炼兼容端点）
 
+> **⚠ 本计划已被推翻（2026-10-19）**：这是「保留百炼、只换包」的第一版方案，已按 `fa1673b7` 落地。随后用户要求「删除 aliyun llm，只用 deepseek」，百炼对话链路整体移除（`00993ff3`）。本文件下方的 `ChatOpenAI` / `DASHSCOPE_BASE_URL` / `max_completion_tokens` 内容**不得作为现状依据**，请以 `prd.md` 的「追加需求」与「作废登记」为准。
+
+
 全部改动在 `backend/agent`，逐 step 可独立验证。基线：660 passed / 1 warning（`langchain-community` sunset）。
 
 ## Step 0 — 记录基线
