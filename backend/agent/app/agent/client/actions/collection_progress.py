@@ -5,14 +5,10 @@ from langgraph.prebuilt import InjectedState
 
 from app.agent.middleware import tool_call_status
 from app.agent.ports import BusinessGateway
-from app.chat.pending_events import (
-    emit_pending_action_clear,
-    emit_pending_action_replace,
-    emit_pending_action_set,
-)
+from app.chat.pending_events import emit_pending_action_set
 from app.chat.user import UserInfo
 from app.chat.pending_action import CollectionProgressPendingAction
-from app.agent.client.actions.write_guard import require_confirmed_write
+from app.agent.client.actions.previewable import Clear, Keep, PreviewableAction, Replace
 from app.agent.client.actions.collection_state import require_user as _require_user
 
 
@@ -27,7 +23,44 @@ def _preview_data_to_pending_action(data: dict, user: UserInfo) -> CollectionPro
     )
 
 
+class CollectionProgressPreviewable(PreviewableAction[CollectionProgressPendingAction]):
+    """追番进度写链路的 execute 差异点：PREVIEW_CHANGED 时 REPLACE，其他按 state/错误码分类。"""
+
+    pending_type = "COLLECTION_PROGRESS_UPDATE"
+
+    def __init__(self, business: BusinessGateway):
+        self._business = business
+
+    def do_execute(self, *, pending: CollectionProgressPendingAction, user: UserInfo):
+        return self._business.request(
+            "POST",
+            f"/api/client/collections/progress-preview/{pending.preview_id}/execute",
+            token=user.token,
+        )
+
+    def classify_result(self, *, result, pending: CollectionProgressPendingAction, user: UserInfo):
+        if not isinstance(result, dict):
+            # 无响应体即无状态可依据：保留动作，原样返回供上层判断。
+            return Keep(), result
+        if result.get("error"):
+            if result.get("code") == 404 or (
+                    result.get("code") == 409 and "重新生成" in result.get("message", "")):
+                return Clear(), result
+            return Keep(), result
+        state = result.get("state")
+        if state == "COMPLETED":
+            return Clear(), result
+        if state == "PREVIEW_CHANGED":
+            preview = result.get("preview") or {}
+            if preview.get("previewId"):
+                return Replace(_preview_data_to_pending_action(preview, user)), result
+            return Keep(), result
+        return Keep(), result
+
+
 def build_collection_progress_tools(business: BusinessGateway):
+    action = CollectionProgressPreviewable(business)
+
     @tool
     @tool_call_status(display_name="预览本周追番进度")
     def preview_weekly_collection_progress(
@@ -50,38 +83,15 @@ def build_collection_progress_tools(business: BusinessGateway):
             pending: Annotated[CollectionProgressPendingAction | None, InjectedState("pending_action")] = None,
             write_confirmed: Annotated[bool, InjectedState("write_confirmed")] = False) -> dict:
         """确认并执行已预览的追番进度更新。preview_id 由系统从待确认动作注入，不要自行编造；
-        仅当用户在当前回合明确确认（服务端 write_confirmed 标志）时才写入，否则拒绝。"""
-        gate = require_confirmed_write(
-            user=user, pending=pending, expected_type="COLLECTION_PROGRESS_UPDATE",
-            write_confirmed=write_confirmed,
-        )
-        if gate is not None:
-            return gate
-        data = business.request("POST", f"/api/client/collections/progress-preview/{preview_id}/execute",
-                                token=user.token)
-        if not isinstance(data, dict):
-            # 无响应体即无状态可依据：不清理动作，原样返回供上层判断。
-            return data
-        if data.get("error"):
-            if data.get("code") == 404 or (
-                    data.get("code") == 409 and "重新生成" in data.get("message", "")):
-                emit_pending_action_clear()
-            return data
-        state = data.get("state")
-        if state == "COMPLETED":
-            emit_pending_action_clear()
-        elif state == "PREVIEW_CHANGED":
-            preview = data.get("preview") or {}
-            if preview.get("previewId"):
-                emit_pending_action_replace(_preview_data_to_pending_action(preview, user))
-        return data
+        仅当用户在当前回合明确确认（服务端 write_confirmed 标志）时才写入，否则拒绝。
+        说明：preview_id 参数仅为保持 LangGraph state 注入契约；实际写入以 pending.preview_id 为准。"""
+        return action.execute(pending=pending, user=user, write_confirmed=write_confirmed)
 
     @tool
     @tool_call_status(display_name="取消追番进度更新")
     def cancel_weekly_collection_progress() -> dict:
         """取消当前待确认的追番进度更新，只清理本地待确认状态，不修改后端数据。"""
-        emit_pending_action_clear()
-        return {"cancelled": True}
+        return action.cancel()
 
     return [
         preview_weekly_collection_progress,
