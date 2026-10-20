@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "agent 模块的写法约定（工具装饰器 / 门禁 / SSE 帧）必须在拆分后保持一致"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "测试基线 585 passed 6 xfailed，拆分后必须保持；ruff 配置约束"}
+{"file": ".trellis/spec/adr/0001-agent-write-two-phase-preview-confirm.md", "reason": "预览/确认/取消三件套是 ADR 0001 强制的安全闭环，拆分不能破坏"}

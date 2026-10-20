@@ -1,10 +1,19 @@
-"""单标题「加入想看」的确定性解析链路。
+"""单标题「加入想看 / 设类型」的确定性解析入口。
+
+输入标题或显式 ID，输出三种之一：错误 / 无匹配 / 唯一精确预览或 SUBJECT_RESOLUTION 待选择。
+副作用：通过 ``emit_pending_action_set/clear`` 触发状态变更；自身不持久化。
+
+职责拆分：
+- 标题归一化 → ``title_normalizer.py``
+- 候选匹配与选择 → ``candidate_matcher.py``
+- Business /batch 权威校验 → ``subject_authority.py``
+- 本文件只保留主流程编排与工具入口。
 
 安全边界（与 design.md / spec 一致）：
 - 用户显式给出 subjectId 时跳过名称搜索，但仍必须经过 ``/api/client/subjects/batch`` 权威校验。
 - 只有标题时先调用 Business ``/api/client/subjects/search``；只有 Business 成功且候选为空时才回退 RAG。
 - Business/RAG 的基础设施错误、超时、坏响应绝不伪装成「无结果」，也不触发 RAG 回退。
-- 归一化只做安全字符处理（NFKC、大小写折叠、标点分隔、空白折叠），绝不做「第二季/第2季」等语义转换。
+- 归一化只做安全字符处理，绝不做「第二季/第2季」等语义转换。
 - 所有候选进入预览前都经过 ``/batch`` 过滤 ``active=true``、``type=2``、``nsfw=false``，且 ``excludeCollected=false``。
 - 唯一精确候选复用既有 ``build_wishlist_preview``；多个或歧义候选保存 ``SUBJECT_RESOLUTION`` 等待用户选择，绝不自动预览。
 """
@@ -12,13 +21,23 @@
 from __future__ import annotations
 
 import re
-import unicodedata
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Any
 
 from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 
+from app.agent.client.actions.title_normalizer import normalize_title  # noqa: F401 — re-export 兼容
+from app.agent.client.actions.candidate_matcher import (  # noqa: F401 — re-export 兼容
+    dedup_ids,
+    select_candidate,
+    unique_exact_match_ids,
+    _safe_subject_id,
+)
+from app.agent.client.actions.subject_authority import (  # noqa: F401 — re-export 兼容
+    filter_authoritative,
+    _display_name,
+)
 from app.agent.client.actions.wishlist import build_wishlist_preview
 from app.agent.client.actions.collection_state import require_user as _require_user
 from app.agent.client.actions.write_guard import is_expired as _is_expired
@@ -38,197 +57,6 @@ _RESOLUTION_TTL_SECONDS = 600
 _MAX_RESOLUTION_CANDIDATES = 10
 _SEARCH_SIZE = 15
 _RAG_QUERY_MAX_LEN = 200
-
-# 归一化时被当作分隔符的安全标点（NFKC 之后全角多已折叠为半角）。
-# 只处理字符层面，绝不映射任何语义变体。
-_PUNCTUATION_RE = re.compile(
-    r"[·・、,，.。!！?？~～\-—–‐_＿:：;；'\"’‘“”()（）\[\]【】{}｛｝<>《》|/\\+*=&^%$#@`]+"
-)
-_WHITESPACE_RE = re.compile(r"\s+")
-_ORDINAL_RE = re.compile(r"\s*(?:第\s*)?(\d+)\s*(?:个|项|条|号)?\s*")
-
-
-def normalize_title(value: Any) -> str:
-    """安全标题归一化：NFKC + 大小写折叠 + 标点分隔 + 空白折叠 + 首尾清理。
-
-    对查询和候选标题使用同一函数；不包含任何语义转换。
-    """
-    if value is None:
-        return ""
-    text = unicodedata.normalize("NFKC", str(value)).casefold()
-    text = _PUNCTUATION_RE.sub(" ", text)
-    return _WHITESPACE_RE.sub(" ", text).strip()
-
-
-def _safe_subject_id(value: Any) -> int | None:
-    """拒绝布尔、非数字、非正数和溢出转换；坏 ID 返回 None，不抛异常。"""
-    if value is None or isinstance(value, bool):
-        return None
-    try:
-        subject_id = int(value)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    return subject_id if subject_id > 0 else None
-
-
-def _candidate_titles(item: dict) -> list[str]:
-    titles: list[str] = []
-    for key in ("name", "nameCn", "title"):
-        value = item.get(key)
-        if isinstance(value, str) and value.strip():
-            titles.append(value)
-    aliases = item.get("aliases")
-    if isinstance(aliases, list):
-        for alias in aliases:
-            if isinstance(alias, str) and alias.strip():
-                titles.append(alias)
-    return titles
-
-
-def unique_exact_match_ids(query: Any, items: list[dict], id_key: str) -> tuple[list[int], bool]:
-    """返回 (归一化后精确命中的去重 subjectId 列表, 是否唯一)。
-
-    只有真实标题或工具证据中的别名可以命中；子串命中不算精确命中。
-    """
-    normalized_query = normalize_title(query)
-    if not normalized_query:
-        return [], False
-    matched: list[int] = []
-    seen: set[int] = set()
-    for item in items:
-        if not isinstance(item, dict):
-            continue
-        subject_id = _safe_subject_id(item.get(id_key))
-        if subject_id is None or subject_id in seen:
-            continue
-        if any(normalize_title(title) == normalized_query for title in _candidate_titles(item)):
-            seen.add(subject_id)
-            matched.append(subject_id)
-    return matched, len(matched) == 1
-
-
-def dedup_ids(ids: list[Any]) -> list[int]:
-    seen: set[int] = set()
-    ordered: list[int] = []
-    for raw in ids:
-        subject_id = _safe_subject_id(raw)
-        if subject_id is None or subject_id in seen:
-            continue
-        seen.add(subject_id)
-        ordered.append(subject_id)
-    return ordered
-
-
-def _batch_items(response: Any) -> list[Any]:
-    if isinstance(response, dict):
-        items = response.get("items")
-        return items if isinstance(items, list) else []
-    if isinstance(response, list):
-        return response
-    return []
-
-
-def _is_safe_batch_item(item: Any) -> bool:
-    """权威安全边界：只接受 active=true、type=2、nsfw=false 的动画条目。"""
-    if not isinstance(item, dict):
-        return False
-    try:
-        if int(item.get("type") or 0) != 2:
-            return False
-    except (TypeError, ValueError):
-        return False
-    return item.get("nsfw") is False and item.get("active") is True
-
-
-def filter_authoritative(
-    subject_ids: list[int],
-    business: BusinessGateway,
-    token: str | None,
-) -> tuple[dict[int, dict] | None, dict | None]:
-    """调用 ``/batch(excludeCollected=false)`` 并只保留安全候选。
-
-    返回 ``(valid_by_id, error)``：基础设施错误时 ``valid_by_id`` 为 None 且 error 非空。
-    """
-    ids = dedup_ids(subject_ids)
-    if not ids:
-        return {}, None
-    try:
-        response = business.batch_subjects(ids, token=token, exclude_collected=False)
-    except Exception:  # noqa: BLE001 - 网络/适配器异常按基础设施错误处理
-        return None, {"error": True, "message": "校验番剧失败，请稍后再试"}
-    if isinstance(response, dict) and response.get("error"):
-        return None, {
-            "error": True,
-            "code": response.get("code"),
-            "message": response.get("message", "校验番剧失败"),
-        }
-    details: dict[int, dict] = {}
-    for item in _batch_items(response):
-        subject_id = _safe_subject_id(item.get("id")) if isinstance(item, dict) else None
-        if subject_id is not None and subject_id not in details:
-            details[subject_id] = item
-    valid: dict[int, dict] = {}
-    for subject_id in ids:
-        item = details.get(subject_id)
-        if item is not None and _is_safe_batch_item(item):
-            valid[subject_id] = item
-    return valid, None
-
-
-def _display_name(detail: dict | None, fallback: str = "") -> str:
-    if isinstance(detail, dict):
-        name = detail.get("nameCn") or detail.get("name")
-        if isinstance(name, str) and name.strip():
-            return name.strip()
-    return fallback or ""
-
-
-def _as_index(choice: Any, count: int) -> int | None:
-    """把序号选择解析为 0-based 下标；越界或非序号返回 None。"""
-    number: int | None = None
-    if isinstance(choice, bool):
-        return None
-    if isinstance(choice, int):
-        number = choice
-    elif isinstance(choice, str):
-        match = _ORDINAL_RE.fullmatch(choice)
-        if match:
-            number = int(match.group(1))
-    if number is None or not (1 <= number <= count):
-        return None
-    return number - 1
-
-
-def select_candidate(
-    choice: Any,
-    candidates: list[SubjectResolutionCandidate],
-) -> tuple[SubjectResolutionCandidate | None, str | None]:
-    """按序号或归一化后的唯一名称从服务端候选中选择；模型不能提交任意 subjectId。"""
-    if not candidates:
-        return None, "no_candidates"
-    index = _as_index(choice, len(candidates))
-    if index is not None:
-        return candidates[index], None
-    if isinstance(choice, str):
-        normalized = normalize_title(choice)
-        if normalized:
-            matches = [c for c in candidates if normalize_title(c.subject_name) == normalized]
-            if len(matches) == 1:
-                return matches[0], None
-            if len(matches) > 1:
-                return None, "ambiguous_name"
-    return None, "invalid_choice"
-
-
-def _search_rows(response: Any) -> list[dict]:
-    if isinstance(response, dict):
-        content = response.get("content")
-        rows = content if isinstance(content, list) else []
-    elif isinstance(response, list):
-        rows = response
-    else:
-        rows = []
-    return [row for row in rows if isinstance(row, dict)]
 
 
 def _candidates_from_rows(
@@ -463,6 +291,17 @@ def finalize_resolution(outcome: dict, user: UserInfo, *, preview_one, collectio
         ],
     }
 
+
+
+def _search_rows(response: Any) -> list[dict]:
+    if isinstance(response, dict):
+        content = response.get("content")
+        rows = content if isinstance(content, list) else []
+    elif isinstance(response, list):
+        rows = response
+    else:
+        rows = []
+    return [row for row in rows if isinstance(row, dict)]
 
 
 def _selection_message(code: str | None) -> str:
