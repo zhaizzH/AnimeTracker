@@ -19,6 +19,12 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 
 from app.agent.client.actions.title_normalizer import normalize_title  # noqa: F401 — re-export 兼容
+from app.agent.client.actions.candidate_matcher import (  # noqa: F401 — re-export 兼容
+    dedup_ids,
+    select_candidate,
+    unique_exact_match_ids,
+    _safe_subject_id,
+)
 from app.agent.client.actions.wishlist import build_wishlist_preview
 from app.agent.client.actions.collection_state import require_user as _require_user
 from app.agent.client.actions.write_guard import is_expired as _is_expired
@@ -38,67 +44,6 @@ _RESOLUTION_TTL_SECONDS = 600
 _MAX_RESOLUTION_CANDIDATES = 10
 _SEARCH_SIZE = 15
 _RAG_QUERY_MAX_LEN = 200
-
-_ORDINAL_RE = re.compile(r"\s*(?:第\s*)?(\d+)\s*(?:个|项|条|号)?\s*")
-
-
-def _safe_subject_id(value: Any) -> int | None:
-    """拒绝布尔、非数字、非正数和溢出转换；坏 ID 返回 None，不抛异常。"""
-    if value is None or isinstance(value, bool):
-        return None
-    try:
-        subject_id = int(value)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    return subject_id if subject_id > 0 else None
-
-
-def _candidate_titles(item: dict) -> list[str]:
-    titles: list[str] = []
-    for key in ("name", "nameCn", "title"):
-        value = item.get(key)
-        if isinstance(value, str) and value.strip():
-            titles.append(value)
-    aliases = item.get("aliases")
-    if isinstance(aliases, list):
-        for alias in aliases:
-            if isinstance(alias, str) and alias.strip():
-                titles.append(alias)
-    return titles
-
-
-def unique_exact_match_ids(query: Any, items: list[dict], id_key: str) -> tuple[list[int], bool]:
-    """返回 (归一化后精确命中的去重 subjectId 列表, 是否唯一)。
-
-    只有真实标题或工具证据中的别名可以命中；子串命中不算精确命中。
-    """
-    normalized_query = normalize_title(query)
-    if not normalized_query:
-        return [], False
-    matched: list[int] = []
-    seen: set[int] = set()
-    for item in items:
-        if not isinstance(item, dict):
-            continue
-        subject_id = _safe_subject_id(item.get(id_key))
-        if subject_id is None or subject_id in seen:
-            continue
-        if any(normalize_title(title) == normalized_query for title in _candidate_titles(item)):
-            seen.add(subject_id)
-            matched.append(subject_id)
-    return matched, len(matched) == 1
-
-
-def dedup_ids(ids: list[Any]) -> list[int]:
-    seen: set[int] = set()
-    ordered: list[int] = []
-    for raw in ids:
-        subject_id = _safe_subject_id(raw)
-        if subject_id is None or subject_id in seen:
-            continue
-        seen.add(subject_id)
-        ordered.append(subject_id)
-    return ordered
 
 
 def _batch_items(response: Any) -> list[Any]:
@@ -163,54 +108,6 @@ def _display_name(detail: dict | None, fallback: str = "") -> str:
         if isinstance(name, str) and name.strip():
             return name.strip()
     return fallback or ""
-
-
-def _as_index(choice: Any, count: int) -> int | None:
-    """把序号选择解析为 0-based 下标；越界或非序号返回 None。"""
-    number: int | None = None
-    if isinstance(choice, bool):
-        return None
-    if isinstance(choice, int):
-        number = choice
-    elif isinstance(choice, str):
-        match = _ORDINAL_RE.fullmatch(choice)
-        if match:
-            number = int(match.group(1))
-    if number is None or not (1 <= number <= count):
-        return None
-    return number - 1
-
-
-def select_candidate(
-    choice: Any,
-    candidates: list[SubjectResolutionCandidate],
-) -> tuple[SubjectResolutionCandidate | None, str | None]:
-    """按序号或归一化后的唯一名称从服务端候选中选择；模型不能提交任意 subjectId。"""
-    if not candidates:
-        return None, "no_candidates"
-    index = _as_index(choice, len(candidates))
-    if index is not None:
-        return candidates[index], None
-    if isinstance(choice, str):
-        normalized = normalize_title(choice)
-        if normalized:
-            matches = [c for c in candidates if normalize_title(c.subject_name) == normalized]
-            if len(matches) == 1:
-                return matches[0], None
-            if len(matches) > 1:
-                return None, "ambiguous_name"
-    return None, "invalid_choice"
-
-
-def _search_rows(response: Any) -> list[dict]:
-    if isinstance(response, dict):
-        content = response.get("content")
-        rows = content if isinstance(content, list) else []
-    elif isinstance(response, list):
-        rows = response
-    else:
-        rows = []
-    return [row for row in rows if isinstance(row, dict)]
 
 
 def _candidates_from_rows(
@@ -445,6 +342,17 @@ def finalize_resolution(outcome: dict, user: UserInfo, *, preview_one, collectio
         ],
     }
 
+
+
+def _search_rows(response: Any) -> list[dict]:
+    if isinstance(response, dict):
+        content = response.get("content")
+        rows = content if isinstance(content, list) else []
+    elif isinstance(response, list):
+        rows = response
+    else:
+        rows = []
+    return [row for row in rows if isinstance(row, dict)]
 
 
 def _selection_message(code: str | None) -> str:
