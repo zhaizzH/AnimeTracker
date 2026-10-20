@@ -1,3 +1,8 @@
+"""流内 PendingAction 事件缓冲：工具 emit，流结束回调消费最后一条写 Redis。
+
+三层同步设计详见顶模块 ``app/chat/pending_action.py`` 顶部 docstring。
+"""
+
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from typing import Literal

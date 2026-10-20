@@ -1,3 +1,19 @@
+"""PendingAction 类型定义与三层同步架构。
+
+ADR 0001 强制所有写操作走「预览 → 确认 → 执行」两阶段协议，PendingAction 是预览阶段
+产出的待确认意图。同步架构为 CQRS 风格的读写分离：
+
+- ContextVar（本模块同级 ``pending_events.py``）：流内写缓冲。工具通过 ``emit_pending_action_set/replace/clear``
+  追加事件，同流内多次调用以最后一条为准。
+- Redis（``adapters/redis/chat_store.py``）：持久层事实源。SSE 流结束的回调（``chat/streaming.py``）
+  消费 ContextVar 最后一条事件，调用 ``save_pending_action`` 写入 Redis，TTL 600s。
+- LangGraph state（``agent/state.py::AgentState.pending_action``）：运行时只读视图。下次请求从 Redis
+  反序列化注入，工具通过 ``InjectedState("pending_action")`` 读取。
+
+设计动机：工具只表达「状态变更意图」，不直接写 Redis；持久化时机由 SSE 流结束回调统一控制。
+新增写业务时：子类继承本模块基类 + 注册到 ``PendingAction`` 判别联合。
+"""
+
 from datetime import datetime
 from typing import Annotated, Literal
 
