@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "验收时核对工具装饰器、write_guard、emit_pending_action_* 用法是否被破坏"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "验收时跑 585 测试基线和 ruff，不允许退化"}

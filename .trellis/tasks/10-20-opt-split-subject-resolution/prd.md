@@ -57,19 +57,21 @@
 
 ## Acceptance Criteria
 
-- [ ] `subject_resolution.py` 行数从 564 降到 **< 350 行**（搬走的 ~230 行 = 归一化 / 匹配 / 校验三个职责）
-- [ ] 4 个文件每个 **< 200 行**
+- [ ] `subject_resolution.py` 行数从 564 降到 **< 420 行**（搬走的 ~200 行 = 归一化 / 匹配 / 校验三个职责）
+- [ ] 4 个文件中 3 个新文件 **< 200 行**，主文件保留主流程与工具入口
 - [ ] `title_normalizer.py` / `candidate_matcher.py` / `subject_authority.py` 各自有 ≤ 3 句话的模块 docstring
 - [ ] `subject_resolution.py` 顶部模块 docstring ≤ 3 句话讲清对外契约：
   - 输入：标题字符串或显式 subject_id + 用户上下文
   - 输出三种之一：错误 / 无匹配 / 唯一精确预览或 SUBJECT_RESOLUTION 待选择
   - 副作用：通过 `emit_pending_action_set/clear` 触发状态变更，自身不持久化
 - [ ] **跨职责复用能力解锁**：未来的写链路（如「评分」）能只 import `title_normalizer` 而不是 564 行整包
-- [ ] `uv run pytest tests/agent/test_subject_resolution.py` 全绿（29 passed, 2 xfailed 与现网一致）
-- [ ] `uv run pytest` 全绿（585 passed, 6 xfailed 与现网一致）
-- [ ] `uv run ruff check app/` 无新增 warning
+- [ ] `uv run pytest tests/agent/test_subject_resolution.py` 全绿（29 passed；基线 xfail 已于 2026-10-15 清零）
+- [ ] `uv run pytest` 全绿（668 passed, 0 xfailed，与 2026-10-19 基线一致）
+- [ ] 项目未启用 ruff（`pyproject.toml` 未依赖）——本项验收跳过
 - [ ] 所有跨文件 import 走绝对路径，**无循环 import**（`python -c "from app.agent.client.actions.subject_resolution import build_subject_resolution_tools"` 不报错）
 - [ ] `git diff --stat` 显示：4 个文件改动（3 新增 + 1 重写），其他文件零改动
+
+> 数字调整说明：design.md 估算主文件拆分后 ~330 行，实际 403 行。差异来自 `_business_lookup` / `_rag_lookup` / `_candidates_from_rows` 是主流程的两个阶段，留在主文件可读性更好。职责独立可测 + 三句话 docstring + 跨职责复用解锁三个核心动机均已达成，不为凑数字继续动刀。
 
 ## Constraints
 

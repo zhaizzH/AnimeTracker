@@ -1,10 +1,19 @@
-"""单标题「加入想看」的确定性解析链路。
+"""单标题「加入想看 / 设类型」的确定性解析入口。
+
+输入标题或显式 ID，输出三种之一：错误 / 无匹配 / 唯一精确预览或 SUBJECT_RESOLUTION 待选择。
+副作用：通过 ``emit_pending_action_set/clear`` 触发状态变更；自身不持久化。
+
+职责拆分：
+- 标题归一化 → ``title_normalizer.py``
+- 候选匹配与选择 → ``candidate_matcher.py``
+- Business /batch 权威校验 → ``subject_authority.py``
+- 本文件只保留主流程编排与工具入口。
 
 安全边界（与 design.md / spec 一致）：
 - 用户显式给出 subjectId 时跳过名称搜索，但仍必须经过 ``/api/client/subjects/batch`` 权威校验。
 - 只有标题时先调用 Business ``/api/client/subjects/search``；只有 Business 成功且候选为空时才回退 RAG。
 - Business/RAG 的基础设施错误、超时、坏响应绝不伪装成「无结果」，也不触发 RAG 回退。
-- 归一化只做安全字符处理（NFKC、大小写折叠、标点分隔、空白折叠），绝不做「第二季/第2季」等语义转换。
+- 归一化只做安全字符处理，绝不做「第二季/第2季」等语义转换。
 - 所有候选进入预览前都经过 ``/batch`` 过滤 ``active=true``、``type=2``、``nsfw=false``，且 ``excludeCollected=false``。
 - 唯一精确候选复用既有 ``build_wishlist_preview``；多个或歧义候选保存 ``SUBJECT_RESOLUTION`` 等待用户选择，绝不自动预览。
 """
