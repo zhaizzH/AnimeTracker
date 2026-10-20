@@ -8,12 +8,12 @@ from langgraph.prebuilt import InjectedState
 
 from app.agent.middleware import tool_call_status
 from app.agent.ports import BusinessGateway
-from app.chat.pending_events import emit_pending_action_clear, emit_pending_action_set
+from app.chat.pending_events import emit_pending_action_set
 from app.chat.user import UserInfo
 from app.chat.pending_action import WishlistPendingAction, WishlistPendingItem
 from app.agent.client.actions.collection_state import check_collection_state
 from app.agent.client.actions.collection_state import require_user as _require_user
-from app.agent.client.actions.write_guard import require_confirmed_write
+from app.agent.client.actions.previewable import Clear, Keep, PreviewableAction
 
 _MAX_WISHLIST_PREVIEW_ITEMS = 10
 
@@ -65,7 +65,45 @@ def build_wishlist_preview(subjects: list[dict], user: UserInfo, business: Busin
     return {"pendingItems": pending_items, "skippedItems": skipped_items}
 
 
+class WishlistPreviewable(PreviewableAction[WishlistPendingAction]):
+    """加入想看写链路的 execute 差异点：逐条调 /wishlist，按 infra_error 分类清理动作。"""
+
+    pending_type = "ADD_TO_WISHLIST"
+
+    def __init__(self, business: BusinessGateway):
+        self._business = business
+
+    def do_execute(self, *, pending: WishlistPendingAction, user: UserInfo):
+        succeeded, skipped, failed = [], [], []
+        infra_error = False
+        for item in pending.items:
+            sid = item.subject_id
+            name = item.subject_name
+            result = self._business.request("POST", f"/api/client/collections/{sid}/wishlist", token=user.token)
+            if isinstance(result, dict) and result.get("error"):
+                if result.get("code") is None:
+                    infra_error = True  # 基础设施错误：写入结果不确定，保留待确认动作供重试
+                failed.append({"subjectId": sid, "subjectName": name,
+                               "reason": result.get("message", "加入失败")})
+            elif isinstance(result, dict) and result.get("state") == "ALREADY_COLLECTED":
+                skipped.append({"subjectId": sid, "subjectName": name,
+                                "existingType": result.get("existingType")})
+            elif isinstance(result, dict) and result.get("state") == "ADDED":
+                succeeded.append({"subjectId": sid, "subjectName": name})
+            else:
+                failed.append({"subjectId": sid, "subjectName": name,
+                               "reason": "未返回预期的 ADDED 状态"})
+        return succeeded, skipped, failed, infra_error
+
+    def classify_result(self, *, result, pending: WishlistPendingAction, user: UserInfo):
+        succeeded, skipped, failed, infra_error = result
+        action = Keep() if infra_error else Clear()
+        return action, {"succeeded": succeeded, "skipped": skipped, "failed": failed}
+
+
 def build_wishlist_tools(business: BusinessGateway):
+    action = WishlistPreviewable(business)
+
     @tool
     @tool_call_status(display_name="预览加入想看")
     def preview_add_to_wishlist(
@@ -87,42 +125,13 @@ def build_wishlist_tools(business: BusinessGateway):
         """确认把预览过的番剧加入「想看」。只处理系统待确认动作中的条目，不接受模型自造列表；
         仅当用户在当前回合明确确认（服务端 write_confirmed 标志）时才写入，否则拒绝；
         每项由 Business 幂等接口保证不覆盖已有收藏。"""
-        gate = require_confirmed_write(
-            user=user, pending=pending, expected_type="ADD_TO_WISHLIST",
-            write_confirmed=write_confirmed,
-        )
-        if gate is not None:
-            return gate
-        succeeded, skipped, failed = [], [], []
-        infra_error = False
-        for item in pending.items:
-            sid = item.subject_id
-            name = item.subject_name
-            result = business.request("POST", f"/api/client/collections/{sid}/wishlist", token=user.token)
-            if isinstance(result, dict) and result.get("error"):
-                if result.get("code") is None:
-                    infra_error = True  # 基础设施错误：写入结果不确定，保留待确认动作供重试
-                failed.append({"subjectId": sid, "subjectName": name,
-                               "reason": result.get("message", "加入失败")})
-            elif isinstance(result, dict) and result.get("state") == "ALREADY_COLLECTED":
-                skipped.append({"subjectId": sid, "subjectName": name,
-                                "existingType": result.get("existingType")})
-            elif isinstance(result, dict) and result.get("state") == "ADDED":
-                succeeded.append({"subjectId": sid, "subjectName": name})
-            else:
-                failed.append({"subjectId": sid, "subjectName": name,
-                               "reason": "未返回预期的 ADDED 状态"})
-
-        if not infra_error:
-            emit_pending_action_clear()
-        return {"succeeded": succeeded, "skipped": skipped, "failed": failed}
+        return action.execute(pending=pending, user=user, write_confirmed=write_confirmed)
 
     @tool
     @tool_call_status(display_name="取消加入想看")
     def cancel_add_to_wishlist() -> dict:
         """取消当前待确认的加入想看动作，只清理本地待确认状态，不修改后端数据。"""
-        emit_pending_action_clear()
-        return {"cancelled": True}
+        return action.cancel()
 
     return [
         preview_add_to_wishlist,
