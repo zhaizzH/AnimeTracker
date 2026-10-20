@@ -1,0 +1,1 @@
+{"file": ".trellis/spec/adr/0001-agent-write-two-phase-preview-confirm.md", "reason": "ADR 0001 写两阶段协议是 PendingAction 存在的根本原因，docstring 必须与之呼应"}
