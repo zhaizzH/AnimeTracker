@@ -18,8 +18,8 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 
 from app.agent.client.actions.collection_state import check_collection_state, require_user
+from app.agent.client.actions.previewable import Clear, Keep, PreviewableAction
 from app.agent.client.actions.subject_resolution import finalize_resolution, resolve_candidates
-from app.agent.client.actions.write_guard import require_confirmed_write
 from app.agent.middleware import tool_call_status
 from app.agent.ports import BusinessGateway
 from app.chat.pending_action import SetCollectionTypePendingAction
@@ -90,7 +90,40 @@ def build_collection_type_preview(
     return result
 
 
+class SetCollectionTypePreviewable(PreviewableAction[SetCollectionTypePendingAction]):
+    """设置收藏类型写链路的 execute 差异点：调 /save，按 Business 响应分类清理动作。"""
+
+    pending_type = "SET_COLLECTION_TYPE"
+
+    def __init__(self, business: BusinessGateway):
+        self._business = business
+
+    def do_execute(self, *, pending: SetCollectionTypePendingAction, user: UserInfo):
+        return self._business.save_collection(
+            pending.subject_id, collection_type=pending.target_type, token=user.token
+        )
+
+    def classify_result(self, *, result, pending: SetCollectionTypePendingAction, user: UserInfo):
+        if isinstance(result, dict) and result.get("error"):
+            code = result.get("code")
+            if code is None:
+                # 基础设施错误：写入结果不确定，保留待确认动作供重试，不宣称成功
+                return Keep(), {"error": True, "retryable": True,
+                                "message": result.get("message", "写入失败，请稍后再试")}
+            if code == 409:
+                return Clear(), {"state": "ALREADY_COLLECTED", "subjectId": pending.subject_id,
+                                 "subjectName": pending.subject_name, "targetType": pending.target_type,
+                                 "message": f"《{pending.subject_name}》已在「{collection_type_label(pending.target_type)}」中"}
+            # 404（条目不存在）等确定性失败：清理状态并如实报错
+            return Clear(), {"error": True, "code": code, "message": result.get("message", "写入失败")}
+        return Clear(), {"state": "SAVED", "action": pending.action, "subjectId": pending.subject_id,
+                         "subjectName": pending.subject_name, "targetType": pending.target_type,
+                         "currentType": pending.current_type}
+
+
 def build_collection_type_tools(business: BusinessGateway, retrieval: RetrieveSubjectsUseCase):
+    action = SetCollectionTypePreviewable(business)
+
     @tool
     @tool_call_status(display_name="设置收藏类型")
     def set_subject_collection(
@@ -129,39 +162,12 @@ def build_collection_type_tools(business: BusinessGateway, retrieval: RetrieveSu
         """确认把预览过的番剧设置为目标收藏类型。只处理系统注入的待确认动作，不接受模型自造参数；
         仅当用户在当前回合明确确认（服务端 write_confirmed 标志）时才写入，否则拒绝。
         写入由 Business /save 完成，已收藏且无变化会返回 409 并如实告知。"""
-        gate = require_confirmed_write(
-            user=user, pending=pending, expected_type="SET_COLLECTION_TYPE",
-            write_confirmed=write_confirmed,
-        )
-        if gate is not None:
-            return gate
-        result = business.save_collection(
-            pending.subject_id, collection_type=pending.target_type, token=user.token
-        )
-        if isinstance(result, dict) and result.get("error"):
-            code = result.get("code")
-            if code is None:
-                # 基础设施错误：写入结果不确定，保留待确认动作供重试，不宣称成功
-                return {"error": True, "retryable": True,
-                        "message": result.get("message", "写入失败，请稍后再试")}
-            if code == 409:
-                emit_pending_action_clear()
-                return {"state": "ALREADY_COLLECTED", "subjectId": pending.subject_id,
-                        "subjectName": pending.subject_name, "targetType": pending.target_type,
-                        "message": f"《{pending.subject_name}》已在「{collection_type_label(pending.target_type)}」中"}
-            # 404（条目不存在）等确定性失败：清理状态并如实报错
-            emit_pending_action_clear()
-            return {"error": True, "code": code, "message": result.get("message", "写入失败")}
-        emit_pending_action_clear()
-        return {"state": "SAVED", "action": pending.action, "subjectId": pending.subject_id,
-                "subjectName": pending.subject_name, "targetType": pending.target_type,
-                "currentType": pending.current_type}
+        return action.execute(pending=pending, user=user, write_confirmed=write_confirmed)
 
     @tool
     @tool_call_status(display_name="取消设置收藏类型")
     def cancel_set_collection_type() -> dict:
         """取消当前待确认的收藏类型设置，只清理本地待确认状态，不修改后端数据。"""
-        emit_pending_action_clear()
-        return {"cancelled": True}
+        return action.cancel()
 
     return [set_subject_collection, execute_set_collection_type, cancel_set_collection_type]
