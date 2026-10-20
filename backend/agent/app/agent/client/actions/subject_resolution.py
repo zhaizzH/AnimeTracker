@@ -12,13 +12,13 @@
 from __future__ import annotations
 
 import re
-import unicodedata
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Any
 
 from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 
+from app.agent.client.actions.title_normalizer import normalize_title  # noqa: F401 — re-export 兼容
 from app.agent.client.actions.wishlist import build_wishlist_preview
 from app.agent.client.actions.collection_state import require_user as _require_user
 from app.agent.client.actions.write_guard import is_expired as _is_expired
@@ -39,25 +39,7 @@ _MAX_RESOLUTION_CANDIDATES = 10
 _SEARCH_SIZE = 15
 _RAG_QUERY_MAX_LEN = 200
 
-# 归一化时被当作分隔符的安全标点（NFKC 之后全角多已折叠为半角）。
-# 只处理字符层面，绝不映射任何语义变体。
-_PUNCTUATION_RE = re.compile(
-    r"[·・、,，.。!！?？~～\-—–‐_＿:：;；'\"’‘“”()（）\[\]【】{}｛｝<>《》|/\\+*=&^%$#@`]+"
-)
-_WHITESPACE_RE = re.compile(r"\s+")
 _ORDINAL_RE = re.compile(r"\s*(?:第\s*)?(\d+)\s*(?:个|项|条|号)?\s*")
-
-
-def normalize_title(value: Any) -> str:
-    """安全标题归一化：NFKC + 大小写折叠 + 标点分隔 + 空白折叠 + 首尾清理。
-
-    对查询和候选标题使用同一函数；不包含任何语义转换。
-    """
-    if value is None:
-        return ""
-    text = unicodedata.normalize("NFKC", str(value)).casefold()
-    text = _PUNCTUATION_RE.sub(" ", text)
-    return _WHITESPACE_RE.sub(" ", text).strip()
 
 
 def _safe_subject_id(value: Any) -> int | None:
