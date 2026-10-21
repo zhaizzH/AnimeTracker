@@ -1,0 +1,3 @@
+{"file": ".trellis/tasks/10-20-opt-previewable-action/design.md", "reason": "PreviewableAction 抽象设计：最小骨架 + Clear/Keep/Replace 三态"}
+{"file": "backend/agent/app/agent/client/actions/write_guard.py", "reason": "require_confirmed_write 守卫，骨架要复用"}
+{"file": "backend/agent/app/chat/pending_action.py", "reason": "PendingAction 判别联合，子类要声明对应类型"}

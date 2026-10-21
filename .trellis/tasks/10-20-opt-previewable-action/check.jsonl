@@ -1,0 +1,3 @@
+{"file": "backend/agent/tests/agent/test_wishlist.py", "reason": "wishlist 31 行测试不能动"}
+{"file": "backend/agent/tests/agent/test_collection_type.py", "reason": "collection_type 352 行测试不能动"}
+{"file": "backend/agent/tests/agent/test_collection_progress.py", "reason": "collection_progress 281 行测试不能动"}
