@@ -43,6 +43,12 @@ React client/admin
 
 当前 OpenAPI 是手工维护，CI **已能**自动校验 agent↔契约这一侧边界（`backend/agent/tests/contracts/`：每条出站 HTTP 调用的 method+path 必须解析到契约 operation、静态可判定的请求字段必须已声明、SSE 帧与 `SSEFrame` 双向对齐、pending-action 持久化协议由测试锁定，并在 CI 中单独成步）。但**契约↔business Java 源码仍无自动校验**：Java DTO 字段改名而契约没跟着改时，agent 仍匹配（已过时的）契约，套件保持全绿。因此涉及路径、字段、状态码、Cookie、鉴权或追踪头时，仍必须把 OpenAPI 与 Java 实现逐项对照，并记录未同步项为已知债务。
 
+> **改 API 前先想一件事："能解析成功"不等于"拼写正确"。** 路径模板会吃掉拼写错误——`/collections/count` 会静默落到 `/collections/{subjectId}`，让一个不存在的端点看起来合法。所以新增或改动调用点时，先问：
+> 1. 是否**字面命中**操作？只能通配命中且调用点本身不含运行时 ID，就是拼写错误的信号，不是合法用法。
+> 2. 改的是**请求**还是**响应**字段？字段校验只覆盖 agent 实际发送的请求字段；改一个无人调用的响应字段（如某个 VO 内部字段），契约测试仍会全绿，必须人工核对。
+>
+> 具体规则、白名单机制与两次漂移演练的原文记录见 [Agent↔Business 契约测试](../backend/contract-tests.md#8-边界声明不要高估这套测试)。
+
 ### 认证链路
 
 - 登录/刷新由 Spring 负责；Access Token 返回前端内存，refresh session 写 HttpOnly Cookie。

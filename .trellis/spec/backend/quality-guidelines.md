@@ -29,13 +29,15 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 
 ### 当前测试基线
 
-> 实测日期 2026-10-19，提交 `fa1673b7` 之后（百炼对话模型移除）；命令：`cd backend/agent && uv run pytest -q -p no:randomly`、`mvn -B test -f backend/business/pom.xml`。本节是测试基线数字的**唯一来源**；其他规范文件只链接本节。
+> 实测日期 2026-10-22，提交 `73cb187d` 之后（新增 agent↔business 契约测试套件）；命令：`cd backend/agent && uv run pytest -q`、`mvn -B test -f backend/business/pom.xml`。本节是测试基线数字的**唯一来源**；其他规范文件只链接本节。
 
-`backend/agent` 的 `uv run pytest`：**668 passed, 0 xfailed**，**0 warning**（2026-10-19 移除百炼对话模型后由 670 降至 668：删掉 2 个仅适用于 qwen3 的 `extra_body` 断言，新增 2 个 `dashscope` 拒绝用例，净减 2）。Java 侧 `mvn -B test -f backend/business/pom.xml` 按各模块 surefire 报告合计 **111 个测试通过、0 失败、0 错误**（`common` 无用例，其余八模块均有用例；核实：`find backend/business -path "*surefire-reports*" -name "*.txt" -exec grep -h "^Tests run" {} + | awk -F'[ ,]+' '{s+=$3} END {print s}'`）。测试规模：`grep -rE 'def test_' backend/agent/tests | wc -l` → 537（52 个测试文件）；`find backend/business -name '*Test.java' | wc -l` → 30。`check_javadoc.py` 及其回归 `test_check_javadoc.py` 已随提交 `721d5c71` 删除（Lombok 移除工作遗留的一次性脚本），历史基线 255 文件/1658 声明/0 违规不再可复跑；恢复前 Javadoc 检查以人工审查为准，见下文「可重复的声明与语法检查」。改动后必须重新实测并替换日期与数字，不得沿用历史通过数。
+`backend/agent` 的 `uv run pytest`：**814 passed, 0 xfailed**，**0 warning**（2026-10-22 由 668 增至 814：新增 `tests/contracts/` 共 146 个契约用例——HTTP 87 / SSE 29 / pending-action 30）。Java 侧 `mvn -B test -f backend/business/pom.xml` 按各模块 surefire 报告合计 **111 个测试通过、0 失败、0 错误**（`common` 无用例，其余八模块均有用例；核实：`find backend/business -path "*surefire-reports*" -name "*.txt" -exec grep -h "^Tests run" {} + | awk -F'[ ,]+' '{s+=$3} END {print s}'`），本轮未改动 Java 代码故数字不变。测试规模：`grep -rE 'def test_' backend/agent/tests | wc -l` → 617（55 个 `test_*.py` / 72 个 `.py`，含 `conftest.py` 与 `__init__.py` 共 12 个）；`find backend/business -name '*Test.java' | wc -l` → 30。`check_javadoc.py` 及其回归 `test_check_javadoc.py` 已随提交 `721d5c71` 删除（Lombok 移除工作遗留的一次性脚本），历史基线 255 文件/1658 声明/0 违规不再可复跑；恢复前 Javadoc 检查以人工审查为准，见下文「可重复的声明与语法检查」。改动后必须重新实测并替换日期与数字，不得沿用历史通过数。
+
+- **契约测试套件**（`tests/contracts/`，2026-10-22 新增）：CI 在 `uv run pytest` 之前单独跑 `contract drift (agent <-> openapi)` 一步。范围与盲区见 [Agent↔Business 契约测试](./contract-tests.md)；**它只证明 agent 与 `docs/spec/openapi.yaml` 一致，不证明契约与 Java 源码一致**。
 
 - Java `app` 模块包含配置迁移回归测试：`AppConfigurationBindingTest`、`SecurityConfigAuthorizationTest`、`CookieOriginFilterTest`、`AgentConfigTest` 与 `ArchitectureBoundaryTest`。
 - Python 已有 importer、indexer gate、shadow eval、release store、容量报告和 RAG 故障矩阵回归用例。
-- Python 还有 `tests/jobs/backfill`、`tests/jobs/scheduler`、`tests/adapters`、`tests/entities`、`tests/evals` 与 `tests/agent`。Prompt 字符串断言只证明文件内容，不能证明模型始终使用中文，也不能证明进程已经刷新 Prompt。
+- Python 还有 `tests/jobs/backfill`、`tests/jobs/scheduler`、`tests/adapters`、`tests/entities`、`tests/evals`、`tests/agent` 与 `tests/contracts`。Prompt 字符串断言只证明文件内容，不能证明模型始终使用中文，也不能证明进程已经刷新 Prompt。
 - `tests/adapters/test_llm_factory.py` 是 LLM 工厂的**构造契约**测试（不触网）：钉住 DeepSeek 的 `max_tokens` 旧字段名、`extra_body.thinking` 思考透传、`reasoning_content` 由 `ChatDeepSeek` 自行捕获（项目侧补丁已删），以及「`provider=dashscope` 必须报错」。
 - 该文件还钉住一条**测试隔离隐患**：某些用例会 import `main.py`，它调用 `load_dotenv()` 把真实 `.env` 灌进 `os.environ`，此时 `Settings(_env_file=None)` 仍能读到真实 Key。断言「无 Key 应报错」时必须显式传 `deepseek_api_key=""`，否则用例会随本地 `.env` 的存在与否而红绿不定。
 - Java 配置迁移必须使用 `clean`，避免旧 `target/classes` 中的配置类造成重复 Bean 或假成功。
