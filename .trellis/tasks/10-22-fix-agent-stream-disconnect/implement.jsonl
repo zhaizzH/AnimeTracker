@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "Agent 编排、分层与流式协议约束；新增 run 层必须遵守分权与端口规则"}
+{"file": ".trellis/spec/backend/contract-tests.md", "reason": "SSE 契约与收尾帧契约，改动流式层必须同步契约测试"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "测试基线与质量门槛"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "错误分类与 fail-closed 约定"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "useAgentChat 改动遵守 hook 规范"}
