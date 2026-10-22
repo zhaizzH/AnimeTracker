@@ -3,11 +3,14 @@
 > 关联 [prd.md](./prd.md) 与 [design.md](./design.md)。
 > 原则：每步都有独立可验证的产出；先让最小复现转绿，再逐项清理副作用。
 
-## 步骤 0：固化复现（先做，不改产品代码）
+## 步骤 0：固化复现（**已完成**，commit `e6f58d60`）
 
-- [ ] 把 `backend/agent/tests/agent/test_repro_disconnect.py` 重命名为 `tests/agent/test_run_disconnect.py`。
-- [ ] 保留四个变体作为完整行为矩阵；`test_failing_repro_minimal` 就是 AC1 的载体。
-- [ ] 验证：`pytest tests/agent/test_run_disconnect.py -q` → 3 passed, 1 failed（此时仍红，符合预期）。
+- [x] 把 `backend/agent/tests/agent/test_repro_disconnect.py` 重命名为 `tests/agent/test_run_disconnect.py`。
+- [x] 保留四个变体作为完整行为矩阵；`test_answer_survives_client_disconnect` 就是 AC1 的载体。
+- [x] 缺陷用例以 `xfail(strict=True)` 登记（项目约定）：当前 `3 passed, 1 xfailed`，CI 保持绿。
+- [x] 验证：`pytest tests/agent/test_run_disconnect.py -q` → 3 passed, 1 xfailed。
+
+> 注意：一修复，D 变体会因 strict 模式变成 XPASS(failed)；这是故意的，强制在同一次改动里删除标记。
 
 ## 步骤 1：`ChatRunManager` 骨架 + 断连不取消
 
@@ -45,14 +48,14 @@
 - [ ] 与「刷新断连」区分：断连不退订为取消。
 - [ ] 验证：单测 + 前端 `stop()` 行为测试。
 
-## 步骤 6：前端重连
+## 步骤 6：前端重连（**本次不做**，留待后续）
 
 - [ ] `useAgentChat` 记录 `run_id`；挂载/切换会话查 `/sessions/{id}/run`。
 - [ ] `running` 时用 `?after=0` 订阅回放，继续增量渲染。
 - [ ] `stop()` 走 `/runs/{run_id}/stop`。
 - [ ] 验证：`useAgentChat.events.test.tsx` 补重连用例；`npm test`（admin/client/shared）全绿。
 
-## 步骤 7：Java 代理
+## 步骤 7：Java 代理（**本次不做**，留待后续）
 
 - [ ] `AgentApiPaths` 加 `RUNS_STREAM` / `SESSION_RUN` / `RUN_STOP`。
 - [ ] `ClientAgentController`、`AdminAgentController` 三个新路由。
@@ -71,8 +74,16 @@
 - 步骤 1–2 是核心，若步骤 2 的 API 变更引发回归，回退到步骤 1 的 manager 仍可单测通过。
 - 前端（步骤 6）与 Java（步骤 7）可独立回退，后端 run 化不依赖它们。
 
-## 待决
+## 范围（2026-10-22 定）
 
-- 同会话并发 `POST /stream`：返回 409，还是订阅既有 run？（倾向 409，语义清晰）
-- 事件缓冲上限的具体数值（事件数 2000 / 字节 1MB 起步，按实测调）。
-- `after` 游标在缓冲被截断时的降级文案。
+- **本次只做后端**（步骤 0–5 + 步骤 8 的后端部分）。
+- 前端重连（步骤 6）与 Java 代理（步骤 7）**本次不做**：生产端解耦后，即使前端仍在刷新时 abort，答案也照常落库，刷新后从历史即可看到完整回答。前端增量回放与 Java 路由留作后续。
+- 后果：`GET /runs/{run_id}/stream` 等新路由在 Spring 代理未加之前浏览器**无法直达**（前端只请求 `/api/{client,admin}/agent/...`）。后端可先交付并用 `TestClient` 验证，但端到端体验要等 Java 代理补齐。
+
+## 待决（已定）
+
+- 同会话并发 `POST /stream`：用户需要提供两个选择——“直接打断并插入”与“调整方向”。
+  - 打断+插入 = `stop` 旧 run（落库已生成部分）+ 新 `POST /stream`，本次范围内。
+  - 真 steering（中途注入指令）= **不在本次范围**，需先重构执行模型（checkpointer + async 节点 + 拆线程池绕路），见 design.md §9。
+- 事件缓冲上限：事件数 2000 / 字节 1MB 起步，按实测调。
+- `after` 游标在缓冲被截断时的降级文案：降级为「从历史读」。

@@ -150,7 +150,7 @@ async def start_run(self, *, session_id, content, user_id, role, token="") -> Ch
 2. 断连后答案落库：`get_messages` 能读到完整 assistant 内容。
 3. 重连回放不漏不重：`after=N` 精确从第 N 条开始，总事件序列 == 全量缓冲。
 4. 恰好一个 `is_end` 帧（既有契约）。
-5. 每会话最多一个 active run；并发 `POST /stream` 第二请求返回 409 或订阅既有 run（择一，见 Open Questions）。
+5. 每会话最多一个 active run；同会话并发 `POST /stream` 由前端提供两个用户选择，见 §9。
 6. 每 run 恰好一条 assistant 消息落库（幂等标记）。
 
 ## 6. 进程重启边界
@@ -175,3 +175,35 @@ async def start_run(self, *, session_id, content, user_id, role, token="") -> Ch
 | 前端重连风暴 | `after` 游标 + 退避重连，最多 N 次 |
 | Spring 代理 GET SSE 兼容 | 复用既有 `agentService.stream`，补 Controller 测试 |
 | `asyncio.Task` 强引用丢失导致中途回收 | manager 持强引用集合，测试断言 | 
+
+## 9. 并发写入语义与 steering（2026-10-22 核实）
+
+用户要求同会话并发时提供两个选择：**直接打断并插入**、**调整方向**。两者代价差一个数量级，必须分开。
+
+### 9.1 打断并插入（本次范围内）
+
+- `POST /runs/{run_id}/stop` → 旧 run `status=cancelled`，已生成部分落库 → 前端确认后正常 `POST /stream` 启动新 run。
+- 这是 run 解耦的**自然产物**，后端几乎零额外成本；用户感知就是「打断并插入」。
+
+### 9.2 中途注入指令改方向（**不在本次范围，需先重构执行模型**）
+
+已核实现有架构**无法支持**真正的 mid-stream steering，不是加个参数的事：
+
+| 事实 | 位置 | 影响 |
+|---|---|---|
+| 图无 checkpointer | `app/agent/graph.py:54` `graph.compile()` | LangGraph 的 `interrupt()`/`Command(resume=...)` 依赖 checkpoint 才能挂起后恢复，无 checkpointer 就无从「回到中途」 |
+| `interrupt`/`Command`/`checkpointer` 全仓零引用 | `grep -rn` 复核 | 既无机制也无预留钩子 |
+| 节点执行是**同步**的 | `app/agent/run.py:74` `run_domain_agent`，内部 `agent_stream` 经 `_run_async` | 返回时模型调用已全部结束 |
+| `_run_async` 绕到线程池 | `app/agent/runtime.py:13-24` `ThreadPoolExecutor` + `asyncio.run` | 跨事件循环，注入指令无法安全投递到正在跑的协程 |
+
+真正可用的插入点只有两处，**都不是「中途」**：`history_messages`（`run.py:100`，输入已交给模型）与「节点返回后重跑节点」（本质是再跑一轮）。
+
+**升级为真 steering 的前置条件**（独立任务，风险与「修断连」不同量级）：
+
+1. 给图加 checkpointer（thread_id = run_id），并确认 `AsyncRedisSaver` 或等价方案的依赖。
+2. 节点改 async，拆掉 `_run_async` 线程池绕路，否则指令无法注入正在执行的协程。
+3. 接入 `HumanInTheLoop` 类中间件或自行在 `create_agent` 的多轮循环里注入消息。
+4. 扩 `AgentState`，改 `graph.py` 条件边与 5 个节点（search/discover/recommend/admin/gateway）。
+5. 定义注入事件在 SSE 上的 wire 形态（需要同时改 `events.py`、`schemas/sse.py`、前端 `useAgentChat.ts` 与契约测试）。
+
+> 结论：先把 run 解耦做对（断连不丢、能停、能落库），steering 再作为独立任务立项。不要在同一次改动里混着做。
