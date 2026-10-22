@@ -144,22 +144,22 @@ candidates = [item for item in candidates if item.subject_id in allowed_subject_
 
 #### 1. Scope / Trigger
 
-- Trigger：任何新增/修改 `/api/client/agent/stream`、`/api/admin/agent/chat/stream` 的事件字段、帧格式或结束语义。这是 Python 生产方 → Spring 透传 → 浏览器消费方的跨层契约，改动会同时影响 `schemas/sse.py`、`app/api/sse.py` 与前端 `useAgentChat.ts`。
+- Trigger：任何新增/修改 `/api/client/agent/stream`、`/api/admin/agent/chat/stream` 的事件字段、帧格式或结束语义。这是 Python 生产方 → Spring 透传 → 浏览器消费方的跨层契约，改动会同时影响 `app/api/schemas/sse.py`、`app/api/sse.py` 与前端 `useAgentChat.ts`。
 
 #### 2. Signatures
 
 - 序列化单一入口：`app/api/sse.py`；结束事件必须设置 `is_end=true`。
-- 出站 schema：`backend/agent/app/schemas/sse.py` 的 `AgentEvent` / `MessageType`。
+- **两层枚举，别搞混**：内部事件 `AgentEvent` / `AgentEventType` 定义在 `app/chat/events.py`（**五值**，含 `END`）；wire 侧 `AssistantResponse` / `MessageType` 定义在 `app/api/schemas/sse.py`（**四值**，无 `end`）。`app/api/sse.py:10-11` 把 `AgentEventType.END` 显式转成 `is_end=true` 后再转成 `MessageType.ANSWER`，即内部五值 → wire 四值的唯一收敛点。
 - 传输路径：浏览器只请求 Spring 代理路径（`/api/{client,admin}/agent/...`），不配置或直连 Agent 的 `:8090`。
 - **wire 帧格式（不得凭 spec 文字推断）**：每帧只有 `data:` 行、`\n\n` 分帧、类型在 JSON 内部的 `type` 字段；不使用 `event:` / `id:` / `retry:` 行。
 
 #### 3. Contracts
 
 - 响应头保持 `Content-Type: text/event-stream`、`Cache-Control: no-cache`、`X-Accel-Buffering: no`。
-- `MessageType` 只有 `answer / thinking / function_call / status` —— **不存在 `end` 类型**。
+- `MessageType` 只有 `answer / thinking / function_call / status` —— **不存在 `end` 类型**。内部 `AgentEventType` 多一个 `END`，但它不会出现在 wire 上。
 - 结束帧为 `type="answer"`（默认值）+ `is_end=true` + 空 `content`。
 - `exclude_none=True` 使每帧字段集随事件类型变化；前端因此必须把 `content` 子字段视为可选。`meta={}` 会保留，`meta=None` 被剔除。
-- 改事件字段时同步 `schemas/sse.py` 与前端 `useAgentChat.ts`。`docs/spec/openapi.yaml` 的 `/api/client/agent/stream` 已声明 `text/event-stream` 与单帧 `SSEFrame` schema，但事件内容字段的语义仍以源码为准；本节口径由 `backend/agent/tests/contracts/test_sse_contract.py` 自动钉住（详见 [Agent↔Business 契约测试](./contract-tests.md#3-contracts)）。
+- 改事件字段时必须同时看两个文件：内部结构改 `app/chat/events.py`，wire 结构改 `app/api/schemas/sse.py`，并同步前端 `useAgentChat.ts`。`docs/spec/openapi.yaml` 的 `/api/client/agent/stream` 已声明 `text/event-stream` 与单帧 `SSEFrame` schema，但事件内容字段的语义仍以源码为准；本节口径由 `backend/agent/tests/contracts/test_sse_contract.py` 自动钉住（详见 [Agent↔Business 契约测试](./contract-tests.md#3-contracts)）。
 
 #### 4. Validation & Error Matrix
 
@@ -175,14 +175,15 @@ candidates = [item for item in candidates if item.subject_id in allowed_subject_
 
 #### 5. Good / Base / Bad Cases
 
-- Good：新增事件字段时同步 `schemas/sse.py`、`app/api/sse.py` 与前端 `useAgentChat.ts`，并补帧格式回归。
+- Good：新增事件字段时同步 `app/chat/events.py`（内部）、`app/api/schemas/sse.py`（wire）、`app/api/sse.py`（序列化）与前端 `useAgentChat.ts`，并补帧格式回归。
 - Base：只改内部实现，不动 wire 契约。
 - Bad：在 spec 或任务描述里写「五值联合（含 end）」，或在 JSON 外新增 `event:` 行。
 
 #### 6. Tests Required
 
 - `tests/api/test_sse_serialization.py` 钉住帧形态、`exclude_none`、`end` 语义、响应头与逐帧消费（当前回归入口）。
-- 新增/修改事件字段时同步断言 `MessageType` 取值与结束帧形态。
+- 新增/修改事件字段时同步断言 `AgentEventType` 与 `MessageType` 两侧取值，以及结束帧形态。
+- 枚举一致性是**通过契约 enum 传递**的：`test_all_serializable_event_types_are_covered` 断言 `AgentEventType`（去 END）等于契约 enum，`test_message_type_matches_agent_event_type` 断言 `MessageType` 也等于该 enum，故两者必然相等（注意后者的 docstring 写作「与 AgentEventType 同步」，但它实际比的是契约 enum）。
 - 契约侧对齐由 `backend/agent/tests/contracts/test_sse_contract.py` 负责（四值枚举、`content` 子字段集、单帧 `SSEFrame`、错误语义分离、唯一 `is_end` 收尾）；两侧必须同时绿，见 [契约测试](./contract-tests.md#6-tests-required)。
 
 #### 7. Wrong vs Correct
@@ -203,176 +204,7 @@ candidates = [item for item in candidates if item.subject_id in allowed_subject_
 
 ### 安全写操作
 
-1. 预览工具查询权威 Business 数据并生成强类型 `PendingAction`。
-2. `ChatService` 按用户与会话把动作写入 Redis；成功写入后才允许把动作视为可确认。
-3. 用户明确确认后，执行工具只读取 `InjectedState` 中的 action 或 preview ID。
-4. **确认是代码级硬门禁，不只靠提示词**：`AgentState.write_confirmed` 只由 `gateway_router` 依据当前回合 `_is_explicit_confirmation` 确定性设置，模型无法通过工具参数改写；三条写链路的 `execute_*` 都先过共享守卫 `write_guard.require_confirmed_write`（用户 → 动作类型 → 用户绑定 → TTL → `write_confirmed`），非确认回合即使模型调用 `execute_*` 也一律拒写、Business 零调用。选择状态（`SUBJECT_RESOLUTION`）下的"确认"只是选择意图，不产生写入类动作，因此不会触发写入。
-5. `WishlistPendingAction` 与 `SetCollectionTypePendingAction` 携带服务端生成的 `action_id`（每次 SET/REPLACE 重新生成），用于持久化层版本失效与 trace 关联；它是服务端持有的版本标识，**不是模型回传令牌**，写入判定不依赖模型提供它。`CollectionProgressPendingAction` 继续用 Business 的 `preview_id`。
-6. 基础设施错误导致结果不确定时保留动作；`PREVIEW_CHANGED` 必须重新确认。
-7. 取消只清理待确认状态，不修改业务数据。
-
-参考：`app/agent/client/actions/wishlist.py`、`collection_progress.py`、`collection_type.py`、`write_guard.py`、`app/chat/pending_action.py`。
-
-> 持久化层面（键模板、600 秒 TTL、判别联合往返、信封字段蛇形/business 字段驼峰、preview 版本绑定）由 `backend/agent/tests/contracts/test_preview_contract.py` 自动钉住，字段大小写易误，详见 [Agent↔Business 契约测试](./contract-tests.md#pendingaction-字段大小写易误解单列)。
-
-#### 待确认动作持久化失败矩阵
-
-`streaming.py` 会记录并报告 `on_pending_action` 异常，然后继续发送结束事件；调用方必须依据 `status` 错误事件执行重试提示，不能把动作宣告为已持久化。任何新增或修改必须满足以下契约：
-
-| 条件 | 必须行为 |
-|---|---|
-| 新建/替换动作写 Redis 成功 | 返回可确认状态，并绑定 `user_id`、`session_id`、`preview_id`/nonce 与 TTL |
-| 新建/替换动作写 Redis 失败 | 不宣告动作可确认；不得继续执行不可见动作；向调用方返回可重试的失败语义 |
-| 已有旧动作且替换失败 | 不能让下一次确认误执行旧动作；清除旧动作或使其版本失效，并记录可关联 trace |
-| 用户取消 | 仅删除同一用户/会话的待确认动作，不能修改 Business 数据 |
-| 确认时 preview 已变化/过期 | 返回 `PREVIEW_CHANGED`/过期错误，必须重新预览确认 |
-
-最低回归场景：预存旧动作 → `REPLACE` 失败 → 再次确认；断言旧动作不会被执行。
-
-#### Scenario: 单标题「加入想看」确定性解析与 SUBJECT_RESOLUTION 候选状态
-
-##### 1. Scope / Trigger
-
-- 触发：修改 Agent 单标题加入想看链路（`resolve_subject_by_title` / `select_resolved_subject`）、`SUBJECT_RESOLUTION` 待确认状态，或 gateway 对该状态的路由。
-- 目的：保证标题→条目走 Business 优先、RAG 仅在“成功空结果”时回退、权威校验后唯一精确候选才进预览；多候选或歧义进入受控选择状态，绝不把接口异常伪装成无结果，也绝不自动选中相似候选。
-- 边界：只覆盖“加入想看”（type=1，`/collections/{id}/wishlist`）。“加入追番/在看”（type=3）当前 Agent 无写工具，属另一任务。
-
-##### 2. Signatures
-
-- `resolve_subject_by_title(title="", subject_id=None) -> dict`；`select_resolved_subject(choice: int | str) -> dict`（`user`、`pending` 由 `InjectedState` 注入）。
-- `SubjectResolutionPendingAction{type:"SUBJECT_RESOLUTION", user_id, expires_at, query, candidates:[{subjectId,subjectName,matchSource,matchType}]}`，camelCase `by_alias`，复用 Agent Redis 键与 600 秒 TTL。
-- 复用 `BusinessGateway.search_subjects(query, *, token, size=15)` → `GET /api/client/subjects/search`（响应 `content[]`，字段 `id/name/nameCn`，无 `active/nsfw`）；`batch_subjects(subject_ids, *, token, exclude_collected)` → `POST /api/client/subjects/batch`（`items[]` 含 `id/type/nsfw/active/name/nameCn`，另有 `missingIds/filteredIds`；`exclude_collected` 为 keyword-only 且无默认值）。
-- 复用 `app/agent/client/actions/wishlist.py::build_wishlist_preview(subjects,user,business)` 与 `RetrieveSubjectsUseCase.execute(query, mode="search", user)`。
-
-##### 3. Contracts
-
-- 顺序：显式 `subject_id` → 跳过名称搜索但仍 `/batch`；否则 Business `/search`（原始标题，仅去外围空白）→ 归一化唯一精确命中 → 仅“成功且候选为空”才回退 RAG（`mode="search"`，只传 `semantic_query`）。
-- 归一化只做字符层面：NFKC + casefold + 安全标点当分隔符 + 连续空白折叠 + strip。禁止“第二季/第2季/2nd Season/II”等语义转换；只有真实标题或工具证据 `aliases` 可命中，子串命中不算精确。
-- `/batch` 只保留 `active is True`、`type==2`、`nsfw is False`；`missingIds/filteredIds` 丢弃；`excludeCollected=false`（收藏与否由预览阶段判断，不覆盖既有收藏）。
-- 结果分流：权威校验后 0 → “没有找到匹配项”，不预览不写入；1 且唯一精确 → `build_wishlist_preview`（仍走预览→明确确认→幂等写入）；多个，或“非唯一精确”（含单个歧义/相似候选）→ 保存 `SUBJECT_RESOLUTION`，绝不自动预览。
-- 选择：只接受注入的 `SUBJECT_RESOLUTION`，按 1-based 序号或归一化后唯一名称从服务端候选中选择，模型不能提交任意 `subjectId`；选中后重新 `/batch` 再进预览，状态由 `ADD_TO_WISHLIST` 覆盖（SET/REPLACE 都调用 `save_pending_action` 覆盖同一键）。
-- gateway：`pending.type==SUBJECT_RESOLUTION` 时任何回合确定性路由 `recommend_agent`；确认词只对 `ADD_TO_WISHLIST/COLLECTION_PROGRESS_UPDATE` 触发写入路由，选择状态下的“确认/好”只是选择意图，不得当写入确认。
-
-##### 4. Validation & Error Matrix
-
-| 条件 | 必须行为 |
-|---|---|
-| Business `/search` 超时/5xx/401/坏响应 | 返回错误语义；不回退 RAG；不建状态；不预览 |
-| Business 成功非空但无唯一精确命中 | 保留安全候选进 `SUBJECT_RESOLUTION`；不得当空结果回退 RAG |
-| Business 成功空结果 | 回退 RAG |
-| RAG `available=false` 或异常 | 返回“候选解析暂时不可用”；不伪装无结果；不预览；不建状态 |
-| RAG 多候选或无唯一精确命中 | 作为候选进 `SUBJECT_RESOLUTION`；相似度最高也不自动预览 |
-| `/batch` 过滤后 0 | “没有找到匹配项”，不预览不写入 |
-| 选择时 user 不匹配 / 过期 / 候选已失效 | `CLEAR` 并返回错误 |
-| 选择名称不唯一 / 序号越界 / 无待选择状态 | 返回错误；名称不唯一或越界时保留状态供重选 |
-
-##### 5. Good/Base/Bad Cases
-
-- Good：标题在 Business 唯一精确命中 → `/batch` 通过 → 预览 → 用户明确确认 → 幂等写入，不覆盖既有收藏。
-- Base：多候选 → `SUBJECT_RESOLUTION` → 用户按序号选 → 重新 `/batch` → 预览 → 确认。
-- Bad：把 Business 500 当空结果回退 RAG；把“第2季”归一化成“第二季”自动选中；RAG 相似度最高的单候选直接预览；把选择状态下的“确认”当写入确认。
-
-##### 6. Tests Required
-
-- `tests/agent/test_subject_resolution.py`：归一化仅字符层面（`第二季 != 第2季`）、唯一精确/多命中、`dedup_ids` 拒 bool 与非正数、`/batch` 过滤 `active/type/nsfw` 与基础设施错误、Business 命中不回退 RAG、Business 错误不回退不预览、空结果回退 RAG、RAG 不可用不伪装、非空无精确进 resolution、显式 `subject_id` 跳搜索仍 `/batch`、选择按序号/唯一名/歧义/越界/用户不匹配/过期/已收藏/失效重校验、gateway 对 `SUBJECT_RESOLUTION` 路由、判别联合序列化往返。
-- 运行 `uv run pytest tests/agent` 与 `uv run pytest`。
-
-##### 7. Wrong vs Correct
-
-##### Wrong
-
-```python
-rows = business.search_subjects(title, token=token)
-if not rows:                       # 把错误/超时也当成空结果
-    rows = rag_fallback(title)
-picked = max(rows, key=lambda r: r["score"])   # 相似度最高自动选中
-preview_add_to_wishlist([picked])              # 绕过唯一精确与歧义判定
-```
-
-##### Correct
-
-```python
-stage = _business_lookup(title, user, business)
-if stage["error"]:
-    return stage["error"]                       # 基础设施错误：不回退、不预览
-candidates, exact_unique = stage["candidates"], stage["exact_unique"]
-if stage["empty"]:
-    stage = _rag_lookup(title, user, retrieval)  # 仅“成功空结果”回退 RAG
-valid, err = filter_authoritative(ids, business, token)  # active/type2/nsfw，excludeCollected=false
-if len(survivors) == 1 and exact_unique:
-    return build_wishlist_preview(...)           # 预览 → 明确确认
-emit_pending_action_set(build_resolution_action(...)) # 多个/歧义 → SUBJECT_RESOLUTION，不自动预览
-```
-
-#### Scenario: 按标题设置收藏类型（/save）与写入意图路由
-
-##### 1. Scope / Trigger
-
-- 触发：修改 Agent“按标题设置/变更收藏类型”链路（`set_subject_collection` / `execute_set_collection_type`）、`SET_COLLECTION_TYPE` 待确认动作、`BusinessGateway.save_collection`，或 gateway 写入意图路由。
-- 边界：写入任意收藏类型 1..5（想看/看过/在看(追番)/搁置/抛弃），经 `POST /api/client/collections/{id}/save`。普通“加入想看”仍走幂等 `/wishlist`（不覆盖）；显式“设为/标记为/改成 <类型>”走 `/save`。
-
-##### 2. Signatures
-
-- `set_subject_collection(collection_type: Literal[1,2,3,4,5], title="", subject_id=None) -> dict`；`execute_set_collection_type() -> dict`（`pending`/`user` 注入）；`cancel_set_collection_type()`。
-- `SetCollectionTypePendingAction{type:"SET_COLLECTION_TYPE", user_id, expires_at, subjectId, subjectName, targetType, currentType(int|None), action("ADD"|"CHANGE")}`，camelCase by_alias，600s TTL。
-- `BusinessGateway.save_collection(subject_id, *, collection_type, token, rate=None, ep_status=None)` → `POST /api/client/collections/{id}/save`，body `{"type","rate","epStatus"}`（对齐 `CollectionUpdateDTO`）。
-- `SubjectResolutionPendingAction.collection_type`（alias `collectionType`，默认 None）：多候选选中后要设置的目标类型；None=回到想看预览（向后兼容）。
-
-##### 3. Contracts
-
-- 解析复用 09-16：`resolve_candidates`（显式 id 跳搜索仍 `/batch`；Business 首查；仅成功空结果回退 RAG；`/batch` 只留 active/type2/nsfw，excludeCollected=false）+ `finalize_resolution`（0 无匹配 / 1 唯一精确预览 / 多或歧义 SUBJECT_RESOLUTION 且携带 collection_type）。
-- `save_collection` 语义（源码 `CollectionServiceImpl.saveOrUpdate`）：条目不存在→404；已收藏且同类型、rate/epStatus 无变化→409；已收藏但类型不同或有变化→UPDATE 覆盖；未收藏→INSERT。`/save` **不做** active/nsfw 安全过滤，安全边界仍由 Agent `/batch` 承担。
-- 预览三态：未收藏→ADD；已在目标类型→NOOP（不发待确认动作、不写入，避免 409）；他类型→CHANGE（必须在预览中展示“当前→目标”，绝不静默覆盖）。
-- 写入只在用户对 ADD/CHANGE 明确确认后由 `execute_set_collection_type` 执行，且只读注入的 `SET_COLLECTION_TYPE`，模型不能自造 subjectId/类型。
-- 路由：写入意图 = 写入动词 + 可选填充词 + 类型名的复合正则（覆盖“添加到我的追番”“把这部设为在看”等插词），保留否定前缀守卫；纯查询（追番进度/追番日程/我在看什么/我收藏了哪些）不得误触发。`SET_COLLECTION_TYPE` 加入 `RECOMMEND_PENDING_ACTION_TYPES`，明确确认可确定性路由 recommend_agent 执行。
-
-##### 4. Validation & Error Matrix
-
-| 条件 | 必须行为 |
-|---|---|
-| `collection_type` 非 1..5 / 非整数 | 工具 schema(Literal) 拒绝；不写入 |
-| 解析基础设施错误 / RAG 不可用 | 返回错误语义；不回退、不预览、不建状态 |
-| 已在目标类型（NOOP） | 不发待确认动作、不写入；如实告知已在该列表 |
-| 他类型（CHANGE） | 预览展示 当前→目标，确认后才 `/save` 覆盖 |
-| `/save` 返回成功(None) | `SAVED`，clear，汇报 ADD/CHANGE |
-| `/save` 409 | `ALREADY_COLLECTED`，clear，不算失败 |
-| `/save` 404 | 报错，clear，不宣称写入 |
-| `/save` 基础设施错误(code 为 None) | 保留待确认动作供重试，不宣称成功 |
-| 未确认 / 取消 | 不写入；cancel 仅 clear |
-
-##### 5. Good/Base/Bad Cases
-
-- Good：标题唯一精确→预览 ADD→确认→`/save` 成功→clear。
-- Base：已在看再“加入追番”→NOOP，不写入、不 409。
-- Bad：把“我在看什么/追番日程”误路由到写入；CHANGE 不在预览展示就覆盖；`/save` 409 当成失败；基础设施不确定却宣称已写入。
-
-##### 6. Tests Required
-
-- `tests/agent/test_collection_type.py`：预览 ADD/NOOP/CHANGE 与状态错误、set 唯一精确/多候选(带 collection_type)/NOOP 清理/显式 id/无匹配、execute 成功/409/404/基础设施保留/无待确认、选择后按 collection_type 分派、SET_COLLECTION_TYPE 与 SUBJECT_RESOLUTION(带/不带 collectionType) 序列化往返、工具 schema 含 collection_type。
-- `tests/agent/test_write_intent_routing.py`：写入短语命中（含插词）、否定不误触发、纯查询不误触发、SET_COLLECTION_TYPE 确认强制路由、非确认不强制。
-- 运行 `uv run pytest tests/agent` 与 `uv run pytest`。
-
-##### 7. Wrong vs Correct
-
-##### Wrong
-
-```python
-# 直接把“追番/收藏”字样当写入意图，且不预览就覆盖类型
-if "追番" in text or "收藏" in text:
-    business.save_collection(sid, collection_type=3, token=token)  # 静默覆盖、无确认
-```
-
-##### Correct
-
-```python
-if _is_explicit_recommendation_request(text):   # 动词+类型名复合正则，排除查询
-    route = "recommend_agent"
-preview = build_collection_type_preview(sid, name, target, user, business)  # ADD/NOOP/CHANGE
-if preview["action"] == "CHANGE":
-    show_user(f"从{preview['currentType']}改为{target}")   # 变更可见
-# 仅在用户明确确认后：
-result = business.save_collection(sid, collection_type=target, token=token)
-```
+> 本节已拆为独立文件：[Agent 安全写操作契约](./write-operations.md)。包含预览→确认→执行协议、`write_guard` 硬门禁、`PendingAction` 三种变体差异、持久化失败矩阵与 SUBJECT_RESOLUTION 选择状态。新增或修改任何写链路前必须先读该文件。
 
 ### 认证与配置
 
@@ -490,186 +322,7 @@ saveCfg.mutate(toSparseBody(cfg))   # -> {"temperature": 0.9}
 
 ### 离线任务
 
-- importer、indexer、scheduler 使用 `python -m jobs.<name>...` 运行并返回明确退出码。
-- indexer 只有显式 `--activate` 且全部报告通过时才激活 MySQL `search_index_release`。
-- scheduler 使用 Asia/Shanghai 规则；仓库没有常驻宿主配置，不得假设已有 cron/systemd/容器部署。
-
-#### Scenario: Person/Character 回填报告
-
-##### 1. Scope / Trigger
-
-- 触发：运行 `jobs.backfill.main --report` 或定时采集回填状态。
-
-##### 2. Signatures
-
-- 文本：`python -m jobs.backfill.main --report`。
-- JSON：`python -m jobs.backfill.main --report-json`。
-- `EntityDetailJobRepository.generate_report() -> BackfillReport`。
-
-##### 3. Contracts
-
-- 报告字段包含 `totalJobs/completed/pending/failed/abandoned/coveragePct/failureReasons`。
-- stale 字段为 `staleEntities/staleByKind`，统计 active Person/Character 且 `detail_status <> COMPLETE` 的实体。
-- 报告只读，不认领、暂停、恢复或修改任务；错误正文不得输出到 JSON。
-
-##### 4. Validation & Error Matrix
-
-| 条件 | 必须行为 |
-|---|---|
-| 无任务 | 覆盖率为 0，报告仍成功生成 |
-| 任务失败/放弃 | 按 `last_error_code` 聚合，不输出错误正文 |
-| active 实体未完成详情 | 计入 `staleEntities` 与 `staleByKind` |
-| 数据库查询失败 | CLI 返回非零退出码，不伪造空报告 |
-
-##### 5. Good/Base/Bad Cases
-
-- Good：调度器采集 `--report-json`，按同一时间窗口记录覆盖率和 stale 数量。
-- Base：人工使用 `--report` 查看摘要。
-- Bad：报告命令顺便认领任务，或把 API 错误正文写入报告。
-
-##### 6. Tests Required
-
-- Backfill repository 单测断言覆盖率、失败原因、stale 按实体类型聚合及 JSON 字段。
-- CLI/编译检查断言 `--report-json` 可导入并返回稳定字段。
-
-##### 7. Wrong vs Correct
-
-```text
-Wrong: 只统计 COMPLETED/TOTAL，忽略 active 实体仍处于 SUMMARY_ONLY 的 stale 状态。
-Correct: 同时统计任务状态和 person/character 的 detail_status，并通过 --report-json 输出。
-```
-
-#### 离线任务最低契约
-
-- importer CLI 的 `--mode` 为 `full|season|recent|since|sample`；`--dry-run` 只扫描，不打开数据库或写对象存储，当前仅支持 full 扫描语义。
-- importer 并发 worker 上限为 10；断点由扫描 ID 的 SHA-256、offset 和最后条目共同校验，扫描结果变化时拒绝复用旧断点。
-- importer 使用 Redis 锁 `animetracker:import:lock`（`SET NX EX` + 周期续期 + compare-and-del 释放）做跨进程互斥，**Redis 不可达时导入直接失败**（锁是硬依赖）；每个 worker 独立 Session，失败必须 rollback、关闭连接并返回非零结果。运行中进度计数同样在 Redis（`animetracker:import:{record_id}:done`），终态一次性回写 `import_record.subject_count`。
-- indexer 报告缺失、版本不一致、契约/指标不达标时必须 fail closed；只有显式 `--activate` 且所有报告通过时才更新 MySQL `search_index_release`，旧版本投影不得先删除。
-- scheduler 使用 Asia/Shanghai 的固定时刻（每日 recent、每周 since、季度 full），同一分钟同模式去重；仓库不提供常驻宿主、重叠任务终止或重启托管。
-- 运行环境仅提供普通 Redis 而未加载 Vector Set 时，不能执行 `jobs.indexer`；Redis Vector Set 与 MySQL `search_document` 必须使用同一 `indexVersion`，发布指针只在 MySQL 更新。
-- 以上契约的参数、退出码、报告字段或阈值发生变化时，必须同时更新本文件和 `quality-guidelines.md` 的验证清单，并补失败路径测试。
-
-#### Scenario: recent 导入日历源失败
-
-##### 1. Scope / Trigger
-
-- 触发：修改 `jobs.importer.main` 的 `recent` 扫描、代理配置或导入断点/状态处理。
-- 目的：避免 Bangumi 日历请求失败时把“未扫描到条目”误记为成功，导致断点无法恢复。
-
-##### 2. Signatures
-
-- 命令：`python -m jobs.importer.main --mode recent [--resume]`。
-- 扫描源：`BangumiClient.get_calendar() -> list`（`jobs/importer/client.py` 该方法返回注解为裸 `list`，同文件邻居方法的 `list[dict]` 更精确，取值时仍需按实际结构校验）。
-- 代理环境变量：`HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY` 由 `requests` 隐式遵循，importer 代码没有显式读取或校验它们；只由进程环境注入，不写入日志或任务记录。（代码中显式的只有 `BANGUMI_IMAGE_PROXY_URL`。）
-
-##### 3. Contracts
-
-- `recent` 必须先成功获取并去重日历 ID，再调用 `_run_batch`。
-- 日历获取异常必须抛出 `RuntimeError("日历获取失败")`，由 `main()` 统一将当前 `import_record` 标为 `FAILED`，退出码为 `1`。
-- 失败时不得调用 `complete_import_record(..., "COMPLETED")`，不得清除 `checkpoint_json`、累计成功/失败计数或把 `subject_count` 伪造为 0 成功。
-- 成功时 checkpoint 的 `offset` 必须到达本次日历 ID 总数；已有条目可返回 `SKIPPED`，这不等于导入失败。
-
-##### 4. Validation & Error Matrix
-
-| 条件 | 必须行为 |
-|---|---|
-| `get_calendar()` 返回有效列表 | 去重 ID 后执行批处理，完成时记录 `COMPLETED` |
-| `get_calendar()` 超时、代理拒绝或响应异常 | 记录 `FAILED`、保留 checkpoint、返回退出码 1 |
-| `--resume` 且记录为 `RUNNING/FAILED` | 校验扫描 ID SHA-256、offset 和最后 ID；不匹配则拒绝恢复 |
-| 日历条目已存在且 `import_status=1` | 记录 `SKIPPED`，推进 checkpoint，不计入 failure |
-| 代理不可用 | 不把空日历当作成功；错误日志只保留归一化错误类型/消息 |
-
-##### 5. Good/Base/Bad Cases
-
-- Good：代理可用，日历 113 条，resume 推进到 `offset=113`，所有条目已存在时状态为 `COMPLETED`、`failure_count=0`。
-- Base：日历请求中断，状态为 `FAILED`，下次使用同一 checkpoint 可继续，不重复伪造成功。
-- Bad：捕获日历异常后 `return 0`，让主流程把未扫描批次标记为 `COMPLETED`。
-
-##### 6. Tests Required
-
-- `tests/jobs/importer/test_recent_failure.py`：日历客户端抛异常时断言 `run_recent` 抛出 `RuntimeError`，消息为“日历获取失败”。
-- `tests/jobs/importer` 全套：断言成功、跳过、失败计数和 checkpoint 行为不回归。
-- 运行 `python -m compileall -q jobs/importer` 与 `git diff --check`。
-
-##### 7. Wrong vs Correct
-
-##### Wrong
-
-```python
-try:
-    calendar = client.get_calendar()
-except Exception:
-    return 0  # main() 会错误地写入 COMPLETED
-```
-
-##### Correct
-
-```python
-try:
-    calendar = client.get_calendar()
-except Exception as error:
-    logger.error("日历获取失败: %s", sanitize_import_error(error))
-    raise RuntimeError("日历获取失败") from error
-```
-
-#### Scenario: search indexer 基础设施错误码
-
-##### 1. Scope / Trigger
-
-- 触发：修改 `jobs.indexer.main.run_search_batch` 的 Embedding、Redis 或任务重试处理。
-- 目的：错误码必须能区分 Embedding 与 Redis 故障，避免排障时把 Embedding 网络问题误判为 Redis 故障。
-
-##### 2. Signatures
-
-- `run_search_batch(...) -> IndexBatchResult`：批量消费 `job` 表中 `type='SEARCH_INDEX'` 的任务，失败任务进入可重试状态。
-- `SearchIndexJobRepository.mark_failed(job_id, *, error_code, error_message, retry_seconds=0, claimed_at=None) -> bool`：写入错误码并设置 `next_retry_at`。Port 定义（`app/entities/ports.py`）为 `mark_failed(job_id, *, error_code, error_message, retry_seconds) -> None`，无 `claimed_at`；实现（`jobs/indexer/search_repository.py`）更宽，引用时须注明是哪一侧。
-
-##### 3. Contracts
-
-- `EmbeddingUnavailable` 映射为 `EMBEDDING_UNAVAILABLE`。
-- `EmbeddingRateLimited` 映射为 `EMBEDDING_RATE_LIMITED`。
-- Redis 连接/超时异常映射为 `REDIS_UNAVAILABLE`。
-- 上述异常都必须保持失败可重试语义；不能因为错误码分类改变而确认索引成功或激活 release。
-- 其他异常保留稳定类型名，不把数据库/配置错误伪装成 Redis 故障。
-
-##### 4. Validation & Error Matrix
-
-| 条件 | 必须行为 |
-|---|---|
-| Embedding 服务不可用 | `EMBEDDING_UNAVAILABLE`、`FAILED + next_retry_at` |
-| Embedding 限流 | `EMBEDDING_RATE_LIMITED`、`FAILED + next_retry_at` |
-| Redis 连接或超时 | `REDIS_UNAVAILABLE`、`FAILED + next_retry_at` |
-| 数据库/实体加载异常 | 使用异常类型名，不生成 Redis/Embedding 专属码 |
-| 重试次数耗尽 | 由仓储层进入 `ABANDONED`，gate 必须拒绝发布 |
-
-##### 5. Good/Base/Bad Cases
-
-- Good：EmbeddingUnavailable 记录为 `EMBEDDING_UNAVAILABLE`，任务保留 `next_retry_at`。
-- Base：Redis 写入连接失败记录为 `REDIS_UNAVAILABLE`，不写入 `search_document` 完成状态。
-- Bad：对所有可重试异常统一写 `REDIS_UNAVAILABLE`，导致监控和修复方向错误。
-
-##### 6. Tests Required
-
-- `tests/jobs/indexer/test_main_multi_entity.py`：断言 EmbeddingUnavailable、EmbeddingRateLimited、Redis 连接失败分别产生准确错误码。
-- 断言三类故障的 `IndexBatchResult` 均为 `retried=1、failed=0`，且仓储收到 `mark_failed`。
-- 运行 `pytest tests/jobs/indexer tests/jobs/scheduler tests/rag` 与 `python -m compileall -q jobs/indexer`。
-
-##### 7. Wrong vs Correct
-
-##### Wrong
-
-```python
-code = "REDIS_UNAVAILABLE" if _is_retryable(error) else type(error).__name__
-```
-
-##### Correct
-
-```python
-if isinstance(error, EmbeddingUnavailable):
-    code = "EMBEDDING_UNAVAILABLE"
-elif isinstance(error, RedisConnectionError):
-    code = "REDIS_UNAVAILABLE"
-```
+> 本节已拆为独立文件：[Agent 离线任务契约](./offline-jobs.md)。覆盖 importer / indexer / backfill / scheduler 的幂等、锁、重试与错误分类。在线链路改动无需读它；改离线任务时必须读。
 
 ## Agent 角色、提示词与流式输出契约
 

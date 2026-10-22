@@ -3,7 +3,7 @@
 本文件是 **agent ↔ `docs/spec/openapi.yaml`** 这条边界上「哪些行为被测试钉住、怎么钉、钉不住什么」的单一来源。
 对应 OpenSpec capability：`agent-business-contract`、`agent-stream-wire-contract`、`pending-action-protocol`（2026-10-22 归档）。
 
-> 与其他规范的关系：SSE **帧格式细节**与**待确认动作的时序/门禁**仍以 [Agent 编排与流式协议](./agent-guidelines.md#scenario-agent-sse-事件契约) 和 [安全写操作](./agent-guidelines.md#安全写操作) 为准；本文件不复制那两处正文，只补充「这两者由哪些测试钉住、钉到什么程度」。
+> 与其他规范的关系：SSE **帧格式细节**与**待确认动作的时序/门禁**仍以 [Agent 编排与流式协议](./agent-guidelines.md#scenario-agent-sse-事件契约) 和 [Agent 安全写操作契约](./write-operations.md) 为准；本文件不复制那两处正文，只补充「这两者由哪些测试钉住、钉到什么程度」。
 
 > **两份 spec 的分工（请勿合并或删除任一侧）**：本文件是**日常开发读的执行规范**；
 > `openspec/specs/` 下的三份 spec（`agent-business-contract`、`agent-stream-wire-contract`、
@@ -30,7 +30,7 @@ CI 步骤位于 `.github/workflows/ci.yml` 的 `backend-python` job，名为 `co
 
 ## 1. Scope / Trigger
 
-- 触发：修改 `backend/agent/app/**` 下任何出站 HTTP 调用（method/path/请求字段）、`docs/spec/openapi.yaml`、SSE 序列化（`app/api/sse.py`、`app/schemas/sse.py`）、或 `app/chat/pending_action.py` 及其持久化路径。
+- 触发：修改 `backend/agent/app/**` 下任何出站 HTTP 调用（method/path/请求字段）、`docs/spec/openapi.yaml`、SSE 序列化（`app/api/sse.py`、`app/api/schemas/sse.py`）、或 `app/chat/pending_action.py` 及其持久化路径。
 - 目标：让「agent 与契约文件不一致」在 CI 变红，而不是在线上暴露。
 - 不适用：契约与 Java 源码的一致性（见第 8 节边界声明，无自动校验）。
 
@@ -109,7 +109,7 @@ CI 步骤位于 `.github/workflows/ci.yml` 的 `backend-python` job，名为 `co
 ## 6. Tests Required
 
 - **HTTP 侧**：新增/修改任何出站调用必须跑 `uv run pytest tests/contracts -q`；调用点数量变化时同步更新期望构成（当前 25 = 24 + 1 探针）。
-- **SSE 侧**：改 `app/api/sse.py` 或 `app/schemas/sse.py` 时，除了契约套件，还要跑 `tests/api/test_sse_serialization.py`（帧形态与响应头的第一道回归）。
+- **SSE 侧**：改 `app/api/sse.py` 或 `app/api/schemas/sse.py` 时，除了契约套件，还要跑 `tests/api/test_sse_serialization.py`（帧形态与响应头的第一道回归）。
 - **PendingAction 侧**：改 `app/chat/pending_action.py` 时同时跑 `tests/contracts/test_preview_contract.py` 与既有的 `tests/agent/test_collection_type.py`、`test_subject_resolution.py`（后两者用 `by_alias=True` 做往返）。
 - **契约侧**：改 `docs/spec/openapi.yaml` 后必须跑契约套件；孤儿 schema 与悬空 `$ref` 都会被打成红灯。
 

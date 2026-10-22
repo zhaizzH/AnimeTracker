@@ -22,7 +22,7 @@
 | 工具错误 | use case 返回 available/reason/personalizationNotice；工具 `_items` 保留 `{available:false,reason,items:[]}` | 模型可区分不可用和正常无结果，但仍需真实回放验证回答是否正确解释 |
 | Evidence 重复 ID | `authority.py::enrich_evidence` 在 `by_id` 赋值前检测已见 subjectId，命中即整批 fail-closed | 已实现拒绝：`available=false`、`reason=evidence_unavailable`、空候选，日志 `errorType="duplicate_subject_id"`；不再静默后者胜 |
 | 适配器出参校验 | `HttpBusinessGateway.batch_subjects/batch_evidence/resolve_evidence/save_collection` 依赖上游 typed 工具，不自校验 ID/类型 | **backlog（12e）**：纵深校验会改动四方法的出参与错误语义，需先确认与上游 typed 工具的职责划分 |
-| 静默异常分类 | `retrieval.py`（4 处）、`entity_resolution.py`（3 处）、`authority.py`（1 处）、`main.py`（3 处）多处 `except Exception` 把不同根因坍缩为单一降级 | **backlog（12f）**：细分类会变更降级语义与 `log_event` errorType，需先定义错误分类契约 |
+| 静默异常分类 | `retrieval.py`（4 处）、`entity_resolution.py`（1 处）、`authority.py`（1 处）、`main.py`（3 处）共 9 处 `except Exception` 把不同根因坍缩为单一降级（实测 2026-10-22：`grep -c "except Exception"` 逐个文件计数；原记录误写 `entity_resolution.py` 为 3 处） | **backlog（12f）**：细分类会变更降级语义与 `log_event` errorType，需先定义错误分类契约 |
 | 两套转义表 | `lexical.py` 保留 `_REDIS_RESERVED` 与 `_REDIS_TAG_RESERVED`（后者保逗号），语义不同 | **backlog**：不合并；合并会改动 Redis 查询转义契约，需回归 `tests/rag/test_lexical_contract.py` 后独立任务处理 |
 | 个性化降级可观测性 | `redis/user_preference.py::load` 对「无收藏」「向量构建失败」「版本不可用」统一返回 `missing=True`，经 `personalizationNotice` 通道对外同形 | **backlog**：版本解析失败已在运维侧以 `logger.warning` 区分（`main._resolve_active_index_version`），但对外仍无法与「用户本就无收藏」区分；改 `personalizationNotice` 会牵动 Prompt 与前端契约，需独立任务 |
 

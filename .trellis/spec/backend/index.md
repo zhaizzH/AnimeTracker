@@ -15,7 +15,9 @@
 | 主题 | 内容 |
 |---|---|
 | [架构与模块边界](./directory-structure.md) | 目标九模块、现有实现对照、Auth/Infrastructure/Java Agent 设计、app/rag 拆分（2026-10-05）、pojo/Converter 与迁移验收 |
-| [Agent 编排与运行](./agent-guidelines.md) | 角色工具、Prompt、运行契约、SSE 与编排 |
+| [Agent 编排与运行](./agent-guidelines.md) | 角色工具、Prompt、组合路由、SSE 事件契约、Gateway 解析、认证与配置 |
+| [Agent 安全写操作](./write-operations.md) | 预览→确认→执行协议、`write_guard` 硬门禁、PendingAction 三变体差异、持久化失败矩阵、SUBJECT_RESOLUTION 选择 |
+| [Agent 离线任务](./offline-jobs.md) | importer / indexer / backfill / scheduler 的幂等、锁、重试与错误分类 |
 | [数据与存储](./database-guidelines.md) | MySQL、MyBatis、SQLAlchemy、Redis、MinIO 公开 URL、Schema 与存储约束 |
 | [RAG 检索与版本发布](./rag-retrieval-contract.md) | 检索、发布 gate、灰度、回滚与 Evidence 边界 |
 | [Agent↔Business 契约测试](./contract-tests.md) | 契约套件范围与运行、调用点/请求字段断言、SSE 与 pending-action 的 wire 契约、无法自动校验的边界 |
@@ -54,9 +56,9 @@ CI 当前执行 Java `mvn -B test`、Python `uv run pytest` 和前端 typecheck�
 
 | 原文件 | 当前主题 |
 |---|---|
-| `auth-module-design.md` | [directory-structure.md](./directory-structure.md#business-auth-模块目标设计) |
-| `infrastructure-module-design.md` | [directory-structure.md](./directory-structure.md#business-infrastructure-模块目标设计) |
-| `business-agent-module-design.md` | [directory-structure.md](./directory-structure.md#business-java-agent-模块目标设计) |
+| `auth-module-design.md` | [java-modules-auth.md](./java-modules-auth.md) |
+| `infrastructure-module-design.md` | [java-modules-infrastructure.md](./java-modules-infrastructure.md) |
+| `business-agent-module-design.md` | [java-modules-agent.md](./java-modules-agent.md) |
 | `agent-runtime-contract.md` | [agent-guidelines.md](./agent-guidelines.md#agent-角色提示词与流式输出契约) |
 | `logging-guidelines.md` | [error-handling.md](./error-handling.md#日志与可观测性规范) |
 | `java-javadoc-guidelines.md` | [quality-guidelines.md](./quality-guidelines.md#java-后端-javadoc-规范) |

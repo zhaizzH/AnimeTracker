@@ -3,9 +3,9 @@
 同层相关规范按主题合并；目标设计与当前实现的状态标记保留，各章节约束继续有效。
 
 - [后端目录与依赖边界](#后端目录与依赖边界)
-- [Business Auth 模块目标设计](#business-auth-模块目标设计)
-- [Business Infrastructure 模块目标设计](#business-infrastructure-模块目标设计)
-- [Business Java Agent 模块目标设计](#business-java-agent-模块目标设计)
+- [Business Auth 模块目标设计](./java-modules-auth.md)
+- [Business Infrastructure 模块目标设计](./java-modules-infrastructure.md)
+- [Business Java Agent 模块目标设计](./java-modules-agent.md)
 
 ## 后端目录与依赖边界
 
@@ -92,13 +92,13 @@ backend/agent/                # FastAPI + LangGraph，:8090
 
 - `log`：操作日志采集、存储、清理和查询统一归属；admin 保留管理端接口、权限与 VO 转换。详见 [操作日志模块目标设计](./error-handling.md#business-操作日志模块已实施设计)。
 - Converter：各模块独立维护，位置与迁移边界见下一节。
-- `auth`：Token、请求认证和会话技术能力归属 auth；client/admin 保留账户业务决策，app 负责安全装配。详见 [Auth 模块目标设计](./directory-structure.md#business-auth-模块目标设计)。
-- `infrastructure`：并入现有 Redis、限流、图片存储、邮件发送等技术实现及对应通用技术接口；业务方使用公开能力接口，app 负责启动和装配。迁移清单与约束见 [Infrastructure 模块目标设计](./directory-structure.md#business-infrastructure-模块目标设计)。
+- `auth`：Token、请求认证和会话技术能力归属 auth；client/admin 保留账户业务决策，app 负责安全装配。详见 [Auth 模块目标设计](./java-modules-auth.md)。
+- `infrastructure`：并入现有 Redis、限流、图片存储、邮件发送等技术实现及对应通用技术接口；业务方使用公开能力接口，app 负责启动和装配。迁移清单与约束见 [Infrastructure 模块目标设计](./java-modules-infrastructure.md)。
 - `common` 收紧为通用结果、分页、错误类型等基础定义；HTTP 异常适配归 app。日志与身份协作方向已确认为 log → auth → infrastructure → common。
 
 #### Java agent 通信边界（已确认）
 
-Java agent 统一负责 Python Agent 通信，原 admin 的 ImportAgentGateway 与 app 的 HttpImportAgentGateway 一并迁入；admin 保留导入业务校验与记录查询。依赖单向为 admin → agent，agent 不反向引用 admin，数据模型继续归 pojo，app 负责装配。详见 [Java Agent 模块目标设计](./directory-structure.md#business-java-agent-模块目标设计)。
+Java agent 统一负责 Python Agent 通信，原 admin 的 ImportAgentGateway 与 app 的 HttpImportAgentGateway 一并迁入；admin 保留导入业务校验与记录查询。依赖单向为 admin → agent，agent 不反向引用 admin，数据模型继续归 pojo，app 负责装配。详见 [Java Agent 模块目标设计](./java-modules-agent.md)。
 
 #### common 与 app 边界（已确认）
 
@@ -252,223 +252,12 @@ AgentService agentService(RestTemplate restTemplate, ObjectMapper mapper, AgentP
 - Controller/Router 内堆积事务、批处理或复杂状态转换。
 - 不得只因父 POM 已引入 ArchUnit 就假设边界完整；当前自动保护由 `ArchitectureBoundaryTest` 提供，边界或配置迁移后必须运行 `mvn -B clean test`。
 
-## Business Auth 模块目标设计
+## 三个目标模块的设计细则
 
-状态：已实施并通过 auth/infrastructure 针对性测试及 Business reactor 测试。`auth` Maven 模块已承接原 common 与 client 中的认证技术能力，当前接口和包路径以源码为准。
+以下三个模块的完整设计（Scope / Signatures / Contracts / Validation / Good-Bad / Tests / Wrong-Correct）已拆为独立文件，按需读取：
 
-### 1. Scope / Trigger
-
-| 模块 | 已确认职责 |
+| 模块 | 文件 |
 |---|---|
-| auth | Token 签发与验证、请求认证、会话刷新与撤销、技术过期策略 |
-| client | 注册、登录业务校验、邮箱验证、重置密码等用户业务 |
-| admin | 用户管理、角色修改、禁用用户等管理员业务 |
-| app | 安全配置和模块装配 |
-
-业务层决定何时签发或撤销，auth 执行认证技术操作。不得将整个 AuthServiceImpl 因类名含 Auth 就迁入 auth。
-
-### 2. Signatures / 迁移入口
-
-当前实现的认证能力签名如下；实现位于 `auth.security`，会话数据类型位于 `pojo.dto.auth`：
-
-```java
-// auth.security.JwtTokenProvider
-String generateToken(Long userId, String role);
-boolean validateToken(String token);
-// auth.security.AuthSessionStore
-void saveRefresh(String rawToken, Long userId, long startedAtEpochMs, long ttlMs);
-Optional<ConsumedRefreshSession> consumeRefresh(String rawToken);
-void revokeAccess(String rawToken);
-void revokeRefresh(String rawToken);
-void revokeAll(Long userId);
-```
-
-迁移对象包括 JwtTokenProvider、JwtAuthenticationFilter、AuthSessionStore、认证身份类型，以及 client 的会话生成方法中的随机令牌生成、access 白名单维护、refresh 保存与技术过期计算。账户查询、启用状态校验和 UserVO 组装留在 client。
-
-认证公开能力、返回类型和包结构已按实施设计落地；不要求将所有存储方法直接暴露给业务方。业务 DTO/VO/Entity 统一归 pojo；UserVO/LoginVO 的类型声明留在 pojo，组装职责留在 client，不能把类型声明与组装逻辑一起迁入 auth。
-
-### 3. Contracts / 边界与保留行为
-
-- client/admin 调用 auth 的能力，传入已由业务验证的 userId、role 等必要身份信息；auth 不依赖 client/admin/app 实现，不查询业务 UserMapper，不返回面向用户端的 UserVO/LoginVO。
-- client 决定注册唯一性、初始角色、邮箱验证、登录资格与密码重置；admin 决定角色修改、禁用及保护规则。重置密码、修改角色、禁用用户后的会话撤销，由业务流程触发 auth 执行。
-- 刷新保持先原子消费 refresh，再由业务查询账户并检查存在/启用状态，最后完成寿命校验与重新签发的行为；原始会话起点不能因刷新重置。业务校验由 client/admin 完成，auth 通过 `AuthTokenService.issue` 执行会话寿命计算与签发。
-- refresh TTL 保持为配置有效期与剩余绝对会话时长中的较小值；迁移不得修改现有配置 key、单位或默认值。
-- Redis 中使用 Token 的 SHA-256 摘要作键，保留 access 白名单和 access/refresh 用户索引；refresh 消费保留 GETDEL 的单次消费语义。
-- 请求认证保持 JWT 验证与 access 白名单双重检查；app 负责安全链装配与路由规则，不能在 auth 中混入管理员用户管理规则。
-- HTTP 路由、响应字段、at_refresh HttpOnly Cookie 与 401/403 协议保持现状。客户端响应和 Cookie 处理不因内部模块迁移自动改变归属或行为。
-- 已确认依赖方向为 `log → auth → infrastructure → common`：log 通过 auth 读取当前身份，auth 使用 infrastructure 的 Redis 能力，不反向依赖 log。
-- 现有 `SecurityUtil` 随身份读取能力迁入 auth；`CookieOriginFilter` 随请求安全机制归 auth，由 app 提供配置并唯一注册。Spring Security 身份实现仍归 auth；纯业务 DTO/VO/Entity 遵守 pojo 统一规则。
-- auth 内不使用 log 的操作日志注解或存储服务。需要记录登录/会话业务操作时，由 client/admin 等上层调用方采集；auth 的普通运行日志使用 SLF4J，不引入 log 模块。
-
-### 4. Validation & Error Matrix
-
-| 条件 | 必须保持的行为 |
-|---|---|
-| refresh 缺失、空白、失效或已消费 | UNAUTHORIZED，不签发新会话 |
-| 刷新时账户不存在或被禁用 | 业务层拒绝，返回 UNAUTHORIZED |
-| 绝对会话有效期耗尽 | UNAUTHORIZED，不重置会话起点续期 |
-| 同一个 refresh 并发使用 | 最多一个请求成功消费 |
-| JWT 无效或不在 access 白名单 | 不建立已认证身份，继续由安全链按路由决定响应 |
-| 用户业务要求撤销全部会话 | 删除该用户 access/refresh 凭据及对应索引 |
-
-### 5. Good / Base / Bad Cases
-
-- Good：admin 校验管理员权限与被操作用户保护规则，修改用户后调用 auth 撤销会话。
-- Base：client 完成登录业务校验，将身份交给 auth 签发，自己通过 Converter 组装用户端响应。
-- Bad：auth 依赖 AdminUserServiceImpl，或直接查询 UserMapper 决定注册、禁用、邮箱修改规则。
-
-### 6. Tests Required
-
-- 架构：auth 不反向依赖 client/admin/app/log 的实现，业务方不继续自行维护 Token 存储与生成细节；身份读取保持匿名场景返回空身份的既有语义。
-- 会话：refresh 单次消费、绝对寿命、TTL 上界及原始起点保持一致；单会话与全部会话撤销均验证凭据和索引。
-- 业务：登录资格、邮箱验证、禁用/角色修改/重置密码触发撤销的行为保持一致。
-- HTTP 与装配：JWT 与白名单双重校验、既有 401/403 和 Cookie 行为、安全组件唯一装配。
-
-### 7. Wrong vs Correct
-
-- Wrong：把注册、邮件验证、UserMapper 与 UserVO 连同 Token 代码整包搬入 auth。
-- Correct：业务保留账户决策，auth 封装认证机制，app 组合安全配置。
-
-### 代码证据
-
-- `backend/business/auth/src/main/java/top/zhaizz/auth/security/AuthSessionStore.java`
-- `backend/business/auth/src/main/java/top/zhaizz/auth/security/JwtTokenProvider.java`
-- `backend/business/auth/src/main/java/top/zhaizz/auth/security/JwtAuthenticationFilter.java`
-- `backend/business/client/src/main/java/top/zhaizz/client/service/impl/AuthServiceImpl.java`
-- `backend/business/client/src/main/java/top/zhaizz/client/service/impl/VerificationServiceImpl.java`
-- `backend/business/admin/src/main/java/top/zhaizz/admin/service/impl/AdminUserServiceImpl.java`
-
-## Business Infrastructure 模块目标设计
-
-状态：已实施；Redis、限流、图片存储和邮件实现已迁入 infrastructure，并通过针对性测试。Agent 专属导入通信已确定归 Java agent；身份与日志协作采用 log → auth → infrastructure → common。
-
-### 1. Scope / Trigger
-
-新增 `infrastructure` Maven 模块，承接 Redis、限流、图片存储、邮件发送等技术实现，内部按能力分包。必须迁移并复用现有代码，不能新建空模块或平行实现而保留原有生产实现。`app` 负责启动与组合装配。
-
-这不是所有持久化代码的集中仓库：auth 的 Token/会话规则、log 的操作日志查询/存储/清理、client/admin 的业务查询和规则仍属于各自所有者。Redis 通用访问可供这些模块使用，不代表其业务键、TTL 决策或 Mapper 也必须迁入 infrastructure。
-
-### 2. Signatures / 现有迁移入口
-
-现有技术接口（迁移保持行为，通用接口与实现均归 infrastructure 的对应能力包）：
-
-```java
-boolean allowOrCount(String bucket, int limit, int windowSeconds);
-void reset(String bucket);
-String upload(MultipartFile file, ImageCategory category);
-void send(String recipient, String subject, String text);
-```
-
-| 当前来源（Java 包或模块） | 并入目标 |
-|---|---|
-| common.util.RedisUtil | infrastructure 的 Redis 能力包 |
-| common.ratelimit 的 RateLimit、RateLimitAspect、RateLimiter | infrastructure 的限流能力包 |
-| app.infrastructure.storage.minio 的 MinioImageStorageGateway | infrastructure 的图片存储能力包 |
-| app.infrastructure.email 的 ResendEmailGateway | infrastructure 的邮件能力包 |
-| client.gateway.EmailGateway | infrastructure.email 的公开接口 |
-| common.storage.ImageStorageGateway/ImageCategory | infrastructure.storage 的公开接口及参数类型 |
-
-与实现相伴的 MinioConfig、MinioProperties、ResendConfig 必须纳入迁移审查：供应商客户端构建与初始化属于技术实现，组合启用由 app 负责；禁止迁移时重复注册 Bean、重复初始化存储桶或遗漏配置绑定。供应商配置与 Properties 随能力位于 infrastructure 内，由 app 组合启用；应用级安全、CORS 与跨模块装配继续归 app。
-
-`EmailGateway` 与 `ImageStorageGateway` 等通用技术接口统一归入 infrastructure 对应能力包，不再留在 client/admin/common；配套参数类型 ImageCategory 随接口迁入 storage。`agent.gateway.HttpImportAgentGateway` 与原 admin 的 ImportAgentGateway 已统一归入 Java agent，admin 单向调用 agent，见 [Java Agent 模块目标设计](./directory-structure.md#business-java-agent-模块目标设计)。
-
-### 3. Contracts / 迁移约束
-
-- 以搬迁、调整依赖与调用方为主，保留已有实现逻辑；不另写一套 Redis、限流、MinIO、Resend 生产实现。
-- 对每项能力同时核对实现、接口、调用方、配置、依赖声明和测试；旧路径不能保留仍被装配的副本。
-- app 保留应用配置入口和组合装配；基础设施不得反向依赖 app 的类型。
-- 业务模块依赖 infrastructure 的公开能力接口；供应商实现与 SDK 使用限制在 infrastructure 内部，app 负责装配。通用技术能力不反向依赖 client/admin/agent/auth/log/app 的实现。
-- 同模块内按能力组织公开接口与实现，例如 `infrastructure.email.EmailGateway` 与 `infrastructure.email.resend.ResendEmailGateway`，`infrastructure.storage.ImageStorageGateway` 与 `infrastructure.storage.minio.MinioImageStorageGateway`。业务方不得直接构造或引用供应商实现。
-- 接口迁移同时更新实现的 implements、全部消费者与测试 import、Maven 依赖和装配扫描；不在旧业务包中保留平行接口来掩盖循环依赖。
-- 不要求给每个 Redis 薄封装机械新增接口；已有通用接口统一归属，新增抽象必须有实际使用需求。专属 Agent 导入接口不能仅因后缀为 Gateway 就视为通用技术接口。
-- 邮件收件人、模板内容、业务触发时机仍由 client 等业务所有者决定；限流配额和业务成功后的 reset 时机由使用方决定。
-- 保留现有配置 key、单位、默认值和外部协议。供应商 SDK 类型不得暴露给业务；图片接口目前接受 MultipartFile，不因本次搬迁擅自改签名。
-
-### 4. Validation & Error Matrix
-
-| 场景 | 迁移要求 |
-|---|---|
-| 限流计数返回 null | 保持现有 allowOrCount 返回 true 的逻辑 |
-| 超出限额 | 保持拒绝行为和既有 HTTP 429 映射 |
-| Redis 抛异常 | 按 RedisUtil 实现和调用方核对，不凭注释声称所有故障均放行 |
-| 图片校验/上传或邮件发送失败 | 保留当前错误映射，不吞错或返回伪造成功结果 |
-| 迁移后重复 Bean 或循环依赖 | 视为迁移未完成，不能靠同时保留两套实现交付 |
-
-### 5. Good / Base / Bad Cases
-
-- Good：现有 ResendEmailGateway 搬入新模块，配置与调用方同步调整，业务仍决定发送内容。
-- Base：复用 RedisUtil 和 RateLimiter，保持计数、窗口、reset 及错误语义。
-- Bad：新建 InfrastructureRedisUtil，同时让 common.RedisUtil 继续承担实际生产调用；或把会话、收藏规则一并塞入 infrastructure。
-
-### 6. Tests Required
-
-- Maven 依赖图无循环；通用技术能力不反向依赖业务实现或 app；业务调用方不再引用迁出的旧接口/实现路径，也不直接依赖供应商实现或 SDK 类型。
-- 配置与上下文验证：所需 Bean 唯一注册，MinIO 初始化和邮件客户端配置行为保持一致。
-- Redis/限流覆盖窗口、超限、reset 与故障行为；图片/邮件覆盖成功及原有失败路径，迁移已有测试而非只新增空模块测试。
-- 清理审查：旧实现、旧扫描/导入、冗余依赖与旧测试路径同步处理；运行相关模块及完整 Business 构建测试。
-
-### 7. Wrong vs Correct
-
-- Wrong：只新增 infrastructure 模块，把现有 common/app 技术实现标记为以后再搬，却宣称迁移完成。
-- Correct：逐项完成现有实现、调用、配置、依赖和测试的迁移，旧生产实现不再残留，验证通过后再标记实施完成。
-
-证据目录：`backend/business/infrastructure/src/main/java/top/zhaizz/infrastructure/{redis,ratelimit,storage,email}`、`backend/business/agent/src/main/java/top/zhaizz/agent/gateway`、`backend/business/app/src/main/java/top/zhaizz/app/config/AgentConfig.java`。
-
-## Business Java Agent 模块目标设计
-
-状态：已实施；Java Agent HTTP/SSE 与导入网关已归 agent，app 负责装配。此处 agent 指 backend/business/agent，不改变 Python backend/agent 内部架构。
-
-### 1. Scope / Trigger
-
-Java agent 统一负责与 Python Agent 的 HTTP/SSE 通信。现有 ClientAgentController、AdminAgentController、AgentService 继续承担代理职责；导入通信接口及实现一并迁入 agent。admin 保留管理权限、导入业务校验、导入状态和记录查询。
-
-### 2. Signatures / 迁移入口
-
-保留 `void runImport(String authorization, ImportRunDTO request)`，请求类型仍在 pojo。
-
-| 当前来源 | 目标 |
-|---|---|
-| agent.gateway.ImportAgentGateway | agent 的公开导入通信接口 |
-| agent.gateway.HttpImportAgentGateway | agent 内部 HTTP 实现 |
-| pojo.dto.imprt.ImportRunDTO | 继续归 pojo |
-| admin.service.impl.ImportServiceImpl | 保留 admin 业务流程，更新接口引用 |
-
-### 3. Contracts
-
-- 依赖单向为 admin → agent，agent 不依赖 admin/client 的接口或实现，DTO/VO/Entity 使用 pojo。
-- app 装配模块并提供 URL、超时与 HTTP 客户端。迁入的 HttpImportAgentGateway 不得继续引用 app.config.AgentProperties，应通过构造器接受所需普通参数。
-- POST 保持 mode、key、since、workers 查询参数、可选参数省略规则、URI 编码及 Authorization 透传。
-- 模式校验和 season/key、since/since 要求留在 admin；导入记录 Mapper 与统计查询不迁入 agent 或 infrastructure。
-- 已有普通代理与 SSE 的序列化、请求追踪、超时和转发行为保持一致。导入错误映射与通用代理不同，不能为复用强制统一。
-- 复用现有 HTTP 实现，迁移接口、调用方、配置和测试，不保留旧 app 实现副本。
-
-### 4. Validation & Error Matrix
-
-| 条件 | 保留语义 |
-|---|---|
-| 不支持的 mode，或 season 缺 key / since 缺 since | admin 返回 BAD_REQUEST，不调用上游 |
-| 上游 409 | CONFLICT，已有导入任务运行中 |
-| 其他上游 4xx / 5xx | 分别为 BAD_REQUEST / INTERNAL_ERROR |
-| 网络连接失败 | INTERNAL_ERROR，Agent 导入服务连接失败 |
-
-导入网关当前已将非 409 上游 HTTP 错误转换为通用消息，不拼接上游错误正文；仍需补齐错误分类与正文不泄露的回归测试。
-
-### 5. Good / Base / Bad Cases
-
-- Good：admin 校验后调用 agent 的接口，agent 使用 pojo 请求与 Python 通信，app 提供配置。
-- Base：保留既有代理 Controller/Service，迁入散落在 admin/app 的导入通信代码。
-- Bad：admin 依赖 agent，但 agent 仍实现 admin 内的接口，或仍注入 app 的 Properties 类型。
-
-### 6. Tests Required
-
-- 边界：admin 可依赖 agent，agent 不依赖 admin/client/app；旧接口和实现引用同步清理。
-- 请求：模式校验、可选参数、URI 编码、Authorization 透传。
-- 错误：409、其他 4xx/5xx、网络失败保持分类，敏感错误正文不泄露。
-- 回归：装配唯一，普通代理和 SSE 超时/透传测试继续通过。
-
-### 7. Wrong vs Correct
-
-- Wrong：admin → agent → admin，或 app → agent → app。
-- Correct：admin → agent → pojo/common，app 单向装配下层模块；按实际使用显式声明依赖。
-
-证据：`backend/business/admin/src/main/java/top/zhaizz/admin/service/impl/ImportServiceImpl.java`、`backend/business/agent/src/main/java/top/zhaizz/agent/gateway/ImportAgentGateway.java`、`backend/business/agent/src/main/java/top/zhaizz/agent/gateway/HttpImportAgentGateway.java`。
+| Auth（Token / 会话 / 认证机制归属） | [java-modules-auth.md](./java-modules-auth.md) |
+| Infrastructure（Redis / 限流 / 图片 / 邮件技术实现） | [java-modules-infrastructure.md](./java-modules-infrastructure.md) |
+| Java Agent（Python Agent 通信、导入网关） | [java-modules-agent.md](./java-modules-agent.md) |

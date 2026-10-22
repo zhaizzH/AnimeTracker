@@ -2,7 +2,7 @@
 
 - **状态**：accepted
 - **记录日期**：2026-10-12
-- **相关规范**：[backend/directory-structure.md](../backend/directory-structure.md#business-auth-模块目标设计)、`backend/agent/app/api/deps.py`
+- **相关规范**：[backend/java-modules-auth.md](../backend/java-modules-auth.md)、`backend/agent/app/api/deps.py`
 
 ## 背景
 
