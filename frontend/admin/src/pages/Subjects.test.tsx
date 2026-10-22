@@ -30,7 +30,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   subjectsApi.search.mockResolvedValue({ content: [ROW], total: 1 });
   subjectsApi.years.mockResolvedValue([2025, 2026]);
-  tagsApi.list.mockResolvedValue([{ name: '动作' }, { name: '日常' }]);
+  tagsApi.list.mockResolvedValue([{ id: 1, name: '动作', count: 12 }, { id: 2, name: '日常', count: 8 }]);
 });
 afterEach(cleanup);
 
@@ -66,9 +66,14 @@ describe('Subjects', () => {
     renderSubjects();
     await screen.findByText('Original Title');
 
-    // tag 多选
-    await u.click(screen.getByLabelText('标签 动作'));
-    await u.click(screen.getByLabelText('标签 日常'));
+    // tag 多选：胶囊按钮多选，数量展示来自 TagVO.count
+    await u.click(screen.getByRole('button', { name: '动作 (12)' }));
+    await waitFor(() =>
+      expect(subjectsApi.search).toHaveBeenLastCalledWith(
+        expect.objectContaining({ tag: ['动作'], page: 1 }),
+      ),
+    );
+    await u.click(screen.getByRole('button', { name: '日常 (8)' }));
     await waitFor(() =>
       expect(subjectsApi.search).toHaveBeenLastCalledWith(
         expect.objectContaining({ tag: ['动作', '日常'], page: 1 }),
@@ -90,6 +95,48 @@ describe('Subjects', () => {
     await u.click(screen.getByRole('combobox', { name: '星期' }));
     await u.click(await screen.findByRole('option', { name: '周三' }));
     await waitFor(() => expect(subjectsApi.search).toHaveBeenLastCalledWith(expect.objectContaining({ weekday: 3 })));
+  });
+
+  it('重置清空全部筛选与输入框', async () => {
+    const u = userEvent.setup();
+    renderSubjects();
+    await screen.findByText('Original Title');
+
+    await u.type(screen.getByLabelText('搜索番剧'), 'naruto');
+    await u.click(screen.getByRole('button', { name: '搜索' }));
+    await u.type(screen.getByLabelText('最低评分'), '6');
+    await u.click(screen.getByRole('button', { name: '动作 (12)' }));
+    await waitFor(() => expect(subjectsApi.search).toHaveBeenLastCalledWith(expect.objectContaining({ q: 'naruto', scoreMin: 6, tag: ['动作'] })));
+
+    await u.click(screen.getByRole('button', { name: '重置' }));
+    await waitFor(() => expect(subjectsApi.search).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1 })));
+    expect(subjectsApi.search.mock.lastCall?.[0]).not.toHaveProperty('q');
+    expect(subjectsApi.search.mock.lastCall?.[0]).not.toHaveProperty('scoreMin');
+    expect(subjectsApi.search.mock.lastCall?.[0]).not.toHaveProperty('tag');
+    expect((screen.getByLabelText('搜索番剧') as HTMLInputElement).value).toBe('');
+    expect((screen.getByLabelText('最低评分') as HTMLInputElement).value).toBe('');
+  });
+
+  it('标签多于阈值时按热度折叠，选中项置顶，并可搜索过滤', async () => {
+    const u = userEvent.setup();
+    // 14 个标签：超过 TAG_LIMIT(12) 才出现标签搜索框与“展开全部”
+    tagsApi.list.mockResolvedValue(
+      Array.from({ length: 14 }, (_, i) => ({ id: i + 1, name: `标签${i + 1}`, count: 20 - i })),
+    );
+    renderSubjects();
+    await screen.findByText('Original Title');
+
+    await u.click(await screen.findByRole('button', { name: '展开全部 14 个标签' }));
+    expect(await screen.findByRole('button', { name: '标签14 (7)' })).not.toBeNull();
+
+    // 搜索标签：只保留匹配项
+    await u.type(screen.getByLabelText('搜索标签'), '标签1');
+    expect(screen.queryByRole('button', { name: '标签2 (19)' })).toBeNull();
+    expect(screen.getByRole('button', { name: '标签13 (8)' })).not.toBeNull();
+
+    // 清除标签搜索，恢复折叠态标题（已展开）
+    await u.click(screen.getByRole('button', { name: '清除标签搜索' }));
+    expect((screen.getByLabelText('搜索标签') as HTMLInputElement).value).toBe('');
   });
 
   it('新建时 name 与 bangumiId 必填，校验拦截不发请求', async () => {

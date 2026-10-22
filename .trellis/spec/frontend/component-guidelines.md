@@ -43,6 +43,13 @@
 - 新增任何 `<X asChild>` 组合（radix `Slot`）时，先确认 `<X>` 的子节点能把 ref 落到真实 DOM；否则改用 `<Button onClick>` 手动受控，或把 asChild 放到真正的前向 ref 组件上。
 - 该 ref 链在 jsdom 下不报错也不告警：未前向 ref 时 radix 只是拿不到锚点，jsdom 没有真实布局，测试仍会通过。因此**功能正常不等于契约成立**，判定只能靠读源码或真实浏览器。
 
+### 筛选卡片骨架（两端同构）
+
+- 番剧筛选区统一为一张卡片：`flex flex-wrap gap-3 rounded-xl border bg-card p-4`；行内依次是关键词表单、下拉筛选、区间输入/按钮，标签区放在 `-mx-4 mt-4 w-full border-t px-4 pt-3` 的独立行。
+- 标签多选不用多选 Select，用可切换胶囊 `TagChip`（`aria-pressed` + 键盘可达）：client 在 `pages/AnimeIndex.tsx`，admin 在 `pages/Subjects.tsx`。折叠时按 `count` 取 Top-12，已选项恒置顶；标签数超过阈值才显示标签搜索框；内层 `max-h-[7.5rem]` 限高滚动，避免把下方结果顶出视口。
+- 关键词与数值区间用字符串输入态（`useState<string>`）+ 提交/变更时收窄成数字；不要直接把 `number` 回填进受控输入，`0.` 这类中间态会被抹平导致无法输入小数。
+- admin 的评分区间（`scoreMin`/`scoreMax`）与「新建番剧」是管理端独有维度，保留在卡片内，不为了“和 client 一致”而删。
+
 ### 可访问性
 
 - 图标按钮提供可读 label/tooltip，输入框提供 `aria-label` 或关联标签。

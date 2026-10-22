@@ -30,6 +30,7 @@ frontend/
 - client/admin 不互相相对导入。
 - 新共享导出先检查命名冲突；同名动作保持命名空间，不改成扁平 re-export。
 - 资源和全局样式保留在所有者应用，除非两个应用确实共用同一视觉契约。
+- 标签胶囊 `components/TagChip.tsx` 两端各持一份（client 供 `/anime` 索引与详情页，admin 供 `/subjects` 列表筛选），按 [ADR 0021](../adr/0021-shared-contract-visuals-vs-app-local-decorations.md) 作为装饰件各端自持，不因两端相同而上提 shared；改样式须两端同步。
 
 ## admin 页面与路由
 

@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { SearchIcon, XIcon } from 'lucide-react';
 import { adminSubjectsApi, subjectsApi, tagsApi } from '@shared';
+import { TagChip } from '@/components/TagChip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +23,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -42,29 +45,9 @@ import { toastError, toastSuccess } from '@/lib/toast';
 
 type SubjectFilters = { q?: string; tag?: string[]; scoreMin?: number; scoreMax?: number; year?: number; weekday?: number };
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-
-/** 多选标签筛选：antd Select mode=multiple 的等价实现（原生 checkbox，键盘可达）。 */
-function TagFilter({ tags, value, onChange }: { tags: string[]; value: string[]; onChange: (v: string[]) => void }) {
-  const toggle = (name: string, checked: boolean) =>
-    onChange(checked ? [...value, name] : value.filter((t) => t !== name));
-  return (
-    <fieldset className="flex flex-wrap items-center gap-3 rounded-md border px-3 py-2">
-      <legend className="px-1 text-sm text-muted-foreground">标签</legend>
-      {tags.length === 0 && <span className="text-sm text-muted-foreground">无标签</span>}
-      {tags.map((name) => (
-        <label key={name} className="flex items-center gap-1.5 text-sm">
-          <input
-            type="checkbox"
-            aria-label={`标签 ${name}`}
-            checked={value.includes(name)}
-            onChange={(e) => toggle(name, e.target.checked)}
-          />
-          {name}
-        </label>
-      ))}
-    </fieldset>
-  );
-}
+const ALL = '__all__';
+// 折叠时按热度展示的标签数，其余收入“展开全部”（与 client /anime 索引页一致）
+const TAG_LIMIT = 12;
 
 type FormState = {
   bangumiId?: string; name: string; nameCn?: string; summary?: string;
@@ -81,12 +64,48 @@ export default function Subjects() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<SubjectFilters>({});
   const setFilter = (patch: Partial<SubjectFilters>) => { setFilters((f) => ({ ...f, ...patch })); setPage(1); };
+  // 关键词与评分区间保留输入态字符串：受控于 filters 会把 “0.” 这类中间态抹成 “0”，无法继续输入小数
+  const [keyword, setKeyword] = useState('');
+  const [scoreMin, setScoreMin] = useState('');
+  const [scoreMax, setScoreMax] = useState('');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [formError, setFormError] = useState('');
   const { data: tags } = useQuery({ queryKey: ['tags'], queryFn: tagsApi.list, staleTime: 60_000 });
   const { data: years } = useQuery({ queryKey: ['subject-years'], queryFn: subjectsApi.years, staleTime: 60_000 });
+  // 展开与标签搜索只是视图状态，不进请求参数；已选标签始终置顶，避免冷门标签被折叠隐藏
+  const [tagsExpanded, setTagsExpanded] = useState(false);
+  const [tagQuery, setTagQuery] = useState('');
+  const selectedTags = filters.tag ?? [];
+  const searchingTags = tagQuery.trim().length > 0;
+  const showTagSearch = (tags?.length ?? 0) > TAG_LIMIT;
+
+  const visibleTags = useMemo(() => {
+    if (!tags) return [];
+    const kw = tagQuery.trim();
+    const pinned = tags.filter((t) => selectedTags.includes(t.name));
+    // 搜索时全量匹配而不截断，否则想找的标签可能被 Top-N 挡在结果外
+    const rest = tags.filter((t) => !selectedTags.includes(t.name) && (!kw || t.name.includes(kw)));
+    if (searchingTags || tagsExpanded) return [...pinned, ...rest];
+    return [...pinned, ...rest.sort((a, b) => b.count - a.count).slice(0, TAG_LIMIT)];
+  }, [tags, tagsExpanded, selectedTags, tagQuery, searchingTags]);
+  // 搜索时可见项是匹配子集，不能再拿总数差当“被折叠数”
+  const hiddenTagCount = searchingTags ? 0 : (tags?.length ?? 0) - visibleTags.length;
+
+  const toggleTag = (name: string) => {
+    const next = new Set(selectedTags);
+    if (next.has(name)) next.delete(name);
+    else next.add(name);
+    setFilter({ tag: next.size ? [...next] : undefined });
+  };
+  const reset = () => {
+    setFilters({});
+    setKeyword('');
+    setScoreMin('');
+    setScoreMax('');
+    setPage(1);
+  };
   const { data, isLoading } = useQuery({ queryKey: ['admin-subjects', filters, page], queryFn: () => subjectsApi.search({ ...filters, page, size: 20, sort: 'score', order: 'desc' }) });
   const inval = () => { qc.invalidateQueries({ queryKey: ['admin-subjects'] }); };
   const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setFormError(''); setOpen(true); };
@@ -131,57 +150,117 @@ export default function Subjects() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-4">
+      {/* 搜索卡片与 client /anime 索引页保持同一骨架：rounded-xl 卡片 + 行内筛选 + 底部标签胶囊区 */}
+      <div className="flex flex-wrap gap-3 rounded-xl border bg-card p-4">
         <form
-          className="flex items-center gap-2"
-          onSubmit={(e) => { e.preventDefault(); const v = new FormData(e.currentTarget).get('q'); setFilter({ q: String(v ?? '').trim() || undefined }); }}
+          className="flex gap-2"
+          onSubmit={(e) => { e.preventDefault(); setFilter({ q: keyword.trim() || undefined }); }}
         >
-          <Input name="q" placeholder="搜索番剧" aria-label="搜索番剧" className="w-[220px]" />
-          <Button type="submit" variant="outline" size="sm">搜索</Button>
+          <Input
+            aria-label="搜索番剧"
+            placeholder="搜索番剧"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            className="w-[200px]"
+          />
+          <Button type="submit" variant="outline">搜索</Button>
         </form>
 
-        <TagFilter
-          tags={(tags ?? []).map((t) => t.name)}
-          value={filters.tag ?? []}
-          onChange={(v) => setFilter({ tag: v.length ? v : undefined })}
-        />
-
-        <Input
-          type="number" min={0} max={10} step={0.1} placeholder="最低评分" aria-label="最低评分"
-          className="w-[120px]"
-          onChange={(e) => setFilter({ scoreMin: toNumber(e.target.value) })}
-        />
-        <Input
-          type="number" min={0} max={10} step={0.1} placeholder="最高评分" aria-label="最高评分"
-          className="w-[120px]"
-          onChange={(e) => setFilter({ scoreMax: toNumber(e.target.value) })}
-        />
-
-        <Select onValueChange={(v) => setFilter({ year: v === '__all__' ? undefined : Number(v) })}>
+        <Select value={filters.year != null ? String(filters.year) : ALL} onValueChange={(v) => setFilter({ year: v === ALL ? undefined : Number(v) })}>
           <SelectTrigger aria-label="年份" className="w-[110px]">
             <SelectValue placeholder="年份" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">全部年份</SelectItem>
+            <SelectItem value={ALL}>全部年份</SelectItem>
             {(years ?? []).map((y) => (
               <SelectItem key={y} value={String(y)}>{y}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        <Select onValueChange={(v) => setFilter({ weekday: v === '__all__' ? undefined : Number(v) })}>
+        <Select value={filters.weekday != null ? String(filters.weekday) : ALL} onValueChange={(v) => setFilter({ weekday: v === ALL ? undefined : Number(v) })}>
           <SelectTrigger aria-label="星期" className="w-[110px]">
             <SelectValue placeholder="星期" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">全部星期</SelectItem>
+            <SelectItem value={ALL}>全部星期</SelectItem>
             {WEEKDAYS.map((w, i) => (
               <SelectItem key={w} value={String(i)}>{w}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
+        <Input
+          type="number" min={0} max={10} step={0.1} placeholder="最低评分" aria-label="最低评分"
+          className="w-[110px]"
+          value={scoreMin}
+          onChange={(e) => { setScoreMin(e.target.value); setFilter({ scoreMin: toNumber(e.target.value) }); }}
+        />
+        <Input
+          type="number" min={0} max={10} step={0.1} placeholder="最高评分" aria-label="最高评分"
+          className="w-[110px]"
+          value={scoreMax}
+          onChange={(e) => { setScoreMax(e.target.value); setFilter({ scoreMax: toNumber(e.target.value) }); }}
+        />
+
+        <Button variant="outline" onClick={reset}>重置</Button>
         <Button onClick={openCreate}>新建番剧</Button>
+
+        {/* 标签多选：shadcn Select 不原生支持 multiple，用可切换胶囊按钮，语义等价且可键盘操作 */}
+        {tags && tags.length > 0 && (
+          <div className="-mx-4 mt-4 w-full space-y-2 border-t px-4 pt-3">
+            {showTagSearch && (
+              <InputGroup className="w-full max-w-xs">
+                <InputGroupAddon>
+                  <SearchIcon />
+                </InputGroupAddon>
+                <InputGroupInput
+                  value={tagQuery}
+                  onChange={(e) => setTagQuery(e.target.value)}
+                  placeholder="搜索标签…"
+                  aria-label="搜索标签"
+                />
+                {searchingTags && (
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      size="icon-xs"
+                      aria-label="清除标签搜索"
+                      onClick={() => setTagQuery('')}
+                    >
+                      <XIcon />
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                )}
+              </InputGroup>
+            )}
+
+            {/* 内层限高滚动：标签再多也不会把下面的列表顶出视口 */}
+            <div
+              className="flex max-h-[7.5rem] flex-wrap items-start gap-2 overflow-y-auto"
+              role="group"
+              aria-label="标签筛选"
+            >
+              {visibleTags.map((t) => (
+                <TagChip key={t.id} selected={selectedTags.includes(t.name)} onClick={() => toggleTag(t.name)}>
+                  {t.name} ({t.count})
+                </TagChip>
+              ))}
+              {!searchingTags && (tagsExpanded || hiddenTagCount > 0) && (
+                <button
+                  type="button"
+                  aria-expanded={tagsExpanded}
+                  className="rounded-full px-3 py-1 text-xs text-muted-foreground underline-offset-4 hover:underline"
+                  onClick={() => setTagsExpanded((v) => !v)}
+                >
+                  {tagsExpanded ? '收起' : `展开全部 ${tags.length} 个标签`}
+                </button>
+              )}
+              {searchingTags && visibleTags.length === 0 && (
+                <p className="py-1 text-xs text-muted-foreground">没有匹配的标签</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <Table>

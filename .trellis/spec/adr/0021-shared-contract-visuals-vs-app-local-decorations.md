@@ -10,6 +10,7 @@
 
 - `auth-divider.tsx`（16 行）与 `floating-paths.tsx`（78 行）在两端**逐字节相同**。
 - `ui/empty.tsx`、`ui/input-group.tsx` 在两端各有独立副本。
+- `TagChip.tsx`（标签胶囊样式）在两端各有独立副本：client 供番剧索引/详情页，admin 供番剧列表的标签筛选（2026-10-22 起管理端搜索卡片与 client `/anime` 索引页同构）。
 - 但 `packages/shared/src/components/SubjectCard.tsx` 确是一个**被两端共用**的视觉组件（渲染 Subject 呈现）。
 
 一句话口号式的「视觉件一律不放 shared」会与 `SubjectCard` 的事实冲突，因此需要一条能同时解释两者的边界。
@@ -36,7 +37,7 @@
 
 **代价与陷阱**
 
-- 允许**逐字节重复**，同一处视觉 bug 可能在两端各修一次；修改 `auth-divider`/`floating-paths` 这类副本时须两端同步。
+- 允许**逐字节重复**，同一处视觉 bug 可能在两端各修一次；修改 `auth-divider`/`floating-paths`/`TagChip` 这类副本时须两端同步。
 - 判据是「是否表达跨端领域契约」，有主观空间：新组件到底该进 shared 还是各端自持，需要在 code review 时显式判断，不能默认。
 
 **约束**
