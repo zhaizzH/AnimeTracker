@@ -19,7 +19,7 @@
 | 目录 | 说明 | 是否纳入版本控制 |
 |------|------|-----------------|
 | [`database/`](database/) | 数据库脚本：`db-schema.sql`（完整建表）；**不提供版本化前向迁移** | 是 |
-| [`spec/`](spec/) | API 规范：[`openapi.yaml`](spec/openapi.yaml)（OpenAPI 3.0 接口定义，共 68 个路径） | 是 |
+| [`spec/`](spec/) | API 规范：[`openapi.yaml`](spec/openapi.yaml)（OpenAPI 3.0 接口定义，共 69 个路径） | 是 |
 | [`retrospective/`](retrospective/) | 项目复盘：[`项目复盘.md`](retrospective/项目复盘.md) | 是 |
 | `deploy/` | 服务器本地部署套件：nginx 反代、systemd 单元、`部署方案.md`、导入后处理脚本 | **否**（已被 `.gitignore` 忽略） |
 | `superpowers/` | 规划文档：`handoff/`（交接说明）、`plans/`（实施计划）、`specs/`（设计文档），按日期命名 | **否**（已被 `.gitignore` 忽略） |
@@ -134,7 +134,7 @@ docker run -p 8081:8080 -e SWAGGER_JSON=/spec/openapi.yaml \
 
 ### 按领域检索 OpenAPI 路径
 
-`spec/openapi.yaml` 共 68 个路径（`grep -cE '^  /' docs/spec/openapi.yaml` → 68，2026-10-13），按前缀分布：
+`spec/openapi.yaml` 共 69 个路径（`grep -cE '^  /' docs/spec/openapi.yaml` → 69，2026-10-22），按前缀分布：
 
 | 前缀 | 数量 | 说明 |
 |------|-------|------|
@@ -148,8 +148,9 @@ docker run -p 8081:8080 -e SWAGGER_JSON=/spec/openapi.yaml \
 | `/api/client/agent/*` | 5 | 流式对话与会话管理（由 business 代理到 Agent） |
 | `/api/admin/*`（dashboard/subjects/users/import/logs/files 合计） | 16 | 仪表盘、条目、用户、导入、日志、文件 |
 | `/api/admin/agent/*` | 10 | 提示词、模型配置、管理员会话 |
+| `/actuator/health/liveness` | 1 | Spring Boot 存活探针（运维接口，非业务 API；供 Agent 启动期健康检查） |
 
-> 上表各前缀之和 = 68；改动接口后请重跑上面的 `grep` 命令并同步更新本表与总数。
+> 上表各前缀之和 = 69；改动接口后请重跑上面的 `grep` 命令并同步更新本表与总数。
 
 ### 校验建库结果
 

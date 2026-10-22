@@ -6,7 +6,7 @@
 
 1. 判断改动属于 Business API、Agent 在线服务、离线任务，还是跨层契约。
 2. 先读对应主题文件，再读其中列出的源码证据；不要只依赖 README。
-3. 涉及接口字段或路径时，同时核对 `docs/spec/openapi.yaml`、Spring Controller、Python Router 与 `frontend/packages/shared/src`。
+3. 涉及接口字段或路径时，同时核对 `docs/spec/openapi.yaml`、Spring Controller、Python Router 与 `frontend/packages/shared/src`；agent 侧出站调用由 [契约测试](./contract-tests.md) 自动校验，契约↔Java 仍需人工对照。
 4. 涉及持久化时先核对 `docs/database/db-schema.sql`；项目没有 Flyway/Liquibase。
 5. 涉及 Agent 写操作时，必须保留“预览 → 用户确认 → 执行”协议。
 
@@ -18,6 +18,7 @@
 | [Agent 编排与运行](./agent-guidelines.md) | 角色工具、Prompt、运行契约、SSE 与编排 |
 | [数据与存储](./database-guidelines.md) | MySQL、MyBatis、SQLAlchemy、Redis、MinIO 公开 URL、Schema 与存储约束 |
 | [RAG 检索与版本发布](./rag-retrieval-contract.md) | 检索、发布 gate、灰度、回滚与 Evidence 边界 |
+| [Agent↔Business 契约测试](./contract-tests.md) | 契约套件范围与运行、调用点/请求字段断言、SSE 与 pending-action 的 wire 契约、无法自动校验的边界 |
 | [错误、日志与可观测性](./error-handling.md) | 异常适配、统一响应、操作日志模块、追踪与隐私 |
 | [质量与 Javadoc](./quality-guidelines.md) | 测试门禁、审查、Java 声明全覆盖、注释篇幅与 pojo 字段契约、AST/doclint 检查 |
 
@@ -41,7 +42,7 @@ cd ../agent
 uv run pytest
 ```
 
-CI 当前执行 Java `mvn -B test`、Python `uv run pytest` 和前端 typecheck；`clean test` 与前端 build 属于相应变更的提交前/交付前验证。Python 已包含 importer/indexer/backfill/scheduler、RAG、适配器、eval 和 Agent Prompt 测试。测试通过数与规模只维护在 [质量门禁](./quality-guidelines.md#当前测试基线)，本节不复制数字；引用前必须重实测，不得沿用历史通过数。
+CI 当前执行 Java `mvn -B test`、Python `uv run pytest` 和前端 typecheck；其中 Python job 在 `uv run pytest` 之前单独跑一步 `contract drift (agent <-> openapi)`（`uv run pytest tests/contracts -q`），Agent 侧出站调用的 method/path/请求字段偏离 `docs/spec/openapi.yaml` 会在此步变红。`clean test` 与前端 build 属于相应变更的提交前/交付前验证。Python 已包含 importer/indexer/backfill/scheduler、RAG、适配器、eval、Agent Prompt 与契约测试。测试通过数与规模只维护在 [质量门禁](./quality-guidelines.md#当前测试基线)，本节不复制数字；引用前必须重实测，不得沿用历史通过数。
 
 - Business reactor 包含 `common`、`pojo`、`infrastructure`、`auth`、`log`、`agent`、`client`、`admin`、`app` 九个 Maven 模块；模块上限和实际职责以 [目录与依赖边界](./directory-structure.md) 及 `ArchitectureBoundaryTest` 为准
 - `check_javadoc.py` 自动化检查器已随提交 `721d5c71`（2026-10-04）删除；Javadoc 规范仍有效，恢复前以人工审查为准，详见 [质量门禁](./quality-guidelines.md#声明与语法检查自动化检查器已退役)

@@ -159,7 +159,7 @@ candidates = [item for item in candidates if item.subject_id in allowed_subject_
 - `MessageType` 只有 `answer / thinking / function_call / status` —— **不存在 `end` 类型**。
 - 结束帧为 `type="answer"`（默认值）+ `is_end=true` + 空 `content`。
 - `exclude_none=True` 使每帧字段集随事件类型变化；前端因此必须把 `content` 子字段视为可选。`meta={}` 会保留，`meta=None` 被剔除。
-- 改事件字段时同步 `schemas/sse.py` 与前端 `useAgentChat.ts`；`docs/spec/openapi.yaml` 的 `/api/client/agent/stream` 当前只有通用透传 schema，未记录事件字段，不能作为该契约的核对依据。
+- 改事件字段时同步 `schemas/sse.py` 与前端 `useAgentChat.ts`。`docs/spec/openapi.yaml` 的 `/api/client/agent/stream` 已声明 `text/event-stream` 与单帧 `SSEFrame` schema，但事件内容字段的语义仍以源码为准；本节口径由 `backend/agent/tests/contracts/test_sse_contract.py` 自动钉住（详见 [Agent↔Business 契约测试](./contract-tests.md#3-contracts)）。
 
 #### 4. Validation & Error Matrix
 
@@ -183,6 +183,7 @@ candidates = [item for item in candidates if item.subject_id in allowed_subject_
 
 - `tests/api/test_sse_serialization.py` 钉住帧形态、`exclude_none`、`end` 语义、响应头与逐帧消费（当前回归入口）。
 - 新增/修改事件字段时同步断言 `MessageType` 取值与结束帧形态。
+- 契约侧对齐由 `backend/agent/tests/contracts/test_sse_contract.py` 负责（四值枚举、`content` 子字段集、单帧 `SSEFrame`、错误语义分离、唯一 `is_end` 收尾）；两侧必须同时绿，见 [契约测试](./contract-tests.md#6-tests-required)。
 
 #### 7. Wrong vs Correct
 
@@ -211,6 +212,8 @@ candidates = [item for item in candidates if item.subject_id in allowed_subject_
 7. 取消只清理待确认状态，不修改业务数据。
 
 参考：`app/agent/client/actions/wishlist.py`、`collection_progress.py`、`collection_type.py`、`write_guard.py`、`app/chat/pending_action.py`。
+
+> 持久化层面（键模板、600 秒 TTL、判别联合往返、信封字段蛇形/business 字段驼峰、preview 版本绑定）由 `backend/agent/tests/contracts/test_preview_contract.py` 自动钉住，字段大小写易误，详见 [Agent↔Business 契约测试](./contract-tests.md#pendingaction-字段大小写易误解单列)。
 
 #### 待确认动作持久化失败矩阵
 

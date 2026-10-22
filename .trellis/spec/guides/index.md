@@ -33,7 +33,7 @@
 | 提交前 | 运行受影响 workspace 测试；跨层至少一条成功和一条权限/失败路径 | 普通代码或契约变更 |
 | 交付前 | Java 配置/边界变更 `mvn -B clean test`；前端构建变更 `npm run build` | 交付产物、配置迁移或构建配置变更 |
 
-- 契约：核对 `docs/spec/openapi.yaml`、Java/Python 实现和 shared 类型；OpenAPI 当前未被 CI 自动校验。
+- 契约：核对 `docs/spec/openapi.yaml`、Java/Python 实现和 shared 类型。Agent 侧出站调用已由 `backend/agent/tests/contracts/` 在 CI 中自动校验（见 [Agent↔Business 契约测试](../backend/contract-tests.md)）；**契约 ↔ Java 源码仍无自动校验**，改 API 时仍须逐项对照。
 - 数据：核对 `docs/database/db-schema.sql` 与所有映射；非空库禁止直接执行初始化 Schema。
 - 文档级校验：确认本目录链接、源码证据路径和命令仍存在；易腐的测试数量、路由数量和表数量必须附验证命令/核对日期。
 

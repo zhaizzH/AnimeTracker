@@ -41,7 +41,7 @@ React client/admin
 
 统一 Java 响应为 `{code,message,data}`，shared Axios 拦截器会直接返回 `data`；页面不能再解包一次。
 
-当前 OpenAPI 是手工维护，CI 未自动证明它与三端一致；涉及路径、字段、状态码、Cookie、鉴权或追踪头时，必须把 OpenAPI、Java/Python 实现和 shared 类型逐项对照，并记录未同步项为已知债务。
+当前 OpenAPI 是手工维护，CI **已能**自动校验 agent↔契约这一侧边界（`backend/agent/tests/contracts/`：每条出站 HTTP 调用的 method+path 必须解析到契约 operation、静态可判定的请求字段必须已声明、SSE 帧与 `SSEFrame` 双向对齐、pending-action 持久化协议由测试锁定，并在 CI 中单独成步）。但**契约↔business Java 源码仍无自动校验**：Java DTO 字段改名而契约没跟着改时，agent 仍匹配（已过时的）契约，套件保持全绿。因此涉及路径、字段、状态码、Cookie、鉴权或追踪头时，仍必须把 OpenAPI 与 Java 实现逐项对照，并记录未同步项为已知债务。
 
 ### 认证链路
 
@@ -60,7 +60,7 @@ React client/admin
 - 验证增量文本、工具 start/end、结束标记、Abort 和网络中断。
 - wire 响应必须声明 `text/event-stream`，以空行分帧；每帧 `data:` JSON 至少包含 `type`、`content`、`is_end`。事件 `type` 取值为 `answer|thinking|function_call|status` 四值，**不存在 `type=end`**——结束由 `is_end=true` 表达（与 [Agent 运行与提示词契约](../backend/agent-guidelines.md#agent-角色提示词与流式输出契约) 一致）。
 - `function_call.state` 的 `start|end` 必须在前端映射为 running → done，失败以 `end` + `result=error` 表达；`state=error` 只出现在 `status` 事件上。结束标记或 `is_end=true` 后不得继续写入消息。
-- `docs/spec/openapi.yaml` 已表达 SSE content type（`text/event-stream` + 单帧 `SSEFrame` schema）、事件联合、刷新 Cookie（`at_refresh` + `Set-Cookie`）、Bearer securityScheme（`bearerAuth`）与 `X-Request-ID`；未同步项登记在 `openapi.yaml` 的 `info.description`「已知债务」节与任务 `research/contract-alignment-table.md`。仍**无 CI 自动校验漂移**，改动 API 时必须同步并重新对照。
+- `docs/spec/openapi.yaml` 已表达 SSE content type（`text/event-stream` + 单帧 `SSEFrame` schema）、事件联合、刷新 Cookie（`at_refresh` + `Set-Cookie`）、Bearer securityScheme（`bearerAuth`）与 `X-Request-ID`；未同步项登记在 `openapi.yaml` 的 `info.description`「已知债务」节与任务 `research/contract-alignment-table.md`。CI 的 `backend-python` job 有一条 `contract drift (agent <-> openapi)` 步骤跑 `pytest tests/contracts`，能拦住 agent 侧路径/字段漂移与契约文件结构损坏；但它不校验契约与 Java 源码是否一致，改动 API 时仍须同步并重新对照。
 
 ### Agent 写操作
 
