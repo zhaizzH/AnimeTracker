@@ -43,5 +43,10 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --dev
         working-directory: backend/agent
+      # 契约漂移单独成步：失败时日志标题即指明「agent ↔ business 契约漂移」，
+      # 而不是混在全量用例里的一条匿名 FAILED。全量 pytest 仍会再跑一次。
+      - name: contract drift (agent <-> openapi)
+        run: uv run pytest tests/contracts -q
+        working-directory: backend/agent
       - run: uv run pytest
         working-directory: backend/agent

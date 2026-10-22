@@ -2,14 +2,56 @@ openapi: "3.0.1"
 info:
   title: "API Documentation"
   version: "1.0"
+  description: |
+    手工维护的描述性契约。权威来源是可执行源码与测试（`backend/business` Controller、
+    `backend/agent` Router、`frontend/packages/shared` 类型）。二者冲突时以源码为准。
+    未经 CI 自动校验漂移。
+
+    #### SSE 契约
+
+    两个 stream 端点（`POST /api/admin/agent/chat/stream`、`POST /api/client/agent/stream`）
+    响应 `text/event-stream`。帧格式：每帧一行 `data: <JSON>` 后跟一个空行（`\n\n`）分帧；
+    事件类型写在 JSON 体内，不是 SSE `event:` 字段。本文件按 OpenAPI 3.0.1 建模，
+    无法表达 `itemSchema`，故以「单帧 JSON 对象」schema + 本段说明表达。
+
+    单帧字段：`type` ∈ `{answer, thinking, function_call, status}`；`content` 子字段
+    `{text, node, parent_node, state, message, result, name, arguments}` 全部可选；
+    `is_end`、`timestamp` 必在。**结束帧以 `is_end=true` 表达，`type` 枚举不含 `end`**
+    （实现见 `backend/agent/app/api/sse.py`）。响应头另含 `Cache-Control: no-cache`、
+    `Connection: keep-alive`、`X-Accel-Buffering: no`。
+
+    #### 已知债务（未同步项）
+
+    1. `end` 事件建模歧义：wire 上以 `type:"answer"` + `is_end:true` 表达，无独立
+       `type=end`。本文件如实描述 wire 事实。
+    2. 删除端点路径分层不一致：Python agent 用 `/sessions/{id}`，Spring 对外暴露
+       `/sessions/{sessionId}/remove`。本文件记录 **Spring 对外层路径**（浏览器只访问
+       `/api/**`，由 Spring 代理转发）。
+    3. Spring 逐行转发上游 SSE 时的空行处理未静态确定（是否可能写出空 `data:` 行取决于
+       `agentService.stream` 的分行实现）；见 `AdminAgentController.java:123`、
+       `ClientAgentController.java:61`。
+    4. stream 端点的错误响应（上游 4xx/5xx 在响应提交前的 JSON 错误体、提交后无法回落的
+       情况）未建模。
+
+    交叉引用：`.trellis/spec/guides/cross-layer-thinking-guide.md`（SSE 变更节）。
+
+    #### 运维探针（非业务 API）
+
+    `GET /actuator/health/liveness` 是 Spring Boot Actuator 暴露的存活探针，**不属于**
+    业务 API 面。列入本文件仅为覆盖 Agent 侧的真实跨层依赖
+    （`backend/agent/app/api/health.py` 的 `BUSINESS_LIVENESS_PATH`）。就绪性探针
+    `/actuator/health/readiness` 未列入本文件。
+security:
+  - bearerAuth: []
 paths:
   /api/client/tags:
     get:
+      security: []
       summary: "获取标签列表"
       description: "获取标签列表"
       responses:
         "200":
-          description: "统一成功响应，其数据为：按使用次数降序排列的标签"
+          description: ""
           content:
             application/json:
               schema:
@@ -17,13 +59,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "array"
-                    description: "统一响应承载的业务数据"
+                    description: ""
                     items:
                       type: "object"
                       properties:
@@ -38,21 +80,21 @@ paths:
                           type: "integer"
                           description: "该标签在此条目上的使用次数"
                       description: "标签信息 VO"
-                description: "统一成功响应，其数据为：按使用次数降序排列的标签"
   /api/client/tags/{tag}/subjects:
     get:
+      security: []
       summary: "获取标签下的番剧列表"
       description: "获取标签下的番剧列表"
       parameters:
       - name: "tag"
         in: "path"
-        description: "标签名称"
+        description: ""
         required: true
         schema:
           type: "string"
       - name: "page"
         in: "query"
-        description: "分页页码，从 1 开始"
+        description: ""
         required: true
         schema:
           type: "integer"
@@ -60,7 +102,7 @@ paths:
           default: "1"
       - name: "size"
         in: "query"
-        description: "每页记录数"
+        description: ""
         required: true
         schema:
           type: "integer"
@@ -68,7 +110,7 @@ paths:
           default: "20"
       responses:
         "200":
-          description: "统一成功响应，其数据为：匹配标签的条目分页"
+          description: ""
           content:
             application/json:
               schema:
@@ -76,16 +118,16 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
                       content:
                         type: "array"
-                        description: "当前页记录列表"
+                        description: ""
                         items:
                           type: "object"
                           properties:
@@ -126,20 +168,20 @@ paths:
                           description: "条目列表视图（摘要信息）"
                       total:
                         type: "integer"
-                        description: "符合条件的记录总数"
+                        description: ""
                         format: "int64"
                       page:
                         type: "integer"
-                        description: "分页页码"
+                        description: ""
                       size:
                         type: "integer"
-                        description: "单页返回数量"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：匹配标签的条目分页"
+                        description: ""
+                    description: ""
   /api/client/auth/register:
     post:
-      summary: "注册账户并发送邮箱验证码"
-      description: "注册账户并发送邮箱验证码"
+      security: []
+      summary: "register"
+      description: "register"
       requestBody:
         content:
           application/json:
@@ -165,10 +207,10 @@ paths:
                   type: "string"
                   description: "邮箱"
                   format: "email"
-              description: "注册用户名、邮箱与密码"
+              description: ""
       responses:
         "200":
-          description: "无数据的统一成功响应"
+          description: ""
           content:
             application/json:
               schema:
@@ -176,18 +218,18 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "无数据的统一成功响应"
+                    description: ""
   /api/client/auth/verify-email:
     post:
-      summary: "验证邮箱并写入刷新 Cookie"
-      description: "验证邮箱并写入刷新 Cookie"
+      security: []
+      summary: "verifyEmail"
+      description: "verifyEmail"
       requestBody:
         content:
           application/json:
@@ -206,10 +248,10 @@ paths:
                   minLength: 6
                   type: "string"
                   description: "验证码（6位）"
-              description: "邮箱地址及验证码"
+              description: ""
       responses:
         "200":
-          description: "包含访问令牌和用户信息的登录响应"
+          description: ""
           content:
             application/json:
               schema:
@@ -217,16 +259,16 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
                       token:
                         type: "string"
-                        description: "认证或会话令牌"
+                        description: ""
                       user:
                         type: "object"
                         properties:
@@ -255,13 +297,13 @@ paths:
                           createdAt:
                             type: "string"
                             description: "创建时间"
-                        description: "认证成功后的用户信息"
-                    description: "统一响应承载的业务数据"
-                description: "包含访问令牌和用户信息的登录响应"
+                        description: ""
+                    description: ""
   /api/client/auth/resend-code:
     post:
-      summary: "重新发送邮箱验证码"
-      description: "重新发送邮箱验证码"
+      security: []
+      summary: "resendCode"
+      description: "resendCode"
       requestBody:
         content:
           application/json:
@@ -274,10 +316,10 @@ paths:
                   type: "string"
                   description: "邮箱"
                   format: "email"
-              description: "待重新发送验证码的邮箱"
+              description: ""
       responses:
         "200":
-          description: "无数据的统一成功响应"
+          description: ""
           content:
             application/json:
               schema:
@@ -285,30 +327,94 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "无数据的统一成功响应"
+                    description: ""
   /api/client/auth/login:
     post:
-      summary: "提供登录路由的固定响应"
-      description: "提供登录路由的固定响应"
+      security: []
+      summary: "login"
+      description: "login"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "password"
+              - "username"
+              type: "object"
+              properties:
+                username:
+                  type: "string"
+                  description: "用户名或邮箱"
+                password:
+                  type: "string"
+                  description: "密码"
+              description: ""
       responses:
         "200":
-          description: "用于断言授权通过的响应标记"
+          description: ""
+          headers:
+            Set-Cookie:
+              description: "刷新令牌 Cookie：`at_refresh`，HttpOnly、Path=/api/client/auth、SameSite=Lax、Secure 可配（`AuthCookieProperties`）。"
+              schema:
+                type: "string"
           content:
             application/json:
               schema:
-                type: "string"
-                description: "用于断言授权通过的响应标记"
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
+                  data:
+                    type: "object"
+                    properties:
+                      token:
+                        type: "string"
+                        description: ""
+                      user:
+                        type: "object"
+                        properties:
+                          id:
+                            type: "integer"
+                            description: "用户ID"
+                            format: "int64"
+                          username:
+                            type: "string"
+                            description: "用户名（唯一）"
+                          email:
+                            type: "string"
+                            description: "邮箱"
+                          nickname:
+                            type: "string"
+                            description: "昵称"
+                          avatar:
+                            type: "string"
+                            description: "头像URL"
+                          role:
+                            type: "string"
+                            description: "角色: USER=普通用户, ADMIN=管理员"
+                          enabled:
+                            type: "boolean"
+                            description: "账号是否启用"
+                          createdAt:
+                            type: "string"
+                            description: "创建时间"
+                        description: ""
+                    description: ""
   /api/client/auth/forgot-password:
     post:
-      summary: "申请密码重置验证码"
-      description: "申请密码重置验证码"
+      security: []
+      summary: "forgotPassword"
+      description: "forgotPassword"
       requestBody:
         content:
           application/json:
@@ -321,10 +427,10 @@ paths:
                   type: "string"
                   description: "邮箱"
                   format: "email"
-              description: "申请重置密码的邮箱"
+              description: ""
       responses:
         "200":
-          description: "无数据的统一成功响应"
+          description: ""
           content:
             application/json:
               schema:
@@ -332,18 +438,18 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "无数据的统一成功响应"
+                    description: ""
   /api/client/auth/reset-password:
     post:
-      summary: "重置密码并清除刷新 Cookie"
-      description: "重置密码并清除刷新 Cookie"
+      security: []
+      summary: "resetPassword"
+      description: "resetPassword"
       requestBody:
         content:
           application/json:
@@ -368,10 +474,10 @@ paths:
                   minLength: 6
                   type: "string"
                   description: "新密码"
-              description: "邮箱、验证码及新密码"
+              description: ""
       responses:
         "200":
-          description: "无数据的统一成功响应"
+          description: ""
           content:
             application/json:
               schema:
@@ -379,21 +485,33 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "无数据的统一成功响应"
+                    description: ""
   /api/client/auth/refresh:
     post:
-      summary: "轮换登录会话，认证失败时清除刷新 Cookie"
-      description: "轮换登录会话，认证失败时清除刷新 Cookie"
+      security: []
+      summary: "refresh"
+      description: "refresh"
+      parameters:
+      - name: "at_refresh"
+        in: "cookie"
+        description: "刷新令牌（HttpOnly、Path=/api/client/auth、SameSite=Lax、Secure 可配）。"
+        required: false
+        schema:
+          type: "string"
       responses:
         "200":
-          description: "包含新访问令牌和用户信息的登录响应"
+          description: ""
+          headers:
+            Set-Cookie:
+              description: "刷新令牌 Cookie：`at_refresh`，HttpOnly、Path=/api/client/auth、SameSite=Lax、Secure 可配（`AuthCookieProperties`）。"
+              schema:
+                type: "string"
           content:
             application/json:
               schema:
@@ -401,16 +519,16 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
                       token:
                         type: "string"
-                        description: "认证或会话令牌"
+                        description: ""
                       user:
                         type: "object"
                         properties:
@@ -439,16 +557,28 @@ paths:
                           createdAt:
                             type: "string"
                             description: "创建时间"
-                        description: "认证成功后的用户信息"
-                    description: "统一响应承载的业务数据"
-                description: "包含新访问令牌和用户信息的登录响应"
+                        description: ""
+                    description: ""
   /api/client/auth/logout:
     post:
-      summary: "撤销登录凭据并清除刷新 Cookie"
-      description: "撤销登录凭据并清除刷新 Cookie"
+      security: []
+      summary: "logout"
+      description: "logout"
+      parameters:
+      - name: "at_refresh"
+        in: "cookie"
+        description: "刷新令牌（HttpOnly、Path=/api/client/auth、SameSite=Lax、Secure 可配）。"
+        required: false
+        schema:
+          type: "string"
       responses:
         "200":
-          description: "无数据的统一成功响应"
+          description: ""
+          headers:
+            Set-Cookie:
+              description: "刷新令牌 Cookie：`at_refresh`，HttpOnly、Path=/api/client/auth、SameSite=Lax、Secure 可配（`AuthCookieProperties`）。"
+              schema:
+                type: "string"
           content:
             application/json:
               schema:
@@ -456,21 +586,20 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "无数据的统一成功响应"
+                    description: ""
   /api/client/me:
     get:
       summary: "获取当前登录用户信息"
       description: "获取当前登录用户信息"
       responses:
         "200":
-          description: "统一成功响应，其数据为：当前登录用户信息"
+          description: ""
           content:
             application/json:
               schema:
@@ -478,10 +607,10 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
@@ -510,8 +639,7 @@ paths:
                       createdAt:
                         type: "string"
                         description: "创建时间"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：当前登录用户信息"
+                    description: ""
   /api/client/me/update:
     post:
       summary: "修改当前登录用户信息"
@@ -530,10 +658,10 @@ paths:
                   maxLength: 512
                   type: "string"
                   description: "头像URL"
-              description: "待更新的昵称和头像"
+              description: ""
       responses:
         "200":
-          description: "统一成功响应，其数据为：修改当前登录用户信息"
+          description: ""
           content:
             application/json:
               schema:
@@ -541,10 +669,10 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
@@ -573,8 +701,7 @@ paths:
                       createdAt:
                         type: "string"
                         description: "创建时间"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：修改当前登录用户信息"
+                    description: ""
   /api/client/me/update-password:
     post:
       summary: "修改当前登录用户密码"
@@ -596,10 +723,10 @@ paths:
                   minLength: 6
                   type: "string"
                   description: "新密码"
-              description: "旧密码和新密码"
+              description: ""
       responses:
         "200":
-          description: "无数据的统一成功响应"
+          description: ""
           content:
             application/json:
               schema:
@@ -607,14 +734,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "无数据的统一成功响应"
+                    description: ""
   /api/client/me/send-email-code:
     post:
       summary: "发送邮箱修改验证码（修改绑定邮箱前调用，校验新邮箱未被占用）"
@@ -632,10 +758,10 @@ paths:
                   type: "string"
                   description: "新邮箱"
                   format: "email"
-              description: "待绑定的新邮箱及本次操作所需校验信息"
+              description: ""
       responses:
         "200":
-          description: "无数据的统一成功响应"
+          description: ""
           content:
             application/json:
               schema:
@@ -643,14 +769,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "无数据的统一成功响应"
+                    description: ""
   /api/client/me/verify-email-code:
     post:
       summary: "校验邮箱修改验证码（通过后更新绑定邮箱并通知旧邮箱）"
@@ -674,10 +799,10 @@ paths:
                   minLength: 6
                   type: "string"
                   description: "验证码（6位）"
-              description: "待绑定的新邮箱及本次操作所需校验信息"
+              description: ""
       responses:
         "200":
-          description: "无数据的统一成功响应"
+          description: ""
           content:
             application/json:
               schema:
@@ -685,16 +810,16 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "无数据的统一成功响应"
+                    description: ""
   /api/client/subjects:
     get:
+      security: []
       summary: "获取番剧列表"
       description: "获取番剧列表"
       parameters:
@@ -735,7 +860,7 @@ paths:
           default: "desc"
       responses:
         "200":
-          description: "统一成功响应，其数据为：符合条件的条目分页"
+          description: ""
           content:
             application/json:
               schema:
@@ -743,16 +868,16 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
                       content:
                         type: "array"
-                        description: "当前页记录列表"
+                        description: ""
                         items:
                           type: "object"
                           properties:
@@ -793,18 +918,18 @@ paths:
                           description: "条目列表视图（摘要信息）"
                       total:
                         type: "integer"
-                        description: "符合条件的记录总数"
+                        description: ""
                         format: "int64"
                       page:
                         type: "integer"
-                        description: "分页页码"
+                        description: ""
                       size:
                         type: "integer"
-                        description: "单页返回数量"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：符合条件的条目分页"
+                        description: ""
+                    description: ""
   /api/client/subjects/search:
     get:
+      security: []
       summary: "搜索番剧"
       description: "搜索番剧"
       parameters:
@@ -898,7 +1023,7 @@ paths:
           default: 20
       responses:
         "200":
-          description: "统一成功响应，其数据为：符合搜索条件的条目分页"
+          description: ""
           content:
             application/json:
               schema:
@@ -906,16 +1031,16 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
                       content:
                         type: "array"
-                        description: "当前页记录列表"
+                        description: ""
                         items:
                           type: "object"
                           properties:
@@ -956,120 +1081,87 @@ paths:
                           description: "条目列表视图（摘要信息）"
                       total:
                         type: "integer"
-                        description: "符合条件的记录总数"
+                        description: ""
                         format: "int64"
                       page:
                         type: "integer"
-                        description: "分页页码"
+                        description: ""
                       size:
                         type: "integer"
-                        description: "单页返回数量"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：符合搜索条件的条目分页"
+                        description: ""
+                    description: ""
   /api/client/subjects/lexical-search:
     post:
-      summary: "面向 Agent 的受控词法召回；请求只包含结构化字段和普通搜索词，"
-      description: "面向 Agent 的受控词法召回；请求只包含结构化字段和普通搜索词，"
+      security: []
+      summary: "按 active release 执行 MySQL FULLTEXT 词法召回"
+      description: "仅接受普通搜索词和结构化过滤；返回的 indexVersion 必须用于同版本 Vector Set 查询，详细事实继续通过 Evidence API 回查。"
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              required:
-              - "q"
-              type: "object"
+              type: object
+              required: [q]
               properties:
                 q:
+                  type: string
+                  minLength: 1
                   maxLength: 100
-                  type: "string"
-                  description: "词法检索关键词"
                 tags:
-                  type: "array"
-                  description: "标签筛选列表，最多 20 项；每项非空且最多 64 个字符"
+                  type: array
+                  maxItems: 20
                   items:
-                    type: "string"
+                    type: string
+                    maxLength: 64
                 scoreMin:
-                  maximum: 10
+                  type: number
                   minimum: 0
-                  type: "number"
-                  description: "评分筛选下限"
+                  maximum: 10
                 scoreMax:
+                  type: number
+                  minimum: 0
                   maximum: 10
-                  minimum: 0
-                  type: "number"
-                  description: "评分筛选上限"
                 year:
-                  maximum: 2100
+                  type: integer
                   minimum: 1970
-                  type: "integer"
-                  description: "年份筛选值"
+                  maximum: 2100
                 weekday:
-                  maximum: 6
+                  type: integer
                   minimum: 0
-                  type: "integer"
-                  description: "星期筛选值"
+                  maximum: 6
                 subjectIds:
-                  type: "array"
-                  description: "候选条目白名单，最多 50 个正整数 ID，用于缩小召回范围"
+                  type: array
+                  maxItems: 50
                   items:
-                    type: "integer"
+                    type: integer
+                    format: int64
+                    minimum: 1
                 limit:
-                  maximum: 50
+                  type: integer
                   minimum: 1
-                  type: "integer"
-                  description: "最多返回的候选数量"
+                  maximum: 50
                   default: 50
-              description: "词法检索词及候选过滤条件"
       responses:
         "200":
-          description: "统一成功响应，其数据为：携带当前索引版本的词法候选列表"
+          description: "词法候选及其发布版本"
           content:
             application/json:
               schema:
-                type: "object"
+                type: object
                 properties:
                   code:
-                    type: "integer"
-                    description: "统一响应或异常的状态码"
+                    type: integer
                   message:
-                    type: "string"
-                    description: "统一响应的状态说明"
+                    type: string
                   data:
-                    type: "object"
-                    properties:
-                      indexVersion:
-                        type: "string"
-                        description: "检索索引版本标识"
-                      profileVersion:
-                        type: "string"
-                        description: "检索配置版本标识"
-                      candidates:
-                        type: "array"
-                        description: "检索或证据候选列表"
-                        items:
-                          type: "object"
-                          properties:
-                            subjectId:
-                              type: "integer"
-                              description: "关联条目标识"
-                              format: "int64"
-                            name:
-                              type: "string"
-                              description: "来源数据的原始名称"
-                            nameCn:
-                              type: "string"
-                              description: "条目的中文名称"
-                            lexicalScore:
-                              type: "number"
-                              description: "词法检索相关性得分"
-                            rank:
-                              type: "integer"
-                              description: "候选结果排序名次"
-                          description: "MySQL FULLTEXT 召回候选；详细事实仍需通过 Evidence API\
-                            \ 回查"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：携带当前索引版本的词法候选列表"
+                    $ref: "#/components/schemas/LexicalSearchResult"
+        "400":
+          description: "搜索词、过滤器或候选上限无效"
+        "503":
+          description: "没有 active search release"
   /api/client/subjects/season:
     get:
+      security: []
       summary: "按季度筛选用户番剧"
       description: "按季度筛选用户番剧"
       parameters:
@@ -1111,7 +1203,7 @@ paths:
           default: 20
       responses:
         "200":
-          description: "统一成功响应，其数据为：该季度的条目分页"
+          description: ""
           content:
             application/json:
               schema:
@@ -1119,16 +1211,16 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
                       content:
                         type: "array"
-                        description: "当前页记录列表"
+                        description: ""
                         items:
                           type: "object"
                           properties:
@@ -1169,18 +1261,18 @@ paths:
                           description: "条目列表视图（摘要信息）"
                       total:
                         type: "integer"
-                        description: "符合条件的记录总数"
+                        description: ""
                         format: "int64"
                       page:
                         type: "integer"
-                        description: "分页页码"
+                        description: ""
                       size:
                         type: "integer"
-                        description: "单页返回数量"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：该季度的条目分页"
+                        description: ""
+                    description: ""
   /api/client/subjects/schedule:
     get:
+      security: []
       summary: "每周追番列表"
       description: "每周追番列表"
       parameters:
@@ -1232,7 +1324,7 @@ paths:
           default: 20
       responses:
         "200":
-          description: "统一成功响应，其数据为：符合日程条件的分页结果"
+          description: ""
           content:
             application/json:
               schema:
@@ -1240,16 +1332,16 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
                       content:
                         type: "array"
-                        description: "当前页记录列表"
+                        description: ""
                         items:
                           type: "object"
                           properties:
@@ -1290,20 +1382,20 @@ paths:
                           description: "条目列表视图（摘要信息）"
                       total:
                         type: "integer"
-                        description: "符合条件的记录总数"
+                        description: ""
                         format: "int64"
                       page:
                         type: "integer"
-                        description: "分页页码"
+                        description: ""
                       size:
                         type: "integer"
-                        description: "单页返回数量"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：符合日程条件的分页结果"
+                        description: ""
+                    description: ""
   /api/client/subjects/batch:
     post:
-      summary: "批量回查候选条目的权威可见状态"
-      description: "批量回查候选条目的权威可见状态"
+      security: []
+      summary: "批量回查候选条目的权威可见状态。"
+      description: "批量回查候选条目的权威可见状态。"
       requestBody:
         content:
           application/json:
@@ -1314,16 +1406,16 @@ paths:
               properties:
                 subjectIds:
                   type: "array"
-                  description: "待回查条目 ID，必填且最多 100 个，元素不得为空"
+                  description: ""
                   items:
                     type: "integer"
                 excludeCollected:
                   type: "boolean"
-                  description: "是否排除已收藏条目"
-              description: "条目 ID 与收藏排除选项"
+                  description: ""
+              description: ""
       responses:
         "200":
-          description: "统一成功响应，其数据为：批量回查候选条目的权威可见状态"
+          description: ""
           content:
             application/json:
               schema:
@@ -1331,90 +1423,99 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
                       items:
                         type: "array"
-                        description: "批处理或预览包含的条目集合"
+                        description: ""
                         items:
                           type: "object"
                           properties:
                             id:
                               type: "integer"
-                              description: "记录或资源的唯一标识"
+                              description: ""
                               format: "int64"
                             name:
                               type: "string"
-                              description: "来源数据的原始名称"
+                              description: ""
                             nameCn:
                               type: "string"
-                              description: "条目的中文名称"
+                              description: ""
                             image:
                               type: "string"
-                              description: "条目的封面图片地址"
+                              description: ""
                             score:
                               type: "number"
-                              description: "条目评分，取值遵循接口约定"
+                              description: ""
                             ratingTotal:
                               type: "integer"
-                              description: "条目评分人数"
+                              description: ""
                             collectionTotal:
                               type: "integer"
-                              description: "条目收藏人数"
+                              description: ""
                             airDate:
                               type: "string"
-                              description: "条目的首播日期"
+                              description: ""
                             type:
                               type: "integer"
-                              description: "业务类型或状态编码，取值由所属接口约束"
+                              description: ""
                             nsfw:
                               type: "boolean"
-                              description: "条目是否包含 NSFW 内容"
+                              description: ""
                             active:
                               type: "boolean"
-                              description: "Agent 权威回查需要的有效状态；由 subject.import_status\
-                                \ 派生"
-                          description: "批量权威回查中可返回的条目字段"
+                              description: "是否为已导入的有效条目，供 Agent 权威回查使用。"
+                          description: "批量权威回查中可返回的条目字段。"
                         default: "new ArrayList<>()"
                       missingIds:
                         type: "array"
-                        description: "未找到对应记录的标识列表"
+                        description: ""
                         items:
                           type: "integer"
                         default: "new ArrayList<>()"
                       filteredIds:
                         type: "array"
-                        description: "被筛选排除的标识列表"
+                        description: ""
                         items:
                           type: "integer"
                         default: "new ArrayList<>()"
                       collectedIds:
                         type: "array"
-                        description: "已收藏条目标识列表"
+                        description: ""
                         items:
                           type: "integer"
                         default: "new ArrayList<>()"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：批量回查候选条目的权威可见状态"
-  /api/client/subjects/{id}:
-    get:
-      summary: "获取番剧详情"
-      description: "获取番剧详情"
-      parameters:
-      - name: "id"
-        in: "path"
-        description: "目标条目 ID"
+                    description: ""
+  /api/client/evidence/batch:
+    post:
+      security: []
+      summary: "批量回查番剧证据（兼容接口）"
+      description: "仅返回已导入、动画类型且非 NSFW 的番剧；不存在或不安全的 ID 会被省略。"
+      requestBody:
         required: true
-        schema:
-          type: "integer"
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+              - "subjectIds"
+              properties:
+                subjectIds:
+                  type: "array"
+                  description: "待回查条目 ID；元素不得为空（@NotNull），最多 50 个（@Size(max=50)）"
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    type: "integer"
+                    format: "int64"
       responses:
         "200":
-          description: "统一成功响应，其数据为：条目详情及标签、关联展示数据"
+          description: "证据候选列表"
           content:
             application/json:
               schema:
@@ -1422,10 +1523,83 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                  data:
+                    type: "array"
+                    items:
+                      $ref: "#/components/schemas/EvidenceCandidate"
+  /api/client/evidence/resolve:
+    post:
+      security: []
+      summary: "按人物、角色、声优关系或条目批量解析番剧证据"
+      description: "ids 使用本地数据库主键；PERSON/ACTOR 为 person.id，CHARACTER 为 character.id，SUBJECT 为 subject.id；RELATION_SUBJECT 沿 subject_relation 双向扩展关联作品。仅返回已导入、动画类型且非 NSFW 的番剧。"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required:
+              - "entityType"
+              - "ids"
+              properties:
+                entityType:
+                  type: "string"
+                  enum: ["SUBJECT", "RELATION_SUBJECT", "PERSON", "CHARACTER", "ACTOR"]
+                ids:
+                  type: "array"
+                  description: "待解析的本地主键；元素非空且为正数（@Positive），最多 50 个"
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    type: "integer"
+                    format: "int64"
+                    minimum: 1
+      responses:
+        "200":
+          description: "去重后的证据候选列表；无匹配时为空数组"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                  message:
+                    type: "string"
+                  data:
+                    type: "array"
+                    items:
+                      $ref: "#/components/schemas/EvidenceCandidate"
+        "400":
+          description: "实体类型缺失、ID 非正数或批量超过 50"
+  /api/client/subjects/{id}:
+    get:
+      security: []
+      summary: "获取番剧详情"
+      description: "获取番剧详情"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: ""
+                  message:
+                    type: "string"
+                    description: ""
                   data:
                     type: "object"
                     properties:
@@ -1547,15 +1721,15 @@ paths:
                       updatedAt:
                         type: "string"
                         description: "更新时间"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：条目详情及标签、关联展示数据"
+                    description: ""
   /api/client/subjects/years:
     get:
+      security: []
       summary: "获取库中实际存在的番剧年份列表"
       description: "获取库中实际存在的番剧年份列表"
       responses:
         "200":
-          description: "统一成功响应，其数据为：库内条目年份，按降序排列"
+          description: ""
           content:
             application/json:
               schema:
@@ -1563,30 +1737,30 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "array"
-                    description: "统一响应承载的业务数据"
+                    description: ""
                     items:
                       type: "integer"
-                description: "统一成功响应，其数据为：库内条目年份，按降序排列"
   /api/client/subjects/{id}/episodes:
     get:
+      security: []
       summary: "获取番剧剧集列表"
       description: "获取番剧剧集列表"
       parameters:
       - name: "id"
         in: "path"
-        description: "目标条目 ID"
+        description: ""
         required: true
         schema:
           type: "integer"
       responses:
         "200":
-          description: "统一成功响应，其数据为：番剧剧集列表"
+          description: ""
           content:
             application/json:
               schema:
@@ -1594,13 +1768,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "array"
-                    description: "统一响应承载的业务数据"
+                    description: ""
                     items:
                       type: "object"
                       properties:
@@ -1637,31 +1811,6 @@ paths:
                           type: "string"
                           description: "播出状态: Air=已播出, Today=今日播出, NA=未播出"
                       description: "剧集信息 VO"
-                description: "统一成功响应，其数据为：番剧剧集列表"
-  /api/client/evidence/batch:
-    post:
-      summary: "提供批量证据路由的固定响应"
-      description: "提供批量证据路由的固定响应"
-      responses:
-        "200":
-          description: "用于断言授权通过的响应标记"
-          content:
-            application/json:
-              schema:
-                type: "string"
-                description: "用于断言授权通过的响应标记"
-  /api/client/evidence/resolve:
-    post:
-      summary: "提供证据解析路由的固定响应"
-      description: "提供证据解析路由的固定响应"
-      responses:
-        "200":
-          description: "用于断言授权通过的响应标记"
-          content:
-            application/json:
-              schema:
-                type: "string"
-                description: "用于断言授权通过的响应标记"
   /api/client/files/avatar:
     post:
       summary: "上传当前用户的头像"
@@ -1676,12 +1825,12 @@ paths:
               properties:
                 file:
                   type: "string"
-                  description: "待上传的图片文件"
+                  description: ""
                   format: "binary"
         required: true
       responses:
         "200":
-          description: "包含已上传头像 URL 的成功响应"
+          description: ""
           content:
             application/json:
               schema:
@@ -1689,14 +1838,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "包含已上传头像 URL 的成功响应"
+                    description: ""
   /api/client/collections:
     get:
       summary: "获取当前登录用户收藏列表"
@@ -1732,7 +1880,7 @@ paths:
           default: 20
       responses:
         "200":
-          description: "统一成功响应，其数据为：指定用户的收藏分页，包含条目信息"
+          description: ""
           content:
             application/json:
               schema:
@@ -1740,16 +1888,16 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
                       content:
                         type: "array"
-                        description: "当前页记录列表"
+                        description: ""
                         items:
                           type: "object"
                           properties:
@@ -1811,23 +1959,22 @@ paths:
                           description: "用户收藏视图"
                       total:
                         type: "integer"
-                        description: "符合条件的记录总数"
+                        description: ""
                         format: "int64"
                       page:
                         type: "integer"
-                        description: "分页页码"
+                        description: ""
                       size:
                         type: "integer"
-                        description: "单页返回数量"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：指定用户的收藏分页，包含条目信息"
+                        description: ""
+                    description: ""
   /api/client/collections/counts:
     get:
       summary: "获取当前登录用户收藏统计（key=type 1-5，value=数量）"
       description: "获取当前登录用户收藏统计（key=type 1-5，value=数量）"
       responses:
         "200":
-          description: "统一成功响应，其数据为：实际出现的收藏状态到数量的映射，缺失状态不补零"
+          description: ""
           content:
             application/json:
               schema:
@@ -1835,17 +1982,16 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
                       "0":
                         type: "integer"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：实际出现的收藏状态到数量的映射，缺失状态不补零"
+                    description: ""
   /api/client/collections/{subjectId}:
     get:
       summary: "获取当前登录用户收藏详情"
@@ -1853,13 +1999,13 @@ paths:
       parameters:
       - name: "subjectId"
         in: "path"
-        description: "条目 ID"
+        description: ""
         required: true
         schema:
           type: "integer"
       responses:
         "200":
-          description: "统一成功响应，其数据为：用户收藏详情，未收藏时返回 {@code null}"
+          description: ""
           content:
             application/json:
               schema:
@@ -1867,10 +2013,10 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
@@ -1929,8 +2075,7 @@ paths:
                             type: "integer"
                             description: "收藏数"
                         description: "条目信息"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：用户收藏详情，未收藏时返回 {@code null}"
+                    description: ""
   /api/client/collections/{subjectId}/save:
     post:
       summary: "新增或修改收藏"
@@ -1938,7 +2083,7 @@ paths:
       parameters:
       - name: "subjectId"
         in: "path"
-        description: "条目 ID"
+        description: ""
         required: true
         schema:
           type: "integer"
@@ -1964,10 +2109,10 @@ paths:
                   minimum: 0
                   type: "integer"
                   description: "看到第几集"
-              description: "收藏类型与可选评分、进度"
+              description: ""
       responses:
         "200":
-          description: "无数据的统一成功响应"
+          description: ""
           content:
             application/json:
               schema:
@@ -1975,14 +2120,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "无数据的统一成功响应"
+                    description: ""
   /api/client/collections/{subjectId}/wishlist:
     post:
       summary: "仅当未收藏时加入想看（幂等，不覆盖已有收藏）"
@@ -1990,13 +2134,13 @@ paths:
       parameters:
       - name: "subjectId"
         in: "path"
-        description: "条目 ID"
+        description: ""
         required: true
         schema:
           type: "integer"
       responses:
         "200":
-          description: "包含新增或已有收藏状态的成功响应"
+          description: ""
           content:
             application/json:
               schema:
@@ -2004,21 +2148,20 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
                       state:
                         type: "string"
-                        description: "加入状态：ADDED 为新增，ALREADY_COLLECTED 为已有收藏"
+                        description: "ADDED | ALREADY_COLLECTED"
                       existingType:
                         type: "integer"
                         description: "ALREADY_COLLECTED 时返回已存在收藏类型（1-5）"
-                    description: "统一响应承载的业务数据"
-                description: "包含新增或已有收藏状态的成功响应"
+                    description: ""
   /api/client/collections/{subjectId}/remove:
     post:
       summary: "删除收藏"
@@ -2026,13 +2169,13 @@ paths:
       parameters:
       - name: "subjectId"
         in: "path"
-        description: "条目 ID"
+        description: ""
         required: true
         schema:
           type: "integer"
       responses:
         "200":
-          description: "无数据的统一成功响应"
+          description: ""
           content:
             application/json:
               schema:
@@ -2040,14 +2183,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "无数据的统一成功响应"
+                    description: ""
   /api/client/collections/schedule:
     get:
       summary: "登录用户每周追番列表"
@@ -2101,7 +2243,7 @@ paths:
           default: 20
       responses:
         "200":
-          description: "统一成功响应，其数据为：符合日程条件的分页结果"
+          description: ""
           content:
             application/json:
               schema:
@@ -2109,16 +2251,16 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
                       content:
                         type: "array"
-                        description: "当前页记录列表"
+                        description: ""
                         items:
                           type: "object"
                           properties:
@@ -2180,16 +2322,15 @@ paths:
                           description: "用户收藏视图"
                       total:
                         type: "integer"
-                        description: "符合条件的记录总数"
+                        description: ""
                         format: "int64"
                       page:
                         type: "integer"
-                        description: "分页页码"
+                        description: ""
                       size:
                         type: "integer"
-                        description: "单页返回数量"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：符合日程条件的分页结果"
+                        description: ""
+                    description: ""
   /api/client/collections/{subjectId}/ep-status:
     post:
       summary: "更新剧集进度"
@@ -2197,7 +2338,7 @@ paths:
       parameters:
       - name: "subjectId"
         in: "path"
-        description: "条目 ID"
+        description: ""
         required: true
         schema:
           type: "integer"
@@ -2211,10 +2352,10 @@ paths:
                   minimum: 0
                   type: "integer"
                   description: "看到第几集"
-              description: "目标已看集数"
+              description: ""
       responses:
         "200":
-          description: "无数据的统一成功响应"
+          description: ""
           content:
             application/json:
               schema:
@@ -2222,21 +2363,20 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "无数据的统一成功响应"
+                    description: ""
   /api/client/collections/progress-preview:
     post:
       summary: "生成当前登录用户本周追番进度预览"
       description: "生成当前登录用户本周追番进度预览"
       responses:
         "200":
-          description: "统一成功响应，其数据为：生成当前登录用户本周追番进度预览"
+          description: ""
           content:
             application/json:
               schema:
@@ -2244,10 +2384,10 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
@@ -2256,8 +2396,8 @@ paths:
                         description: "预览ID"
                       state:
                         type: "string"
-                        description: "{PENDING=预览已生成，等待用户确认, PREVIEW_CHANGED=确认时数据\
-                          已变化，需要使用新预览, COMPLETED=进度执行完成，允许包含部分成功}"
+                        description: "{PENDING=PENDING, PREVIEW_CHANGED=PREVIEW_CHANGED,\
+                          \ COMPLETED=执行完成（含部分成功）}"
                         enum:
                         - "PENDING"
                         - "PREVIEW_CHANGED"
@@ -2284,7 +2424,7 @@ paths:
                         description: "截止日期（昨日）"
                       items:
                         type: "array"
-                        description: "批处理或预览包含的条目集合"
+                        description: ""
                         items:
                           type: "object"
                           properties:
@@ -2308,8 +2448,8 @@ paths:
                               type: "boolean"
                               description: "是否建议标记为看过"
                           description: "收藏进度预览/执行明细项"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：生成当前登录用户本周追番进度预览"
+                        default: "new ArrayList<>()"
+                    description: ""
   /api/client/collections/progress-preview/{previewId}/execute:
     post:
       summary: "确认执行预览：重新校验，数据变化返回 PREVIEW_CHANGED，否则逐项执行并汇总"
@@ -2317,13 +2457,13 @@ paths:
       parameters:
       - name: "previewId"
         in: "path"
-        description: "已生成的进度预览标识"
+        description: ""
         required: true
         schema:
           type: "string"
       responses:
         "200":
-          description: "统一成功响应，其数据为：确认执行预览：重新校验，数据变化返回 PREVIEW_CHANGED，否则逐项执行并汇总"
+          description: ""
           content:
             application/json:
               schema:
@@ -2331,17 +2471,17 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
                       state:
                         type: "string"
-                        description: "{PENDING=预览已生成，等待用户确认, PREVIEW_CHANGED=确认时数据\
-                          已变化，需要使用新预览, COMPLETED=进度执行完成，允许包含部分成功}"
+                        description: "{PENDING=PENDING, PREVIEW_CHANGED=PREVIEW_CHANGED,\
+                          \ COMPLETED=执行完成（含部分成功）}"
                         enum:
                         - "PENDING"
                         - "PREVIEW_CHANGED"
@@ -2357,8 +2497,8 @@ paths:
                             description: "预览ID"
                           state:
                             type: "string"
-                            description: "{PENDING=预览已生成，等待用户确认, PREVIEW_CHANGED=确\
-                              认时数据已变化，需要使用新预览, COMPLETED=进度执行完成，允许包含部分成功}"
+                            description: "{PENDING=PENDING, PREVIEW_CHANGED=PREVIEW_CHANGED,\
+                              \ COMPLETED=执行完成（含部分成功）}"
                             enum:
                             - "PENDING"
                             - "PREVIEW_CHANGED"
@@ -2385,7 +2525,7 @@ paths:
                             description: "截止日期（昨日）"
                           items:
                             type: "array"
-                            description: "批处理或预览包含的条目集合"
+                            description: ""
                             items:
                               type: "object"
                               properties:
@@ -2409,10 +2549,11 @@ paths:
                                   type: "boolean"
                                   description: "是否建议标记为看过"
                               description: "收藏进度预览/执行明细项"
+                            default: "new ArrayList<>()"
                         description: "预览变化时的新预览（COMPLETED 时为 null 不输出）"
                       succeeded:
                         type: "array"
-                        description: "执行成功的条目数量"
+                        description: ""
                         items:
                           type: "object"
                           properties:
@@ -2436,9 +2577,10 @@ paths:
                               type: "boolean"
                               description: "是否建议标记为看过"
                           description: "收藏进度预览/执行明细项"
+                        default: "new ArrayList<>()"
                       skipped:
                         type: "array"
-                        description: "执行时跳过的条目数量"
+                        description: ""
                         items:
                           type: "object"
                           properties:
@@ -2459,9 +2601,10 @@ paths:
                               type: "string"
                               description: "跳过/失败原因"
                           description: "收藏进度执行跳过/失败项"
+                        default: "new ArrayList<>()"
                       failed:
                         type: "array"
-                        description: "执行失败的条目数量"
+                        description: ""
                         items:
                           type: "object"
                           properties:
@@ -2482,22 +2625,28 @@ paths:
                               type: "string"
                               description: "跳过/失败原因"
                           description: "收藏进度执行跳过/失败项"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：确认执行预览：重新校验，数据变化返回 PREVIEW_CHANGED，否则逐项执\
-                  行并汇总"
+                        default: "new ArrayList<>()"
+                    description: ""
   /api/admin/agent/prompts:
     get:
       summary: "提示词列表"
       description: "提示词列表"
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: "透传给 Python Agent 的 Authorization 请求头"
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
-          description: "上游提示词列表包装的统一结果"
+          description: ""
           content:
             application/json:
               schema:
@@ -2505,14 +2654,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "上游提示词列表包装的统一结果"
+                    description: ""
   /api/admin/agent/prompts/{key}:
     get:
       summary: "提示词详情"
@@ -2520,18 +2668,25 @@ paths:
       parameters:
       - name: "key"
         in: "path"
-        description: "上游提示词配置键"
+        description: ""
         required: true
+        schema:
+          type: "string"
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
         schema:
           type: "string"
       - name: "Authorization"
         in: "header"
-        description: "透传给 Python Agent 的 Authorization 请求头"
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
-          description: "上游提示词内容包装的统一结果"
+          description: ""
           content:
             application/json:
               schema:
@@ -2539,14 +2694,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "上游提示词内容包装的统一结果"
+                    description: ""
   /api/admin/agent/prompts/{key}/update:
     post:
       summary: "更新提示词"
@@ -2554,15 +2708,22 @@ paths:
       parameters:
       - name: "key"
         in: "path"
-        description: "上游提示词配置键"
+        description: ""
         required: true
+        schema:
+          type: "string"
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
         schema:
           type: "string"
       - name: "Authorization"
         in: "header"
-        description: "透传给 Python Agent 的 Authorization 请求头"
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       requestBody:
         content:
           application/json:
@@ -2572,10 +2733,10 @@ paths:
                 key:
                   type: "object"
                   properties: {}
-              description: "向上游透传的请求体"
+              description: ""
       responses:
         "200":
-          description: "上游提示词更新响应包装的统一结果"
+          description: ""
           content:
             application/json:
               schema:
@@ -2583,14 +2744,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "上游提示词更新响应包装的统一结果"
+                    description: ""
   /api/admin/agent/prompts/{key}/reset:
     post:
       summary: "重置提示词为默认"
@@ -2598,18 +2758,25 @@ paths:
       parameters:
       - name: "key"
         in: "path"
-        description: "上游提示词配置键"
+        description: ""
         required: true
+        schema:
+          type: "string"
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
         schema:
           type: "string"
       - name: "Authorization"
         in: "header"
-        description: "透传给 Python Agent 的 Authorization 请求头"
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
-          description: "上游提示词重置响应包装的统一结果"
+          description: ""
           content:
             application/json:
               schema:
@@ -2617,27 +2784,33 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "上游提示词重置响应包装的统一结果"
+                    description: ""
   /api/admin/agent/config:
     get:
       summary: "读取模型配置"
-      description: "读取模型配置"
+      description: "读取模型配置：返回生效值 + 逐字段来源（_sources）。Redis 未设置的字段回退 .env/Settings 默认。"
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: "透传给 Python Agent 的 Authorization 请求头"
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
-          description: "上游模型配置包装的统一结果"
+          description: ""
           content:
             application/json:
               schema:
@@ -2645,37 +2818,90 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
-                    type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "上游模型配置包装的统一结果"
+                    type: "object"
+                    description: "生效值 + 逐字段来源（_sources）"
+                    properties:
+                      model:
+                        type: "string"
+                        description: "生效模型名"
+                      modelRoute:
+                        type: "string"
+                        description: "路由模型名（CLIENT_ROUTE slot）"
+                      temperature:
+                        type: "number"
+                        description: "采样温度，0~2"
+                      maxTokens:
+                        type: "integer"
+                        description: "最大生成 token"
+                      reasoningEffort:
+                        type: "string"
+                        description: "推理强度"
+                      _sources:
+                        type: "object"
+                        description: "逐字段来源：default=继承 .env 默认（前端留空并展示 placeholder）；override=Redis 显式覆盖"
+                        properties:
+                          model:
+                            type: "string"
+                            enum: ["default", "override"]
+                          modelRoute:
+                            type: "string"
+                            enum: ["default", "override"]
+                          temperature:
+                            type: "string"
+                            enum: ["default", "override"]
+                          maxTokens:
+                            type: "string"
+                            enum: ["default", "override"]
+                          reasoningEffort:
+                            type: "string"
+                            enum: ["default", "override"]
   /api/admin/agent/config/update:
     post:
       summary: "更新模型配置"
-      description: "更新模型配置"
+      description: "更新模型配置：整体替换，只应提交被显式修改的字段；未提交字段回退继承 .env 默认（前端稀疏提交）。空对象提交为 no-op。"
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: "透传给 Python Agent 的 Authorization 请求头"
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       requestBody:
         content:
           application/json:
             schema:
               type: "object"
+              description: "只提交被修改的字段；全部可选，未提交字段不写入 Redis。"
               properties:
-                key:
-                  type: "object"
-                  properties: {}
-              description: "向上游透传的请求体"
+                model:
+                  type: "string"
+                  description: "模型名"
+                modelRoute:
+                  type: "string"
+                  description: "路由模型名"
+                temperature:
+                  type: "number"
+                  description: "采样温度，须在 0~2 之间"
+                maxTokens:
+                  type: "integer"
+                  description: "最大生成 token，须为正整数"
+                reasoningEffort:
+                  type: "string"
+                  description: "推理强度"
       responses:
         "200":
-          description: "上游配置更新响应包装的统一结果"
+          description: ""
           content:
             application/json:
               schema:
@@ -2683,50 +2909,92 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
-                    type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "上游配置更新响应包装的统一结果"
+                    type: "object"
+                    description: "更新后的生效值 + 逐字段来源（_sources），形状同 GET /api/admin/agent/config"
+                    properties:
+                      model:
+                        type: "string"
+                      modelRoute:
+                        type: "string"
+                      temperature:
+                        type: "number"
+                      maxTokens:
+                        type: "integer"
+                      reasoningEffort:
+                        type: "string"
+                      _sources:
+                        type: "object"
+                        description: "逐字段来源：default=继承 .env 默认；override=Redis 显式覆盖"
+                        additionalProperties:
+                          type: "string"
+                          enum: ["default", "override"]
   /api/admin/agent/chat/stream:
     post:
       summary: "管理端 Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）"
-      description: "管理端 Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）"
+      description: |
+        管理端 Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）。
+
+        **分帧**：每帧一行 `data: <SSEFrame JSON>`，后跟一个空行（两个换行符）作为帧分隔。
+        **事件类型写在 JSON 体内**，本端点不使用 SSE `event:` 字段——因此客户端不得按
+        `event:` 名分派，必须解析 `data:` 行里的 `type` 值。结束以帧内 `is_end=true` 表达。
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: "透传给 Python Agent 的 Authorization 请求头"
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: "object"
-              properties:
-                key:
-                  type: "object"
-                  properties: {}
-              description: "向上游透传的请求体"
+              $ref: "#/components/schemas/ChatRequest"
       responses:
         "200":
-          description: "No Content"
+          description: |-
+            SSE 流。每帧一行 `data: <SSEFrame JSON>` 后跟空行分帧；结束帧 `is_end=true`。
+            响应头另含 `Cache-Control: no-cache`、`Connection: keep-alive`、`X-Accel-Buffering: no`。
+          headers:
+            X-Request-ID:
+              description: "回写请求级 traceId。"
+              schema:
+                type: "string"
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/SSEFrame"
   /api/admin/agent/chat/sessions:
     get:
       summary: "获取管理端会话列表"
       description: "获取管理端会话列表"
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: "透传给 Python Agent 的 Authorization 请求头"
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
-          description: "当前身份的上游会话列表包装的统一结果"
+          description: ""
           content:
             application/json:
               schema:
@@ -2734,23 +3002,29 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "当前身份的上游会话列表包装的统一结果"
+                    description: ""
     post:
       summary: "创建管理端会话"
       description: "创建管理端会话"
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: "透传给 Python Agent 的 Authorization 请求头"
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       requestBody:
         content:
           application/json:
@@ -2760,10 +3034,10 @@ paths:
                 key:
                   type: "object"
                   properties: {}
-              description: "会话创建参数，可为空；空值按空对象转发"
+              description: ""
       responses:
         "200":
-          description: "上游新会话包装的统一结果"
+          description: ""
           content:
             application/json:
               schema:
@@ -2771,14 +3045,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "上游新会话包装的统一结果"
+                    description: ""
   /api/admin/agent/chat/sessions/{sessionId}/history:
     get:
       summary: "获取管理端会话历史"
@@ -2786,18 +3059,25 @@ paths:
       parameters:
       - name: "sessionId"
         in: "path"
-        description: "上游会话标识"
+        description: ""
         required: true
+        schema:
+          type: "string"
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
         schema:
           type: "string"
       - name: "Authorization"
         in: "header"
-        description: "透传给 Python Agent 的 Authorization 请求头"
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
-          description: "上游会话历史包装的统一结果"
+          description: ""
           content:
             application/json:
               schema:
@@ -2805,14 +3085,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "上游会话历史包装的统一结果"
+                    description: ""
   /api/admin/agent/chat/sessions/{sessionId}/remove:
     post:
       summary: "删除管理端会话"
@@ -2820,18 +3099,25 @@ paths:
       parameters:
       - name: "sessionId"
         in: "path"
-        description: "上游会话标识"
+        description: ""
         required: true
+        schema:
+          type: "string"
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
         schema:
           type: "string"
       - name: "Authorization"
         in: "header"
-        description: "透传给 Python Agent 的 Authorization 请求头"
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
-          description: "上游删除响应包装的统一结果"
+          description: ""
           content:
             application/json:
               schema:
@@ -2839,78 +3125,116 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "上游删除响应包装的统一结果"
+                    description: ""
   /api/client/agent/health:
     get:
       summary: "健康检查"
-      description: "健康检查"
+      description: "分项探测 LLM 配置 / Redis / Business / RAG(Vector Set)，恒返回 HTTP 200，降级在体表达。Authorization 必填来自 Spring 代理层（ClientAgentController + SecurityConfig 的 /api/client/** authenticated）；直连 Agent :8090 的 Python 侧为匿名。"
       parameters:
       - name: "Authorization"
         in: "header"
-        description: "透传给 Python Agent 的 Authorization 请求头"
+        description: "经 Spring 代理访问时必填；直连 Agent 的 Python 侧为匿名"
         required: true
         schema: {}
       responses:
         "200":
-          description: "上游健康状态包装的统一结果"
+          description: "健康报告（HTTP 恒 200；依赖不可用时 status=degraded）"
           content:
             application/json:
               schema:
                 type: "object"
                 properties:
-                  code:
-                    type: "integer"
-                    description: "统一响应或异常的状态码"
-                  message:
+                  status:
                     type: "string"
-                    description: "统一响应的状态说明"
-                  data:
-                    type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "上游健康状态包装的统一结果"
+                    enum: ["ok", "degraded"]
+                    description: "任一分项为 down 时 degraded，否则 ok"
+                  llm_configured:
+                    type: "boolean"
+                    description: "LLM 配置是否可解析"
+                  checks:
+                    type: "object"
+                    description: "分项探测结果，取值恒为有限枚举"
+                    properties:
+                      llm:
+                        type: "string"
+                        enum: ["ok", "down"]
+                      redis:
+                        type: "string"
+                        enum: ["ok", "down"]
+                      business:
+                        type: "string"
+                        enum: ["ok", "down"]
+                      rag:
+                        type: "string"
+                        enum: ["ok", "down", "disabled"]
   /api/client/agent/stream:
     post:
       summary: "Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）"
-      description: "Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）"
+      description: |
+        Agent 流式对话（SSE 流式透传，逐行转发 Python agent 响应）。
+
+        **分帧**：每帧一行 `data: <SSEFrame JSON>`，后跟一个空行（两个换行符）作为帧分隔。
+        **事件类型写在 JSON 体内**，本端点不使用 SSE `event:` 字段——因此客户端不得按
+        `event:` 名分派，必须解析 `data:` 行里的 `type` 值。结束以帧内 `is_end=true` 表达。
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: "透传给 Python Agent 的 Authorization 请求头"
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: "object"
-              properties:
-                key:
-                  type: "object"
-                  properties: {}
-              description: "向上游透传的请求体"
+              $ref: "#/components/schemas/ChatRequest"
       responses:
         "200":
-          description: "No Content"
+          description: |-
+            SSE 流。每帧一行 `data: <SSEFrame JSON>` 后跟空行分帧；结束帧 `is_end=true`。
+            响应头另含 `Cache-Control: no-cache`、`Connection: keep-alive`、`X-Accel-Buffering: no`。
+          headers:
+            X-Request-ID:
+              description: "回写请求级 traceId。"
+              schema:
+                type: "string"
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/SSEFrame"
   /api/client/agent/sessions:
     get:
       summary: "获取会话列表"
       description: "获取会话列表"
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: "透传给 Python Agent 的 Authorization 请求头"
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
-          description: "当前身份的上游会话列表包装的统一结果"
+          description: ""
           content:
             application/json:
               schema:
@@ -2918,23 +3242,29 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "当前身份的上游会话列表包装的统一结果"
+                    description: ""
     post:
       summary: "创建新会话"
       description: "创建新会话"
       parameters:
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
+        schema:
+          type: "string"
       - name: "Authorization"
         in: "header"
-        description: "透传给 Python Agent 的 Authorization 请求头"
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       requestBody:
         content:
           application/json:
@@ -2944,10 +3274,10 @@ paths:
                 key:
                   type: "object"
                   properties: {}
-              description: "会话创建参数，可为空；空值按空对象转发"
+              description: ""
       responses:
         "200":
-          description: "上游新会话包装的统一结果"
+          description: ""
           content:
             application/json:
               schema:
@@ -2955,14 +3285,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "上游新会话包装的统一结果"
+                    description: ""
   /api/client/agent/sessions/{sessionId}/history:
     get:
       summary: "获取会话历史"
@@ -2970,18 +3299,25 @@ paths:
       parameters:
       - name: "sessionId"
         in: "path"
-        description: "上游会话标识"
+        description: ""
         required: true
+        schema:
+          type: "string"
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
         schema:
           type: "string"
       - name: "Authorization"
         in: "header"
-        description: "透传给 Python Agent 的 Authorization 请求头"
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
-          description: "上游会话历史包装的统一结果"
+          description: ""
           content:
             application/json:
               schema:
@@ -2989,14 +3325,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "上游会话历史包装的统一结果"
+                    description: ""
   /api/client/agent/sessions/{sessionId}/remove:
     post:
       summary: "删除会话"
@@ -3004,18 +3339,25 @@ paths:
       parameters:
       - name: "sessionId"
         in: "path"
-        description: "上游会话标识"
+        description: ""
         required: true
+        schema:
+          type: "string"
+      - name: "X-Request-ID"
+        in: "header"
+        description: "请求级 traceId；接受合法值（同 Business 字符集）或由服务端生成 UUID，并原样回写响应头。"
+        required: false
         schema:
           type: "string"
       - name: "Authorization"
         in: "header"
-        description: "透传给 Python Agent 的 Authorization 请求头"
+        description: "Bearer 访问令牌。"
         required: true
-        schema: {}
+        schema:
+          type: "string"
       responses:
         "200":
-          description: "上游删除响应包装的统一结果"
+          description: ""
           content:
             application/json:
               schema:
@@ -3023,14 +3365,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "上游删除响应包装的统一结果"
+                    description: ""
   /api/admin/import/run:
     post:
       summary: "运行番剧导入，供管理后台手动触发数据同步"
@@ -3072,7 +3413,7 @@ paths:
           nullable: false
       responses:
         "200":
-          description: "无数据的统一成功响应"
+          description: ""
           content:
             application/json:
               schema:
@@ -3080,21 +3421,20 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "无数据的统一成功响应"
+                    description: ""
   /api/admin/import/status:
     get:
       summary: "获取番剧导入状态，供管理后台导入进度轮询触发"
       description: "获取番剧导入状态，供管理后台导入进度轮询触发"
       responses:
         "200":
-          description: "统一成功响应，其数据为：导入计数与最近 10 条记录；无完成记录时最近完成时间为空"
+          description: ""
           content:
             application/json:
               schema:
@@ -3102,10 +3442,10 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
@@ -3153,8 +3493,7 @@ paths:
                               type: "string"
                               description: "错误信息（失败时记录）"
                           description: "导入记录 VO"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：导入计数与最近 10 条记录；无完成记录时最近完成时间为空"
+                    description: ""
   /api/admin/import/records:
     get:
       summary: "分页查询导入记录，供管理后台导入历史表格展示全部记录"
@@ -3188,7 +3527,7 @@ paths:
           nullable: false
       responses:
         "200":
-          description: "统一成功响应，其数据为：按启动时间降序排列的导入记录分页"
+          description: ""
           content:
             application/json:
               schema:
@@ -3196,16 +3535,16 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
                       content:
                         type: "array"
-                        description: "当前页记录列表"
+                        description: ""
                         items:
                           type: "object"
                           properties:
@@ -3234,16 +3573,15 @@ paths:
                           description: "导入记录 VO"
                       total:
                         type: "integer"
-                        description: "符合条件的记录总数"
+                        description: ""
                         format: "int64"
                       page:
                         type: "integer"
-                        description: "分页页码"
+                        description: ""
                       size:
                         type: "integer"
-                        description: "单页返回数量"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：按启动时间降序排列的导入记录分页"
+                        description: ""
+                    description: ""
   /api/admin/logs:
     get:
       summary: "分页查询操作/登录日志并返回当前筛选条件的全量聚合统计，管理后台日志页筛选查询时触发"
@@ -3320,7 +3658,7 @@ paths:
           default: 20
       responses:
         "200":
-          description: "统一成功响应，其数据为：匹配的日志分页及全量聚合统计"
+          description: ""
           content:
             application/json:
               schema:
@@ -3328,10 +3666,10 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
@@ -3366,13 +3704,13 @@ paths:
                               description: "请求路径"
                             params:
                               type: "string"
-                              description: "历史请求参数字段，当前采集器不填充"
+                              description: "请求参数 JSON（脱敏）"
                             ip:
                               type: "string"
                               description: "客户端 IP"
                             userAgent:
                               type: "string"
-                              description: "客户端代理标识；当前采集器不填充，保留历史字段"
+                              description: "User-Agent"
                             status:
                               type: "integer"
                               description: "0=成功, 1=失败"
@@ -3417,8 +3755,7 @@ paths:
                             description: "平均耗时(毫秒)"
                             format: "int64"
                         description: "当前筛选条件下全量聚合统计"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：匹配的日志分页及全量聚合统计"
+                    description: ""
   /api/admin/files/cover:
     post:
       summary: "上传番剧封面"
@@ -3433,12 +3770,12 @@ paths:
               properties:
                 file:
                   type: "string"
-                  description: "待上传的图片文件"
+                  description: ""
                   format: "binary"
         required: true
       responses:
         "200":
-          description: "包含已上传封面 URL 的成功响应"
+          description: ""
           content:
             application/json:
               schema:
@@ -3446,14 +3783,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "包含已上传封面 URL 的成功响应"
+                    description: ""
   /api/admin/users:
     get:
       summary: "分页查看所有注册用户（不返回密码字段），管理后台用户列表加载时触发"
@@ -3461,7 +3797,7 @@ paths:
       parameters:
       - name: "page"
         in: "query"
-        description: "分页页码，从 1 开始"
+        description: ""
         required: true
         schema:
           type: "integer"
@@ -3469,7 +3805,7 @@ paths:
           default: "1"
       - name: "size"
         in: "query"
-        description: "每页记录数"
+        description: ""
         required: true
         schema:
           type: "integer"
@@ -3477,7 +3813,7 @@ paths:
           default: "20"
       responses:
         "200":
-          description: "统一成功响应，其数据为：按注册时间降序排列的用户分页"
+          description: ""
           content:
             application/json:
               schema:
@@ -3485,16 +3821,16 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
                       content:
                         type: "array"
-                        description: "当前页记录列表"
+                        description: ""
                         items:
                           type: "object"
                           properties:
@@ -3526,16 +3862,15 @@ paths:
                           description: "用户信息 VO（不含密码）"
                       total:
                         type: "integer"
-                        description: "符合条件的记录总数"
+                        description: ""
                         format: "int64"
                       page:
                         type: "integer"
-                        description: "分页页码"
+                        description: ""
                       size:
                         type: "integer"
-                        description: "单页返回数量"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：按注册时间降序排列的用户分页"
+                        description: ""
+                    description: ""
   /api/admin/users/{id}/update-role:
     post:
       summary: "修改指定用户的角色，管理后台角色变更提交时触发"
@@ -3543,7 +3878,7 @@ paths:
       parameters:
       - name: "id"
         in: "path"
-        description: "目标条目 ID"
+        description: ""
         required: true
         schema:
           type: "integer"
@@ -3559,10 +3894,10 @@ paths:
                   pattern: "USER|ADMIN"
                   type: "string"
                   description: "角色: USER=普通用户, ADMIN=管理员"
-              description: "目标用户角色"
+              description: ""
       responses:
         "200":
-          description: "统一成功响应，其数据为：修改角色后的用户信息"
+          description: ""
           content:
             application/json:
               schema:
@@ -3570,10 +3905,10 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
@@ -3602,16 +3937,15 @@ paths:
                       createdAt:
                         type: "string"
                         description: "创建时间"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：修改角色后的用户信息"
+                    description: ""
   /api/admin/users/{id}/update-enabled:
     post:
-      summary: "修改目标账户的启用状态"
-      description: "修改目标账户的启用状态"
+      summary: "updateUserEnabled"
+      description: "updateUserEnabled"
       parameters:
       - name: "id"
         in: "path"
-        description: "目标条目 ID"
+        description: ""
         required: true
         schema:
           type: "integer"
@@ -3625,11 +3959,11 @@ paths:
               properties:
                 enabled:
                   type: "boolean"
-                  description: "用户或资源是否处于启用状态"
-              description: "目标账户启用状态"
+                  description: ""
+              description: ""
       responses:
         "200":
-          description: "统一成功响应，其数据为：修改启用状态后的用户信息"
+          description: ""
           content:
             application/json:
               schema:
@@ -3637,10 +3971,10 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
@@ -3669,8 +4003,7 @@ paths:
                       createdAt:
                         type: "string"
                         description: "创建时间"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：修改启用状态后的用户信息"
+                    description: ""
   /api/admin/subjects:
     post:
       summary: "创建新番剧，管理后台新建表单提交时触发"
@@ -3686,7 +4019,7 @@ paths:
               properties:
                 bangumiId:
                   type: "integer"
-                  description: "Bangumi API 条目ID"
+                  description: "DB 列为 NOT NULL UNIQUE，必填"
                 name:
                   type: "string"
                   description: "日文/英文名"
@@ -3708,10 +4041,10 @@ paths:
                 image:
                   type: "string"
                   description: "封面图URL"
-              description: "待创建的条目字段"
+              description: ""
       responses:
         "200":
-          description: "统一成功响应，其数据为：新建条目的详情"
+          description: ""
           content:
             application/json:
               schema:
@@ -3719,10 +4052,10 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
@@ -3844,8 +4177,7 @@ paths:
                       updatedAt:
                         type: "string"
                         description: "更新时间"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：新建条目的详情"
+                    description: ""
   /api/admin/subjects/{id}/update:
     post:
       summary: "更新指定番剧的信息，管理后台编辑表单提交时触发"
@@ -3853,7 +4185,7 @@ paths:
       parameters:
       - name: "id"
         in: "path"
-        description: "目标条目 ID"
+        description: ""
         required: true
         schema:
           type: "integer"
@@ -3884,10 +4216,10 @@ paths:
                 image:
                   type: "string"
                   description: "封面图URL"
-              description: "条目更新字段，空字段保留原值"
+              description: ""
       responses:
         "200":
-          description: "统一成功响应，其数据为：修改后的条目详情"
+          description: ""
           content:
             application/json:
               schema:
@@ -3895,10 +4227,10 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
@@ -4020,8 +4352,7 @@ paths:
                       updatedAt:
                         type: "string"
                         description: "更新时间"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：修改后的条目详情"
+                    description: ""
   /api/admin/subjects/{id}/remove:
     post:
       summary: "删除指定番剧，管理后台删除操作确认时触发"
@@ -4029,13 +4360,13 @@ paths:
       parameters:
       - name: "id"
         in: "path"
-        description: "目标条目 ID"
+        description: ""
         required: true
         schema:
           type: "integer"
       responses:
         "200":
-          description: "无数据的统一成功响应"
+          description: ""
           content:
             application/json:
               schema:
@@ -4043,21 +4374,20 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "string"
-                    description: "统一响应承载的业务数据"
-                description: "无数据的统一成功响应"
+                    description: ""
   /api/admin/dashboard/overview:
     get:
       summary: "看板总览，管理后台进入看板页时加载核心运营指标"
       description: "看板总览，管理后台进入看板页时加载核心运营指标"
       responses:
         "200":
-          description: "统一成功响应，其数据为：用户、条目与收藏总览指标"
+          description: ""
           content:
             application/json:
               schema:
@@ -4065,10 +4395,10 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
@@ -4104,8 +4434,7 @@ paths:
                         type: "integer"
                         description: "今日登录次数"
                         format: "int64"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：用户、条目与收藏总览指标"
+                    description: ""
   /api/admin/dashboard/trends:
     get:
       summary: "每日趋势（新增用户/收藏/登录），看板趋势图展示时触发"
@@ -4113,7 +4442,7 @@ paths:
       parameters:
       - name: "days"
         in: "query"
-        description: "查询天数，服务层限制为 1–90 天"
+        description: ""
         required: true
         schema:
           type: "integer"
@@ -4121,7 +4450,7 @@ paths:
           default: "30"
       responses:
         "200":
-          description: "统一成功响应，其数据为：按日期升序排列的趋势点，缺失日期补零"
+          description: ""
           content:
             application/json:
               schema:
@@ -4129,13 +4458,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "array"
-                    description: "统一响应承载的业务数据"
+                    description: ""
                     items:
                       type: "object"
                       properties:
@@ -4155,14 +4484,13 @@ paths:
                           description: "当日登录次数"
                           format: "int64"
                       description: "每日趋势点 VO"
-                description: "统一成功响应，其数据为：按日期升序排列的趋势点，缺失日期补零"
   /api/admin/dashboard/collection-stats:
     get:
       summary: "收藏类型与评分分布，看板分布图加载时触发"
       description: "收藏类型与评分分布，看板分布图加载时触发"
       responses:
         "200":
-          description: "统一成功响应，其数据为：收藏状态与评分分布"
+          description: ""
           content:
             application/json:
               schema:
@@ -4170,10 +4498,10 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
@@ -4205,15 +4533,14 @@ paths:
                               description: "该评分数量"
                               format: "int64"
                           description: "评分分布"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：收藏状态与评分分布"
+                    description: ""
   /api/admin/dashboard/subject-stats:
     get:
       summary: "番剧季度数量、导入状态与导入记录统计，看板内容面板加载时触发"
       description: "番剧季度数量、导入状态与导入记录统计，看板内容面板加载时触发"
       responses:
         "200":
-          description: "统一成功响应，其数据为：条目季度、导入状态与评分统计"
+          description: ""
           content:
             application/json:
               schema:
@@ -4221,10 +4548,10 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "object"
                     properties:
@@ -4286,8 +4613,7 @@ paths:
                               description: "该评分数量"
                               format: "int64"
                           description: "评分分布"
-                    description: "统一响应承载的业务数据"
-                description: "统一成功响应，其数据为：条目季度、导入状态与评分统计"
+                    description: ""
   /api/admin/dashboard/hot:
     get:
       summary: "本站收藏最多 Top N 热门榜，看板热门排行加载时触发"
@@ -4295,7 +4621,7 @@ paths:
       parameters:
       - name: "limit"
         in: "query"
-        description: "最多返回的记录数"
+        description: ""
         required: true
         schema:
           type: "integer"
@@ -4303,7 +4629,7 @@ paths:
           default: "10"
       responses:
         "200":
-          description: "统一成功响应，其数据为：按本站收藏热度排列的条目，最多 50 条"
+          description: ""
           content:
             application/json:
               schema:
@@ -4311,13 +4637,13 @@ paths:
                 properties:
                   code:
                     type: "integer"
-                    description: "统一响应或异常的状态码"
+                    description: ""
                   message:
                     type: "string"
-                    description: "统一响应的状态说明"
+                    description: ""
                   data:
                     type: "array"
-                    description: "统一响应承载的业务数据"
+                    description: ""
                     items:
                       type: "object"
                       properties:
@@ -4339,1485 +4665,246 @@ paths:
                           description: "收藏数"
                           format: "int64"
                       description: "热门榜条目"
-                description: "统一成功响应，其数据为：按本站收藏热度排列的条目，最多 50 条"
-  /api/client/subjects/1:
+  /actuator/health/liveness:
     get:
-      summary: "提供公开条目路由的固定响应"
-      description: "提供公开条目路由的固定响应"
+      security: []
+      operationId: "actuatorLiveness"
+      summary: "存活探针（运维接口，非业务 API）"
+      description: |
+        运维探针，**不是**对外业务 API。供 Agent 服务启动期健康检查使用
+        （`backend/agent/app/api/health.py` 的 `BUSINESS_LIVENESS_PATH`），
+        对应 `backend/business/app/src/main/resources/application.yml` 中
+        `management.endpoint.health.probes.enabled: true` 暴露的 liveness 分组。
+
+        语义：进程存活即 200，不校验数据库/Redis/Agent 等下游依赖
+        （`management.health.livenessstate.enabled: true`）。就绪性请用
+        `/actuator/health/readiness`，其强制 db 与 redis 两组。
+      tags:
+      - "运维探针"
       responses:
         "200":
-          description: "用于断言授权通过的响应标记"
+          description: "进程存活"
           content:
             application/json:
               schema:
-                type: "string"
-                description: "用于断言授权通过的响应标记"
-  /actuator/health:
-    get:
-      summary: "提供健康检查路由的固定响应"
-      description: "提供健康检查路由的固定响应"
-      responses:
-        "200":
-          description: "用于断言授权通过的响应标记"
-          content:
-            application/json:
-              schema:
-                type: "string"
-                description: "用于断言授权通过的响应标记"
-  /api/client/private:
-    get:
-      summary: "提供用户受保护路由的固定响应"
-      description: "提供用户受保护路由的固定响应"
-      responses:
-        "200":
-          description: "用于断言授权通过的响应标记"
-          content:
-            application/json:
-              schema:
-                type: "string"
-                description: "用于断言授权通过的响应标记"
-  /api/admin/private:
-    get:
-      summary: "提供管理员受保护路由的固定响应"
-      description: "提供管理员受保护路由的固定响应"
-      responses:
-        "200":
-          description: "用于断言授权通过的响应标记"
-          content:
-            application/json:
-              schema:
-                type: "string"
-                description: "用于断言授权通过的响应标记"
-components:
-  schemas:
-    标签信息 VO:
-      type: "object"
-      properties:
-        id:
-          type: "integer"
-          description: "标签ID"
-          format: "int64"
-        name:
-          type: "string"
-          description: "标签名"
-        count:
-          type: "integer"
-          description: "该标签在此条目上的使用次数"
-      description: "标签信息 VO"
-    条目列表视图（摘要信息）:
-      type: "object"
-      properties:
-        id:
-          type: "integer"
-          description: "条目ID"
-          format: "int64"
-        name:
-          type: "string"
-          description: "日文/英文名"
-        nameCn:
-          type: "string"
-          description: "中文名"
-        image:
-          type: "string"
-          description: "封面图URL"
-        score:
-          type: "number"
-          description: "Bangumi 评分（0.0~10.0）"
-        rank:
-          type: "integer"
-          description: "Bangumi 排名"
-        eps:
-          type: "integer"
-          description: "总集数"
-        airDate:
-          type: "string"
-          description: "播出日期"
-        type:
-          type: "integer"
-          description: "条目类型（2=动画）"
-        airWeekday:
-          type: "integer"
-          description: "播出星期（0=周日, 1=周一 ... 6=周六）"
-        collectionTotal:
-          type: "integer"
-          description: "收藏数"
-      description: "关联条目信息"
-    用户信息 VO（不含密码）:
-      type: "object"
-      properties:
-        id:
-          type: "integer"
-          description: "用户ID"
-          format: "int64"
-        username:
-          type: "string"
-          description: "用户名（唯一）"
-        email:
-          type: "string"
-          description: "邮箱"
-        nickname:
-          type: "string"
-          description: "昵称"
-        avatar:
-          type: "string"
-          description: "头像URL"
-        role:
-          type: "string"
-          description: "角色: USER=普通用户, ADMIN=管理员"
-        enabled:
-          type: "boolean"
-          description: "账号是否启用"
-        createdAt:
-          type: "string"
-          description: "创建时间"
-      description: "统一响应承载的业务数据"
-    登录/验证结果（access token + 用户信息；refresh token 仅通过 HttpOnly Cookie 返回）:
-      type: "object"
-      properties:
-        token:
-          type: "string"
-          description: "认证或会话令牌"
-        user:
-          type: "object"
-          properties:
-            id:
-              type: "integer"
-              description: "用户ID"
-              format: "int64"
-            username:
-              type: "string"
-              description: "用户名（唯一）"
-            email:
-              type: "string"
-              description: "邮箱"
-            nickname:
-              type: "string"
-              description: "昵称"
-            avatar:
-              type: "string"
-              description: "头像URL"
-            role:
-              type: "string"
-              description: "角色: USER=普通用户, ADMIN=管理员"
-            enabled:
-              type: "boolean"
-              description: "账号是否启用"
-            createdAt:
-              type: "string"
-              description: "创建时间"
-          description: "认证成功后的用户信息"
-      description: "统一响应承载的业务数据"
-    MySQL FULLTEXT 召回候选；详细事实仍需通过 Evidence API 回查:
-      type: "object"
-      properties:
-        subjectId:
-          type: "integer"
-          description: "关联条目标识"
-          format: "int64"
-        name:
-          type: "string"
-          description: "来源数据的原始名称"
-        nameCn:
-          type: "string"
-          description: "条目的中文名称"
-        lexicalScore:
-          type: "number"
-          description: "词法检索相关性得分"
-        rank:
-          type: "integer"
-          description: "候选结果排序名次"
-      description: "MySQL FULLTEXT 召回候选；详细事实仍需通过 Evidence API 回查"
-    带 active release 版本的词法召回结果:
-      type: "object"
-      properties:
-        indexVersion:
-          type: "string"
-          description: "检索索引版本标识"
-        profileVersion:
-          type: "string"
-          description: "检索配置版本标识"
-        candidates:
-          type: "array"
-          description: "检索或证据候选列表"
-          items:
-            type: "object"
-            properties:
-              subjectId:
-                type: "integer"
-                description: "关联条目标识"
-                format: "int64"
-              name:
-                type: "string"
-                description: "来源数据的原始名称"
-              nameCn:
-                type: "string"
-                description: "条目的中文名称"
-              lexicalScore:
-                type: "number"
-                description: "词法检索相关性得分"
-              rank:
-                type: "integer"
-                description: "候选结果排序名次"
-            description: "MySQL FULLTEXT 召回候选；详细事实仍需通过 Evidence API 回查"
-      description: "统一响应承载的业务数据"
-    批量权威回查中可返回的条目字段:
-      type: "object"
-      properties:
-        id:
-          type: "integer"
-          description: "记录或资源的唯一标识"
-          format: "int64"
-        name:
-          type: "string"
-          description: "来源数据的原始名称"
-        nameCn:
-          type: "string"
-          description: "条目的中文名称"
-        image:
-          type: "string"
-          description: "条目的封面图片地址"
-        score:
-          type: "number"
-          description: "条目评分，取值遵循接口约定"
-        ratingTotal:
-          type: "integer"
-          description: "条目评分人数"
-        collectionTotal:
-          type: "integer"
-          description: "条目收藏人数"
-        airDate:
-          type: "string"
-          description: "条目的首播日期"
-        type:
-          type: "integer"
-          description: "业务类型或状态编码，取值由所属接口约束"
-        nsfw:
-          type: "boolean"
-          description: "条目是否包含 NSFW 内容"
-        active:
-          type: "boolean"
-          description: "Agent 权威回查需要的有效状态；由 subject.import_status 派生"
-      description: "批量权威回查中可返回的条目字段"
-    批量权威回查分类结果:
-      type: "object"
-      properties:
-        items:
-          type: "array"
-          description: "批处理或预览包含的条目集合"
-          items:
-            type: "object"
-            properties:
-              id:
-                type: "integer"
-                description: "记录或资源的唯一标识"
-                format: "int64"
-              name:
-                type: "string"
-                description: "来源数据的原始名称"
-              nameCn:
-                type: "string"
-                description: "条目的中文名称"
-              image:
-                type: "string"
-                description: "条目的封面图片地址"
-              score:
-                type: "number"
-                description: "条目评分，取值遵循接口约定"
-              ratingTotal:
-                type: "integer"
-                description: "条目评分人数"
-              collectionTotal:
-                type: "integer"
-                description: "条目收藏人数"
-              airDate:
-                type: "string"
-                description: "条目的首播日期"
-              type:
-                type: "integer"
-                description: "业务类型或状态编码，取值由所属接口约束"
-              nsfw:
-                type: "boolean"
-                description: "条目是否包含 NSFW 内容"
-              active:
-                type: "boolean"
-                description: "Agent 权威回查需要的有效状态；由 subject.import_status 派生"
-            description: "批量权威回查中可返回的条目字段"
-          default: "new ArrayList<>()"
-        missingIds:
-          type: "array"
-          description: "未找到对应记录的标识列表"
-          items:
-            type: "integer"
-          default: "new ArrayList<>()"
-        filteredIds:
-          type: "array"
-          description: "被筛选排除的标识列表"
-          items:
-            type: "integer"
-          default: "new ArrayList<>()"
-        collectedIds:
-          type: "array"
-          description: "已收藏条目标识列表"
-          items:
-            type: "integer"
-          default: "new ArrayList<>()"
-      description: "统一响应承载的业务数据"
-    条目关联视图:
-      type: "object"
-      properties:
-        relation:
-          type: "string"
-          description: "关联类型: prequel, sequel, side_story 等"
-        relatedSubject:
-          type: "object"
-          properties:
-            id:
-              type: "integer"
-              description: "条目ID"
-              format: "int64"
-            name:
-              type: "string"
-              description: "日文/英文名"
-            nameCn:
-              type: "string"
-              description: "中文名"
-            image:
-              type: "string"
-              description: "封面图URL"
-            score:
-              type: "number"
-              description: "Bangumi 评分（0.0~10.0）"
-            rank:
-              type: "integer"
-              description: "Bangumi 排名"
-            eps:
-              type: "integer"
-              description: "总集数"
-            airDate:
-              type: "string"
-              description: "播出日期"
-            type:
-              type: "integer"
-              description: "条目类型（2=动画）"
-            airWeekday:
-              type: "integer"
-              description: "播出星期（0=周日, 1=周一 ... 6=周六）"
-            collectionTotal:
-              type: "integer"
-              description: "收藏数"
-          description: "关联条目信息"
-      description: "条目关联视图"
-    条目详情视图（含标签）:
-      type: "object"
-      properties:
-        id:
-          type: "integer"
-          description: "条目ID"
-          format: "int64"
-        name:
-          type: "string"
-          description: "日文/英文名"
-        nameCn:
-          type: "string"
-          description: "中文名"
-        image:
-          type: "string"
-          description: "封面图URL"
-        score:
-          type: "number"
-          description: "Bangumi 评分（0.0~10.0）"
-        rank:
-          type: "integer"
-          description: "Bangumi 排名"
-        eps:
-          type: "integer"
-          description: "总集数"
-        airDate:
-          type: "string"
-          description: "播出日期"
-        type:
-          type: "integer"
-          description: "条目类型（2=动画）"
-        airWeekday:
-          type: "integer"
-          description: "播出星期（0=周日, 1=周一 ... 6=周六）"
-        collectionTotal:
-          type: "integer"
-          description: "收藏数"
-        bangumiId:
-          type: "integer"
-          description: "Bangumi API 条目ID"
-        summary:
-          type: "string"
-          description: "简介/描述"
-        volumes:
-          type: "integer"
-          description: "总卷数"
-        nsfw:
-          type: "boolean"
-          description: "是否 NSFW: 0=否, 1=是"
-        tags:
-          type: "array"
-          description: "标签列表"
-          items:
-            type: "object"
-            properties:
-              id:
-                type: "integer"
-                description: "标签ID"
-                format: "int64"
-              name:
-                type: "string"
-                description: "标签名"
-              count:
-                type: "integer"
-                description: "该标签在此条目上的使用次数"
-            description: "标签信息 VO"
-        relations:
-          type: "array"
-          description: "关联条目列表"
-          items:
-            type: "object"
-            properties:
-              relation:
-                type: "string"
-                description: "关联类型: prequel, sequel, side_story 等"
-              relatedSubject:
                 type: "object"
                 properties:
-                  id:
-                    type: "integer"
-                    description: "条目ID"
-                    format: "int64"
-                  name:
+                  status:
                     type: "string"
-                    description: "日文/英文名"
-                  nameCn:
-                    type: "string"
-                    description: "中文名"
-                  image:
-                    type: "string"
-                    description: "封面图URL"
-                  score:
-                    type: "number"
-                    description: "Bangumi 评分（0.0~10.0）"
-                  rank:
-                    type: "integer"
-                    description: "Bangumi 排名"
-                  eps:
-                    type: "integer"
-                    description: "总集数"
-                  airDate:
-                    type: "string"
-                    description: "播出日期"
-                  type:
-                    type: "integer"
-                    description: "条目类型（2=动画）"
-                  airWeekday:
-                    type: "integer"
-                    description: "播出星期（0=周日, 1=周一 ... 6=周六）"
-                  collectionTotal:
-                    type: "integer"
-                    description: "收藏数"
-                description: "关联条目信息"
-            description: "条目关联视图"
-          default: "new ArrayList<>()"
-        createdAt:
-          type: "string"
-          description: "创建时间"
-        updatedAt:
-          type: "string"
-          description: "更新时间"
-      description: "统一响应承载的业务数据"
-    剧集信息 VO:
+                    description: "固定为 UP"
+                    example: "UP"
+        "503":
+          description: "进程不存活（Spring Boot liveness 分组为 DOWN）"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: "http"
+      scheme: "bearer"
+      bearerFormat: "JWT"
+      description: |
+        访问令牌经 `Authorization: Bearer <token>` 传递。
+        客户端 access token 由前端内存持有；refresh token 走 HttpOnly Cookie（`at_refresh`）。
+  schemas:
+    ChatRequest:
       type: "object"
+      description: "Agent 流式对话请求体。与 `backend/agent/app/api/schemas/chat.py` 的 `ChatRequest` 一致。"
+      required:
+      - "session_id"
+      - "content"
       properties:
-        id:
-          type: "integer"
-          description: "剧集ID"
-          format: "int64"
-        subjectId:
-          type: "integer"
-          description: "所属条目ID"
-          format: "int64"
+        session_id:
+          type: "string"
+          description: "会话 ID。"
+        content:
+          type: "string"
+          minLength: 1
+          maxLength: 4096
+          description: "用户输入文本，1..4096 字符。"
+    SSEFrame:
+      type: "object"
+      description: |
+        SSE 单帧载荷（`text/event-stream` 的 `data:` 行 JSON）。
+        分帧方式为每帧一行 `data: <JSON>` 后跟空行（`\n\n`），事件类型写在 JSON 体内。
+        **结束帧为 `is_end=true`，`type` 枚举不含 `end`。**
+        序列化使用 `exclude_none=True`，空值字段不出现在 wire 上。
+        实现见 `backend/agent/app/api/schemas/sse.py`。
+      required:
+      - "content"
+      - "type"
+      - "is_end"
+      - "timestamp"
+      properties:
         type:
+          type: "string"
+          enum: ["answer", "thinking", "function_call", "status"]
+          description: "事件类型；无 `end` 取值。"
+        content:
+          type: "object"
+          description: "事件载荷；各子字段均可选，空值不序列化。"
+          properties:
+            text:
+              type: "string"
+              description: "增量文本。"
+            node:
+              type: "string"
+              description: "当前图节点。"
+            parent_node:
+              type: "string"
+              description: "父图节点。"
+            state:
+              type: "string"
+              description: "工具/节点状态：`start` | `end`（工具）；`status` 事件上可为 `error`。"
+            message:
+              type: "string"
+              description: "状态文案。"
+            result:
+              type: "string"
+              description: "工具结果；失败以 `state=end` + `result=error` 表达。"
+            name:
+              type: "string"
+              description: "工具名。"
+            arguments:
+              type: "string"
+              description: "工具入参（JSON 字符串）。"
+        meta:
+          type: "object"
+          nullable: true
+          additionalProperties: true
+          description: "附加元数据；空时不出现在 wire 上。"
+        is_end:
+          type: "boolean"
+          description: "是否为流结束帧。"
+        timestamp:
           type: "integer"
-          description: "剧集类型: 0=本篇, 1=SP, 2=OP, 3=ED, 4=预告"
-        sort:
-          type: "number"
-          description: "集数序号（支持小数点）"
-        name:
-          type: "string"
-          description: "日文/英文标题"
-        nameCn:
-          type: "string"
-          description: "中文标题"
-        duration:
-          type: "string"
-          description: "时长（如 \"24m\"）"
-        airdate:
-          type: "string"
-          description: "播出日期"
-        description:
-          type: "string"
-          description: "剧情简介"
-        status:
-          type: "string"
-          description: "播出状态: Air=已播出, Today=今日播出, NA=未播出"
-      description: "剧集信息 VO"
-    CreditItem 数据对象:
-      type: "object"
-      properties:
-        personName:
-          type: "string"
-          description: "人物名称"
-        role:
-          type: "string"
-          description: "人员或角色在关系中的职务"
-        relation:
-          type: "string"
-          description: "实体之间的关系类型"
-      description: "CreditItem 数据对象"
-    CharacterItem 数据对象:
-      type: "object"
-      properties:
-        characterName:
-          type: "string"
-          description: "角色名称"
-        relation:
-          type: "string"
-          description: "实体之间的关系类型"
-      description: "CharacterItem 数据对象"
-    RelationItem 数据对象:
-      type: "object"
-      properties:
-        relatedSubjectId:
-          type: "integer"
-          description: "关联条目标识"
           format: "int64"
-        relatedSubjectName:
-          type: "string"
-          description: "关联条目的原始名称"
-        relatedSubjectNameCn:
-          type: "string"
-          description: "关联条目的中文名称"
-        relation:
-          type: "string"
-          description: "实体之间的关系类型"
-      description: "RelationItem 数据对象"
-    ? "面向 Agent 的条目证据视图\n包含标题、别名、标签、主创、角色、关联条目等完整证据链"
-    : type: "object"
+          description: "毫秒时间戳。"
+    LexicalSearchResult:
+      type: object
+      description: "绑定 MySQL active release 的词法召回结果。"
+      required: [indexVersion, candidates]
+      properties:
+        indexVersion:
+          type: string
+          description: "必须与 Redis Vector Set 版本一致"
+        profileVersion:
+          type: string
+        candidates:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/LexicalSearchCandidate"
+    LexicalSearchCandidate:
+      type: object
+      required: [subjectId, rank, lexicalScore]
       properties:
         subjectId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        nameCn:
+          type: string
+        lexicalScore:
+          type: number
+        rank:
+          type: integer
+          minimum: 1
+      description: "需要通过 Evidence API 补充权威证据的词法候选。"
+    EvidenceCandidate:
+      type: "object"
+      description: "供 Agent 使用的已验证番剧证据候选。"
+      properties:
+        subjectId:
           type: "integer"
-          description: "关联条目标识"
           format: "int64"
+          description: "本地条目 ID"
         name:
           type: "string"
-          description: "来源数据的原始名称"
         nameCn:
           type: "string"
-          description: "条目的中文名称"
         type:
           type: "integer"
-          description: "业务类型或状态编码，取值由所属接口约束"
+          description: "Bangumi 条目类型；2 为动画"
         nsfw:
           type: "boolean"
-          description: "条目是否包含 NSFW 内容"
         active:
           type: "boolean"
-          description: "当前记录是否仍是可供 Agent 使用的活跃来源事实"
+          description: "已导入且可用于证据回查"
         sourceId:
           type: "integer"
-          description: "上游 Bangumi ID"
+          description: "Bangumi 条目 ID"
         sourceUrl:
           type: "string"
-          description: "上游 Bangumi 详情 URL"
+          format: "uri"
         score:
           type: "number"
-          description: "条目评分，取值遵循接口约定"
+          format: "double"
+          description: "Bangumi 评分"
         rank:
           type: "integer"
-          description: "候选结果排序名次"
+          description: "Bangumi 排名"
         ratingTotal:
           type: "integer"
-          description: "条目评分人数"
+          description: "评分人数"
         collectionTotal:
           type: "integer"
-          description: "条目收藏人数"
+          description: "收藏人数"
         airDate:
           type: "string"
-          description: "条目的首播日期"
+          format: "date"
         airStatus:
           type: "string"
-          description: "基于条目日期与剧集状态推导的播出状态"
+          enum: [UPCOMING, AIRING, FINISHED, UNKNOWN]
+          description: "根据作品日期与剧集状态推导的播出状态"
+        sourceFetchedAt:
+          type: "string"
+          format: "date-time"
+        sourceTime:
+          type: "string"
+          format: "date-time"
+          description: "旧字段名，兼容已有 Agent"
         summary:
           type: "string"
-          description: "条目的简介文本"
         aliases:
           type: "array"
-          description: "条目的别名列表"
           items:
             type: "string"
         metaTags:
           type: "array"
-          description: "条目关联的元标签列表"
           items:
             type: "string"
         credits:
           type: "array"
-          description: "条目演职人员列表"
           items:
             type: "object"
             properties:
               personName:
                 type: "string"
-                description: "人物名称"
               role:
                 type: "string"
-                description: "人员或角色在关系中的职务"
               relation:
                 type: "string"
-                description: "实体之间的关系类型"
-            description: "CreditItem 数据对象"
         characters:
           type: "array"
-          description: "条目关联的角色列表"
           items:
             type: "object"
             properties:
               characterName:
                 type: "string"
-                description: "角色名称"
               relation:
                 type: "string"
-                description: "实体之间的关系类型"
-            description: "CharacterItem 数据对象"
         relations:
           type: "array"
-          description: "条目关联关系列表"
           items:
             type: "object"
             properties:
               relatedSubjectId:
                 type: "integer"
-                description: "关联条目标识"
                 format: "int64"
               relatedSubjectName:
                 type: "string"
-                description: "关联条目的原始名称"
               relatedSubjectNameCn:
                 type: "string"
-                description: "关联条目的中文名称"
               relation:
                 type: "string"
-                description: "实体之间的关系类型"
-            description: "RelationItem 数据对象"
-        sourceTime:
-          type: "string"
-          description: "来源数据对应的时间点"
-        sourceFetchedAt:
-          type: "string"
-          description: "新字段名；sourceTime 保留用于旧 Agent/客户端兼容"
-      description: "面向 Agent 的条目证据视图\n包含标题、别名、标签、主创、角色、关联条目等完整证据链"
-    用户收藏视图:
-      type: "object"
-      properties:
-        id:
-          type: "integer"
-          description: "收藏ID"
-          format: "int64"
-        subjectId:
-          type: "integer"
-          description: "条目ID"
-          format: "int64"
-        type:
-          type: "integer"
-          description: "收藏类型: 1=想看, 2=看过, 3=在看, 4=搁置, 5=抛弃"
-        rate:
-          type: "integer"
-          description: "评分（0~10, 0 表示未评分）"
-        epStatus:
-          type: "integer"
-          description: "看到第几集"
-        subject:
-          type: "object"
-          properties:
-            id:
-              type: "integer"
-              description: "条目ID"
-              format: "int64"
-            name:
-              type: "string"
-              description: "日文/英文名"
-            nameCn:
-              type: "string"
-              description: "中文名"
-            image:
-              type: "string"
-              description: "封面图URL"
-            score:
-              type: "number"
-              description: "Bangumi 评分（0.0~10.0）"
-            rank:
-              type: "integer"
-              description: "Bangumi 排名"
-            eps:
-              type: "integer"
-              description: "总集数"
-            airDate:
-              type: "string"
-              description: "播出日期"
-            type:
-              type: "integer"
-              description: "条目类型（2=动画）"
-            airWeekday:
-              type: "integer"
-              description: "播出星期（0=周日, 1=周一 ... 6=周六）"
-            collectionTotal:
-              type: "integer"
-              description: "收藏数"
-          description: "条目信息"
-      description: "用户收藏视图"
-    想看加入结果（幂等）：state=ADDED 表示新增成功；state=ALREADY_COLLECTED 表示已存在收藏，不覆盖:
-      type: "object"
-      properties:
-        state:
-          type: "string"
-          description: "加入状态：ADDED 为新增，ALREADY_COLLECTED 为已有收藏"
-        existingType:
-          type: "integer"
-          description: "ALREADY_COLLECTED 时返回已存在收藏类型（1-5）"
-      description: "统一响应承载的业务数据"
-    java.time.ZoneOffset:
-      type: "object"
-      properties:
-        totalSeconds:
-          type: "integer"
-          description: "The total offset in seconds."
-      description: "The offset from UTC/Greenwich."
-    java.time.OffsetDateTime:
-      type: "object"
-      properties:
-        dateTime:
-          type: "string"
-          description: "The local date-time."
-        offset:
-          type: "object"
-          properties:
-            totalSeconds:
-              type: "integer"
-              description: "The total offset in seconds."
-          description: "The offset from UTC/Greenwich."
-      description: "过期时间"
-    收藏进度预览/执行明细项:
-      type: "object"
-      properties:
-        subjectId:
-          type: "integer"
-          description: "条目ID"
-          format: "int64"
-        subjectName:
-          type: "string"
-          description: "条目名称"
-        currentEpStatus:
-          type: "integer"
-          description: "当前进度"
-        targetEpStatus:
-          type: "integer"
-          description: "目标进度"
-        completedAfterUpdate:
-          type: "boolean"
-          description: "更新后是否达到总集数"
-        suggestMarkAsWatched:
-          type: "boolean"
-          description: "是否建议标记为看过"
-      description: "收藏进度预览/执行明细项"
-    本周追番进度预览返回体:
-      type: "object"
-      properties:
-        previewId:
-          type: "string"
-          description: "预览ID"
-        state:
-          type: "string"
-          description: "{PENDING=预览已生成，等待用户确认, PREVIEW_CHANGED=确认时数据已变化，需要使用新预览, COMPLETED=进\
-            度执行完成，允许包含部分成功}"
-          enum:
-          - "PENDING"
-          - "PREVIEW_CHANGED"
-          - "COMPLETED"
-        expiresAt:
-          type: "object"
-          properties:
-            dateTime:
-              type: "string"
-              description: "The local date-time."
-            offset:
-              type: "object"
-              properties:
-                totalSeconds:
-                  type: "integer"
-                  description: "The total offset in seconds."
-              description: "The offset from UTC/Greenwich."
-          description: "过期时间"
-        weekStart:
-          type: "string"
-          description: "本周周一"
-        cutoffDate:
-          type: "string"
-          description: "截止日期（昨日）"
-        items:
-          type: "array"
-          description: "批处理或预览包含的条目集合"
-          items:
-            type: "object"
-            properties:
-              subjectId:
-                type: "integer"
-                description: "条目ID"
-                format: "int64"
-              subjectName:
-                type: "string"
-                description: "条目名称"
-              currentEpStatus:
-                type: "integer"
-                description: "当前进度"
-              targetEpStatus:
-                type: "integer"
-                description: "目标进度"
-              completedAfterUpdate:
-                type: "boolean"
-                description: "更新后是否达到总集数"
-              suggestMarkAsWatched:
-                type: "boolean"
-                description: "是否建议标记为看过"
-            description: "收藏进度预览/执行明细项"
-      description: "预览变化时的新预览（COMPLETED 时为 null 不输出）"
-    收藏进度执行跳过/失败项:
-      type: "object"
-      properties:
-        subjectId:
-          type: "integer"
-          description: "条目ID"
-          format: "int64"
-        subjectName:
-          type: "string"
-          description: "条目名称"
-        currentEpStatus:
-          type: "integer"
-          description: "当前进度"
-        targetEpStatus:
-          type: "integer"
-          description: "目标进度"
-        reason:
-          type: "string"
-          description: "跳过/失败原因"
-      description: "收藏进度执行跳过/失败项"
-    本周追番进度确认执行结果:
-      type: "object"
-      properties:
-        state:
-          type: "string"
-          description: "{PENDING=预览已生成，等待用户确认, PREVIEW_CHANGED=确认时数据已变化，需要使用新预览, COMPLETED=进\
-            度执行完成，允许包含部分成功}"
-          enum:
-          - "PENDING"
-          - "PREVIEW_CHANGED"
-          - "COMPLETED"
-        replayed:
-          type: "boolean"
-          description: "是否为重复确认返回首次结果"
-        preview:
-          type: "object"
-          properties:
-            previewId:
-              type: "string"
-              description: "预览ID"
-            state:
-              type: "string"
-              description: "{PENDING=预览已生成，等待用户确认, PREVIEW_CHANGED=确认时数据已变化，需要使用新预\
-                览, COMPLETED=进度执行完成，允许包含部分成功}"
-              enum:
-              - "PENDING"
-              - "PREVIEW_CHANGED"
-              - "COMPLETED"
-            expiresAt:
-              type: "object"
-              properties:
-                dateTime:
-                  type: "string"
-                  description: "The local date-time."
-                offset:
-                  type: "object"
-                  properties:
-                    totalSeconds:
-                      type: "integer"
-                      description: "The total offset in seconds."
-                  description: "The offset from UTC/Greenwich."
-              description: "过期时间"
-            weekStart:
-              type: "string"
-              description: "本周周一"
-            cutoffDate:
-              type: "string"
-              description: "截止日期（昨日）"
-            items:
-              type: "array"
-              description: "批处理或预览包含的条目集合"
-              items:
-                type: "object"
-                properties:
-                  subjectId:
-                    type: "integer"
-                    description: "条目ID"
-                    format: "int64"
-                  subjectName:
-                    type: "string"
-                    description: "条目名称"
-                  currentEpStatus:
-                    type: "integer"
-                    description: "当前进度"
-                  targetEpStatus:
-                    type: "integer"
-                    description: "目标进度"
-                  completedAfterUpdate:
-                    type: "boolean"
-                    description: "更新后是否达到总集数"
-                  suggestMarkAsWatched:
-                    type: "boolean"
-                    description: "是否建议标记为看过"
-                description: "收藏进度预览/执行明细项"
-          description: "预览变化时的新预览（COMPLETED 时为 null 不输出）"
-        succeeded:
-          type: "array"
-          description: "执行成功的条目数量"
-          items:
-            type: "object"
-            properties:
-              subjectId:
-                type: "integer"
-                description: "条目ID"
-                format: "int64"
-              subjectName:
-                type: "string"
-                description: "条目名称"
-              currentEpStatus:
-                type: "integer"
-                description: "当前进度"
-              targetEpStatus:
-                type: "integer"
-                description: "目标进度"
-              completedAfterUpdate:
-                type: "boolean"
-                description: "更新后是否达到总集数"
-              suggestMarkAsWatched:
-                type: "boolean"
-                description: "是否建议标记为看过"
-            description: "收藏进度预览/执行明细项"
-        skipped:
-          type: "array"
-          description: "执行时跳过的条目数量"
-          items:
-            type: "object"
-            properties:
-              subjectId:
-                type: "integer"
-                description: "条目ID"
-                format: "int64"
-              subjectName:
-                type: "string"
-                description: "条目名称"
-              currentEpStatus:
-                type: "integer"
-                description: "当前进度"
-              targetEpStatus:
-                type: "integer"
-                description: "目标进度"
-              reason:
-                type: "string"
-                description: "跳过/失败原因"
-            description: "收藏进度执行跳过/失败项"
-        failed:
-          type: "array"
-          description: "执行失败的条目数量"
-          items:
-            type: "object"
-            properties:
-              subjectId:
-                type: "integer"
-                description: "条目ID"
-                format: "int64"
-              subjectName:
-                type: "string"
-                description: "条目名称"
-              currentEpStatus:
-                type: "integer"
-                description: "当前进度"
-              targetEpStatus:
-                type: "integer"
-                description: "目标进度"
-              reason:
-                type: "string"
-                description: "跳过/失败原因"
-            description: "收藏进度执行跳过/失败项"
-      description: "统一响应承载的业务数据"
-    导入记录 VO:
-      type: "object"
-      properties:
-        id:
-          type: "integer"
-          description: "记录ID"
-          format: "int64"
-        season:
-          type: "string"
-          description: "季度标识（如 2026-spring）"
-        startedAt:
-          type: "string"
-          description: "开始时间"
-        completedAt:
-          type: "string"
-          description: "完成时间（可空）"
-        status:
-          type: "string"
-          description: "状态: RUNNING, COMPLETED, FAILED"
-        subjectCount:
-          type: "integer"
-          description: "本次导入的条目数"
-        errorMessage:
-          type: "string"
-          description: "错误信息（失败时记录）"
-      description: "导入记录 VO"
-    导入状态信息 VO:
-      type: "object"
-      properties:
-        lastImportedAt:
-          type: "string"
-          description: "最近一次导入完成时间（从未导入=null）"
-        totalLogs:
-          type: "integer"
-          description: "当前导入日志数量（import_record 全量）"
-          format: "int64"
-        completedCount:
-          type: "integer"
-          description: "历史成功任务总数（全量）"
-          format: "int64"
-        failedCount:
-          type: "integer"
-          description: "历史失败任务总数（全量）"
-          format: "int64"
-        recentRecords:
-          type: "array"
-          description: "最近条目导入记录"
-          items:
-            type: "object"
-            properties:
-              id:
-                type: "integer"
-                description: "记录ID"
-                format: "int64"
-              season:
-                type: "string"
-                description: "季度标识（如 2026-spring）"
-              startedAt:
-                type: "string"
-                description: "开始时间"
-              completedAt:
-                type: "string"
-                description: "完成时间（可空）"
-              status:
-                type: "string"
-                description: "状态: RUNNING, COMPLETED, FAILED"
-              subjectCount:
-                type: "integer"
-                description: "本次导入的条目数"
-              errorMessage:
-                type: "string"
-                description: "错误信息（失败时记录）"
-            description: "导入记录 VO"
-      description: "统一响应承载的业务数据"
-    操作日志 VO:
-      type: "object"
-      properties:
-        id:
-          type: "integer"
-          description: "日志ID"
-          format: "int64"
-        userId:
-          type: "integer"
-          description: "用户ID（匿名失败登录为NULL）"
-          format: "int64"
-        username:
-          type: "string"
-          description: "用户名/邮箱快照"
-        action:
-          type: "string"
-          description: "动作"
-        module:
-          type: "string"
-          description: "模块"
-        method:
-          type: "string"
-          description: "HTTP 方法"
-        path:
-          type: "string"
-          description: "请求路径"
-        params:
-          type: "string"
-          description: "历史请求参数字段，当前采集器不填充"
-        ip:
-          type: "string"
-          description: "客户端 IP"
-        userAgent:
-          type: "string"
-          description: "客户端代理标识；当前采集器不填充，保留历史字段"
-        status:
-          type: "integer"
-          description: "0=成功, 1=失败"
-        errorMsg:
-          type: "string"
-          description: "失败原因"
-        durationMs:
-          type: "integer"
-          description: "耗时(毫秒)"
-          format: "int64"
-        createdAt:
-          type: "string"
-          description: "创建时间"
-      description: "操作日志 VO"
-    操作日志统计（按当前筛选条件对全部日志聚合）:
-      type: "object"
-      properties:
-        total:
-          type: "integer"
-          description: "日志总数"
-          format: "int64"
-        failedCount:
-          type: "integer"
-          description: "失败日志数"
-          format: "int64"
-        successCount:
-          type: "integer"
-          description: "成功日志数"
-          format: "int64"
-        avgDurationMs:
-          type: "integer"
-          description: "平均耗时(毫秒)"
-          format: "int64"
-      description: "当前筛选条件下全量聚合统计"
-    日志分页结果:
-      type: "object"
-      properties:
-        content:
-          type: "array"
-          description: "当前页日志明细"
-          items:
-            type: "object"
-            properties:
-              id:
-                type: "integer"
-                description: "日志ID"
-                format: "int64"
-              userId:
-                type: "integer"
-                description: "用户ID（匿名失败登录为NULL）"
-                format: "int64"
-              username:
-                type: "string"
-                description: "用户名/邮箱快照"
-              action:
-                type: "string"
-                description: "动作"
-              module:
-                type: "string"
-                description: "模块"
-              method:
-                type: "string"
-                description: "HTTP 方法"
-              path:
-                type: "string"
-                description: "请求路径"
-              params:
-                type: "string"
-                description: "历史请求参数字段，当前采集器不填充"
-              ip:
-                type: "string"
-                description: "客户端 IP"
-              userAgent:
-                type: "string"
-                description: "客户端代理标识；当前采集器不填充，保留历史字段"
-              status:
-                type: "integer"
-                description: "0=成功, 1=失败"
-              errorMsg:
-                type: "string"
-                description: "失败原因"
-              durationMs:
-                type: "integer"
-                description: "耗时(毫秒)"
-                format: "int64"
-              createdAt:
-                type: "string"
-                description: "创建时间"
-            description: "操作日志 VO"
-        total:
-          type: "integer"
-          description: "匹配筛选条件的日志总数(分页)"
-          format: "int64"
-        page:
-          type: "integer"
-          description: "当前页码"
-        size:
-          type: "integer"
-          description: "每页条数"
-        stats:
-          type: "object"
-          properties:
-            total:
-              type: "integer"
-              description: "日志总数"
-              format: "int64"
-            failedCount:
-              type: "integer"
-              description: "失败日志数"
-              format: "int64"
-            successCount:
-              type: "integer"
-              description: "成功日志数"
-              format: "int64"
-            avgDurationMs:
-              type: "integer"
-              description: "平均耗时(毫秒)"
-              format: "int64"
-          description: "当前筛选条件下全量聚合统计"
-      description: "统一响应承载的业务数据"
-    看板总览 VO:
-      type: "object"
-      properties:
-        userCount:
-          type: "integer"
-          description: "用户总数"
-          format: "int64"
-        subjectCount:
-          type: "integer"
-          description: "条目总数"
-          format: "int64"
-        collectionCount:
-          type: "integer"
-          description: "收藏总数"
-          format: "int64"
-        episodeCount:
-          type: "integer"
-          description: "剧集总数"
-          format: "int64"
-        importCount:
-          type: "integer"
-          description: "导入记录总数"
-          format: "int64"
-        todayNewUsers:
-          type: "integer"
-          description: "今日新增用户"
-          format: "int64"
-        todayNewCollections:
-          type: "integer"
-          description: "今日新增收藏"
-          format: "int64"
-        todayLogins:
-          type: "integer"
-          description: "今日登录次数"
-          format: "int64"
-      description: "统一响应承载的业务数据"
-    每日趋势点 VO:
-      type: "object"
-      properties:
-        date:
-          type: "string"
-          description: "日期"
-        newUsers:
-          type: "integer"
-          description: "当日新增用户"
-          format: "int64"
-        newCollections:
-          type: "integer"
-          description: "当日新增收藏"
-          format: "int64"
-        logins:
-          type: "integer"
-          description: "当日登录次数"
-          format: "int64"
-      description: "每日趋势点 VO"
-    收藏类型分布:
-      type: "object"
-      properties:
-        type:
-          type: "integer"
-          description: "收藏类型: 1=想看, 2=看过, 3=在看, 4=搁置, 5=抛弃"
-        count:
-          type: "integer"
-          description: "该类型数量"
-          format: "int64"
-      description: "收藏类型分布"
-    评分分布:
-      type: "object"
-      properties:
-        rate:
-          type: "integer"
-          description: "评分值 1~10"
-        count:
-          type: "integer"
-          description: "该评分数量"
-          format: "int64"
-      description: "评分分布"
-    收藏统计 VO:
-      type: "object"
-      properties:
-        types:
-          type: "array"
-          description: "各收藏类型数量分布"
-          items:
-            type: "object"
-            properties:
-              type:
-                type: "integer"
-                description: "收藏类型: 1=想看, 2=看过, 3=在看, 4=搁置, 5=抛弃"
-              count:
-                type: "integer"
-                description: "该类型数量"
-                format: "int64"
-            description: "收藏类型分布"
-        ratings:
-          type: "array"
-          description: "各评分数量分布"
-          items:
-            type: "object"
-            properties:
-              rate:
-                type: "integer"
-                description: "评分值 1~10"
-              count:
-                type: "integer"
-                description: "该评分数量"
-                format: "int64"
-            description: "评分分布"
-      description: "统一响应承载的业务数据"
-    季度数量:
-      type: "object"
-      properties:
-        seasonKey:
-          type: "string"
-          description: "季度标识（如 2026-summer）"
-        count:
-          type: "integer"
-          description: "该季度条目数"
-          format: "int64"
-      description: "季度数量"
-    导入状态分布:
-      type: "object"
-      properties:
-        importStatus:
-          type: "integer"
-          description: "导入状态: 0=待导入, 1=已导入"
-        count:
-          type: "integer"
-          description: "该状态条目数"
-          format: "int64"
-      description: "导入状态分布"
-    导入记录统计:
-      type: "object"
-      properties:
-        importTotal:
-          type: "integer"
-          description: "导入总次数"
-          format: "int64"
-        importSucceeded:
-          type: "integer"
-          description: "成功次数"
-          format: "int64"
-        importFailed:
-          type: "integer"
-          description: "失败次数"
-          format: "int64"
-      description: "导入记录统计"
-    番剧/导入统计 VO:
-      type: "object"
-      properties:
-        seasons:
-          type: "array"
-          description: "各季度条目数"
-          items:
-            type: "object"
-            properties:
-              seasonKey:
-                type: "string"
-                description: "季度标识（如 2026-summer）"
-              count:
-                type: "integer"
-                description: "该季度条目数"
-                format: "int64"
-            description: "季度数量"
-        importStatuses:
-          type: "array"
-          description: "导入状态分布"
-          items:
-            type: "object"
-            properties:
-              importStatus:
-                type: "integer"
-                description: "导入状态: 0=待导入, 1=已导入"
-              count:
-                type: "integer"
-                description: "该状态条目数"
-                format: "int64"
-            description: "导入状态分布"
-        importStat:
-          type: "object"
-          properties:
-            importTotal:
-              type: "integer"
-              description: "导入总次数"
-              format: "int64"
-            importSucceeded:
-              type: "integer"
-              description: "成功次数"
-              format: "int64"
-            importFailed:
-              type: "integer"
-              description: "失败次数"
-              format: "int64"
-          description: "导入记录统计"
-        scoreCounts:
-          type: "array"
-          description: "评分分布"
-          items:
-            type: "object"
-            properties:
-              rate:
-                type: "integer"
-                description: "评分值 1~10"
-              count:
-                type: "integer"
-                description: "该评分数量"
-                format: "int64"
-            description: "评分分布"
-      description: "统一响应承载的业务数据"
-    热门榜条目:
-      type: "object"
-      properties:
-        id:
-          type: "integer"
-          description: "条目ID"
-          format: "int64"
-        name:
-          type: "string"
-          description: "日文/英文名"
-        nameCn:
-          type: "string"
-          description: "中文名"
-        image:
-          type: "string"
-          description: "封面图URL"
-        collectionCount:
-          type: "integer"
-          description: "收藏数"
-          format: "int64"
-      description: "热门榜条目"
