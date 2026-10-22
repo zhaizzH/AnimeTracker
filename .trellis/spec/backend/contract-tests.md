@@ -1,15 +1,13 @@
 # Agent↔Business 契约测试规范
 
 本文件是 **agent ↔ `docs/spec/openapi.yaml`** 这条边界上「哪些行为被测试钉住、怎么钉、钉不住什么」的单一来源。
-对应 OpenSpec capability：`agent-business-contract`、`agent-stream-wire-contract`、`pending-action-protocol`（2026-10-22 归档）。
 
 > 与其他规范的关系：SSE **帧格式细节**与**待确认动作的时序/门禁**仍以 [Agent 编排与流式协议](./agent-guidelines.md#scenario-agent-sse-事件契约) 和 [Agent 安全写操作契约](./write-operations.md) 为准；本文件不复制那两处正文，只补充「这两者由哪些测试钉住、钉到什么程度」。
 
-> **两份 spec 的分工（请勿合并或删除任一侧）**：本文件是**日常开发读的执行规范**；
-> `openspec/specs/` 下的三份 spec（`agent-business-contract`、`agent-stream-wire-contract`、
-> `pending-action-protocol`）是**变更归档的历史记录**，属 `2026-10-22` 归档变更的一部分。
-> 两者格式与读者不同（Trellis 七段式 vs OpenSpec Requirement/Scenario），**有意共存**。
-> 改行为时先改本文件与测试；若想同步归档侧，属可选的历史维护，不要反向把归档格式搬进本文件。
+> **规范唯一来源（2026-10-22 起）**：本文件是契约测试规范的**唯一执行来源**。
+> 此前的 OpenSpec 副本（`openspec/specs/` 下 `agent-business-contract` /
+> `agent-stream-wire-contract` / `pending-action-protocol` 三份，及其 `2026-10-22` 归档变更）
+> 已**整体移除**，不再与本文件共存。引用契约测试规范时只指本文件。
 
 ## 测试套件的位置与运行
 
@@ -156,7 +154,7 @@ business.request("GET", "/api/client/collections/counts", token=user.token)
 
 ## 8. 边界声明（不要高估这套测试）
 
-2026-10-22 两次漂移演练（记录见 `openspec/changes/archive/2026-10-22-add-agent-business-contract-tests/drills.md`）证明了：
+2026-10-22 两次漂移演练（演练记录原在 OpenSpec 归档侧，该目录已整体移除；结论保留于此）证明了：
 
 - **契约侧漂移会变红**：把 save 操作的 `epStatus` 改名为 `ep_status`，失败信息点名 operation、字段与调用点 `business_http.py:92`。
 - **agent 侧漂移会变红**：把 `/collections/counts` 手误成 `/collections/count`，失败信息点名 `collections.py:60`。

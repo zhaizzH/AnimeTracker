@@ -12,5 +12,5 @@
 本套件依旧全绿。关闭该缺口需要 springdoc 自动导出或解析 Java 源码，两者均在本变更的
 Out of Scope 内。详见 ``design.md`` → Risks / Trade-offs。
 
-对应规范：``openspec/changes/add-agent-business-contract-tests/specs/`` 下三个 capability。
+对应规范：``.trellis/spec/backend/contract-tests.md``。
 """
