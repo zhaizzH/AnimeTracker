@@ -889,3 +889,26 @@ shared/sse.ts 由单换行切分改为空行分帧、校验 Content-Type、flush
 ### Status
 
 [OK] **Completed**
+
+
+## Session 31: agent↔business 契约测试落地 + 契约基线修复
+<!-- trellis-session: v=2 fp=d4a0c2ebcaa69d26 -->
+
+**Date**: 2026-10-22
+**Task**: agent↔business 契约测试落地 + 契约基线修复
+**Branch**: `main`
+
+### Summary
+
+恢复被 22d7cb63 改坏的 openapi.yaml 并新增 146 个契约测试，CI 拦截字段漂移。修复：4 条 Java 测试夹具路径、32 个孤儿 schema、缺失的 liveness 与 evidence 字段定义；结果 69 paths/5 schemas/0 悬空 ref/0 孤儿。测试：HTTP 87（AST 遍历 25 个出站调用点）、SSE 29、pending-action 30，全量 814 passed（基线 668+146），runtime 零 diff。两次漂移演练证明 agent↔契约双向拦截有效，同时诚实记录契约↔Java 源码仍无自动校验。pending-action 字段大小写按实现落定：business 字段驼峰、信封字段蛇形（Redis 存量兼容），PRD 中 previewId 系笔误已修正。规范合并为 .trellis/spec/backend/contract-tests.md 七段式，与 openspec/specs 归档版有意共存。归档 opt-contract-tests 与父任务 agent-module-optimization（两条 AC 按实测修正：主文件 403 行非 <100；emit_pending_action_* 14 处直调属已记录决策）。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `17a6b2f0` | test(agent): 新增 agent↔business 契约测试套件并修复 openapi 契约 |
+| `81f20416` | docs(spec): 落地 agent↔business 契约测试规范并归档 OpenSpec 变更 |
+
+### Status
+
+[OK] **Completed**

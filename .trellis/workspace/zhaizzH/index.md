@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 30
-- **Last Active**: 2026-10-19
+- **Total Sessions**: 31
+- **Last Active**: 2026-10-22
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~891 | Active |
+| `journal-1.md` | ~914 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 31 | 2026-10-22 | agent↔business 契约测试落地 + 契约基线修复 | `17a6b2f0`, `81f20416` | `main` |
 | 30 | 2026-10-19 | 移除百炼对话模型，只保留 DeepSeek | `fa1673b7`, `4c94f8d0`, `ef2b892b`, `00993ff3`, `71dad667` | `main` |
 | 29 | 2026-10-19 | SSE 客户端加固：帧解析、错误分类与结束锁 | `d940c160`, `e04025a1` | `main` |
 | 28 | 2026-10-19 | P0 债务清理：前端死文件 + CI 门禁 + 泄露密钥登记 | `014627a6`, `e1aa3142`, `012291aa` | `main` |
