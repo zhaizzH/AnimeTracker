@@ -170,7 +170,7 @@ candidates = [item for item in candidates if item.subject_id in allowed_subject_
 | 工具开始/结束 | `function_call` 帧，`state=start|end` |
 | 工具失败 | `function_call` `state=end` + `result=error`（**不是** `state=error`） |
 | 执行异常（回答落库 / PendingAction 持久化） | 发送 `status` 错误事件后结束流；客户端视为可重试的部分失败，不显示为保存成功 |
-| 客户端断开 | `asyncio.CancelledError`，不记普通 500 |
+| 客户端断开 | 现在只是**退订**：run 继续跑完并落库，流不产生错误帧（详见下节 Run 生命周期） |
 | 字段缺失 | 因 `exclude_none`，消费方不得假设字段恒存在 |
 
 #### 5. Good / Base / Bad Cases
@@ -190,6 +190,63 @@ candidates = [item for item in candidates if item.subject_id in allowed_subject_
 
 - Wrong：把 `end` 当作 `type` 枚举值（旧 spec 文字曾如此表述）；或假设每个帧都带 `content` 子字段。
 - Correct：类型枚举只有四值，结束由 `is_end=true` 表达；消费方把 `content` 子字段视为可选。实现以 `app/api/sse.py:10-11` 为准，spec 文字与之冲突时以代码为权威。
+
+### Scenario: Chat run 生命周期与重连
+
+#### 1. Scope / Trigger
+
+- Trigger：任何改动「一次对话生成」的生命周期——`app/chat/runs.py`、`app/chat/service.py` 的 `start_run` / `stream_chat`、`app/api/chat.py` 的 `/stream` 与 `/runs/*` 路由、`app/adapters/redis/run_state.py`。
+- 背景：2026-10-22 之前，落库回调位于 SSE 消费循环之后；客户端刷新触发 `GeneratorExit` 时整段跳过，已上屏的回答从未落库。根因是**收尾职责与读者绑定**。
+
+#### 2. Signatures
+
+- 一次生成 = 一个 `ChatRun`，由 `ChatRunManager` 持有，驱动体是本进程内一个 `asyncio.Task`。
+- SSE 响应只是 run 的**订阅者**：`subscribe(after)` 先回放缓冲再推增量，退订只从 `run.subscribers` 摘队。
+- `POST /stream` 首帧带 `meta.run_id`；`GET /runs/{run_id}/stream?after=N` 重连同一 run；`GET /sessions/{session_id}/run` 查该会话当前/最近 run；`POST /runs/{run_id}/stop` 主动停止。
+
+#### 3. Contracts
+
+- **断连 ≠ 取消**：客户端断开只退订，run 继续跑到自然结束并落库。只有进程关闭才 `cancel()`。
+- **落库单一责任人**：持久化只在 `ChatRunManager._drive` 的 `finally` 执行（`on_answer_completed` / `on_pending_action`）。`stream_agent_events` 是纯事件生产者，不调任何回调。
+- **每 run 恰好一条 assistant 消息**：有内容则落内容；非 `DONE`（失败/被 stop）且无内容则落 `*（生成已中断）*`；`DONE` 且无内容不落（不留空消息噪声）。
+- **恰好一个 `is_end` 帧且位于末尾**：由 `_finish` 统一合成，覆盖异常、落库失败、被 stop 三条路径。
+- **`stop` 是逻辑停止**：标记 `cancelled` + 合成未闭合工具的 `state=end, result=aborted` 帧 + END 帧，立即返回 200；**不 cancel 底层 task**（节点是同步闭包，跑在 LangGraph executor 里，cancel 只能落在节点边界）。底层跑完后落库部分答案并跳过 `pending_action`。
+- **封存**：`stop` 之后产出的事件不再进缓冲、不再广播（但仍聚合答案以便落库）。
+- **同会话并发**：已有 `status=running` 的 run → `POST /stream` 返回 409，body 形如 `{"detail": {"active_run_id": ..., "status": "running", "capabilities": ["interrupt"]}}`。`cancelled` 不算 active。消息顺序由 per-session `persist_future` 保证（新 run 落 user 消息前最多等 5s，超时降级）。
+- **归属校验**：`/runs/*` 与 `/sessions/*` 的 run 查询必须校验 `user_id` / 会话归属，不符一律 404，不暴露存在性。
+- **重启边界（任何重连设计都必须写明）**：run 的执行状态**不跨进程持久化**。`agent:run:{run_id}`（TTL 900s）与 `agent:session_runs:{session_id}` 只是状态投影；读到投影为 `running` 但内存无此 run → 懒收敛为 `failed`。重启后不会「接着跑」，也不会自动补写回答——用户看到的只能是历史里已有的内容。
+
+#### 4. Validation & Error Matrix
+
+| 情况 | 行为 |
+|---|---|
+| 客户端刷新（断连） | 退订；run 继续；答案落库；无错误帧 |
+| 用户主动停止 | 立即 200 + 工具终态帧 + END；底层跑完后落库带 `*（生成已中断）*` 前缀的部分答案；不落 `pending_action` |
+| 落库失败 | 发 `status`/`error` 帧（`meta.persistence` 标明是 answer 还是 pending_action），END 仍最后且唯一 |
+| 同会话已有 running run | `POST /stream` → 409 |
+| 投影为 running 但内存无此 run | 收敛为 `failed`；不补写消息（历史里是什么就是什么） |
+| 他人 run_id | 404 |
+
+#### 5. Good / Base / Bad Cases
+
+- Good：把「生成」与「推送」分开思考——生成是 run 的职责，推送是订阅者的职责。
+- Base：只改 `_drive` 的落库细节，不动 run 边界。
+- Bad：把落库挪回 SSE 响应体、在 `subscribe` 里 cancel run、或在断连时合成工具终态帧（那会让「还在跑的工具」被前端误判为中断）。
+
+#### 6. Tests Required
+
+- `tests/agent/test_chat_run_manager.py`：断连不取消、stop 立即返回、工具终态、封存、`pending_action`、游标回放、`persist_future`、投影与懒收敛。
+- `tests/agent/test_run_side_effects.py`：四项副作用（孤立 user 消息三态、工具中间态、断连不合成终态、退订摘队列、`shutdown` 取消与超时上限）。
+- `tests/agent/test_run_disconnect.py`：AC1 直接回归（断连后答案落库）。
+- `tests/api/test_run_api.py`：`run_id` 注入、409、归属 404、回放唯一 `is_end`、stop 幂等。
+- `tests/adapters/redis/test_run_state.py`：投影读写与 TTL。
+
+#### 7. Wrong vs Correct
+
+- Wrong：把 `POST /runs/{id}/stop` 实现成 `task.cancel()` 并等它停——同步节点不会响应，调用会挂住或只有表面效果；也不要指望「停」之后再去补写答案。
+- Correct：`stop` 只标记状态、合成终态帧、立即返回；落库等 run 自然跑完在 `finally` 里做。
+- Wrong：用 `asyncio.wait_for(gather(...), timeout=...)` 做关闭超时——超时会二次 cancel 并等取消完成，遇到对 cancel 免疫的任务则无上限挂住（保护变陷阱）。
+- Correct：`asyncio.wait(tasks, timeout=...)`，超时只记日志。
 
 ### Gateway 路由结果解析
 

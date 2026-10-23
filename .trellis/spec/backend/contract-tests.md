@@ -23,6 +23,7 @@ uv run pytest -q                      # 全量（契约子集 + 其余）
 | `tests/contracts/test_http_contract.py` | AST 遍历调用点 → 方法/路径/请求字段比对；契约结构完整性 | 87 |
 | `tests/contracts/test_sse_contract.py` | SSE 帧 wire 形态与契约 `SSEFrame` 双向对齐 | 29 |
 | `tests/contracts/test_preview_contract.py` | pending-action 持久化协议（键、TTL、判别联合、字段大小写、版本绑定） | 30 |
+| `tests/api/test_run_api.py` | run 路由契约：`meta.run_id` 注入、409 冲突体、归属 404、回放唯一 `is_end`、stop 幂等 | 7 |
 
 CI 步骤位于 `.github/workflows/ci.yml` 的 `backend-python` job，名为 `contract drift (agent <-> openapi)`，在 `uv run pytest` 之前单独执行——失败时日志标题直接说明是契约漂移，而不是混在全量用例里的一条匿名 FAILED。
 
@@ -77,6 +78,21 @@ CI 步骤位于 `.github/workflows/ci.yml` 的 `backend-python` job，名为 `co
 - SSE 分帧：单行 `data: ` + JSON + 空行，不使用 `event:` 行。
 - 错误语义分离：**工具失败** = `function_call` + `state=end` + `result=error`；**持久化失败** = `status` + `state=error` + 非空 `message`。两者不得混用。
 - 恰好一个 `is_end=true` 帧收尾，且其后无任何帧（异常路径同样要产生）。
+
+### Run 生命周期契约（2026-10-22 新增）
+
+语义细节见 [Agent 编排与流式协议](./agent-guidelines.md#scenario-chat-run-生命周期与重连)，这里只列可测的接口事实：
+
+| 路由 | 契约事实 |
+|---|---|
+| `POST /stream` | 首帧 `meta.run_id` 非空；同会话已有 `status=running` 的 run → **409**，body 为 `{"detail": {"active_run_id": str, "status": str, "capabilities": ["interrupt"]}}`；`cancelled` 不算 active |
+| `GET /runs/{run_id}/stream?after=N` | 回放缓冲后继续推送；`after` 越过截断点时先发一条 `status`/`warning` 帧；整体仍只有一条 `is_end` 且位于末尾；他人 `run_id` → **404** |
+| `GET /sessions/{session_id}/run` | 返回 `{run_id, status}`；会话不属当前用户 → **404**；无 run → **404** |
+| `POST /runs/{run_id}/stop` | 幂等，200；只标状态不 cancel 底层 task；响应体含 `{run_id, status: "cancelled"}` |
+
+不属于契约（故意不钉）：跨进程重连。进程重启后重跑不可恢复，`agent:run:*` 投影的 `running` 会被懒收敛为 `failed`；客户端必须能从「历史里没有这条回答」推出失败。
+
+**`docs/spec/openapi.yaml` 暂未收录这三个新路由**，因为该文件记录的是 **Java 对外层路径**（浏览器只访问 `/api/**`，由 Spring 代理转发），而 Java 侧代理尚未实现（见任务 `10-22-fix-agent-stream-disconnect` 步骤 7）。在那之前这些路由只能直连 `:8090` 验证。补 Java 代理时必须同时：加 `AgentApiPaths` 常量、加 Controller 路由、在 `openapi.yaml` 收录。
 - 确认绑定：执行时使用的 `preview_id` 必须来自已持久化的 pending action，**不受模型传入参数影响**。
 
 ## 4. Validation & Error Matrix
