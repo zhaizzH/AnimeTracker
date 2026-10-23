@@ -912,3 +912,44 @@ shared/sse.ts 由单换行切分改为空行分帧、校验 Content-Type、flush
 ### Status
 
 [OK] **Completed**
+
+
+## Session 32: spec 回写 + 步骤 8 收尾 + 步骤 6/7 交接
+<!-- trellis-session: v=2 fp=99034c1ab6d1ae66 -->
+
+**Date**: 2026-10-23
+**Task**: spec 回写 + 步骤 8 收尾 + 步骤 6/7 交接
+**Branch**: `main`
+
+### Summary
+
+Session summary was not supplied.
+
+### Main Changes
+
+- spec/backend/agent-guidelines.md：改「客户端断开」口径为退订，新增 Scenario「Chat run 生命周期与重连」七小节（断连≠取消、落库单一责任人、每 run 恰好一条 assistant、唯一 is_end、stop=逻辑停止+封存、同会话 409、归属 404、重启不恢复）
+- spec/backend/contract-tests.md：测试套件表补 test_run_api.py，Contracts 新增「Run 生命周期契约」四路由接口事实，显式声明 openapi.yaml 暂未收录及补齐时要一起动的三处
+- 步骤 8 收尾：grep DEBUG-a4f2 无残留、后端 853 passed、契约子集 146 passed、前端三包 26 文件全绿（R4 不回归）
+- handoff.md：交接步骤 6（前端重连）/7（Java 代理），记录 Java 侧两个硬阻塞与前端五条语义陷阱
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5cff91c0` | docs(task): implement.md 指向 handoff.md |
+
+### Testing
+
+- [OK] backend/agent: pytest tests -q → 853 passed
+- [OK] backend/agent: pytest tests/contracts -q → 146 passed
+- [OK] frontend: npm test → shared 6 + client 9 + admin 11 文件全绿
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 决策 409 契约（A 结构化透传 / B 只映射 / C 暂不做）与 6/7 执行顺序
+- 步骤 7 Java 代理：AgentApiPaths 加 CLIENT_RUNS/ADMIN_RUNS，Controller 加三路由，AgentServiceImpl 加 streamGet 重载 + 409 分支
+- 步骤 6 前端重连：SsePayload 加 meta、stop() 改先 POST 后 abort、after=0 回放需清空气泡
