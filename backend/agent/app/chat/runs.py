@@ -98,6 +98,14 @@ class ChatRunManager:
     def get(self, run_id: str) -> ChatRun | None:
         return self._runs.get(run_id)
 
+    def latest_for_session(self, session_id: str) -> ChatRun | None:
+        """该会话最近一条 run（无论状态），供 D4 等待上一条落库。"""
+        latest: ChatRun | None = None
+        for run in self._runs.values():
+            if run.session_id == session_id:
+                latest = run  # dict 保留插入顺序，后写覆盖前写
+        return latest
+
     def active_for_session(self, session_id: str) -> ChatRun | None:
         """只认 RUNNING；cancelled 的后台 task 不算 active（D8）。"""
         for run in self._runs.values():
@@ -143,18 +151,24 @@ class ChatRunManager:
     # ---------------------------------------------------------------- 订阅
 
     async def _subscription(self, run: ChatRun, after: int) -> AsyncIterator[AgentEvent]:
-        """先回放已缓冲事件，再挂队列；退出只退订，绝不 cancel run（D3）。"""
+        """先回放已缓冲事件，再挂队列；退出只退订，绝不 cancel run（D3）。
+
+        Q10：每个订阅者拿到的第一帧都带 ``meta.run_id``，客户端据此重连。
+        """
         queue: asyncio.Queue = asyncio.Queue()
         if after < run.buffer_start:
             # Q14：请求的游标已被缓冲上限截断，明确告知而非静默丢事件
-            yield AgentEvent(
-                type=AgentEventType.STATUS,
-                state="warning",
-                message="部分实时内容已过期，完整回答请查看历史记录",
+            yield self._with_run_id(
+                run,
+                AgentEvent(
+                    type=AgentEventType.STATUS,
+                    state="warning",
+                    message="部分实时内容已过期，完整回答请查看历史记录",
+                ),
             )
         start = max(after, run.buffer_start)
         for event in run.events[start - run.buffer_start :]:
-            yield event
+            yield self._with_run_id(run, event)
         if run.status is not RunStatus.RUNNING:
             return
         run.subscribers.add(queue)
@@ -163,9 +177,27 @@ class ChatRunManager:
                 event = await queue.get()
                 if event is None:
                     return
-                yield event
+                yield self._with_run_id(run, event)
         finally:
             run.subscribers.discard(queue)
+
+    @staticmethod
+    def _with_run_id(run: ChatRun, event: AgentEvent) -> AgentEvent:
+        """给事件补 ``meta.run_id``（Q10）。已带则不覆盖。"""
+        if event.meta.get("run_id"):
+            return event
+        return AgentEvent(
+            type=event.type,
+            text=event.text,
+            state=event.state,
+            message=event.message,
+            result=event.result,
+            name=event.name,
+            node=event.node,
+            parent_node=event.parent_node,
+            arguments=event.arguments,
+            meta={**event.meta, "run_id": run.run_id},
+        )
 
     # ---------------------------------------------------------------- 驱动
 

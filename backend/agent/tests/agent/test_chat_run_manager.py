@@ -276,3 +276,23 @@ async def test_persist_future_resolves_after_persistence() -> None:
     assert not run.persist_future.done()
     await asyncio.wait_for(run.persist_future, timeout=1.0)
     assert run.persist_future.done()
+
+
+@pytest.mark.asyncio
+async def test_persistence_failure_emits_error_status_and_still_ends_once() -> None:
+    """落库失败时订阅者仍收到 status/error 帧，且 END 仍是最后一帧（R4）。"""
+
+    async def boom(_answer: str, _tools: list[str]) -> None:
+        raise RuntimeError("写库失败")
+
+    manager = ChatRunManager(store=None)
+    run = await manager.start(
+        session_id="s", user_id=1, events=_events(_FastWorkflow()), on_answer_completed=boom
+    )
+    seen = await _drain(manager.subscribe(run.run_id))
+    await asyncio.wait_for(run.task, timeout=1.0)
+
+    errors = [e for e in seen if e.type is AgentEventType.STATUS and e.state == "error"]
+    assert errors and errors[0].message
+    assert [e for e in seen if e.type is AgentEventType.END].__len__() == 1
+    assert seen[-1].type is AgentEventType.END

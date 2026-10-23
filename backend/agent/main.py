@@ -34,6 +34,7 @@ from app.rag.retrieval import RagRetrievalService
 from app.rag.schemas import RetrievalQuery
 from app.rag.use_case import RetrieveSubjectsUseCase
 from app.shared.observability import configure_logging, trace_context_middleware
+from app.chat.runs import ChatRunManager
 from app.chat.service import ChatService
 
 configure_logging()
@@ -260,10 +261,14 @@ async def lifespan(app: FastAPI):
     graph = build_graph(_build_agent_dependencies(model_configs, prompts, app.state.import_service))
 
     logger.info("创建聊天服务...")
-    app.state.chat_service = ChatService(store=store, graph=graph, settings=settings)
+    # D9：run 管理器持有独立生命周期；关闭时 cancel + 10s 超时。
+    chat_runs = ChatRunManager(store=store)
+    app.state.chat_runs = chat_runs
+    app.state.chat_service = ChatService(store=store, graph=graph, settings=settings, runs=chat_runs)
 
     yield
     logger.info("正在关闭应用...")
+    await chat_runs.shutdown()
 
 
 app = FastAPI(title="AnimeTracker Agent", version="3.0.0", lifespan=lifespan)
