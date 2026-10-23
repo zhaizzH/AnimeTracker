@@ -31,6 +31,8 @@ from app.chat.pending_events import (
     set_pending_action_collector,
 )
 
+from app.chat.run_state import RunState
+
 logger = logging.getLogger(__name__)
 
 INTERRUPTED_PREFIX = "*（生成已中断）*"
@@ -66,9 +68,16 @@ class ChatRun:
 class ChatRunManager:
     """进程内 run 注册表。每条 run 由一个 asyncio.Task 驱动。"""
 
-    def __init__(self, store: Any, ttl_seconds: int = 900) -> None:
+    def __init__(
+        self,
+        store: Any,
+        ttl_seconds: int = 900,
+        run_state_store: Any = None,
+    ) -> None:
         self._store = store
         self._ttl_seconds = ttl_seconds
+        # 可选的状态投影（design §2.2）；None 时纯内存，方便测试与单进程场景。
+        self._run_state_store = run_state_store
         self._runs: dict[str, ChatRun] = {}
         self._tasks: set[asyncio.Task] = set()  # 强引用，避免 run 被 GC
 
@@ -93,7 +102,72 @@ class ChatRunManager:
         run.task = task
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
+        await self._project(run)
         return run
+
+    # ---------------------------------------------------------------- 状态投影
+
+    async def _project(self, run: ChatRun) -> None:
+        """把 run 状态写为持久投影（design §2.2）。失败不影响主流程。"""
+        if self._run_state_store is None:
+            return
+        try:
+            await self._run_state_store.save_run_state(
+                RunState(
+                    run_id=run.run_id,
+                    session_id=run.session_id,
+                    user_id=run.user_id,
+                    status=run.status.value,
+                    event_count=len(run.events),
+                )
+            )
+            await self._run_state_store.save_session_run(run.session_id, run.run_id)
+        except Exception:
+            logger.warning("run 状态投影失败 run_id=%s", run.run_id, exc_info=True)
+
+    async def resolve_session_run(self, session_id: str) -> RunState | None:
+        """供重连端查该会话的 run（Q13）。内存优先，否则读投影并收敛（D9）。
+
+        内存里没有、投影却写着 ``running``，说明写入它的进程已经不在了：
+        收敛为 ``failed``，返回给调用方的是收敛后的状态。
+        """
+        active = self.active_for_session(session_id)
+        if active is not None:
+            return RunState(
+                run_id=active.run_id,
+                session_id=active.session_id,
+                user_id=active.user_id,
+                status=active.status.value,
+                event_count=len(active.events),
+            )
+        latest = self.latest_for_session(session_id)
+        if latest is not None:
+            return RunState(
+                run_id=latest.run_id,
+                session_id=latest.session_id,
+                user_id=latest.user_id,
+                status=latest.status.value,
+                event_count=len(latest.events),
+            )
+        if self._run_state_store is None:
+            return None
+        run_id = await self._run_state_store.get_session_run(session_id)
+        if run_id is None:
+            return None
+        state = await self._run_state_store.get_run_state(run_id)
+        if state is None:
+            return None
+        if state.status == RunStatus.RUNNING.value:
+            state = RunState(
+                run_id=state.run_id,
+                session_id=state.session_id,
+                user_id=state.user_id,
+                status=RunStatus.FAILED.value,
+                event_count=state.event_count,
+            )
+            await self._run_state_store.save_run_state(state)
+            logger.info("收敛重启遗留的 running run run_id=%s", state.run_id)
+        return state
 
     def get(self, run_id: str) -> ChatRun | None:
         return self._runs.get(run_id)
@@ -124,6 +198,7 @@ class ChatRunManager:
             return False
         run.status = RunStatus.CANCELLED
         self._finish(run)
+        await self._project(run)
         return True
 
     def subscribe(self, run_id: str, *, after: int = 0) -> AsyncIterator[AgentEvent]:
@@ -287,6 +362,7 @@ class ChatRunManager:
                 raise
             finally:
                 self._finish(run)
+                await self._project(run)
                 reset_pending_action_collector(pending_token)
                 if run.persist_future is not None and not run.persist_future.done():
                     run.persist_future.set_result(None)

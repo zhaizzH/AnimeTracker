@@ -10,6 +10,7 @@ import pytest
 
 from app.chat.event_sink import emit_answer_delta, emit_function_call
 from app.chat.events import AgentEventType
+from app.chat.run_state import RunState
 from app.chat.runs import ChatRunManager, RunStatus
 from app.chat.streaming import StreamConfig, stream_agent_events
 
@@ -296,3 +297,79 @@ async def test_persistence_failure_emits_error_status_and_still_ends_once() -> N
     assert errors and errors[0].message
     assert [e for e in seen if e.type is AgentEventType.END].__len__() == 1
     assert seen[-1].type is AgentEventType.END
+
+# --------------------------------------------------------------------------- #
+# D9：跨重启的懒加载 stale 收敛
+# --------------------------------------------------------------------------- #
+
+class _MemoryRunState:
+    """RunStateStore 替身：只用字典，验证 manager 的收敛行为而非 Redis 细节。"""
+
+    def __init__(self) -> None:
+        self.states: dict[str, dict] = {}
+        self.session_runs: dict[str, str] = {}
+
+    async def save_run_state(self, state) -> None:
+        self.states[state.run_id] = {
+            "session_id": state.session_id,
+            "user_id": state.user_id,
+            "status": state.status,
+            "event_count": state.event_count,
+        }
+
+    async def get_run_state(self, run_id: str):
+        data = self.states.get(run_id)
+        if data is None:
+            return None
+        return RunState(run_id=run_id, **data)
+
+    async def save_session_run(self, session_id: str, run_id: str) -> None:
+        self.session_runs[session_id] = run_id
+
+    async def get_session_run(self, session_id: str) -> str | None:
+        return self.session_runs.get(session_id)
+
+
+@pytest.mark.asyncio
+async def test_run_state_is_projected_to_store() -> None:
+    """每次状态变化都要投影到持久层，供重启后的其他进程观测（design §2.2）。"""
+    state_store = _MemoryRunState()
+    manager = ChatRunManager(store=None, run_state_store=state_store)
+    run = await manager.start(session_id="s1", user_id=1, events=_events(_FastWorkflow()))
+    await asyncio.wait_for(run.task, timeout=1.0)
+
+    assert state_store.session_runs["s1"] == run.run_id
+    assert state_store.states[run.run_id]["status"] == "done"
+    assert state_store.states[run.run_id]["event_count"] > 0
+
+
+@pytest.mark.asyncio
+async def test_stale_running_state_converges_to_failed() -> None:
+    """D9：投影说 running 但内存无此 run（进程重启过）→ 收敛为 failed。"""
+    state_store = _MemoryRunState()
+    await state_store.save_run_state(
+        RunState(run_id="dead", session_id="s1", user_id=1, status="running")
+    )
+    await state_store.save_session_run("s1", "dead")
+
+    manager = ChatRunManager(store=None, run_state_store=state_store)
+    info = await manager.resolve_session_run("s1")
+    assert info is not None
+    assert info.run_id == "dead"
+    assert info.status == "failed"
+    assert state_store.states["dead"]["status"] == "failed"
+
+
+@pytest.mark.asyncio
+async def test_resolve_session_run_uses_projection_when_memory_is_empty() -> None:
+    """重连端拿到的 run 记录来自投影，而不是内存（跨进程可读）。"""
+    state_store = _MemoryRunState()
+    await state_store.save_run_state(
+        RunState(run_id="r9", session_id="s1", user_id=1, status="done", event_count=4)
+    )
+    await state_store.save_session_run("s1", "r9")
+
+    manager = ChatRunManager(store=None, run_state_store=state_store)
+    info = await manager.resolve_session_run("s1")
+    assert info is not None
+    assert (info.run_id, info.status, info.event_count) == ("r9", "done", 4)

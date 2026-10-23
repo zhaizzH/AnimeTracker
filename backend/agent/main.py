@@ -19,6 +19,7 @@ from app.adapters.business_http import HttpBusinessGateway
 from app.adapters.llm.agent_factory import AgentLlmFactory
 from app.adapters.llm.embeddings import DashScopeEmbeddingClient
 from app.adapters.redis import RedisChatStore
+from app.adapters.redis.run_state import RedisRunStateStore
 from app.adapters.redis.model_config_repository import RedisModelConfigRepository
 from app.adapters.redis.prompt_repository import RedisPromptRepository
 from app.adapters.redis.subject_index import RedisSubjectIndex
@@ -262,7 +263,14 @@ async def lifespan(app: FastAPI):
 
     logger.info("创建聊天服务...")
     # D9：run 管理器持有独立生命周期；关闭时 cancel + 10s 超时。
-    chat_runs = ChatRunManager(store=store)
+    # 状态投影用独立 Redis 客户端：它的读写是「尽力而为」的，不应与聊天存储
+    # 共享连接池的错误语义。
+    run_state_redis = redis.asyncio.from_url(
+        settings.redis_url, decode_responses=True, socket_connect_timeout=2
+    )
+    chat_runs = ChatRunManager(
+        store=store, run_state_store=RedisRunStateStore(run_state_redis)
+    )
     app.state.chat_runs = chat_runs
     app.state.chat_service = ChatService(store=store, graph=graph, settings=settings, runs=chat_runs)
 

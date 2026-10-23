@@ -106,11 +106,10 @@ def create_chat_router(*, prefix: str, auth_dep, include_health: bool = False) -
     ):
         """刷新后恢复通道（Q10）：返回当前/最近一条 run 的 id 与状态。"""
         await _assert_session_owner(store, session_id, user.user_id)
-        active = runs.active_for_session(session_id)
-        run = active or runs.latest_for_session(session_id)
-        if run is None:
+        state = await runs.resolve_session_run(session_id)
+        if state is None:
             raise HTTPException(status_code=404, detail="该会话暂无 run")
-        return {"run_id": run.run_id, "status": run.status.value}
+        return {"run_id": state.run_id, "status": state.status}
 
     @router.get("/sessions")
     async def list_sessions(
