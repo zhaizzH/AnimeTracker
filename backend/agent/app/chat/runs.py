@@ -1,0 +1,314 @@
+"""Chat run 生命周期：把「一次对话生成」从 HTTP 请求里解耦出来。
+
+设计见 ``.trellis/tasks/10-22-fix-agent-stream-disconnect/design.md``。
+
+核心不变量：
+
+- run 只由进程关闭取消；订阅者断连只退订（D3/D6）。
+- 持久化由 ``_drive`` 的 finally 唯一负责（D1 回调提升）。
+- ``stop()`` 是逻辑停止：标记 cancelled + 合成工具终态 + 立即返回，底层 task 自然
+  跑完后再落库已生成部分（D3）。
+- 封存（D6）：stop 之后产出的事件不再进入缓冲、不再广播。
+
+contextvar 纪律：``pending_action_collector`` 由 ``_drive`` 自己 set/reset。不能由
+``start()`` 设置后委托 ``_drive`` 重置——Token 绑定创建它的 Context，跨任务 reset
+会抛 ``ValueError: was created in a different Context``。
+"""
+
+import asyncio
+import logging
+import uuid
+from collections.abc import AsyncIterator, Awaitable, Callable
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any
+
+from app.chat.events import AgentEvent, AgentEventType
+from app.chat.pending_events import (
+    PendingActionEvent,
+    get_pending_action_event,
+    reset_pending_action_collector,
+    set_pending_action_collector,
+)
+
+logger = logging.getLogger(__name__)
+
+INTERRUPTED_PREFIX = "*（生成已中断）*"
+
+# 事件缓冲上限：事件数或累计文本字节，先到者截断（design §2.1）
+MAX_BUFFER_EVENTS = 2000
+MAX_BUFFER_BYTES = 1_000_000
+
+SHUTDOWN_TIMEOUT_SECONDS = 10.0
+
+
+class RunStatus(str, Enum):
+    RUNNING = "running"
+    DONE = "done"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+@dataclass
+class ChatRun:
+    run_id: str
+    session_id: str
+    user_id: int
+    status: RunStatus = RunStatus.RUNNING
+    events: list[AgentEvent] = field(default_factory=list)
+    buffer_start: int = 0
+    subscribers: set[asyncio.Queue] = field(default_factory=set)
+    task: asyncio.Task | None = None
+    persist_future: asyncio.Future | None = None
+    open_tools: list[str] = field(default_factory=list)
+
+
+class ChatRunManager:
+    """进程内 run 注册表。每条 run 由一个 asyncio.Task 驱动。"""
+
+    def __init__(self, store: Any, ttl_seconds: int = 900) -> None:
+        self._store = store
+        self._ttl_seconds = ttl_seconds
+        self._runs: dict[str, ChatRun] = {}
+        self._tasks: set[asyncio.Task] = set()  # 强引用，避免 run 被 GC
+
+    # ---------------------------------------------------------------- 生命周期
+
+    async def start(
+        self,
+        *,
+        session_id: str,
+        user_id: int,
+        events: AsyncIterator[AgentEvent],
+        on_answer_completed: Callable[[str, list[str]], Awaitable[None] | None] | None = None,
+        on_pending_action: Callable[[PendingActionEvent], Awaitable[None] | None] | None = None,
+    ) -> ChatRun:
+        run = ChatRun(run_id=uuid.uuid4().hex, session_id=session_id, user_id=user_id)
+        run.persist_future = asyncio.get_running_loop().create_future()
+        self._runs[run.run_id] = run
+        task = asyncio.create_task(
+            self._drive(run, events, on_answer_completed, on_pending_action),
+            name=f"chat-run-{run.run_id}",
+        )
+        run.task = task
+        self._tasks.add(task)
+        task.add_done_callback(self._tasks.discard)
+        return run
+
+    def get(self, run_id: str) -> ChatRun | None:
+        return self._runs.get(run_id)
+
+    def active_for_session(self, session_id: str) -> ChatRun | None:
+        """只认 RUNNING；cancelled 的后台 task 不算 active（D8）。"""
+        for run in self._runs.values():
+            if run.session_id == session_id and run.status is RunStatus.RUNNING:
+                return run
+        return None
+
+    async def stop(self, run_id: str) -> bool:
+        """逻辑停止（D3）：标记 cancelled、补齐工具终态、立即返回。
+
+        不 cancel 底层 task——同步节点跑在 LangGraph 的 executor 里，取消只能落在
+        节点边界，物理停止在当前架构下不存在。底层跑完后由 ``_drive`` 落库部分答案。
+        """
+        run = self._runs.get(run_id)
+        if run is None or run.status is not RunStatus.RUNNING:
+            return False
+        run.status = RunStatus.CANCELLED
+        self._finish(run)
+        return True
+
+    def subscribe(self, run_id: str, *, after: int = 0) -> AsyncIterator[AgentEvent]:
+        run = self._runs.get(run_id)
+        if run is None:
+            raise KeyError(run_id)
+        return self._subscription(run, after)
+
+    async def shutdown(self) -> None:
+        """进程关闭：取消所有 run 并等待，最长 10s（D9）。"""
+        for run in list(self._runs.values()):
+            if run.task is not None and not run.task.done():
+                run.task.cancel()
+        tasks = [task for task in self._tasks if not task.done()]
+        if not tasks:
+            return
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(*tasks, return_exceptions=True),
+                timeout=SHUTDOWN_TIMEOUT_SECONDS,
+            )
+        except asyncio.TimeoutError:  # noqa: UP041 - 兼容 3.10 命名
+            logger.warning("chat run shutdown 超时 %.0fs，放弃等待", SHUTDOWN_TIMEOUT_SECONDS)
+
+    # ---------------------------------------------------------------- 订阅
+
+    async def _subscription(self, run: ChatRun, after: int) -> AsyncIterator[AgentEvent]:
+        """先回放已缓冲事件，再挂队列；退出只退订，绝不 cancel run（D3）。"""
+        queue: asyncio.Queue = asyncio.Queue()
+        if after < run.buffer_start:
+            # Q14：请求的游标已被缓冲上限截断，明确告知而非静默丢事件
+            yield AgentEvent(
+                type=AgentEventType.STATUS,
+                state="warning",
+                message="部分实时内容已过期，完整回答请查看历史记录",
+            )
+        start = max(after, run.buffer_start)
+        for event in run.events[start - run.buffer_start :]:
+            yield event
+        if run.status is not RunStatus.RUNNING:
+            return
+        run.subscribers.add(queue)
+        try:
+            while True:
+                event = await queue.get()
+                if event is None:
+                    return
+                yield event
+        finally:
+            run.subscribers.discard(queue)
+
+    # ---------------------------------------------------------------- 驱动
+
+    async def _drive(
+        self,
+        run: ChatRun,
+        events: AsyncIterator[AgentEvent],
+        on_answer_completed: Callable[[str, list[str]], Awaitable[None] | None] | None,
+        on_pending_action: Callable[[PendingActionEvent], Awaitable[None] | None] | None,
+    ) -> None:
+        aggregated: list[str] = []
+        used_tools: list[str] = []
+        buffer_bytes = 0
+        failed = False
+        error_message: str | None = None
+        pending_token = set_pending_action_collector()
+        try:
+            async for event in events:
+                if run.status is RunStatus.CANCELLED:
+                    # 封存（D6）：stop 后不再对外可见，但答案仍聚合以便落库
+                    if event.type is AgentEventType.END:
+                        break
+                    if event.type is AgentEventType.ANSWER and event.text:
+                        aggregated.append(event.text)
+                    continue
+                if event.type is AgentEventType.END:
+                    continue  # END 由 _finish 统一补，避免重复
+                if event.type is AgentEventType.STATUS and event.state == "error":
+                    failed = True
+                    error_message = event.message
+                run.events.append(event)
+                buffer_bytes += len(event.text or "")
+                if event.type is AgentEventType.ANSWER and event.text:
+                    aggregated.append(event.text)
+                elif event.type is AgentEventType.FUNCTION_CALL and event.name:
+                    if event.state == "start":
+                        if event.name not in used_tools:
+                            used_tools.append(event.name)
+                        if event.name not in run.open_tools:
+                            run.open_tools.append(event.name)
+                    elif event.state == "end" and event.name in run.open_tools:
+                        run.open_tools.remove(event.name)
+                self._broadcast(run, event)
+                self._trim_buffer(run, buffer_bytes)
+            if run.status is RunStatus.RUNNING:
+                run.status = RunStatus.FAILED if failed else RunStatus.DONE
+        except asyncio.CancelledError:
+            if run.status is RunStatus.RUNNING:
+                run.status = RunStatus.CANCELLED
+            raise
+        except Exception:
+            logger.exception("chat run 驱动失败 run_id=%s", run.run_id)
+            if run.status is RunStatus.RUNNING:
+                run.status = RunStatus.FAILED
+        finally:
+            try:
+                answer = "".join(aggregated)
+                # D5：仅在「没有显式错误文案」时加中断前缀。FAILED 的答案里已经带着
+                # 用户看到的错误提示，再加前缀是重复信号。
+                if run.status is not RunStatus.DONE and error_message is None:
+                    answer = f"{INTERRUPTED_PREFIX}{answer}" if answer else INTERRUPTED_PREFIX
+                if on_answer_completed is not None:
+                    try:
+                        result = on_answer_completed(answer, used_tools)
+                        if asyncio.iscoroutine(result):
+                            await result
+                    except Exception:
+                        logger.exception("chat run 答案落库失败 run_id=%s", run.run_id)
+                        self._emit_persistence_failure(run, "answer", "回答保存失败，请稍后重试")
+                if on_pending_action is not None and run.status is not RunStatus.CANCELLED:
+                    # D7：被 stop 的 run 不落 pending_action
+                    pending = get_pending_action_event()
+                    if pending is not None:
+                        try:
+                            result = on_pending_action(pending)
+                            if asyncio.iscoroutine(result):
+                                await result
+                        except Exception:
+                            logger.exception(
+                                "chat run pending_action 落库失败 run_id=%s", run.run_id
+                            )
+                            self._emit_persistence_failure(
+                                run, "pending_action", "待确认动作保存失败，请重试"
+                            )
+            except asyncio.CancelledError:
+                # 二次取消：尽力而为，答案可能丢失，由 stale-run 收敛兜底（D9）
+                raise
+            finally:
+                self._finish(run)
+                reset_pending_action_collector(pending_token)
+                if run.persist_future is not None and not run.persist_future.done():
+                    run.persist_future.set_result(None)
+
+    def _emit_persistence_failure(self, run: ChatRun, kind: str, message: str) -> None:
+        """落库失败时告知订阅者；已封存（stop）的 run 不再追加帧，否则 END 会不末尾。"""
+        if run.status is RunStatus.CANCELLED:
+            return
+        event = AgentEvent(
+            type=AgentEventType.STATUS,
+            state="error",
+            message=message,
+            meta={"persistence": kind, "success": False},
+        )
+        run.events.append(event)
+        self._broadcast(run, event)
+
+    def _finish(self, run: ChatRun) -> None:
+        """收尾事件流：补齐未闭合工具终态 + 唯一 END 帧 + 关闭订阅者。
+
+        R3：非正常结束（stop/失败/取消）时，``running`` 中的工具不得永久悬挂，
+        这里合成 ``state=end, result=aborted`` 终态帧。
+        R4：无论哪条路径，缓冲里恰好一个 END 且位于末尾。
+        幂等：重复调用不会重复追加。
+        """
+        if run.status is RunStatus.RUNNING:
+            run.status = RunStatus.DONE
+        # R3：流终止时仍在 running 的工具必须有终态，否则前端永久转圈。
+        for name in list(run.open_tools):
+            event = AgentEvent(
+                type=AgentEventType.FUNCTION_CALL,
+                name=name,
+                state="end",
+                result="aborted",
+                message="生成已中断",
+            )
+            run.events.append(event)
+            self._broadcast(run, event)
+        run.open_tools.clear()
+        if not run.events or run.events[-1].type is not AgentEventType.END:
+            end = AgentEvent(type=AgentEventType.END)
+            run.events.append(end)
+            self._broadcast(run, end)
+        self._broadcast(run, None)
+
+    def _trim_buffer(self, run: ChatRun, buffer_bytes: int) -> None:
+        """超出事件数/字节上限时丢弃最旧事件，并推进 buffer_start（Q14）。"""
+        while run.events and (
+            len(run.events) > MAX_BUFFER_EVENTS or buffer_bytes > MAX_BUFFER_BYTES
+        ):
+            dropped = run.events.pop(0)
+            run.buffer_start += 1
+            buffer_bytes -= len(dropped.text or "")
+
+    def _broadcast(self, run: ChatRun, event: AgentEvent | None) -> None:
+        for queue in list(run.subscribers):
+            queue.put_nowait(event)

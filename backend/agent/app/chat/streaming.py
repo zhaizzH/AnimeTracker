@@ -15,7 +15,7 @@ from app.shared.observability import (
     get_user_hash,
     log_event,
 )
-from app.chat.pending_events import PendingActionEvent, get_pending_action_event, reset_pending_action_collector, set_pending_action_collector
+from app.chat.pending_events import PendingActionEvent
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +64,15 @@ def _extract_route_target(latest_state: dict) -> str | None:
 
 
 async def stream_agent_events(config: StreamConfig) -> AsyncIterator[AgentEvent]:
-    """执行 workflow 并按产生顺序输出内部 AgentEvent。"""
+    """执行 workflow 并按产生顺序输出内部 AgentEvent。
+
+    本函数是**纯事件生产者**：不调用 ``on_answer_completed`` / ``on_pending_action``。
+    收尾与落库由 ``ChatRunManager._drive`` 统一负责（D1 回调提升），这样「有人读」
+    与「是否落库」彻底解耦。``StreamConfig`` 仍保留这两个字段，供 manager 读取。
+
+    ``pending_action_collector`` 也由 :meth:`ChatRunManager._drive` 安装。本函数不再
+    自行 ``set``：那会遮蔽外层 collector，导致工具报告的动作丢失。
+    """
     state = config.build_initial_state()
     queue: asyncio.Queue = asyncio.Queue()
     loop = asyncio.get_running_loop()
@@ -84,7 +92,6 @@ async def stream_agent_events(config: StreamConfig) -> AsyncIterator[AgentEvent]
                 loop.call_soon_threadsafe(queue.put_nowait, ("emitted", event))
 
     emitter_token = set_event_sink(_QueueEventSink())
-    pending_token = set_pending_action_collector()
     latest_state: dict = {}
     aggregated_answer: list[str] = []
     used_tools: list[str] = []
@@ -94,7 +101,6 @@ async def stream_agent_events(config: StreamConfig) -> AsyncIterator[AgentEvent]
     first_answer_at: float | None = None
     success = False
     error_type: str | None = None
-    persistence_failed = False
 
     async def produce():
         nonlocal latest_state
@@ -121,6 +127,14 @@ async def stream_agent_events(config: StreamConfig) -> AsyncIterator[AgentEvent]
                 error_type = classify_error(payload)
                 text = config.map_exception(payload) if config.map_exception else "处理请求时出错，请重试"
                 yield AgentEvent(type=AgentEventType.ANSWER, text=text)
+                # 显式失败信号：下游（ChatRunManager）据此把 run 标为 FAILED，
+                # 并给落库的 assistant 消息加中断标记。
+                yield AgentEvent(
+                    type=AgentEventType.STATUS,
+                    state="error",
+                    message=text,
+                    meta={"workflow": "error"},
+                )
                 continue
             event = _build_agent_event(payload)
             if event is None:
@@ -147,38 +161,7 @@ async def stream_agent_events(config: StreamConfig) -> AsyncIterator[AgentEvent]
                 aggregated_answer.append(text)
                 yield AgentEvent(type=AgentEventType.ANSWER, text=text)
 
-        if config.on_answer_completed is not None:
-            try:
-                callback_result = config.on_answer_completed("".join(aggregated_answer), used_tools)
-                if inspect.isawaitable(callback_result):
-                    await callback_result
-            except Exception:
-                persistence_failed = True
-                logger.exception("Agent 答案持久化失败")
-                yield AgentEvent(
-                    type=AgentEventType.STATUS,
-                    state="error",
-                    message="回答保存失败，请稍后重试",
-                    meta={"persistence": "answer", "success": False},
-                )
-
-        if config.on_pending_action is not None:
-            try:
-                event = get_pending_action_event()
-                if event is not None:
-                    callback_result = config.on_pending_action(event)
-                    if inspect.isawaitable(callback_result):
-                        await callback_result
-            except Exception:
-                persistence_failed = True
-                logger.exception("Agent 待确认动作持久化失败")
-                yield AgentEvent(
-                    type=AgentEventType.STATUS,
-                    state="error",
-                    message="待确认动作保存失败，请重试",
-                    meta={"persistence": "pending_action", "success": False},
-                )
-        success = not has_error and not persistence_failed
+        success = not has_error
         yield AgentEvent(type=AgentEventType.END)
     except asyncio.CancelledError:
         error_type = "CLIENT_DISCONNECTED"
@@ -204,6 +187,5 @@ async def stream_agent_events(config: StreamConfig) -> AsyncIterator[AgentEvent]
             errorType=error_type,
         )
         reset_event_sink(emitter_token)
-        reset_pending_action_collector(pending_token)
         if not producer.done():
             producer.cancel()

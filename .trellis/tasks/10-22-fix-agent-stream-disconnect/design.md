@@ -1,6 +1,7 @@
 # 技术设计：chat run 解耦
 
 > 关联 PRD：[prd.md](./prd.md)。方向 A（生产端与请求解耦）+ 重连同一 run（B）+ Task + Redis 状态标记（B）。
+> 2026-10-23 经 `/grill-me` 拷问（Q1–Q14）修订，关键修正见 [decisions.md](./decisions.md) D3–D10。核心修正：stop 改为逻辑停止（物理取消在同步节点架构下不存在）；消息顺序改由 per-session persist future 保证；部分答案用文本前缀标记。
 
 ## 1. 设计目标
 
@@ -29,24 +30,33 @@ class ChatRun:
     user_id: int
     status: RunStatus
     events: list[AgentEvent]        # 全量缓冲，供重连回放
+    buffer_start: int               # 缓冲截断后第一条事件的序号（Q14）
     subscribers: set[asyncio.Queue[AgentEvent | None]]
     task: asyncio.Task | None
+    persist_future: asyncio.Future  # D4: 持久化完成信号
 
 class ChatRunManager:
     def __init__(self, store: ChatStore, ttl_seconds: int = 900): ...
     async def start(self, *, session_id, user_id, events: AsyncIterator[AgentEvent]) -> ChatRun
     def get(self, run_id: str) -> ChatRun | None
-    def active_for_session(self, session_id: str) -> ChatRun | None
+    def active_for_session(self, session_id: str) -> ChatRun | None  # 只认 RUNNING（D8）
+    async def stop(self, run_id: str) -> bool  # 逻辑停止（D3）：标记 cancelled，立即返回
     async def subscribe(self, run_id: str, *, after: int = 0) -> AsyncIterator[AgentEvent]
-    async def shutdown(self) -> None
+    async def shutdown(self) -> None  # cancel + gather + 10s 超时（D9）
 ```
 
 要点：
 
-- `start()` 用 `asyncio.create_task` 跑一个 `_drive()` 协程；**不返回给调用方取消的句柄**。把 task 存进强引用集合，避免被 GC。
-- `_drive()` 内部 `async for event in events:` → 追加 `events` 缓冲 → 广播到每个订阅者队列 → 结束时写入 Redis 终态。
-- 缓冲上限：按事件数上限（如 2000）或字节上限截断，超出后新订阅者只能拿到「终态 + 从历史读完整答案」。README 里写明。
-- `subscribe(after)`：先回放 `events[after:]`，然后挂一个 `asyncio.Queue` 持续推送；run 终态时推 `None` 哨兵结束迭代。**订阅者退出（GeneratorExit）只做退订**，绝不 cancel run task。
+- `start()` 在 `create_task` **之前** `set_event_sink(...)` + `set_pending_action_collector()`（Q3：contextvar 在 create_task 时拷贝，`_drive` 内部继承）。token 传进 `_drive`，finally 里 `reset`。
+- `start()` 在 service 层 `save_message("user", ...)` 之前 `await asyncio.wait_for(prev.persist_future, timeout=5.0)`（D4），超时降级继续。
+- `_drive()` 内部 `async for event in events:` → 累积 `aggregated_answer` / `used_tools` → 追加 `events` 缓冲 → 广播。结束时写入 Redis 终态，resolve `persist_future`。
+- **stop（D3）**：标记 `status=cancelled`，合成未闭合工具的 `state=end, result=aborted` 帧 + END 帧广播，立即返回。**不 cancel 底层 task**（同步节点架构下 cancel 无效，见 D3）。底层 task 自然跑完后落库部分答案（带 D5 前缀）。
+- **封存（D6）**：stop 后事件缓冲定格，之后产出的事件丢弃。`_drive` 继续消费（为落库），但不再对外可见。
+- 缓冲上限：事件数 2000 / 字节 1MB。超限后 `buffer_start` 前移；`subscribe(after)` 检测 `after < buffer_start` 时先发 STATUS 提示帧（Q14）。
+- `subscribe(after)`：先回放 `events[after:]`，然后挂 `asyncio.Queue` 持续推送；run 终态时推 `None` 哨兵。**订阅者退出（GeneratorExit）只做退订**，绝不 cancel run task。
+- `active_for_session`（D8）：只认 `status=RUNNING`。cancelled 不算 active。
+- `shutdown()`（D9）：cancel 所有 run task + `gather(return_exceptions=True)`，外包 `asyncio.wait_for(timeout=10s)`。超时打日志放弃。
+- **stale 收敛（D9）**：懒加载。`active_for_session` / `get` 读到 `status=running` 但内存无 run → 收敛 `failed` + 补写「生成已中断」。
 
 ### 2.2 Redis run 状态（不用新表，复用既有 Redis）
 
@@ -55,7 +65,7 @@ class ChatRunManager:
 | `agent:run:{run_id}` | hash: `session_id` / `user_id` / `status` / `updated_at` / `event_count` | 900s |
 | `agent:session_runs:{session_id}` | 最近 run_id（字符串） | 900s |
 
-进程重启后，`RUNNING` 的 run 无法恢复执行。**启动时扫描**（可选，见 §6）或**读取时判据**：`active_for_session` 读到 `status=running` 且 `get(run_id) is None`（内存中不存在）→ 说明进程重启过 → 收敛为 `failed` 并补一条「生成已中断」的 assistant 消息，避免永久悬空。
+进程重启后，`RUNNING` 的 run 无法恢复执行。**懒加载收敛**（D9）：`active_for_session` / `get` 读到 `status=running` 且内存无此 run → 收敛为 `failed` 并补一条「生成已中断」assistant 消息。不做启动时扫描。
 
 ## 3. 改动点
 
@@ -122,10 +132,10 @@ async def start_run(self, *, session_id, content, user_id, role, token="") -> Ch
 `_drive()` 保证每次 run 结束（含失败/取消）都调用一次落库：
 
 - 成功：正常 `on_answer_completed` 写入完整答案。
-- 失败/取消且已聚合到部分答案：写入部分答案 + 追加 `status=error` 提示（复用既有 `map_exception` 文案）。
-- 失败/取消且无任何答案：写入一条明确的「生成已中断」assistant 消息。
+- 失败/取消且已聚合到部分答案：写入部分答案，content 前加 `*（生成已中断）*` 前缀（D5）。
+- 失败/取消且无任何答案：写入一条 `*（生成已中断）*` assistant 消息（D5）。
 
-实现位置：`ChatRunManager._drive()` 的 `finally`，以幂等方式补写（用一个 `persisted` 标记，避免与 `on_answer_completed` 重复写）。
+实现位置：`ChatRunManager._drive()` 的 `finally`，以幂等方式补写（`persisted` 标记 + `persist_future` resolve）。
 
 ### 4.2 工具调用中间态
 
@@ -134,30 +144,34 @@ async def start_run(self, *, session_id, content, user_id, role, token="") -> Ch
 
 ### 4.3 pending_action
 
-- 正常路径：`stream_agent_events` 尾部照常调用 `on_pending_action`。
-- 失败路径：`pending_action` collector 在 `finally` 中 `reset`，不写半成品；已写入的由 TTL 过期，不额外删除。
+- 正常路径（含断连后台跑完）：`_drive` finally 里 `get_pending_action_event()` + 调 `on_pending_action`（Q3：collector 由 `start()` 在 create_task 前 set，`_drive` 继承）。
+- 被 stop 的 run（D7）：**跳过** `on_pending_action`。已写入 Redis 的旧 pending_action 由 TTL（600s）自然过期。
+- 失败路径：collector 在 finally 中 `reset`，不写半成品。
 
 ### 4.4 资源泄漏 / producer 取消
 
 - 客户端断连 → 只 `unsubscribe`，不 `task.cancel()`。
-- `shutdown()` → 取消全部 run task，`await asyncio.gather(..., return_exceptions=True)`。
+- `shutdown()` → 取消全部 run task，`gather(return_exceptions=True)` + `wait_for(timeout=10s)`（D9）。
 - 订阅者队列在退订时从 `subscribers` 集合移除，队列对象随引用消失。
-- `set_event_sink` / `set_pending_action_collector` 的 token 在 run 任务内部 set/reset（contextvar 本就按任务隔离），不跨任务泄漏。
+- contextvar token 由 `start()` 在 create_task 前 set，`_drive` finally 里 reset（Q3）。
 
 ## 5. 关键不变量（测试要钉住）
 
 1. 断连不取消 run：订阅者 `aclose()` 后，run task 仍 `not done()`，最终 `status=done`。
 2. 断连后答案落库：`get_messages` 能读到完整 assistant 内容。
-3. 重连回放不漏不重：`after=N` 精确从第 N 条开始，总事件序列 == 全量缓冲。
+3. 重连回放不漏不重：`after=N` 精确从第 N 条开始，总事件序列 == 全量缓冲。缓冲截断时 `after < buffer_start` 降级提示（Q14）。
 4. 恰好一个 `is_end` 帧（既有契约）。
-5. 每会话最多一个 active run；同会话并发 `POST /stream` 由前端提供两个用户选择，见 §9。
-6. 每 run 恰好一条 assistant 消息落库（幂等标记）。
+5. 每会话最多一个 active run（D8：cancelled 不算 active）；同会话并发 `POST /stream` 409，见 §9。
+6. 每 run 恰好一条 assistant 消息落库（幂等标记 + persist_future）。
+7. stop 立即返回（D3）：`POST /runs/{id}/stop` 延迟 ~5ms，不等底层节点跑完。
+8. stop 后部分答案落库带 `*（生成已中断）*` 前缀（D5），pending_action 不落（D7）。
 
 ## 6. 进程重启边界
 
-新增 run 不持久化执行状态，重启后不可恢复。防线：
+新增 run 不持久化执行状态，重启后不可恢复。防线（D9）：
 
-- `active_for_session` 读到 `running` 但内存无此 run → 收敛 `failed` + 补「生成已中断」消息。
+- **懒加载 stale 收敛**：`active_for_session` / `get` 读到 `running` 但内存无此 run → 收敛 `failed` + 补「生成已中断」消息。不做启动时扫描。
+- **shutdown 10s 超时**：cancel + gather + `wait_for(timeout=10s)`，超时打日志放弃。
 - 在 `agent-guidelines.md` 记录该边界，避免后续误以为「后台跑完」在重启后仍成立。
 
 ## 7. 拒绝的方案
@@ -182,7 +196,8 @@ async def start_run(self, *, session_id, content, user_id, role, token="") -> Ch
 
 ### 9.1 打断并插入（本次范围内）
 
-- `POST /runs/{run_id}/stop` → 旧 run `status=cancelled`，已生成部分落库 → 前端确认后正常 `POST /stream` 启动新 run。
+- `POST /runs/{run_id}/stop` → **逻辑停止**（D3）：立即标记 `cancelled` + 合成工具终态帧 + END 帧 + 返回 200。底层 task 自然跑完后落库部分答案（D5 前缀）。
+- 前端确认 stop 200 后 `POST /stream` 启动新 run；消息顺序由 per-session persist future 保证（D4）。
 - 这是 run 解耦的**自然产物**，后端几乎零额外成本；用户感知就是「打断并插入」。
 
 ### 9.2 中途注入指令改方向（**不在本次范围，需先重构执行模型**）

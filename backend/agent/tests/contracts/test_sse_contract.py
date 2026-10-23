@@ -294,10 +294,16 @@ async def test_workflow_error_still_terminates_once() -> None:
 
 
 @pytest.mark.asyncio
-async def test_persistence_error_still_terminates_once() -> None:
-    """持久化失败时追加 status 错误帧，且仍只有一个收尾帧。"""
+async def test_streaming_layer_ignores_persistence_callbacks() -> None:
+    """D1：``stream_agent_events`` 是纯事件生产者，传了落库回调也不调用。
+
+    持久化失败的 status/error 帧与「唯一收尾帧」由 ``ChatRunManager`` 保证，
+    见 ``tests/agent/test_chat_run_manager.py``。这里只钉住事件层不再落库。
+    """
+    calls: list[str] = []
 
     def boom(_answer: str, _tools: list[str]) -> None:
+        calls.append("called")
         raise RuntimeError("写库失败")
 
     config = StreamConfig(
@@ -306,14 +312,10 @@ async def test_persistence_error_still_terminates_once() -> None:
         on_answer_completed=boom,
     )
     frames = await _stream(config)
+    assert calls == [], "落库回调不得在事件生产层被调用"
     ends = [i for i, f in enumerate(frames) if f["is_end"]]
     assert len(ends) == 1
     assert ends[0] == len(frames) - 1
-    status_errors = [
-        f for f in frames if f["type"] == "status" and f["content"].get("state") == "error"
-    ]
-    assert status_errors, "持久化失败应产出 status/error 帧"
-    assert status_errors[0]["content"]["message"].strip()
 
 
 @pytest.mark.asyncio
