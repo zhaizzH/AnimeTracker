@@ -21,6 +21,6 @@
   "children": [],
   "parent": null,
   "relatedFiles": [],
-  "notes": "",
+  "notes": "后端步骤 0-5 + 8 已完成并提交（853 passed / 契约 146 passed）。生产端已与 HTTP 生命周期解耦：断连只退订，答案照常落库。步骤 6（前端重连）与 7（Java 代理）未开工，交接见 handoff.md，含两个 Java 硬阻塞与三条未决决策。任务保持 in_progress。",
   "meta": {}
 }
