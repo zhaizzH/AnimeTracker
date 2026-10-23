@@ -11,8 +11,8 @@
 | 1 Manager 骨架 + 断连不取消 | ✅ | `327772b1` | 829 passed |
 | 2 接入 service 与 API | ✅ | `8ca0d7b2` | 837 passed |
 | 3 Redis run 状态 | ✅ | `6cb7afe0` | 845 passed |
-| 4 四项副作用 | ⬜ | | |
-| 5 用户主动停止 | ⬜（API 已提前就位） | — | `test_run_api.py` 已覆盖 |
+| 4 四项副作用 | ✅ | `737a195c` | 853 passed |
+| 5 用户主动停止 | ✅ | `737a195c`（API 在 `8ca0d7b2`） | `test_run_api.py` + `test_run_side_effects.py` |
 | 6 前端重连 | 本次不做 | | |
 | 7 Java 代理 | 本次不做 | | |
 | 8 收尾 | ⬜ | | |
@@ -59,21 +59,25 @@
 - [x] `GET /sessions/{id}/run` 改走 `resolve_session_run`，跨进程可读；`main.py` 装配 `RedisRunStateStore`（独立 Redis 客户端）。
 - [x] 验证：`tests/adapters/redis/test_run_state.py` 5 passed + manager 3 条收敛用例；全量 845 passed。
 
-## 步骤 4：四项副作用
+## 步骤 4：四项副作用（**已完成**，commit `737a195c`）
 
-- [ ] 4.1 孤立 user 消息：`_drive()` 的 `finally` 幂等补写 assistant（成功/部分/中断三态）；部分/中断态加 `*（生成已中断）*` 前缀（D5）。
-- [ ] 4.2 工具中间态：stop 时合成未闭合工具的 `state=end, result=aborted` 帧（D3）；断连不合成（Q12）。
-- [ ] 4.3 pending_action：正常路径 `_drive` finally 里 `get_pending_action_event()` + 回调（Q3）；被 stop 的 run 跳过（D7）；失败路径不写半成品。
-- [ ] 4.4 资源：断连不 cancel；`shutdown()` cancel + gather + 10s 超时（D9）；订阅队列退订即移除。
-- [ ] 验证：新增 `tests/agent/test_run_side_effects.py`，四项各一条断言。
+- [x] 4.1 孤立 user 消息：`_drive()` 的 `finally` 幂等落库。**实现时修正了判定**：
+  - 有内容且非 DONE（且无显式错误文案）→ 加 `*（生成已中断）*` 前缀（D5）；
+  - 非 DONE 且无任何内容 → 落 `*（生成已中断）*`，不留空串；
+  - DONE 且无内容 → **不落库**（原计划无条件落库会制造空消息噪声）。
+- [x] 4.2 工具中间态：stop 时 `_finish` 合成未闭合工具的 `state=end, result=aborted` 帧（D3）；断连不合成（Q12，有测试钉住）。
+- [x] 4.3 pending_action：正常路径 `_drive` finally 里 `get_pending_action_event()` + 回调；被 stop 的 run 跳过（D7）；落库失败发 STATUS/error（不写半成品）。
+- [x] 4.4 资源：断连不 cancel；订阅队列退订即从 `subscribers` 摘除；`shutdown()` 取消 + **`asyncio.wait(timeout=10s)`**。
+- [x] **发现并修复的真 bug（D9 保护失效）**：原 `wait_for(gather(...))` 在超时时会二次 cancel 并等取消完成；同步节点跑在 LangGraph executor 里对 cancel 免疫，二次等待无上限，超时保护反而变成陷阱。改用 `asyncio.wait`。
+- [x] 验证：`tests/agent/test_run_side_effects.py` 8 passed；全量 853 passed。
 
-## 步骤 5：用户主动停止（逻辑停止，D3）
+## 步骤 5：用户主动停止（逻辑停止，D3）（**已完成**）
 
-- [ ] 新增 `POST /runs/{run_id}/stop`：标记 `cancelled` + 合成工具终态帧 + END 帧 + **立即返回 200**（不 cancel 底层 task）。
-- [ ] 底层 task 自然跑完后 `_drive` finally 落库部分答案（D5 前缀），跳过 pending_action（D7）。
-- [ ] 封存（D6）：stop 后事件缓冲定格，之后产出的事件丢弃。
-- [ ] 与「刷新断连」区分：断连不退订为取消。
-- [ ] 验证：单测（stop 延迟 ~5ms、部分答案落库带前缀、pending_action 不落）+ 前端 `stop()` 行为测试。
+- [x] `POST /runs/{run_id}/stop`：归属校验 → 标记 `cancelled` + 合成工具终态帧 + END 帧 + **立即返回 200**（不 cancel 底层 task），幂等。
+- [x] 底层 task 自然跑完后 `_drive` finally 落库部分答案（D5 前缀），跳过 pending_action（D7）。
+- [x] 封存（D6）：stop 后事件缓冲定格，之后产出的事件丢弃（但仍聚合答案以便落库）。
+- [x] 与「刷新断连」区分：断连只退订，不改变 run 状态，也不合成工具终态（Q12）。
+- [x] 验证：`test_stop_returns_immediately_and_marks_cancelled`、`test_stop_synthesises_aborted_tool_frame_and_single_end`、`test_stop_seals_event_stream`、`test_cancelled_run_skips_pending_action`、`test_each_run_persists_exactly_once`、`test_run_api.py::test_stop_endpoint_returns_200_and_marks_cancelled`。
 
 ## 步骤 6：前端重连（**本次不做**，留待后续）
 
@@ -91,9 +95,29 @@
 ## 步骤 8：收尾
 
 - [ ] `grep -rn "DEBUG-a4f2"` → 无结果。
-- [ ] 全量：`pytest backend/agent/tests`、前端三包测试。
+- [ ] 全量：`pytest backend/agent/tests`、前端三包测试（前端未改，但 R4 要求不回归）。
 - [ ] spec 回写：`agent-guidelines.md` 流式章节补 run 生命周期与「重启不恢复」边界；`contract-tests.md` 补 run 契约。
 - [ ] 提交信息写清「根因：收尾职责与读者绑定；修复：run 解耦」。
+
+### 步骤 8 的执行清单（含验证命令）
+
+1. `grep -rn "DEBUG-a4f2" backend/ frontend/` → 应为空。
+2. `cd backend/agent && .venv/Scripts/python -m pytest tests -q` → 当前 853 passed。
+3. spec 回写两处：
+   - `spec/agent-guidelines.md`（流式章节）：run 生命周期、断连=退订、stop=逻辑停止、重启不恢复。
+   - `spec/contract-tests.md`：新增三个路由的契约（`GET /runs/{id}/stream`、`GET /sessions/{id}/run`、`POST /runs/{id}/stop`）。
+4. 检查 design.md 与实现是否漂移（已知偏差已记在本文步骤 4：空答案不落库、`asyncio.wait` 替代 `wait_for`）。
+5. 最终提交信息模板：
+
+   ```
+   fix(agent): 刷新丢弃已生成回答
+
+   根因：收尾职责绑在读者上——stream_agent_events 的 on_answer_completed 位于消费循环之后，
+   客户端断连触发 GeneratorExit 时整段跳过，已上屏的回答从未落库。
+
+   修复：每条对话变成有独立生命周期的 run（asyncio.Task），SSE 降级为订阅者，
+   断连只退订。落库统一由 _drive 的 finally 负责。
+   ```
 
 ## 回滚点
 
