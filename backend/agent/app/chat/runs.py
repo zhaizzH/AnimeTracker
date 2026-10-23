@@ -208,20 +208,28 @@ class ChatRunManager:
         return self._subscription(run, after)
 
     async def shutdown(self) -> None:
-        """进程关闭：取消所有 run 并等待，最长 10s（D9）。"""
-        for run in list(self._runs.values()):
-            if run.task is not None and not run.task.done():
-                run.task.cancel()
-        tasks = [task for task in self._tasks if not task.done()]
+        """进程关闭：取消所有 run 并等待，最长 10s（D9）。
+
+        用 ``asyncio.wait`` 而不是 ``wait_for(gather(...))``：后者超时时会再取消一次
+        被等待的任务，并等取消完成——若任务对 cancel 免疫，二次等待会无上限挂住，
+        正好把这个超时保护变成陷阱。
+        """
+        tasks = [
+            run.task
+            for run in self._runs.values()
+            if run.task is not None and not run.task.done()
+        ]
         if not tasks:
             return
-        try:
-            await asyncio.wait_for(
-                asyncio.gather(*tasks, return_exceptions=True),
-                timeout=SHUTDOWN_TIMEOUT_SECONDS,
+        for task in tasks:
+            task.cancel()
+        _, pending = await asyncio.wait(tasks, timeout=SHUTDOWN_TIMEOUT_SECONDS)
+        if pending:
+            logger.warning(
+                "chat run shutdown 超时 %.0fs，放弃等待 %d 条 run",
+                SHUTDOWN_TIMEOUT_SECONDS,
+                len(pending),
             )
-        except asyncio.TimeoutError:  # noqa: UP041 - 兼容 3.10 命名
-            logger.warning("chat run shutdown 超时 %.0fs，放弃等待", SHUTDOWN_TIMEOUT_SECONDS)
 
     # ---------------------------------------------------------------- 订阅
 
@@ -330,11 +338,16 @@ class ChatRunManager:
         finally:
             try:
                 answer = "".join(aggregated)
-                # D5：仅在「没有显式错误文案」时加中断前缀。FAILED 的答案里已经带着
-                # 用户看到的错误提示，再加前缀是重复信号。
-                if run.status is not RunStatus.DONE and error_message is None:
-                    answer = f"{INTERRUPTED_PREFIX}{answer}" if answer else INTERRUPTED_PREFIX
-                if on_answer_completed is not None:
+                if answer:
+                    # D5：仅在「没有显式错误文案」时加中断前缀。FAILED 的答案里已经带着
+                    # 用户看到的错误提示，再加前缀是重复信号。
+                    if run.status is not RunStatus.DONE and error_message is None:
+                        answer = f"{INTERRUPTED_PREFIX}{answer}"
+                elif run.status is not RunStatus.DONE:
+                    # 一个字都没生成就失败了：仍要补一条消息，否则 user 消息永久孤立。
+                    answer = INTERRUPTED_PREFIX
+                # else: 正常结束且无内容 → 不落库，避免制造空消息噪声。
+                if answer and on_answer_completed is not None:
                     try:
                         result = on_answer_completed(answer, used_tools)
                         if asyncio.iscoroutine(result):

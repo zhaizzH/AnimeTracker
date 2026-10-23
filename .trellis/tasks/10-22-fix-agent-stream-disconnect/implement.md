@@ -3,6 +3,20 @@
 > 关联 [prd.md](./prd.md) 与 [design.md](./design.md)。
 > 原则：每步都有独立可验证的产出；先让最小复现转绿，再逐项清理副作用。
 
+## 进度（截至 commit `6cb7afe0`）
+
+| 步骤 | 状态 | 提交 | 验证 |
+|---|---|---|---|
+| 0 固化复现 | ✅ | `e6f58d60` | 3 passed, 1 xfailed |
+| 1 Manager 骨架 + 断连不取消 | ✅ | `327772b1` | 829 passed |
+| 2 接入 service 与 API | ✅ | `8ca0d7b2` | 837 passed |
+| 3 Redis run 状态 | ✅ | `6cb7afe0` | 845 passed |
+| 4 四项副作用 | ⬜ | | |
+| 5 用户主动停止 | ⬜（API 已提前就位） | — | `test_run_api.py` 已覆盖 |
+| 6 前端重连 | 本次不做 | | |
+| 7 Java 代理 | 本次不做 | | |
+| 8 收尾 | ⬜ | | |
+
 ## 步骤 0：固化复现（**已完成**，commit `e6f58d60`）
 
 - [x] 把 `backend/agent/tests/agent/test_repro_disconnect.py` 重命名为 `tests/agent/test_run_disconnect.py`。
@@ -12,31 +26,38 @@
 
 > 注意：一修复，D 变体会因 strict 模式变成 XPASS(failed)；这是故意的，强制在同一次改动里删除标记。
 
-## 步骤 1：`ChatRunManager` 骨架 + 断连不取消
+## 步骤 1：`ChatRunManager` 骨架 + 断连不取消（**已完成**，commit `327772b1`）
 
-- [ ] 新增 `app/chat/runs.py`：`RunStatus`、`ChatRun`（含 `buffer_start`、`persist_future`）、`ChatRunManager.start/get/active_for_session/stop/subscribe/shutdown`。
-- [ ] `start()`：create_task **前** set contextvar（event_sink + pending_action_collector），token 传 `_drive`（Q3）。
-- [ ] `subscribe(after)`：先回放 `events[after:]`，再挂 queue；`after < buffer_start` 时先发 STATUS 降级提示帧（Q14）；退订只移除队列。
-- [ ] `_drive()`：`async for` 累积 `aggregated_answer`/`used_tools` → 缓冲 → 广播；结束写终态 + resolve `persist_future`；**不**因订阅者退出而取消。
-- [ ] `_drive` finally：调 `on_answer_completed` / `on_pending_action`（D1 回调提升）+ reset contextvar token + resolve persist_future。
-- [ ] `active_for_session`：只认 `status=RUNNING`（D8）；stale 懒加载收敛（D9）。
-- [ ] `shutdown()`：cancel + gather + `wait_for(timeout=10s)`（D9）。
-- [ ] 验证：`test_run_disconnect.py` 的 A/D 变体转绿（断连后答案落库、run 仍跑完）。
+- [x] 新增 `app/chat/runs.py`：`RunStatus`、`ChatRun`（含 `buffer_start`、`persist_future`）、`ChatRunManager.start/get/latest_for_session/active_for_session/stop/subscribe/shutdown`。
+- [x] `start()`：在 `create_task` **之前**用 `uuid` 起 run 并建 `persist_future`；**Q3 修正**：`pending_action_collector` 改由 `_drive` 自己 set/reset——`start()` set 的 token 无法在另一个任务里 reset（`ValueError: was created in a different Context`）。
+- [x] `subscribe(after)`：先回放 `events[max(after, buffer_start):]`，再挂 queue；`after < buffer_start` 时先发 STATUS 降级提示帧（Q14）；退订只移除队列。
+- [x] `_drive()`：`async for` 累积 `aggregated_answer`/`used_tools` → 缓冲 → 广播；结束写终态 + resolve `persist_future`；**不**因订阅者退出而取消。
+- [x] `_drive` finally：调 `on_answer_completed` / `on_pending_action`（D1 回调提升）+ reset contextvar token + resolve persist_future。
+- [x] `active_for_session`：只认 `status=RUNNING`（D8）。
+- [x] `shutdown()`：cancel + gather + `wait_for(timeout=10s)`（D9）。
+- [x] `stop()`（D3 逻辑停止）：标记 cancelled + 合成工具终态（R3）+ 唯一 END 帧（R4）+ 立即返回，不 cancel 底层 task。封存（D6）：stop 后事件不再入缓冲/广播，但仍聚合答案以便落库。
+- [x] 同批完成 D5（部分答案 `*（生成已中断）*` 前缀，仅在没有显式 `error_message` 时加）、D7（被 stop 的 run 跳过 pending_action）、Q12（断连不合成工具终态）。
+- [x] `stream_agent_events` 改为纯事件生产者（D1），异常路径补显式 `STATUS(state="error")` 帧。
+- [x] 验证：`pytest tests/agent/test_chat_run_manager.py` 11 passed；`test_run_disconnect.py` 4 passed（xfail 已转正，AC1）；全量 829 passed。
 
-## 步骤 2：接入 `ChatService` 与 API
+## 步骤 2：接入 `ChatService` 与 API（**已完成**，commit `8ca0d7b2`）
 
-- [ ] `ChatService.start_run(...)`：复用现有 prepare 逻辑；`save_message("user")` 前 `await wait_for(prev.persist_future, 5s)`（D4），超时降级。
-- [ ] `stream_chat(...)` 保留为薄壳（`start_run` + `subscribe`），既有测试不受影响。
-- [ ] `POST /stream`：响应首帧 `meta.run_id`（Q10）；同会话 active run → 409 `{ active_run_id, status, capabilities: ["interrupt"] }`（D2）。
-- [ ] 新增 `GET /runs/{run_id}/stream?after=N`：校验 `user_id` 归属，不符返回 404。
-- [ ] 新增 `GET /sessions/{session_id}/run`：校验 session 归属（Q13），返回 `run_id` + `status`。
-- [ ] 验证：`pytest tests/api tests/contracts -q` 全绿（R4 不回归）。
+- [x] `ChatService.start_run(...)`：`_prepare()` 返回 `(events, on_answer_completed, on_pending_action)`，交给 manager；`stream_chat` 保留为薄壳（`start_run` + `subscribe`）。
+- [x] D4：`save_message("user")` 前 `await wait_for(prev.persist_future, 5s)`，超时/异常降级继续（`PERSIST_WAIT_SECONDS`）。
+- [x] `POST /stream`：首帧 `meta.run_id`（Q10，由 `_subscription` 的 `_with_run_id` 统一补）；同会话 active run → 409 `{ active_run_id, status, capabilities: ["interrupt"] }`（D2）。
+- [x] 新增 `GET /runs/{run_id}/stream?after=N`：校验 `user_id` 归属，不符返回 404（不暴露存在性）。
+- [x] 新增 `GET /sessions/{session_id}/run`：校验 session 归属（Q13），返回 `run_id` + `status`。
+- [x] `main.py`：lifespan 创建 `ChatRunManager` 并挂 `app.state.chat_runs`；关闭时 `await chat_runs.shutdown()`。
+- [x] 验证：`tests/api/test_run_api.py` 7 passed；全量 837 passed（R4 不回归）。
 
-## 步骤 3：Redis run 状态
+## 步骤 3：Redis run 状态（**已完成**，commit `6cb7afe0`）
 
-- [ ] `agent:run:{run_id}` hash 与 `agent:session_runs:{session_id}`，TTL 900s。
-- [ ] `active_for_session` 对「status=running 但内存无 run」收敛为 `failed`。
-- [ ] 验证：单测覆盖 4 种状态写入/读取、重启悬空收敛。
+- [x] `agent:run:{run_id}` hash（session_id/user_id/status/event_count）与 `agent:session_runs:{session_id}`，TTL 900s。
+- [x] 端口 `app/chat/run_state.py`（`RunState` + `RunStateStore` Protocol）；适配器 `app/adapters/redis/run_state.py`。写失败只记日志，不阻塞 run（投影可丢）。
+- [x] `ChatRunManager` 接受可选 `run_state_store`；`start`/`stop`/`_drive` 收尾写投影。
+- [x] `resolve_session_run(session_id)`：内存优先；否则读投影，`status=running` 但内存无此 run → 收敛为 `failed`（D9）并回写。
+- [x] `GET /sessions/{id}/run` 改走 `resolve_session_run`，跨进程可读；`main.py` 装配 `RedisRunStateStore`（独立 Redis 客户端）。
+- [x] 验证：`tests/adapters/redis/test_run_state.py` 5 passed + manager 3 条收敛用例；全量 845 passed。
 
 ## 步骤 4：四项副作用
 
@@ -78,6 +99,7 @@
 
 - 每步独立提交，可单独 revert。
 - 步骤 1–2 是核心，若步骤 2 的 API 变更引发回归，回退到步骤 1 的 manager 仍可单测通过。
+- 步骤 3 的投影层是可选的（`run_state_store=None` 时纯内存），删掉它最差退化为「重启后看不到 run 状态」，不影响断连不丢答案这个主目标。
 - 前端（步骤 6）与 Java（步骤 7）可独立回退，后端 run 化不依赖它们。
 
 ## 范围（2026-10-22 定）
