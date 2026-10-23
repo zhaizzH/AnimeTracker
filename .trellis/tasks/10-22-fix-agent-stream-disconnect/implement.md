@@ -3,7 +3,7 @@
 > 关联 [prd.md](./prd.md) 与 [design.md](./design.md)。
 > 原则：每步都有独立可验证的产出；先让最小复现转绿，再逐项清理副作用。
 
-## 进度（截至 commit `6cb7afe0`）
+## 进度（截至 commit `876e4fb2`）
 
 | 步骤 | 状态 | 提交 | 验证 |
 |---|---|---|---|
@@ -15,7 +15,7 @@
 | 5 用户主动停止 | ✅ | `737a195c`（API 在 `8ca0d7b2`） | `test_run_api.py` + `test_run_side_effects.py` |
 | 6 前端重连 | 本次不做 | | |
 | 7 Java 代理 | 本次不做 | | |
-| 8 收尾 | ⬜ | | |
+| 8 收尾 | ✅（后端部分） | `876e4fb2` | 853 passed，契约子集 146 passed |
 
 ## 步骤 0：固化复现（**已完成**，commit `e6f58d60`）
 
@@ -92,12 +92,20 @@
 - [ ] `ClientAgentController`、`AdminAgentController` 三个新路由。
 - [ ] 验证：`mvn -B -pl agent test`（或对应模块）Controller 测试通过。
 
-## 步骤 8：收尾
+## 步骤 8：收尾（**后端部分已完成**，commit `876e4fb2`）
 
-- [ ] `grep -rn "DEBUG-a4f2"` → 无结果。
-- [ ] 全量：`pytest backend/agent/tests`、前端三包测试（前端未改，但 R4 要求不回归）。
-- [ ] spec 回写：`agent-guidelines.md` 流式章节补 run 生命周期与「重启不恢复」边界；`contract-tests.md` 补 run 契约。
-- [ ] 提交信息写清「根因：收尾职责与读者绑定；修复：run 解耦」。
+- [x] `grep -rn "DEBUG-a4f2" backend/agent frontend/` → 无结果。
+- [x] 全量：`pytest backend/agent/tests -q` → 853 passed；`pytest tests/contracts -q` → 146 passed。
+- [x] spec 回写：
+  - `agent-guidelines.md`：改「客户端断开」口径（退订而非 CancelledError）；新增 Scenario「Chat run 生命周期与重连」（断连≠取消、落库单一责任人、每 run 恰好一条 assistant、唯一 `is_end`、stop=逻辑停止、封存、409、归属 404、重启不恢复）。
+  - `contract-tests.md`：测试套件表补 `tests/api/test_run_api.py`；Contracts 新增「Run 生命周期契约」四路由接口事实；显式声明 `openapi.yaml` 暂未收录（它记录 Java 对外层路径）及补齐时要一起动的三处。
+- [x] 提交信息写清「根因：收尾职责与读者绑定；修复：run 解耦」。
+- [ ] **剩余**：前端三包测试未跑（本次未改前端，R4 待步骤 6 一并验证）。
+
+### 交付边界（明确未做）
+
+- 步骤 6 前端重连、步骤 7 Java 代理均未做。生产端解耦已生效：即使前端刷新时 abort，答案照常落库，刷新后从历史可见。
+- 因此 `GET /runs/{id}/stream`、`GET /sessions/{id}/run`、`POST /runs/{id}/stop` 在 Spring 代理补齐前浏览器无法直达（只能直连 `:8090`）。
 
 ### 步骤 8 的执行清单（含验证命令）
 
