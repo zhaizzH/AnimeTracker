@@ -100,7 +100,7 @@
   - `agent-guidelines.md`：改「客户端断开」口径（退订而非 CancelledError）；新增 Scenario「Chat run 生命周期与重连」（断连≠取消、落库单一责任人、每 run 恰好一条 assistant、唯一 `is_end`、stop=逻辑停止、封存、409、归属 404、重启不恢复）。
   - `contract-tests.md`：测试套件表补 `tests/api/test_run_api.py`；Contracts 新增「Run 生命周期契约」四路由接口事实；显式声明 `openapi.yaml` 暂未收录（它记录 Java 对外层路径）及补齐时要一起动的三处。
 - [x] 提交信息写清「根因：收尾职责与读者绑定；修复：run 解耦」。
-- [ ] **剩余**：前端三包测试未跑（本次未改前端，R4 待步骤 6 一并验证）。
+- [x] 前端三包测试（R4 不回归）：`npm test` → shared 6 + client 9 + admin 11 个文件全绿（本次未改前端）。
 
 ### 交付边界（明确未做）
 
