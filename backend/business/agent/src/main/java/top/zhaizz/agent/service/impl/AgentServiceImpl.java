@@ -75,6 +75,13 @@ public class AgentServiceImpl implements AgentService {
         forwardStream(path, method, authorization, toJsonOrNull(body), lineConsumer);
     }
 
+    /** {@inheritDoc} */
+    @Override
+    public void streamGet(String path, String query, String authorization, Consumer<String> lineConsumer) {
+        String target = (query == null || query.isBlank()) ? path : path + "?" + query;
+        forwardStream(target, HttpMethod.GET, authorization, null, lineConsumer);
+    }
+
     /**
      * 将请求对象序列化为 JSON；空对象保持为空，序列化失败时抛出统一业务异常
      *
@@ -148,10 +155,7 @@ public class AgentServiceImpl implements AgentService {
             return restTemplate.exchange(url, method, entity, String.class);
         } catch (HttpStatusCodeException e) {
             log.warn("Agent 请求失败: {} {} -> status={}", method, url, e.getStatusCode().value());
-            if (e.getStatusCode().is5xxServerError()) {
-                throw new BizException(ErrorType.SERVICE_UNAVAILABLE);
-            }
-            throw new BizException(mapUpstream4xx(e.getStatusCode().value()));
+            throw mapUpstreamError(e);
         } catch (ResourceAccessException e) {
             log.error("Agent 服务连接失败: {}", url, e);
             throw new BizException(ErrorType.SERVICE_UNAVAILABLE, "AI 服务暂不可用");
@@ -175,7 +179,10 @@ public class AgentServiceImpl implements AgentService {
         if (authorization != null && !authorization.isEmpty()) {
             headers.set(HttpHeaders.AUTHORIZATION, authorization);
         }
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        // GET 重连没有请求体：声明 JSON Content-Type 会让上游把它当成带体请求
+        if (!HttpMethod.GET.equals(method)) {
+            headers.setContentType(MediaType.APPLICATION_JSON);
+        }
         headers.setAccept(Collections.singletonList(MediaType.TEXT_EVENT_STREAM));
         String traceId = MDC.get(TraceConstants.MDC_TRACE_ID);
         if (traceId != null) {
@@ -185,7 +192,7 @@ public class AgentServiceImpl implements AgentService {
         try {
             getStreamRestTemplate().execute(url, method, request -> {
                 request.getHeaders().addAll(headers);
-                if (body != null) {
+                if (body != null && !HttpMethod.GET.equals(method)) {
                     request.getBody().write(body.getBytes(StandardCharsets.UTF_8));
                 }
             }, response -> {
@@ -200,13 +207,50 @@ public class AgentServiceImpl implements AgentService {
             });
         } catch (HttpStatusCodeException e) {
             log.warn("Agent 流式请求失败: {} {} -> status={}", method, url, e.getStatusCode().value());
-            if (e.getStatusCode().is5xxServerError()) {
-                throw new BizException(ErrorType.SERVICE_UNAVAILABLE);
-            }
-            throw new BizException(mapUpstream4xx(e.getStatusCode().value()));
+            throw mapUpstreamError(e);
         } catch (ResourceAccessException e) {
             log.error("Agent 流式连接失败: {}", url, e);
             throw new BizException(ErrorType.SERVICE_UNAVAILABLE, "AI 服务暂不可用");
+        }
+    }
+
+    /**
+     * 将上游 HTTP 错误归类为业务异常；409 额外保留结构化 detail 供前端做冲突处理
+     *
+     * @param e 上游 HTTP 状态异常
+     * @return 5xx 为服务不可用，409 为携带 detail 的资源冲突，其余按 4xx 映射
+     */
+    private BizException mapUpstreamError(HttpStatusCodeException e) {
+        if (e.getStatusCode().is5xxServerError()) {
+            return new BizException(ErrorType.SERVICE_UNAVAILABLE);
+        }
+        if (e.getStatusCode().value() == ErrorType.CONFLICT.getCode()) {
+            return new BizException(ErrorType.CONFLICT, "同一会话已有正在生成的回答", conflictDetail(e));
+        }
+        return new BizException(mapUpstream4xx(e.getStatusCode().value()));
+    }
+
+    /**
+     * 取出上游 409 响应中的 {@code detail} 对象；解析失败时返回 null，不回传原始正文
+     *
+     * @param e 上游 409 异常
+     * @return 上游 detail 映射；缺失或不是 JSON 对象时为 {@code null}
+     */
+    private Object conflictDetail(HttpStatusCodeException e) {
+        String body = e.getResponseBodyAsString();
+        if (body == null || body.isBlank()) {
+            return null;
+        }
+        try {
+            Map<?, ?> payload = objectMapper.readValue(body, Map.class);
+            if (payload == null) {
+                return null;
+            }
+            Object detail = payload.get("detail");
+            return detail instanceof Map<?, ?> ? detail : null;
+        } catch (JsonProcessingException | IllegalArgumentException parseFailure) {
+            log.warn("Agent 409 响应未携带可解析的 detail: {}", parseFailure.getMessage());
+            return null;
         }
     }
 

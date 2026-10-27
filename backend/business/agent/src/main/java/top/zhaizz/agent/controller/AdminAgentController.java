@@ -12,8 +12,6 @@ import top.zhaizz.common.result.Result;
 import static top.zhaizz.agent.constant.AgentApiPaths.*;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.UncheckedIOException;
 import java.util.Map;
 
 /**
@@ -119,23 +117,53 @@ public class AdminAgentController {
      */
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public void stream(@RequestHeader("Authorization") String auth, @RequestBody Map<String, Object> body, HttpServletResponse response) throws IOException {
-        final PrintWriter[] writerRef = new PrintWriter[1];
-        agentService.stream(ADMIN_CHAT_STREAM, HttpMethod.POST, auth, body, line -> {
-            try {
-                if (writerRef[0] == null) {
-                    response.setContentType(MediaType.TEXT_EVENT_STREAM_VALUE);
-                    response.setCharacterEncoding("UTF-8");
-                    writerRef[0] = response.getWriter();
-                }
-                writerRef[0].write(line + "\n");
-                writerRef[0].flush();
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        });
-        if (writerRef[0] != null) {
-            writerRef[0].close();
-        }
+        AgentSseResponseWriter.forward(
+                lines -> agentService.stream(ADMIN_CHAT_STREAM, HttpMethod.POST, auth, body, lines), response);
+    }
+
+    /**
+     * 重连管理端指定 run 的 SSE 流
+     *
+     * @param runId 上游 run 标识
+     * @param after 已收到的事件数量，缺省为 0
+     * @param auth 透传给 Python Agent 的 Authorization 请求头
+     * @param response 待写入内容的 HTTP 响应；收到上游首行后才提交流式响应头
+     * @throws IOException Servlet 响应写入失败时抛出
+     */
+    @GetMapping(value = "/chat/runs/{runId}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public void runStream(@PathVariable String runId,
+                          @RequestParam(defaultValue = "0") int after,
+                          @RequestHeader("Authorization") String auth,
+                          HttpServletResponse response) throws IOException {
+        AgentSseResponseWriter.forward(
+                lines -> agentService.streamGet(ADMIN_RUNS + "/" + runId + "/stream", "after=" + after, auth, lines),
+                response);
+    }
+
+    /**
+     * 查询管理端会话当前或最近一条 run
+     *
+     * @param sessionId 上游会话标识
+     * @param auth 透传给 Python Agent 的 Authorization 请求头
+     * @return 上游 run 状态包装的统一结果
+     */
+    @GetMapping("/chat/sessions/{sessionId}/run")
+    public Result<?> sessionRun(@PathVariable String sessionId,
+                                @RequestHeader("Authorization") String auth) {
+        return agentService.exchange(ADMIN_CHAT_SESSIONS + "/" + sessionId + "/run", HttpMethod.GET, auth, null);
+    }
+
+    /**
+     * 请求逻辑停止管理端指定 run
+     *
+     * @param runId 上游 run 标识
+     * @param auth 透传给 Python Agent 的 Authorization 请求头
+     * @return 上游停止结果包装的统一结果
+     */
+    @PostMapping("/chat/runs/{runId}/stop")
+    public Result<?> stopRun(@PathVariable String runId,
+                             @RequestHeader("Authorization") String auth) {
+        return agentService.exchange(ADMIN_RUNS + "/" + runId + "/stop", HttpMethod.POST, auth, null);
     }
 
     /**

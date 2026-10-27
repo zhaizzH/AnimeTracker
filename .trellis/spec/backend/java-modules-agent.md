@@ -29,6 +29,8 @@ Java agent 统一负责与 Python Agent 的 HTTP/SSE 通信。现有 ClientAgent
 - POST 保持 mode、key、since、workers 查询参数、可选参数省略规则、URI 编码及 Authorization 透传。
 - 模式校验和 season/key、since/since 要求留在 admin；导入记录 Mapper 与统计查询不迁入 agent 或 infrastructure。
 - 已有普通代理与 SSE 的序列化、请求追踪、超时和转发行为保持一致。导入错误映射与通用代理不同，不能为复用强制统一。
+- chat run 的 client/admin 三路由由 `AgentApiPaths.CLIENT_RUNS/ADMIN_RUNS` 与既有 sessions 常量组成；GET 重连通过 `AgentService.streamGet(path, query, authorization, lineConsumer)` 转发，`after` 只作为查询参数，不写 GET 请求体。SSE 写出统一由 `AgentSseResponseWriter` 延迟到上游首行后提交。
+- 通用代理上游 409 转换为 `BizException(ErrorType.CONFLICT, 中文消息, detail)`，由 `GlobalExceptionHandler` 输出 HTTP 409 统一信封；`data` 是上游 `detail` 对象，原始上游正文不得拼入 message。其他 4xx/5xx 映射不变。
 - 复用现有 HTTP 实现，迁移接口、调用方、配置和测试，不保留旧 app 实现副本。
 
 ### 4. Validation & Error Matrix
@@ -39,6 +41,8 @@ Java agent 统一负责与 Python Agent 的 HTTP/SSE 通信。现有 ClientAgent
 | 上游 409 | CONFLICT，已有导入任务运行中 |
 | 其他上游 4xx / 5xx | 分别为 BAD_REQUEST / INTERNAL_ERROR |
 | 网络连接失败 | INTERNAL_ERROR，Agent 导入服务连接失败 |
+| 通用代理上游 409 | HTTP 409 + `{code,message,data}`；`data` 保留 `active_run_id` 等 detail 字段，解析失败时 data 为空 |
+| 通用代理 GET run 重连 | GET + `after` 查询；无请求体/JSON Content-Type；上游首行前不提交响应 |
 
 导入网关当前已将非 409 上游 HTTP 错误转换为通用消息，不拼接上游错误正文；仍需补齐错误分类与正文不泄露的回归测试。
 
@@ -54,6 +58,7 @@ Java agent 统一负责与 Python Agent 的 HTTP/SSE 通信。现有 ClientAgent
 - 请求：模式校验、可选参数、URI 编码、Authorization 透传。
 - 错误：409、其他 4xx/5xx、网络失败保持分类，敏感错误正文不泄露。
 - 回归：装配唯一，普通代理和 SSE 超时/透传测试继续通过。
+- run 代理：client/admin 三路由的 path/method/query、GET 无 body、409 detail 进入 data、上游错误前不取 writer；`tests/contracts/test_run_route_contract.py` 钉住 OpenAPI 六条路由。
 
 ### 7. Wrong vs Correct
 

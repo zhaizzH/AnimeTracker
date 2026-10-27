@@ -24,4 +24,8 @@ public final class AgentApiPaths {
     public static final String CLIENT_STREAM = "/api/client/agent/stream";
     /** 客户端会话 */
     public static final String CLIENT_SESSIONS = "/api/client/agent/sessions";
+    /** 客户端 run 路由前缀（重连 / 停止） */
+    public static final String CLIENT_RUNS = "/api/client/agent/runs";
+    /** 管理端 run 路由前缀（重连 / 停止） */
+    public static final String ADMIN_RUNS = "/api/admin/agent/chat/runs";
 }

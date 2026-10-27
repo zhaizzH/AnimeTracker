@@ -2975,6 +2975,123 @@ paths:
             text/event-stream:
               schema:
                 $ref: "#/components/schemas/SSEFrame"
+        "409":
+          description: "同一会话已有 running run；统一响应信封的 data 携带冲突详情。"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentRunConflict"
+
+  /api/admin/agent/chat/runs/{runId}/stream:
+    get:
+      summary: "重连 Agent run 的 SSE 流"
+      description: |
+        重连同一 run，从 after 事件序号之后回放并继续推送。
+        每帧一行 `data: <SSEFrame JSON>`，后跟一个空行分帧；不使用 SSE `event:` 字段。
+      parameters:
+      - name: "runId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      - name: "after"
+        in: "query"
+        description: "已收到的事件数量，从该事件序号之后回放；缺省为 0。"
+        required: false
+        schema:
+          type: "integer"
+          minimum: 0
+          default: 0
+      - name: "Authorization"
+        in: "header"
+        description: "Bearer 访问令牌。"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "SSE 流；结束帧为 is_end=true。"
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/SSEFrame"
+        "404":
+          description: "run 不存在或不属于当前用户。"
+  /api/admin/agent/chat/sessions/{sessionId}/run:
+    get:
+      summary: "查询会话当前或最近一条 run"
+      description: "查询会话当前或最近一条 run"
+      parameters:
+      - name: "sessionId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      - name: "Authorization"
+        in: "header"
+        description: "Bearer 访问令牌。"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "run 状态，统一响应信封。"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                required:
+                - "code"
+                - "message"
+                - "data"
+                properties:
+                  code:
+                    type: "integer"
+                  message:
+                    type: "string"
+                  data:
+                    $ref: "#/components/schemas/AgentRunState"
+        "404":
+          description: "会话不属于当前用户或暂无 run。"
+  /api/admin/agent/chat/runs/{runId}/stop:
+    post:
+      summary: "逻辑停止 Agent run"
+      description: "标记 run 为 cancelled 并立即返回，不等待底层任务结束。"
+      parameters:
+      - name: "runId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      - name: "Authorization"
+        in: "header"
+        description: "Bearer 访问令牌。"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "停止结果，统一响应信封。"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                required:
+                - "code"
+                - "message"
+                - "data"
+                properties:
+                  code:
+                    type: "integer"
+                  message:
+                    type: "string"
+                  data:
+                    $ref: "#/components/schemas/AgentRunStop"
+        "404":
+          description: "run 不存在或不属于当前用户。"
   /api/admin/agent/chat/sessions:
     get:
       summary: "获取管理端会话列表"
@@ -3215,6 +3332,123 @@ paths:
             text/event-stream:
               schema:
                 $ref: "#/components/schemas/SSEFrame"
+        "409":
+          description: "同一会话已有 running run；统一响应信封的 data 携带冲突详情。"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentRunConflict"
+
+  /api/client/agent/runs/{runId}/stream:
+    get:
+      summary: "重连 Agent run 的 SSE 流"
+      description: |
+        重连同一 run，从 after 事件序号之后回放并继续推送。
+        每帧一行 `data: <SSEFrame JSON>`，后跟一个空行分帧；不使用 SSE `event:` 字段。
+      parameters:
+      - name: "runId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      - name: "after"
+        in: "query"
+        description: "已收到的事件数量，从该事件序号之后回放；缺省为 0。"
+        required: false
+        schema:
+          type: "integer"
+          minimum: 0
+          default: 0
+      - name: "Authorization"
+        in: "header"
+        description: "Bearer 访问令牌。"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "SSE 流；结束帧为 is_end=true。"
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/SSEFrame"
+        "404":
+          description: "run 不存在或不属于当前用户。"
+  /api/client/agent/sessions/{sessionId}/run:
+    get:
+      summary: "查询会话当前或最近一条 run"
+      description: "查询会话当前或最近一条 run"
+      parameters:
+      - name: "sessionId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      - name: "Authorization"
+        in: "header"
+        description: "Bearer 访问令牌。"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "run 状态，统一响应信封。"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                required:
+                - "code"
+                - "message"
+                - "data"
+                properties:
+                  code:
+                    type: "integer"
+                  message:
+                    type: "string"
+                  data:
+                    $ref: "#/components/schemas/AgentRunState"
+        "404":
+          description: "会话不属于当前用户或暂无 run。"
+  /api/client/agent/runs/{runId}/stop:
+    post:
+      summary: "逻辑停止 Agent run"
+      description: "标记 run 为 cancelled 并立即返回，不等待底层任务结束。"
+      parameters:
+      - name: "runId"
+        in: "path"
+        description: ""
+        required: true
+        schema:
+          type: "string"
+      - name: "Authorization"
+        in: "header"
+        description: "Bearer 访问令牌。"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "停止结果，统一响应信封。"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                required:
+                - "code"
+                - "message"
+                - "data"
+                properties:
+                  code:
+                    type: "integer"
+                  message:
+                    type: "string"
+                  data:
+                    $ref: "#/components/schemas/AgentRunStop"
+        "404":
+          description: "run 不存在或不属于当前用户。"
   /api/client/agent/sessions:
     get:
       summary: "获取会话列表"
@@ -4706,6 +4940,63 @@ components:
         访问令牌经 `Authorization: Bearer <token>` 传递。
         客户端 access token 由前端内存持有；refresh token 走 HttpOnly Cookie（`at_refresh`）。
   schemas:
+    AgentRunState:
+      type: "object"
+      required:
+      - "run_id"
+      - "status"
+      properties:
+        run_id:
+          type: "string"
+          description: "run 标识。"
+        status:
+          type: "string"
+          enum: ["running", "done", "failed", "cancelled"]
+          description: "run 生命周期状态。"
+    AgentRunStop:
+      type: "object"
+      required:
+      - "run_id"
+      - "status"
+      properties:
+        run_id:
+          type: "string"
+          description: "run 标识。"
+        status:
+          type: "string"
+          enum: ["cancelled"]
+          description: "停止接口返回的终态。"
+    AgentRunConflict:
+      type: "object"
+      required:
+      - "code"
+      - "message"
+      - "data"
+      properties:
+        code:
+          type: "integer"
+          enum: [409]
+        message:
+          type: "string"
+        data:
+          type: "object"
+          required:
+          - "active_run_id"
+          - "status"
+          - "capabilities"
+          properties:
+            active_run_id:
+              type: "string"
+              description: "当前仍在运行的 run 标识。"
+            status:
+              type: "string"
+              enum: ["running"]
+            capabilities:
+              type: "array"
+              items:
+                type: "string"
+                enum: ["interrupt"]
+              description: "客户端可对 active run 执行的能力。"
     ChatRequest:
       type: "object"
       description: "Agent 流式对话请求体。与 `backend/agent/app/api/schemas/chat.py` 的 `ChatRequest` 一致。"

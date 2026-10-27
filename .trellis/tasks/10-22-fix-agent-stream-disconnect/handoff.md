@@ -48,7 +48,10 @@ Python 侧实现见 `backend/agent/app/api/chat.py`，行为契约见 `.trellis/
 
 ---
 
-## 3. 步骤 7：Java 代理（**建议先做**）
+## 3. 步骤 7：Java 代理（**已由任务 `10-27-agent-run-proxy-java` 实施**）
+
+> 本节保留交接时的调查背景；最终接口以该任务的 `prd.md`、Java 源码和 `docs/spec/openapi.yaml` 为准。
+> 已定并实施：新增 `streamGet`，三路由两端均已代理；409 采用统一信封变体，detail 放入 `data`，未新增异常类型或 `@ExceptionHandler`。
 
 ### 3.1 要改的文件（已核实，非推测）
 
@@ -88,7 +91,7 @@ private ErrorType mapUpstream4xx(int status) {
 
 后果：D2 的 409 到前端变成 `400 请求参数错误`，且 `detail.active_run_id` **完全丢失**（`BizException` 只承载 `ErrorType` + message）。
 
-`ErrorType.CONFLICT(409)` 已存在，不用新增枚举。**待定**：是否引入能携带上游 body 的异常类型，让前端拿到结构化 `detail`。三条候选：
+`ErrorType.CONFLICT(409)` 已存在，不用新增枚举。**交接时待定**的三种候选如下；最终采用统一信封变体，见本节开头说明：
 
 - **A（契约完整）**：新增 `AgentConflictException`（携带上游 body），`forward`/`forwardStream` 在 409 时抛它，Controller 用 `@ExceptionHandler` 原样回 409 + body。
 - **B（最小改动）**：只加 `case 409 -> ErrorType.CONFLICT`，前端二次 `JSON.parse(message)`（丢字段语义）。
@@ -140,7 +143,7 @@ Java 侧测试风格是**纯 JUnit 5 + Mockito，不起 Spring 上下文**（`sp
 - 在 `ClientAgentControllerTest` / `AdminAgentControllerTest` 补：
   - GET stream：验证 `agentService.streamGet(...)` 收到正确 path 与 `after` query，逐行写回 writer。
   - GET session run / POST stop：验证 `exchange(...)` 的 path + method，返回包装后的 `Result`。
-  - 409 透传（若选 A）：验证抛出的异常被 `@ExceptionHandler` 转成 409 + 原 body。
+  - 409 透传：服务层验证 `BizException` 的 code 为 409 且 `data.active_run_id` 保留；由既有 `GlobalExceptionHandler` 输出统一信封。
 - 手工：`curl -N -H "Authorization: Bearer $T" "http://localhost:8080/api/client/agent/runs/$RUN/stream?after=0"`。
 
 ---
@@ -188,7 +191,7 @@ Java 侧测试风格是**纯 JUnit 5 + Mockito，不起 Spring 上下文**（`sp
 
 ## 5. 未决问题（需要决策后才能开工）
 
-1. **409 契约**：步骤 3.2 的 A / B / C 三选一。
+1. **409 契约**：已定并实施为统一信封变体；前端从 `data.active_run_id` 读取，不再等待 A/B/C 选择。
 2. **执行顺序**：建议先 7 后 6（Java 是纯透传、MockMvc 可测；前端重连依赖它才能端到端验证）。若先做 6，前端只能用 mock 验证，真实联调要等 7。
 3. **任务台账**：是否在 `.trellis/tasks/` 下新建两个任务（推荐，便于独立排期与回退），还是继续留在 `10-22-fix-agent-stream-disconnect` 下追加步骤。
 

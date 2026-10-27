@@ -23,6 +23,7 @@ uv run pytest -q                      # 全量（契约子集 + 其余）
 | `tests/contracts/test_http_contract.py` | AST 遍历调用点 → 方法/路径/请求字段比对；契约结构完整性 | 87 |
 | `tests/contracts/test_sse_contract.py` | SSE 帧 wire 形态与契约 `SSEFrame` 双向对齐 | 29 |
 | `tests/contracts/test_preview_contract.py` | pending-action 持久化协议（键、TTL、判别联合、字段大小写、版本绑定） | 30 |
+| `tests/contracts/test_run_route_contract.py` | Java 对外六条 run 路由、`after` 查询、GET SSE 与 run 响应、POST `/stream` 的 409 信封 | 8 |
 | `tests/api/test_run_api.py` | run 路由契约：`meta.run_id` 注入、409 冲突体、归属 404、回放唯一 `is_end`、stop 幂等 | 7 |
 
 CI 步骤位于 `.github/workflows/ci.yml` 的 `backend-python` job，名为 `contract drift (agent <-> openapi)`，在 `uv run pytest` 之前单独执行——失败时日志标题直接说明是契约漂移，而不是混在全量用例里的一条匿名 FAILED。
@@ -92,7 +93,10 @@ CI 步骤位于 `.github/workflows/ci.yml` 的 `backend-python` job，名为 `co
 
 不属于契约（故意不钉）：跨进程重连。进程重启后重跑不可恢复，`agent:run:*` 投影的 `running` 会被懒收敛为 `failed`；客户端必须能从「历史里没有这条回答」推出失败。
 
-**`docs/spec/openapi.yaml` 暂未收录这三个新路由**，因为该文件记录的是 **Java 对外层路径**（浏览器只访问 `/api/**`，由 Spring 代理转发），而 Java 侧代理尚未实现（见任务 `10-22-fix-agent-stream-disconnect` 步骤 7）。在那之前这些路由只能直连 `:8090` 验证。补 Java 代理时必须同时：加 `AgentApiPaths` 常量、加 Controller 路由、在 `openapi.yaml` 收录。
+**`docs/spec/openapi.yaml` 已收录 Java 对外层的六条 run 路由**（client/admin 各三条，见任务 `10-27-agent-run-proxy-java`）。
+其中 `GET /runs/{runId}/stream` 声明 `after` 查询参数与 `text/event-stream` 响应；会话 run 查询和 stop 声明统一响应信封。
+两条 `POST /stream` 的 409 也已收录：Java 代理将 Python 的 `detail` 对象映射到统一信封的 `data`，因此浏览器看到的是 `{code: 409, message, data: {active_run_id, status, capabilities}}`，不是裸 `{detail: ...}`。
+Python 直连 `:8090` 的 409 仍是 `{"detail": ...}`；两种形状由 Java 代理层明确转换。
 - 确认绑定：执行时使用的 `preview_id` 必须来自已持久化的 pending action，**不受模型传入参数影响**。
 
 ## 4. Validation & Error Matrix
@@ -125,7 +129,7 @@ CI 步骤位于 `.github/workflows/ci.yml` 的 `backend-python` job，名为 `co
 - **HTTP 侧**：新增/修改任何出站调用必须跑 `uv run pytest tests/contracts -q`；调用点数量变化时同步更新期望构成（当前 25 = 24 + 1 探针）。
 - **SSE 侧**：改 `app/api/sse.py` 或 `app/api/schemas/sse.py` 时，除了契约套件，还要跑 `tests/api/test_sse_serialization.py`（帧形态与响应头的第一道回归）。
 - **PendingAction 侧**：改 `app/chat/pending_action.py` 时同时跑 `tests/contracts/test_preview_contract.py` 与既有的 `tests/agent/test_collection_type.py`、`test_subject_resolution.py`（后两者用 `by_alias=True` 做往返）。
-- **契约侧**：改 `docs/spec/openapi.yaml` 后必须跑契约套件；孤儿 schema 与悬空 `$ref` 都会被打成红灯。
+- **契约侧**：改 `docs/spec/openapi.yaml` 后必须跑契约套件；孤儿 schema 与悬空 `$ref` 都会被打成红灯。run 路由的收录由 `tests/contracts/test_run_route_contract.py` 额外钉住，删除六条 operation、`after` 查询或 409 声明会变红。
 
 ## 7. Wrong vs Correct
 

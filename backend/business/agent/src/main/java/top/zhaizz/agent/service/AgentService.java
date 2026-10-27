@@ -34,4 +34,18 @@ public interface AgentService {
      * @throws top.zhaizz.common.exception.BizException 请求序列化失败、上游错误状态或连接失败时抛出
      */
     void stream(String path, HttpMethod method, String authorization, Object body, Consumer<String> lineConsumer);
+
+    /**
+     * 以 GET 转发流式 HTTP 请求（run 重连），查询参数独立于路径传递
+     * <p>
+     * 与 {@link #stream} 的区别：不写请求体、不声明 JSON Content-Type，
+     * 上游 409 时抛出携带结构化 detail 的 {@code BizException}
+     *
+     * @param path Agent SSE API 相对路径，不含查询串
+     * @param query 已编码的查询串（如 {@code after=0}），可为空
+     * @param authorization 原始授权请求头，可为空
+     * @param lineConsumer 每行响应内容的消费器，包含空行；回调异常向调用方传播
+     * @throws top.zhaizz.common.exception.BizException 上游错误状态或连接失败时抛出；409 时 data 为上游 detail 对象
+     */
+    void streamGet(String path, String query, String authorization, Consumer<String> lineConsumer);
 }
