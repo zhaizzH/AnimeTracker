@@ -975,3 +975,41 @@ Session summary was not supplied.
 ### Status
 
 [OK] **Completed**
+
+
+## Session 34: 收尾：前端 chat run 重连任务开立与规划
+<!-- trellis-session: v=2 fp=c8b769f4b6044d4c -->
+
+**Date**: 2026-10-27
+**Task**: 收尾：前端 chat run 重连任务开立与规划
+**Branch**: `main`
+
+### Summary
+
+本轮无代码提交：新建任务 10-27-agent-run-reconnect-frontend 并完成规划（prd.md 五条需求 R1–R5 + 八条 AC1–AC8、implement.md 六步 TDD 计划、implement/check 上下文），承接 10-22-fix-agent-stream-disconnect 的 handoff.md §4 步骤 6。顺手补登此前未入账的 05f6c43a（Q12 收紧：aborted 工具终态只在 CANCELLED 分支合成，异常终态保持 FAILED，R4 唯一 END 不变，全量 854 passed）。归档决策：10-22-fix-agent-stream-disconnect 保持 in_progress 不归档（前端步骤仍由它衍生），10-27 Java 代理已于 449b202f 归档。工作树仅有新任务目录未跟踪，无遗留代码改动。
+
+### Main Changes
+
+- 新建 .trellis/tasks/10-27-agent-run-reconnect-frontend/：prd.md 定 R1 run_id 记录 / R2 after=0 回放 / R3 GET SSE / R4 先 stopRun 后 abort / R5 完整 409 冲突 UI，含三条已定决策
+- implement.md 拆六步 TDD：传输层 GET → API 适配（client/admin 同步）→ run_id 与停止时序 → 重连回放 → 409 选择面板 → 收尾 spec 回写
+- check.jsonl 收录 hook/quality/component/agent 四份规范作为验收依据
+- 本轮未改动 backend / frontend / 后端 Java 代理代码
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `05f6c43a` | fix(agent): aborted 工具终态只在 run 被终止时合成 |
+
+### Testing
+
+- [OK] 未运行测试：本轮为任务规划，无代码改动
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 按 implement.md 步骤 0 记录前端三包基线（npm test + npm run typecheck）
+- 步骤 1–2 先做 GET SSE 传输与 API 适配层，步骤 3–5 再做 run_id/回放/409 UI

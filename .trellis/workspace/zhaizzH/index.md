@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 33
+- **Total Sessions**: 34
 - **Last Active**: 2026-10-27
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~977 | Active |
+| `journal-1.md` | ~1015 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 34 | 2026-10-27 | 收尾：前端 chat run 重连任务开立与规划 | `05f6c43a` | `main` |
 | 33 | 2026-10-27 | Java 代理补齐 chat run 三路由与 409 结构化透传 | `c10d0ed9` | `main` |
 | 32 | 2026-10-23 | spec 回写 + 步骤 8 收尾 + 步骤 6/7 交接 | `5cff91c0` | `main` |
 | 31 | 2026-10-22 | agent↔business 契约测试落地 + 契约基线修复 | `17a6b2f0`, `81f20416` | `main` |
