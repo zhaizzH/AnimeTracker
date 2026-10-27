@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 32
-- **Last Active**: 2026-10-23
+- **Total Sessions**: 33
+- **Last Active**: 2026-10-27
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~955 | Active |
+| `journal-1.md` | ~977 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 33 | 2026-10-27 | Java 代理补齐 chat run 三路由与 409 结构化透传 | `c10d0ed9` | `main` |
 | 32 | 2026-10-23 | spec 回写 + 步骤 8 收尾 + 步骤 6/7 交接 | `5cff91c0` | `main` |
 | 31 | 2026-10-22 | agent↔business 契约测试落地 + 契约基线修复 | `17a6b2f0`, `81f20416` | `main` |
 | 30 | 2026-10-19 | 移除百炼对话模型，只保留 DeepSeek | `fa1673b7`, `4c94f8d0`, `ef2b892b`, `00993ff3`, `71dad667` | `main` |

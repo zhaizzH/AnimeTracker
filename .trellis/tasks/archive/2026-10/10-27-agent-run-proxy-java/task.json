@@ -3,7 +3,7 @@
   "name": "agent-run-proxy-java",
   "title": "Java 代理补齐 chat run 三路由（重连/状态/停止）",
   "description": "在 backend/business/agent 代理 Python 的三个 run 路由：GET /runs/{id}/stream?after=N、GET /sessions/{id}/run、POST /runs/{id}/stop；并让上游 409（同会话已有 running run）以结构化 detail 透传到前端。这是 10-22-fix-agent-stream-disconnect 交接的步骤 7。",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": null,
   "scope": "backend",
   "package": null,
@@ -11,7 +11,7 @@
   "creator": "zhaizzH",
   "assignee": "zhaizzH",
   "createdAt": "2026-10-27",
-  "completedAt": null,
+  "completedAt": "2026-10-27",
   "branch": "main",
   "base_branch": "main",
   "worktree_path": null,
@@ -22,5 +22,7 @@
   "parent": null,
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "notes": "已完成并提交 c10d0ed9：Java 代理六条 run 路由 + GET streamGet + 409 统一信封（detail 落 data）。验证：mvn clean test 全 reactor 125 tests、Python 862 passed、契约 154。提交信息里「152 tests」为笔误，正确 125。步骤 6 前端重连仍待单独开任务。"
+  }
 }

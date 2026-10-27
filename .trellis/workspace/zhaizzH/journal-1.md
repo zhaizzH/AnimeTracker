@@ -953,3 +953,25 @@ Session summary was not supplied.
 - 决策 409 契约（A 结构化透传 / B 只映射 / C 暂不做）与 6/7 执行顺序
 - 步骤 7 Java 代理：AgentApiPaths 加 CLIENT_RUNS/ADMIN_RUNS，Controller 加三路由，AgentServiceImpl 加 streamGet 重载 + 409 分支
 - 步骤 6 前端重连：SsePayload 加 meta、stop() 改先 POST 后 abort、after=0 回放需清空气泡
+
+
+## Session 33: Java 代理补齐 chat run 三路由与 409 结构化透传
+<!-- trellis-session: v=2 fp=b677a57cd6daa0f8 -->
+
+**Date**: 2026-10-27
+**Task**: Java 代理补齐 chat run 三路由与 409 结构化透传
+**Branch**: `main`
+
+### Summary
+
+完成 10-27 任务：Spring 代理六个 run 路由（client/admin × 重连/状态/停止），新增 AgentService.streamGet（GET 无 body、after 独立查询参数），SSE 写出抽为 AgentSseResponseWriter 并保留「上游首行前不取 writer」；上游 409 转为 BizException(CONFLICT, 中文消息, detail)，走既有统一信封，detail 落 data，缺失/非 JSON/null 降级无 data 且不泄露上游原文。openapi.yaml 收录六条 operation 与两条 /stream 的 409，新增 test_run_route_contract.py（8 例）钉住。验证：mvn clean test 全 reactor 125 tests；Python 862 passed；契约 154 passed。顺手修正 quality-guidelines 测试基线并记录提交信息里 152→125 的笔误。步骤 6 前端重连仍待单独开任务。子代理派发在本环境不可用（spawn pi ENOENT），实现与检查均在主会话完成。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c10d0ed9` | feat(agent): Java 代理补齐 chat run 三路由与 409 结构化透传 |
+
+### Status
+
+[OK] **Completed**

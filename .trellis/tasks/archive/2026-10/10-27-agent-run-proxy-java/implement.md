@@ -43,7 +43,9 @@
 
 ## 步骤 5：收尾
 
-实测（2026-10-27）：`mvn -B -o clean test` BUILD SUCCESS（全 reactor 152 tests，agent 26）；`backend/agent` 全量 862 passed；契约子集 154 passed。
+实测（2026-10-27）：`mvn -B -o clean test` BUILD SUCCESS（全 reactor **125** tests，agent 26）；`backend/agent` 全量 **862** passed；契约子集 **154** passed。
+
+> 提交 `c10d0ed9` 的信息里写成「152 tests」是错的（把契约子集 154 与 Java 总数混了）；正确值是 125。
 
 - [x] `mvn -B clean test`（全 reactor，交付前门禁）。
 - [x] `pytest backend/agent/tests -q` 全绿。

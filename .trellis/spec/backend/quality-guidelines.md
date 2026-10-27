@@ -29,7 +29,9 @@ CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/c
 
 ### 当前测试基线
 
-> 实测日期 2026-10-22，提交 `73cb187d` 之后（新增 agent↔business 契约测试套件）；命令：`cd backend/agent && uv run pytest -q`、`mvn -B test -f backend/business/pom.xml`。本节是测试基线数字的**唯一来源**；其他规范文件只链接本节。
+> 实测日期 2026-10-27，提交 `c10d0ed9` 之后（Java 代理补齐 chat run 三路由）。命令：`cd backend/agent && .venv/Scripts/python -m pytest tests -q`、`mvn -B -o clean test -f backend/business/pom.xml`。本节是测试基线数字的**唯一来源**；其他规范文件只链接本节。
+
+`backend/agent` 的 pytest：**862 passed, 0 xfailed**（2026-10-22 的 814 之后，新增 8 个 `tests/contracts/test_run_route_contract.py` 用例；契约子集 154）。Java 侧 `mvn -B -o clean test` 按各模块 surefire 报告合计 **125 个测试通过、0 失败、0 错误**（`common` 无用例，其余八模块均有用例；核实：`find backend/business -path "*surefire-reports*" -name "*.txt" -exec grep -h "^Tests run" {} + | awk -F'[ ,]+' '{s+=$3} END {print s}'`）。agent 模块自身 26 个（Controller 11 + Service 6 + 导入网关 9）。测试规模：`grep -rE 'def test_' backend/agent/tests | wc -l` → 661；`find backend/business -name '*Test.java' | wc -l` → 31。`check_javadoc.py` 及其回归已随提交 `721d5c71` 删除，Javadoc 检查仍以人工审查为准。改动后必须重新实测并替换日期与数字，不得沿用历史通过数。
 
 `backend/agent` 的 `uv run pytest`：**814 passed, 0 xfailed**，**0 warning**（2026-10-22 由 668 增至 814：新增 `tests/contracts/` 共 146 个契约用例——HTTP 87 / SSE 29 / pending-action 30）。Java 侧 `mvn -B test -f backend/business/pom.xml` 按各模块 surefire 报告合计 **111 个测试通过、0 失败、0 错误**（`common` 无用例，其余八模块均有用例；核实：`find backend/business -path "*surefire-reports*" -name "*.txt" -exec grep -h "^Tests run" {} + | awk -F'[ ,]+' '{s+=$3} END {print s}'`），本轮未改动 Java 代码故数字不变。测试规模：`grep -rE 'def test_' backend/agent/tests | wc -l` → 617（55 个 `test_*.py` / 72 个 `.py`，含 `conftest.py` 与 `__init__.py` 共 12 个）；`find backend/business -name '*Test.java' | wc -l` → 30。`check_javadoc.py` 及其回归 `test_check_javadoc.py` 已随提交 `721d5c71` 删除（Lombok 移除工作遗留的一次性脚本），历史基线 255 文件/1658 声明/0 违规不再可复跑；恢复前 Javadoc 检查以人工审查为准，见下文「可重复的声明与语法检查」。改动后必须重新实测并替换日期与数字，不得沿用历史通过数。
 
