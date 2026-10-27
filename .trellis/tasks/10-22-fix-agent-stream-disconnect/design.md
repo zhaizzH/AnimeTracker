@@ -139,8 +139,9 @@ async def start_run(self, *, session_id, content, user_id, role, token="") -> Ch
 
 ### 4.2 工具调用中间态
 
-- run 结束时，若存在 `state=start` 但无匹配终态的 `function_call`，由 manager 合成一条 `state=end, result=aborted, message="生成已中断"` 事件，先广播再终止。
-- 订阅者（前端）据此把 `running` 收敛为 `error`，不会永久转圈。
+- **仅 stop 路径**：`stop()` 被调用时，若存在 `state=start` 但无匹配终态的 `function_call`，由 manager 合成一条 `state=end, result=aborted, message="生成已中断"` 事件，先广播再终止。订阅者（前端）据此把 `running` 收敛为「已中断」。
+- **异常路径不合成**：流程抛异常导致 run 终止时，不发 `aborted` 帧——前端已由 `status=error` 帧得知出错，`aborted` 会让「系统错误」被误读为「用户主动停止」。
+- **断连路径不合成**：断连时 run 还在跑，工具会自然闭合（Q12）。
 
 ### 4.3 pending_action
 

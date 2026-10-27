@@ -200,6 +200,6 @@ stop 时刻事件缓冲**定格**：之后底层 task 产出的事件**丢弃**�
 |---|---|---|
 | Q10 | run_id 到达前端 | SSE 首帧 `meta.run_id` 注入；`GET /sessions/{id}/run` 作刷新后恢复通道 |
 | Q11 | `test_streaming.py` 两条既有测试 | 改到 manager 层测 `_drive` 持久化行为；`test_streaming.py` 只断言纯事件产出 |
-| Q12 | 断连时工具终态合成 | 不需要。断连≠停止，run 还在跑，工具自然闭合；只有 stop 才合成 aborted 帧 |
+| Q12 | 断连时工具终态合成 | 不需要。断连≠停止，run 还在跑，工具自然闭合；**只有 stop 才合成 aborted 帧**。异常终止同样不合成——前端已由 `status=error` 帧得知出错，用 `aborted` 会把「系统错误」误读为「用户主动停止」 |
 | Q13 | `GET /sessions/{id}/run` 归属校验 | 校验 session 归属（session 必须属于当前 JWT user），否则 404 |
 | Q14 | 缓冲超限降级 | `GET /runs/{id}/stream?after=N` 检测 `N < buffer_start` → 先发 STATUS 帧提示「部分实时内容已过期，完整回答请查看历史记录」，再从 buffer_start 继续推 |

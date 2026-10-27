@@ -211,6 +211,7 @@ candidates = [item for item in candidates if item.subject_id in allowed_subject_
 - **每 run 恰好一条 assistant 消息**：有内容则落内容；非 `DONE`（失败/被 stop）且无内容则落 `*（生成已中断）*`；`DONE` 且无内容不落（不留空消息噪声）。
 - **恰好一个 `is_end` 帧且位于末尾**：由 `_finish` 统一合成，覆盖异常、落库失败、被 stop 三条路径。
 - **`stop` 是逻辑停止**：标记 `cancelled` + 合成未闭合工具的 `state=end, result=aborted` 帧 + END 帧，立即返回 200；**不 cancel 底层 task**（节点是同步闭包，跑在 LangGraph executor 里，cancel 只能落在节点边界）。底层跑完后落库部分答案并跳过 `pending_action`。
+- **工具终态只在 stop 时合成**：断连与异常路径都**不**合成 `aborted` 帧——断连时 run 还在跑、工具自然闭合；异常时前端已由 `status=error` 帧得知出错，`aborted` 会把「系统错误」误读为「用户主动停止」。
 - **封存**：`stop` 之后产出的事件不再进缓冲、不再广播（但仍聚合答案以便落库）。
 - **同会话并发**：已有 `status=running` 的 run → `POST /stream` 返回 409，body 形如 `{"detail": {"active_run_id": ..., "status": "running", "capabilities": ["interrupt"]}}`。`cancelled` 不算 active。消息顺序由 per-session `persist_future` 保证（新 run 落 user 消息前最多等 5s，超时降级）。
 - **归属校验**：`/runs/*` 与 `/sessions/*` 的 run 查询必须校验 `user_id` / 会话归属，不符一律 404，不暴露存在性。

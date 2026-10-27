@@ -208,8 +208,8 @@ async def test_pending_action_persisted_on_normal_completion() -> None:
 
 
 @pytest.mark.asyncio
-async def test_failed_run_aborts_open_tools_and_marks_answer_interrupted() -> None:
-    """R3：流程异常时工具不得停在 running，答案落库带中断前缀。"""
+async def test_failed_run_does_not_fake_tool_terminal_but_persists_answer() -> None:
+    """R3：异常路径不伪造工具终态（前端已由 status=error 帧得知出错）；答案落库仍带中断前缀。"""
     saved, save = _recorder()
 
     class _ExplodingWorkflow:
@@ -229,7 +229,7 @@ async def test_failed_run_aborts_open_tools_and_marks_answer_interrupted() -> No
         e for e in run.events
         if e.type is AgentEventType.FUNCTION_CALL and e.result == "aborted"
     ]
-    assert len(aborted) == 1
+    assert aborted == [], "异常路径不得伪造工具终态；aborted 是 stop 的专属信号"
     assert [e for e in run.events if e.type is AgentEventType.END].__len__() == 1
     assert run.events[-1].type is AgentEventType.END
     # 答案 = 已生成内容 + 用户看到的错误文案；失败信号已由文案承载，不重复加前缀

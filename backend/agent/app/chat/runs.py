@@ -394,27 +394,32 @@ class ChatRunManager:
         self._broadcast(run, event)
 
     def _finish(self, run: ChatRun) -> None:
-        """收尾事件流：补齐未闭合工具终态 + 唯一 END 帧 + 关闭订阅者。
+        """收尾事件流：唯一 END 帧 + 关闭订阅者；仅 stop 路径合成工具终态。
 
-        R3：非正常结束（stop/失败/取消）时，``running`` 中的工具不得永久悬挂，
-        这里合成 ``state=end, result=aborted`` 终态帧。
+        R3（stop 路径）：用户主动停止时，``running`` 中的工具不得永久悬挂，
+        合成 ``state=end, result=aborted`` 终态帧。
+        Q12：断连与异常都**不**合成——断连时 run 还在跑，工具会自然闭合；
+        异常时底层可能仍在重试/回退，伪造 aborted 会让前端误读为「已中断」。
         R4：无论哪条路径，缓冲里恰好一个 END 且位于末尾。
         幂等：重复调用不会重复追加。
         """
         if run.status is RunStatus.RUNNING:
             run.status = RunStatus.DONE
-        # R3：流终止时仍在 running 的工具必须有终态，否则前端永久转圈。
-        for name in list(run.open_tools):
-            event = AgentEvent(
-                type=AgentEventType.FUNCTION_CALL,
-                name=name,
-                state="end",
-                result="aborted",
-                message="生成已中断",
-            )
-            run.events.append(event)
-            self._broadcast(run, event)
-        run.open_tools.clear()
+        if run.status is RunStatus.CANCELLED:
+            # CANCELLED 只来自「run 不会再继续」的两条路径：stop()（用户声明不要了）
+            # 与 shutdown() 的 task.cancel()（进程关闭）。两者都已终止生成，
+            # 合成 aborted 是诚实信号；异常终态是 FAILED，不走这里。
+            for name in list(run.open_tools):
+                event = AgentEvent(
+                    type=AgentEventType.FUNCTION_CALL,
+                    name=name,
+                    state="end",
+                    result="aborted",
+                    message="生成已中断",
+                )
+                run.events.append(event)
+                self._broadcast(run, event)
+            run.open_tools.clear()
         if not run.events or run.events[-1].type is not AgentEventType.END:
             end = AgentEvent(type=AgentEventType.END)
             run.events.append(end)

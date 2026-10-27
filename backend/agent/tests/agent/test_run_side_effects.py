@@ -150,6 +150,30 @@ async def test_disconnect_alone_does_not_synthesise_tool_terminal() -> None:
     release.set()
     await asyncio.wait_for(run.task, timeout=1.0)
 
+@pytest.mark.asyncio
+async def test_failed_run_with_open_tool_does_not_fake_terminal_frame() -> None:
+    """Q12 边界：异常终止时底层还没给工具终态，manager 不得伪造 aborted 帧。
+
+    与 stop 不同：stop 是用户主动声明「我不要了」，合成终态是诚实信号；异常时
+    底层可能仍在重试/回退，伪造 aborted 会让前端把「底层还在跑」误读为「已中断」。
+    """
+    async def failing_with_open_tool():
+        yield AgentEvent(
+            type=AgentEventType.FUNCTION_CALL, name="rag_search_subjects", state="start"
+        )
+        yield AgentEvent(type=AgentEventType.STATUS, state="error", message="上游超时")
+
+    manager = ChatRunManager(store=None)
+    run = await manager.start(session_id="s1", user_id=1, events=failing_with_open_tool())
+    await asyncio.wait_for(run.task, timeout=1.0)
+
+    assert run.status is RunStatus.FAILED
+    aborted = [e for e in run.events if e.result == "aborted"]
+    assert aborted == [], "异常路径不得伪造工具终态；只有 stop 才有这个语义"
+    # END 仍必须恰好一个且位于末尾（R4），不能因跳过工具合成而丢收尾。
+    ends = [i for i, e in enumerate(run.events) if e.type is AgentEventType.END]
+    assert len(ends) == 1 and ends[0] == len(run.events) - 1
+
 
 # --------------------------------------------------------------------------- #
 # 4.4 资源
