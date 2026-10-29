@@ -33,6 +33,8 @@ React client/admin
 
 **环境事实不写进 spec。** spec 只缓存「查不到的东西」（约定、取舍理由、踩过的坑）；一次查找就能得到的照抄进来只会变成陈旧副本。典型读错案例：`quality-guidelines.md` 曾手写「CI 跑哪几步」，而 `ci.yml` 早已多了 `npm test` 与 `npm run build`；也曾在同一节里并存 862/125 与 814/111 两套测试通过数。同类不要抄的：`ci.yml` 的步骤与版本、`package.json` 的 scripts、目录布局、依赖清单。写「以 `<文件>` 为准」给指针，不复制内容。
 
+**写环境事实前先跑一次能读到该事实的命令。** 源码里「支持 X」不等于本机「X 生效」。2026-10-27 的实例：`resolvePiCli()` 确实优先读 `TRELLIS_PI_CLI_JS`，据此把环境变量写成首选解法并发文；实测 `echo "[$TRELLIS_PI_CLI_JS]"` → `[]`，该值从未到达进程（`setx` 只写注册表，不会补给已存在的父进程链）。代价是两次让人重启 + 整篇文档重写。一条命令就能提前推翻结论。
+
 ### JSON API 变更
 
 1. 修改 Java DTO/VO/Controller 或 Python Pydantic schema。

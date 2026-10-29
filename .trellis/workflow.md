@@ -610,6 +610,7 @@ The AI drives a batched commit of this task's code changes so `/finish-work` can
 - Never create a commit whose only meaningful change is `.trellis/tasks/**/task.json`, especially its `commit` field. That field is a final task reference, not a live cursor; update it once during final wrap-up and include it in the final bookkeeping batch.
 - Batch task artifacts and relevant spec changes with the code milestone they explain. If no code milestone is ready, leave the Trellis files uncommitted instead of creating `chore(trellis)` pointer commits.
 - With `session_auto_commit: false`, archive and journal writes remain uncommitted. Combine them into at most one final bookkeeping commit after the task is complete.
+- Confirm the commit actually carries the edit: run `git show --stat HEAD` after committing. Files matched by `.gitignore` are skipped silently by `git add -A` — in this repo that includes `AGENTS.md`, `docs/agents/`, `.agents/`, and `.pi/` — so a clean `git status --short` does not prove your change is in Git. Reporting "landed" off a clean status is the failure mode this line prevents.
 
 **Step-by-step**:
 
