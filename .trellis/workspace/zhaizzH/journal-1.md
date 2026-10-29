@@ -1183,3 +1183,41 @@ Session summary was not supplied.
 ### Next Steps
 
 - 仍存缺口（不阻塞）：client provider 常驻导致离开对话页再回来会重弹一次旧 notice；refreshSessions 无请求序号，与 send 的并发刷新可能乱序覆盖；多标签不同步（设计意图，不修）
+
+
+## Session 39: 收尾两个可感知缺口：旧提示重弹、会话列表乱序
+<!-- trellis-session: v=2 fp=1125e6925a7f57cb -->
+
+**Date**: 2026-10-29
+**Task**: 收尾两个可感知缺口：旧提示重弹、会话列表乱序
+**Branch**: `main`
+
+### Summary
+
+10-27 遗留清单的最后两条。client 的 toast 消费点原来放在对话面板里，而面板随路由重挂载、provider 常驻——离开对话页再回来会把同一条旧 notice 再弹一次；effect 移到 provider。refreshSessions 加请求序号：挂载、发送收尾、回放收尾、删除会话四处都会触发刷新，慢的旧响应可能盖掉新列表，改为只在响应落地处判序号。并发用例原本以为造不出窗口（挂载初始化 await 刷新的慢响应会挡住 ready），审查指出 remove() 是第二处刷新入口且不等 ready，据此写成用例；两条新用例都做了变异验证。
+
+### Main Changes
+
+- client/src/components/AgentChat.tsx：toast 消费 effect 从 AgentConversation 移到 AgentChatProvider
+- shared/hooks/useAgentChat.ts：refreshSessions 加 sessionsRequest 序号守卫，只让最后一次响应落库
+- .trellis/spec/frontend/hook-guidelines.md：toast 消费点必须在持有 hook 且不跨路由重挂载的组件；列表刷新必须带请求序号
+- .trellis/spec/frontend/quality-guidelines.md：33 文件 / 210 用例
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `50a112ff` | fix(shared): 旧提示不再重弹，会话列表刷新只认最后一次响应 |
+
+### Testing
+
+- [OK] frontend: shared 80 / client 49 / admin 81 = 210 全绿；typecheck 零错误
+- [OK] 变异：effect 挪回面板 → 重挂载用例转红；去掉序号守卫 → 并发用例转红
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 剩余方向：10-19 的 SSE 401 自动刷新闭环（真缺口，跨前端与后端契约）；多标签不同步属设计意图不修
