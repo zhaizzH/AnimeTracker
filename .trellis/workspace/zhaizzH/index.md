@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 39
+- **Total Sessions**: 40
 - **Last Active**: 2026-10-29
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1223 | Active |
+| `journal-1.md` | ~1263 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 40 | 2026-10-29 | SSE 401 自动刷新闭环（10-19 P3 收口） | `a03144c1` | `main` |
 | 39 | 2026-10-29 | 收尾两个可感知缺口：旧提示重弹、会话列表乱序 | `50a112ff` | `main` |
 | 38 | 2026-10-29 | 提示通道拆分：一次性事件走 toast，会话状态走横幅 | `23e00072` | `main` |
 | 37 | 2026-10-29 | 修复 409 冲突连环弹：停失败不重发、单次触发、按 capabilities 裁剪 | `4888226a` | `main` |

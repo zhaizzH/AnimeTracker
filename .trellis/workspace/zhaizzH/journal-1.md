@@ -1221,3 +1221,43 @@ Session summary was not supplied.
 ### Next Steps
 
 - 剩余方向：10-19 的 SSE 401 自动刷新闭环（真缺口，跨前端与后端契约）；多标签不同步属设计意图不修
+
+
+## Session 40: SSE 401 自动刷新闭环（10-19 P3 收口）
+<!-- trellis-session: v=2 fp=a6513ba0c8748f00 -->
+
+**Date**: 2026-10-29
+**Task**: SSE 401 自动刷新闭环（10-19 P3 收口）
+**Branch**: `main`
+
+### Summary
+
+补上 10-19 遗留的 P3：SSE 通道此前只把 401 分类成「未认证或无权限」，没有 Axios 那套刷新闭环，令牌过期就只能手动重新登录。新增 auth/stream.ts 的 streamSseWithAuth（仅 401 → refreshWithLock → 用 store 新令牌重放一次；刷新失败或重放仍 401 即停；403 不刷新），useAgentChat 的实时发送与重连回放两处订阅都改走它。落地前先核实了重放安全前提：后端鉴权是 FastAPI Depends，在 handler 函数体（含 start_run）之前求值，被杀掉的 POST /stream 不产生 run，重放不会多开一条——这条也写进了规范，因为顺序一变安全前提就失效。审查另提两处加固：五个 hook 测试把裸 streamSse 改成「一调就抛」，防止有人改回直调而绕过闭环；补一条回放侧 401 提示用例。
+
+### Main Changes
+
+- shared/auth/stream.ts（新）：streamSseWithAuth——401 → 刷新 → 新令牌重放一次，禁止无限重试
+- shared/hooks/useAgentChat.ts：两处订阅改用 streamSseWithAuth
+- 五个 hook 测试：vi.mock('../sse') 的裸 streamSse 改为一调就抛，作为「必须走 WithAuth」的护栏
+- .trellis/spec/frontend/hook-guidelines.md：删掉「仍未实现自动刷新」的旧债务描述，改为闭环语义 + 重放安全前提 + 禁止直调 streamSse
+- .trellis/spec/frontend/quality-guidelines.md：34 文件 / 216 用例
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a03144c1` | feat(shared): SSE 401 补上「刷新一次 → 重放」闭环 |
+
+### Testing
+
+- [OK] frontend: shared 86 / client 49 / admin 81 = 216 全绿；typecheck 零错误；build 通过
+- [OK] 变异：重放用原 token、删刷新失败分支、403 也刷新、hook 改回直调 streamSse，四条均转红
+- [OK] 后端前提核实：app/api/chat.py 的 auth_dep 早于 start_run，deps.py 三处 401 全在依赖内抛
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 剩余债务见 .trellis/spec/frontend/hook-guidelines.md 与各任务 implement 附注；多标签不同步属设计意图
