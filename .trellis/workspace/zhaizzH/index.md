@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 35
+- **Total Sessions**: 36
 - **Last Active**: 2026-10-29
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1059 | Active |
+| `journal-1.md` | ~1105 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 36 | 2026-10-29 | 前端 chat run 重连：4 张工单全部交付 | `f093b903`, `40e86e2c`, `c4d2065a`, `819732d4`, `02c6142c`, `930e9896`, `e3a5b527` | `main` |
 | 35 | 2026-10-29 | 项目回顾：门禁与文档漂移收口、ruff 接入、win32 派发路径 | `1e82dd7b` | `main` |
 | 34 | 2026-10-27 | 收尾：前端 chat run 重连任务开立与规划 | `05f6c43a` | `main` |
 | 33 | 2026-10-27 | Java 代理补齐 chat run 三路由与 409 结构化透传 | `c10d0ed9` | `main` |

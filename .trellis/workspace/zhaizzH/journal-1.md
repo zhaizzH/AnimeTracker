@@ -1057,3 +1057,49 @@ Session summary was not supplied.
 - 重启 pi 后重跑一次 trellis_subagent 派发，确认 .pi 扩展改动生效；仍失败则按 Q1-B 把「收尾强制新会话 + 只喂 git diff」写进 spec
 - 10-27-agent-run-reconnect-frontend 按 implement.md 步骤 0 记录三包基线后开工
 - journal-1.md 已 1000+ 行，接近 1800 时另开 journal-2.md
+
+
+## Session 36: 前端 chat run 重连：4 张工单全部交付
+<!-- trellis-session: v=2 fp=d4aebfcbcd2a5fe6 -->
+
+**Date**: 2026-10-29
+**Task**: 前端 chat run 重连：4 张工单全部交付
+**Branch**: `main`
+
+### Summary
+
+按 to-tickets 把 10-27 剩余步骤拆成 4 张 tracer bullet 工单（run_id 与真停 / 刷新回放 / 409 三选一 / 规范与交付），在整合分支 feat/agent-run-reconnect-frontend 上逐张派 implementer 实现，每张先红后绿并在提交前派审查。4 张全部 done 后按 code-review 两条轴（规范符合性 / 需求符合性）并行复审，修完必修项再合并回 main。关键语义落地：断连不等于停止、stop 先停 run 后 abort、after 是帧数、回放新建空气泡并共用同一把 is_end 锁、failed/done/cancelled 不订阅、409 只认 status 与 data.active_run_id。审查抓到并修掉两个真问题：send 的 finally 会把回放刚接管的 streaming/run_id 清掉（导致 stop 退化成纯 abort、后端继续烧 token）、回放 abort 会把已生成正文整段抹掉；另外 sessionRun 原本把 401/500 都当「没有 run」，改为只认 404。截断降级帧出现后 after 无法再对齐 buffer_start，改为放弃续订并提示，原「warning 不计数」随之成为死代码被删除。
+
+### Main Changes
+
+- shared/api：新增 conflict.ts 的 asRunConflict（只认 status 与结构化字段），agent.ts 与 admin/agent.ts 各补 sessionRun/stopRun/runStreamUrl
+- shared/hooks/useAgentChat.ts：meta.run_id 生命周期、stop 先停后断、makeOnEvent 单点分发（实时与回放共用 ended 锁）、replayRun 增量回放、conflict 状态与 resolveConflict 三分支
+- client/admin：冲突面板三按钮（打断并插入 / 等待 / 取消），未发出的文本回填输入框，缺 active_run_id 时打断按钮禁用
+- .trellis/spec/frontend/hook-guidelines.md：新增 Scenario「chat run 重连与并发冲突」；修正过时的 streamSse 签名
+- .trellis/spec/frontend/quality-guidelines.md：基线重测为 32 文件 / 191 用例
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f093b903` | docs(task): 把 10-27 剩余步骤拆成 4 张 tracer bullet 工单 |
+| `40e86e2c` | feat(shared): 记录 meta.run_id 并让停止先停 run 再 abort |
+| `c4d2065a` | feat(shared): 刷新/切会话后以 after=0 增量回放进行中的回答 |
+| `819732d4` | feat(shared): 409 并发冲突给出三选一，不再静默失败 |
+| `02c6142c` | docs(spec): 前端 run 重连与 409 冲突语义入规范，勾选 prd AC |
+| `930e9896` | fix(shared): 审查收口——sessionRun 不再吞错、截断帧放弃续订、基线重测 |
+| `e3a5b527` | merge: 前端 chat run 重连（4 张工单） |
+
+### Testing
+
+- [OK] frontend: shared 72 / client 43 / admin 76 = 191 全绿；typecheck 零错误；npm run build 通过
+- [OK] backend/agent: uv run pytest -q → 862 passed（未改动后端，无回归）
+- [OK] 两处修复均做变异验证：还原 send 的 finally 判据、还原 abort 的删泡逻辑，对应用例均转红
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 已知缺口见 implement.md 交接附注：409 可能连环弹、capabilities 未读、failed 提示是临时气泡、回放结束不刷会话列表
