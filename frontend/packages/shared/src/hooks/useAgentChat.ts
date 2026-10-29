@@ -72,10 +72,8 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
   const makeOnEvent = useCallback((targetId: string) => {
     // 结束锁用局部对象而非 state：state 置位有渲染延迟，脏帧会在空窗期漏进来。
     const ended = { current: false };
-    const onEvent = (data: string) => {
+    const dispatch = (ev: SsePayload) => {
       if (ended.current) return;
-      const ev = parseEvent(data);
-      if (!ev) return;
       if (ev.meta?.run_id) runId.current = ev.meta.run_id;
       if (ev.is_end) { ended.current = true; runId.current = null; return; }
       const c = ev.content ?? {};
@@ -113,7 +111,12 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
           break;
       }
     };
-    return { ended, onEvent };
+    // 每帧只解析一次：回放包装器需要看 warn 帧，若自己再 parse 一遍就是双重 JSON.parse。
+    const onEvent = (data: string) => {
+      const ev = parseEvent(data);
+      if (ev) dispatch(ev);
+    };
+    return { ended, onEvent, dispatch };
   }, [addNotice]);
 
   const refreshSessions = useCallback(() => apiRef.current.listSessions()
@@ -144,17 +147,21 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
     ab.current = ac;
     // 游标是「已收到的事件帧数」，与文本长度、token 数无关。
     let frames = 0;
-    const { ended, onEvent } = makeOnEvent(assistantId);
+    const { ended, dispatch } = makeOnEvent(assistantId);
+    // 收到截断降级帧后 after 已经无法与后端 buffer_start 对齐，续订只会重放已收帧 → 不再续订。
+    let truncated = false;
     try {
       // 最多续订一次：流正常结束却没收到 is_end，说明中间层掐断了回放。
       for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
           await streamSse({ url: apiRef.current.runStreamUrl(runIdNow, frames), method: 'GET', token: tokenRef.current, signal: ac.signal, onEvent: (data) => {
             if (seq !== replaySeq.current) return;
-            // 截断降级帧由服务端插入，不占 run.events 索引；计数会让 after 偏移一帧而重放已收内容。
-            const ev = parseEvent(data) as { type?: string; content?: { state?: string } } | null;
-            if (!(ev?.type === 'status' && ev.content?.state === 'warning')) frames += 1;
-            onEvent(data);
+            const ev = parseEvent(data);
+            if (!ev) return;
+            frames += 1;
+            // 截断降级帧意味着后端缓冲已丢过头，after 不再能对齐 buffer_start：放弃续订，别再重放已收帧。
+            if (ev.type === 'status' && ev.content?.state === 'warning') truncated = true;
+            dispatch(ev);
           } });
         } catch (err) {
           if (err instanceof SseAbortError) {
@@ -166,7 +173,7 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
           if (seq === replaySeq.current) addNotice(unauthorized ? '(未认证或无权限，请重新登录)' : '(流式中断，请重试)');
           return;
         }
-        if (ac.signal.aborted || ended.current) return;
+        if (ac.signal.aborted || ended.current || truncated) return;
       }
     } finally {
       // 世代号变了说明已经在别的会话里，别把它的 streaming 状态清掉。
@@ -190,8 +197,14 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
     setTools([]);
     if (!(await loadHistory(id))) return;
     setReady(true);
-    // 无 run 时后端 404，按「没有进行中的 run」处理。
-    const state = await apiRef.current.sessionRun(id).catch(() => null);
+    // 无 run 时后端 404，按「没有进行中的 run」处理；其它失败（401/500/网络）不能装作没有 run，
+    // 否则用户会以为回答还在、其实回放根本没接上。
+    const state = await apiRef.current.sessionRun(id).catch((err: unknown) => {
+      if ((err as { status?: number } | null)?.status !== 404 && seq === replaySeq.current) {
+        addNotice('(无法确认回答状态，请刷新)');
+      }
+      return null;
+    });
     if (seq !== replaySeq.current || !state) return;
     if (state.status === 'failed') {
       // 进程重启后 running 会被懒收敛成 failed，后端不补写消息：历史里没有这条回答，只能靠提示告知。

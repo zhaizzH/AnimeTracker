@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { type AgentChatApi, useAgentChat } from './useAgentChat';
 import { SseAbortError } from '../sse';
 
+/** 真实 404 来自 axios，一定带 status；裸 Error 会被 hook 当成「状态未知」。 */
+const notFound = () => Object.assign(new Error('404'), { status: 404 });
+
 const streamSseMock = vi.hoisted(() => vi.fn());
 vi.mock('../sse', async () => {
   const actual = await vi.importActual<typeof import('../sse')>('../sse');
@@ -24,7 +27,7 @@ const createApi = (runStatus?: { run_id: string; status: string }): AgentChatApi
   deleteSession: vi.fn().mockResolvedValue(undefined),
   streamBody: vi.fn().mockReturnValue({}),
   streamUrl: '/agent/stream',
-  sessionRun: runStatus ? vi.fn().mockResolvedValue(runStatus) : vi.fn().mockRejectedValue(new Error('404')),
+  sessionRun: runStatus ? vi.fn().mockResolvedValue(runStatus) : vi.fn().mockRejectedValue(notFound()),
   stopRun: vi.fn().mockResolvedValue(undefined),
   runStreamUrl: (id: string, after: number) => `/agent/runs/${id}/stream?after=${after}`,
   health: vi.fn().mockResolvedValue('ok'),
@@ -92,6 +95,18 @@ describe('useAgentChat 刷新/切会话回放', () => {
     expect(streamSseMock).toHaveBeenCalledTimes(2);
   });
 
+  it('两帧增量后游标为 2：短帧与长帧各只推进 1', async () => {
+    const api = createApi({ run_id: 'run-1', status: 'running' });
+    const { feed, finish } = await setup(api);
+    await waitFor(() => expect(streamSseMock).toHaveBeenCalledTimes(1));
+
+    feed(answer('a'.repeat(1000)));
+    feed(answer('b'));
+    finish(0);
+    await waitFor(() => expect(streamSseMock).toHaveBeenCalledTimes(2));
+    expect((streamSseMock.mock.calls[1][0] as { url: string }).url).toBe('/agent/runs/run-1/stream?after=2');
+  });
+
   it('回放与实时共用同一把 is_end 锁：结束后到达的帧不再累积', async () => {
     const api = createApi({ run_id: 'run-1', status: 'running' });
     const { feed, assistants } = await setup(api);
@@ -112,6 +127,8 @@ describe('useAgentChat 刷新/切会话回放', () => {
     feed(JSON.stringify({ type: 'status', content: { state: 'warning', message: '缓冲已截断-独特标记' } }));
 
     expect(result.current.messages.some((m) => m.content.includes('缓冲已截断-独特标记'))).toBe(true);
+    // 截断后 after 无法再与后端 buffer_start 对齐：不再续订，避免重放已收帧
+    expect(streamSseMock).toHaveBeenCalledTimes(1);
   });
 
   it('status=failed 不订阅，读历史并提示上次回答未完成', async () => {
@@ -137,7 +154,7 @@ describe('useAgentChat 刷新/切会话回放', () => {
     const api = createApi({ run_id: 'run-1', status: 'running' });
     // session-2 没有 run：切过去只读历史，不起新订阅
     vi.mocked(api.sessionRun).mockImplementation((id: string) =>
-      id === 'session-1' ? Promise.resolve({ run_id: 'run-1', status: 'running' }) : Promise.reject(new Error('404')));
+      id === 'session-1' ? Promise.resolve({ run_id: 'run-1', status: 'running' }) : Promise.reject(notFound()));
     const { result, fed } = await setup(api);
     await waitFor(() => expect(streamSseMock).toHaveBeenCalledTimes(1));
     const signal = (streamSseMock.mock.calls[0][0] as { signal?: AbortSignal }).signal!;
@@ -189,7 +206,7 @@ describe('useAgentChat 刷新/切会话回放', () => {
     const api = createApi({ run_id: 'run-1', status: 'running' });
     // session-1 无 run（纯历史），session-2 有 running run → 切过去由回放接管
     vi.mocked(api.sessionRun).mockImplementation((id: string) =>
-      id === 'session-2' ? Promise.resolve({ run_id: 'run-1', status: 'running' }) : Promise.reject(new Error('404')));
+      id === 'session-2' ? Promise.resolve({ run_id: 'run-1', status: 'running' }) : Promise.reject(notFound()));
     const fed: OnEvent[] = [];
     const ends: (() => void)[] = [];
     streamSseMock.mockImplementation((opts: { onEvent: OnEvent }) => {

@@ -117,8 +117,8 @@ export default function AgentChat() {
           <div role="group" aria-label="会话已有回答在生成" className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border bg-muted/50 p-2 text-sm">
             <span className="text-muted-foreground">这个会话还有一条回答正在生成</span>
             <Button type="button" size="sm" disabled={!conflict?.activeRunId} onClick={() => choose('interrupt')}>打断并插入</Button>
-            <Button size="sm" variant="outline" onClick={() => choose('wait')}>等待</Button>
-            <Button size="sm" variant="ghost" onClick={() => choose('cancel')}>取消</Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => choose('wait')}>等待</Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => choose('cancel')}>取消</Button>
           </div>
         )}
         <div className="flex w-full gap-2">

@@ -120,6 +120,13 @@ describe('AgentChat', () => {
     await waitFor(() => expect(screen.getByLabelText('输入消息')).toHaveValue('被打断的问题'));
   });
 
+  it('缺 active_run_id 时「打断并插入」禁用，「等待」仍可点', () => {
+    renderChat({ conflict: { activeRunId: null, status: 'running', text: '被打断的问题' } });
+
+    expect(screen.getByRole('button', { name: '打断并插入' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '等待' })).not.toBeDisabled();
+  });
+
   it('冲突中选打断并插入后清空输入框，选等待/取消则保留原文', async () => {
     const u = userEvent.setup();
     const view = renderChat({ conflict: CONFLICT });
