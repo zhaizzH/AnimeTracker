@@ -9,6 +9,7 @@ const nextId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 interface SsePayload {
   type?: string;
   is_end?: boolean;
+  meta?: { run_id?: string };
   content?: { text?: string; name?: string; state?: string; message?: string; result?: string };
 }
 
@@ -42,6 +43,8 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
   const [streaming, setStreaming] = useState(false);
   const [ready, setReady] = useState(false);
   const ab = useRef<AbortController | null>(null);
+  // 当前 run 的身份，来自首帧 meta.run_id；用 ref 而非 state（首帧高频，无需重渲染）。
+  const runId = useRef<string | null>(null);
   const historyRequest = useRef(0);
   useEffect(() => () => ab.current?.abort(), []);
   // api 为调用方内联对象，引用不稳定；用 ref 保持挂载期只跑一次 effect，与旧 client 行为一致。
@@ -119,6 +122,7 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
     setMessages((m) => [...m, { id: assistantId, role: 'assistant', content: '' }]);
     setTools([]);
     setStreaming(true);
+    runId.current = null;
     ab.current = new AbortController();
     // 结束锁用局部对象而非 state：state 置位有渲染延迟，脏帧会在空窗期漏进来。
     const ended = { current: false };
@@ -127,7 +131,8 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
         if (ended.current) return;
         const ev = parseEvent(data);
         if (!ev) return;
-        if (ev.is_end) { ended.current = true; return; }
+        if (ev.meta?.run_id) runId.current = ev.meta.run_id;
+        if (ev.is_end) { ended.current = true; runId.current = null; return; }
         const c = ev.content ?? {};
         // 只认白名单四类事件；曾经用 `c.text` 兜底，导致 status/function_call 的 message 污染正文。
         switch (ev.type) {
@@ -168,9 +173,19 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
         setMessages((m) => m.map((x) => (x.id === assistantId && !x.content ? { ...x, content: notice } : x)));
       }
     }
-    finally { setStreaming(false); void refreshSessions(); }
+    // run 在结束/出错/abort 三条路上都已终止，旧 run_id 留着会被下一次停止误用。
+    finally { runId.current = null; setStreaming(false); void refreshSessions(); }
   }, [token, activeId, streaming, ready, refreshSessions]);
 
-  const stop = useCallback(() => ab.current?.abort(), []);
+  // 顺序不能反：先 abort 会让后端把断连当掉线，run 继续烧 token。
+  // run_id 未到达时只 abort——此时后端还没有 run 可停，排队/重试都没有意义。
+  const stop = useCallback(async () => {
+    const id = runId.current;
+    if (id) {
+      try { await apiRef.current.stopRun(id); }
+      catch (err) { console.warn('[useAgentChat] 停 run 失败，仍断开本地连接', id, err); }
+    }
+    ab.current?.abort();
+  }, []);
   return { messages, sessions, activeId, health, streaming, ready, tools, send, stop, select, create, remove };
 }
