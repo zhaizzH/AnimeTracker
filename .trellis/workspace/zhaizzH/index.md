@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 37
+- **Total Sessions**: 38
 - **Last Active**: 2026-10-29
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1146 | Active |
+| `journal-1.md` | ~1185 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 38 | 2026-10-29 | 提示通道拆分：一次性事件走 toast，会话状态走横幅 | `23e00072` | `main` |
 | 37 | 2026-10-29 | 修复 409 冲突连环弹：停失败不重发、单次触发、按 capabilities 裁剪 | `4888226a` | `main` |
 | 36 | 2026-10-29 | 前端 chat run 重连：4 张工单全部交付 | `f093b903`, `40e86e2c`, `c4d2065a`, `819732d4`, `02c6142c`, `930e9896`, `e3a5b527` | `main` |
 | 35 | 2026-10-29 | 项目回顾：门禁与文档漂移收口、ruff 接入、win32 派发路径 | `1e82dd7b` | `main` |

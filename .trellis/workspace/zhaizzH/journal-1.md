@@ -1144,3 +1144,42 @@ Session summary was not supplied.
 ### Next Steps
 
 - 仍存缺口（不阻塞）：failed 提示是临时气泡、回放结束不刷会话列表、多标签不同步
+
+
+## Session 38: 提示通道拆分：一次性事件走 toast，会话状态走横幅
+<!-- trellis-session: v=2 fp=2465088aa563220c -->
+
+**Date**: 2026-10-29
+**Task**: 提示通道拆分：一次性事件走 toast，会话状态走横幅
+**Branch**: `main`
+
+### Summary
+
+收口 10-27 遗留的最后一个用户可感知缺口。原 addNotice 把六处提示都写成 assistant 消息：一次性事件污染历史且刷新即消失，而「上次回答未完成」本该刷新后仍可见，也用同一条通道承载，两个语义都不对。拆成两条：一次性事件（流中断 / 缓冲截断 / 无法确认 run 状态）走 notice state，client 用 sonner、admin 用新增的 toastWarning 消费；会话级 failed 走 runFailed 布尔量渲染持久横幅，切会话与发新消息都收起。顺带补回放结束的 refreshSessions（带世代守卫）。审查抓到四处必修：notice.id 是死字段（两端只读 text）、send 后不收起横幅导致文案变假、回放刷新缺 seq 守卫、质量门禁文件数过时。变异验证四条全红。
+
+### Main Changes
+
+- shared/hooks/useAgentChat.ts：addNotice 改为 notice state（不写消息列表）；新增 runFailed 与两处复位；回放 finally 补 refreshSessions 并加世代守卫
+- client：notice → sonner toast.warning；runFailed → 消息区上方 role=status 横幅
+- admin：lib/toast 新增 toastWarning；同样的 toast 与横幅，role 与文案两端一致
+- .trellis/spec/frontend/hook-guidelines.md：新增「提示的两条通道，别混用」——一次性事件 vs 会话级状态
+- .trellis/spec/frontend/quality-guidelines.md：33 文件 / 208 用例
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `23e00072` | feat(shared): 提示拆成 toast 与会话横幅两条通道 |
+
+### Testing
+
+- [OK] frontend: shared 79 / client 48 / admin 81 = 208 全绿；typecheck 零错误
+- [OK] 变异：notice 改回写消息、横幅改 toast、删两处 setRunFailed 复位，四条均转红
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 仍存缺口（不阻塞）：client provider 常驻导致离开对话页再回来会重弹一次旧 notice；refreshSessions 无请求序号，与 send 的并发刷新可能乱序覆盖；多标签不同步（设计意图，不修）
