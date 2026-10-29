@@ -1,6 +1,9 @@
 export interface StreamOptions {
   url: string;
-  body: unknown;
+  /** POST 的 JSON 体；GET 重连不传。 */
+  body?: unknown;
+  /** 默认 POST。重连同一 run 用 GET + query（`?after=N` 由调用方拼进 url）。 */
+  method?: 'POST' | 'GET';
   token: string | null;
   signal?: AbortSignal;
   onEvent: (data: string) => void;
@@ -10,12 +13,18 @@ export interface StreamOptions {
 export class SseError extends Error {
   status?: number;
   contentType?: string | null;
+  /** 非 2xx 响应的 JSON 体（解析失败为 undefined），供 409 冲突区分支读取。 */
+  body?: unknown;
 
-  constructor(message: string, options: { status?: number; contentType?: string | null } = {}) {
+  constructor(
+    message: string,
+    options: { status?: number; contentType?: string | null; body?: unknown } = {},
+  ) {
     super(message);
     this.name = 'SseError';
     this.status = options.status;
     this.contentType = options.contentType;
+    this.body = options.body;
   }
 }
 
@@ -35,12 +44,27 @@ function frameToData(frame: string): string {
   return dataLines.map((line) => line.slice(5).replace(/^ /, '')).join('\n');
 }
 
-export async function streamSse({ url, body, token, signal, onEvent }: StreamOptions): Promise<void> {
+/** 尝试把错误体解析成 JSON；非 JSON 返回 undefined，绝不抛。 */
+function parseBody(text: string): unknown {
+  if (!text) return undefined;
   try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+}
+
+export async function streamSse({ url, body, method = 'POST', token, signal, onEvent }: StreamOptions): Promise<void> {
+  try {
+    // GET 重连：不写 body、不声明 JSON Content-Type，其余（分帧、abort、校验）与 POST 完全共用。
+    const isGet = method === 'GET';
     const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      body: JSON.stringify(body),
+      method,
+      headers: {
+        ...(isGet ? {} : { 'Content-Type': 'application/json' }),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      ...(isGet ? {} : { body: JSON.stringify(body) }),
       signal,
     });
 
@@ -50,6 +74,7 @@ export async function streamSse({ url, body, token, signal, onEvent }: StreamOpt
       throw new SseError(`Agent 流式请求失败（${res.status}）${detail ? `：${detail.slice(0, 200)}` : ''}`, {
         status: res.status,
         contentType: res.headers.get('content-type'),
+        body: parseBody(detail),
       });
     }
 

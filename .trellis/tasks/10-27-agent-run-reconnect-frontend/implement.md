@@ -5,15 +5,19 @@
 
 ## 步骤 0：基线
 
-- [ ] `cd frontend && npm test`（shared/client/admin）与 `npm run typecheck` 记录当前通过数。
+- [x] `cd frontend && npm test`（shared/client/admin）与 `npm run typecheck` 记录当前通过数。
+
+实测 2026-10-27（提交 `4420298d` 之后）：`shared` 6 文件 / 34 用例，`client` 9 文件 / 38 用例，`admin` 11 文件 / 73 用例 → 合计 **26 文件 / 145 用例，全绿**；`npm run typecheck` 三包零输出（通过）。本任务完成后对照此基线：只增不减，`useAgentChat` 两个已有用例文件（`useAgentChat.events.test.tsx`、`useAgentChat.enabled.test.tsx`）必须仍在绿。
 
 ## 步骤 1：传输层支持 GET（TDD）
 
-- [ ] `sse.ts`：让 GET 可复用分帧/abort/Content-Type 校验逻辑，但**不**要求 POST 调用方传 GET 字段。
+- [x] `sse.ts`：让 GET 可复用分帧/abort/Content-Type 校验逻辑，但**不**要求 POST 调用方传 GET 字段。
       POST 现有行为逐字不变（含 `body: JSON.stringify(body)`）。
-- [ ] `SseError` 增加 `body?: unknown`（解析后的 JSON，解析失败为 undefined），message 仍只放截断摘要。
-- [ ] 用例：GET 请求 method 为 GET、无 body、无 JSON Content-Type；POST 行为不回归；
+- [x] `SseError` 增加 `body?: unknown`（解析后的 JSON，解析失败为 undefined），message 仍只放截断摘要。
+- [x] 用例：GET 请求 method 为 GET、无 body、无 JSON Content-Type；POST 行为不回归；
       非 event-stream 仍抛 `SseError`；abort 仍抛 `SseAbortError`。
+
+实现：`StreamOptions` 加 `method?: 'POST' | 'GET'`（默认 POST）、`body` 改可选；GET 分支只省掉 body 与 JSON Content-Type，分帧/abort 判据逐字不动。`parseBody()` 把非 2xx 错误体读成 JSON 挂到 `SseError.body`，解析失败为 `undefined`（绝不抛）。新增 4 用例，`shared` 34 → 38。
 
 ## 步骤 2：API 适配层（TDD）
 

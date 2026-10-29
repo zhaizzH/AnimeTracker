@@ -57,6 +57,82 @@ describe('streamSse 帧解析', () => {
   });
 });
 
+describe('streamSse 请求方法', () => {
+  const captured = () => (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+
+  it('默认走 POST：JSON body + JSON Content-Type', async () => {
+    const { promise } = callSse(sseResponse(['data: {}\n\n']));
+    await promise;
+
+    const [, init] = captured();
+    expect(init.method).toBe('POST');
+    expect(init.body).toBe('{}');
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json');
+  });
+
+  it('GET 不带 body、不带 JSON Content-Type，query 由调用方拼进 url', async () => {
+    const onEvent = vi.fn();
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(sseResponse(['data: {}\n\n']))));
+    await streamSse({ url: '/agent/runs/r1/stream?after=0', method: 'GET', token: 't', onEvent });
+
+    const [url, init] = captured();
+    expect(url).toBe('/agent/runs/r1/stream?after=0');
+    expect(init.method).toBe('GET');
+    expect(init.body).toBeUndefined();
+    expect((init.headers as Record<string, string>)['Content-Type']).toBeUndefined();
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer t');
+  });
+
+  it('GET 重连中被主动 abort 同样抛 SseAbortError', async () => {
+    const controller = new AbortController();
+    const onEvent = vi.fn();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        controller.abort();
+        return Promise.reject(new DOMException('Aborted', 'AbortError'));
+      }),
+    );
+
+    await expect(
+      streamSse({ url: '/agent/runs/r1/stream?after=0', method: 'GET', token: 't', signal: controller.signal, onEvent }),
+    ).rejects.toBeInstanceOf(SseAbortError);
+  });
+});
+
+describe('SseError 携带解析后的 body', () => {
+  it('409 的 JSON 体能被读出来，message 只保留截断后的原文', async () => {
+    const payload = { detail: { active_run_id: 'abc', status: 'running', message: 'x'.repeat(400) } };
+    const { promise } = callSse(
+      () =>
+        Promise.resolve(
+          new Response(JSON.stringify(payload), {
+            status: 409,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        ),
+    );
+
+    const err = (await promise.catch((e: unknown) => e)) as SseError;
+    expect(err.status).toBe(409);
+    expect(err.body).toEqual(payload);
+    // message 里的原文按 200 字截断：结构化字段只能从 body 读，不能指望 message 里有完整载荷。
+    expect(err.message.length).toBeLessThan(JSON.stringify(payload).length);
+  });
+
+  it('非 JSON 错误体时 body 为 undefined，message 仍带截断后的原文便于定位', async () => {
+    const raw = '<html>boom</html>';
+    const { promise } = callSse(
+      () => Promise.resolve(new Response(raw, { status: 502, headers: { 'Content-Type': 'text/html' } })),
+    );
+
+    const err = (await promise.catch((e: unknown) => e)) as SseError;
+    expect(err.status).toBe(502);
+    expect(err.body).toBeUndefined();
+    expect(err.message).toContain(raw);
+  });
+});
+
 describe('streamSse 错误分类', () => {
   it('Content-Type 不是 event-stream 时抛 SseError 且不回调', async () => {
     const { onEvent, promise } = callSse(
