@@ -31,6 +31,7 @@ find frontend -name '*.test.*' -not -path '*/node_modules/*' | wc -l   # 测试�
 - Vitest 使用 jsdom；浏览器能力 shim 内联在 `client/src/test/setup.ts`（`matchMedia` 等），不是独立文件。
 - admin 的 `vitest.setup.ts` 已注册 `@testing-library/jest-dom/vitest`，并补齐 radix-ui 在 jsdom 下必需的最小 polyfill（`hasPointerCapture`/`setPointerCapture`/`releasePointerCapture`/`scrollIntoView` 与 `ResizeObserver`）。新增用到 radix 原语的测试直接复用，不要重复定义。
 - 测试中 mock 的查询必须在 `render` 之前完成赋值：多数页面在首次 effect 就会取数，render 后再改 mock 不会触发重取。
+- **否定断言前先建立正向基线**：`expect(x).not.toBe(...)` 只有在用例自己把 `x` 置成期望的正向状态后才有意义，否则测的是 `beforeEach` 的复位值而不是被测行为——写出来就是恒红（本仓实际发生过一次：store 在 `beforeEach` 被复位成 `unauthenticated`，断言「刷新失败不应登出」因此永远失败，与实现无关）。
 - 新增关键 guard、mutation、SSE 或管理写操作时补最小测试，不以现有稀疏覆盖为标准。
 - thinking 的语言、空格与历史恢复需跨 shared Hook、client/admin 展示和 Python runtime 核对；现有 UI/Prompt 静态测试不能证明真实模型遵循语言指令。源码核对见 [Agent 运行与提示词契约](../backend/agent-guidelines.md#agent-角色提示词与流式输出契约)。
 
