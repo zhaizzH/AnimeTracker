@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '../store/auth';
 import { SseAbortError, SseError, streamSse } from '../sse';
+import { asRunConflict, type RunConflict } from '../api/conflict';
 
 export interface ChatMsg { id: string; role: 'user' | 'assistant'; content: string; thinking?: string }
 export interface ToolStep { name: string; status: 'running' | 'done' | 'error'; message?: string }
+
+/** 发送被 409 拒绝时的选择态：`text` 是未发出的原文，任选项都不会丢。 */
+export interface SendConflict extends RunConflict { text: string }
+export type ConflictChoice = 'interrupt' | 'wait' | 'cancel';
 const nextId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 interface SsePayload {
@@ -42,6 +47,7 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
   const [health, setHealth] = useState<string>('n/a');
   const [streaming, setStreaming] = useState(false);
   const [ready, setReady] = useState(false);
+  const [conflict, setConflict] = useState<SendConflict | null>(null);
   const ab = useRef<AbortController | null>(null);
   // 当前 run 的身份，来自首帧 meta.run_id；用 ref 而非 state（首帧高频，无需重渲染）。
   const runId = useRef<string | null>(null);
@@ -170,6 +176,8 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
 
   const select = useCallback(async (id: string) => {
     setActiveId(id);
+    // 冲突面板属于上一个会话的发送尝试，切会话就作废。
+    setConflict(null);
     // 切会话先掐掉在途订阅：否则旧 run 的迟到帧会写进新会话的气泡。
     replaySeq.current += 1;
     const seq = replaySeq.current;
@@ -230,6 +238,7 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
 
   const send = useCallback(async (text: string) => {
     if (!ready || !text.trim() || streaming) return;
+    setConflict(null);
     let sessionId = activeId;
     // 未选中会话时自动新建, 否则 /stream 会因缺 session_id 返回 404
     if (!sessionId) {
@@ -250,8 +259,14 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
     try {
       await streamSse({ url: apiRef.current.streamUrl, body: apiRef.current.streamBody(text, sessionId || undefined), token, signal: ab.current.signal, onEvent });
     } catch (err) {
+      const rejected = asRunConflict(err);
+      if (rejected) {
+        // 后端拒绝并发：收起两条气泡（含空气泡），把原文交还调用方让用户选。
+        setMessages((m) => m.filter((x) => x.id !== userMsg.id && x.id !== assistantId));
+        setConflict({ ...rejected, text });
+      }
       // 主动停止是正常路径，不写中断文案；鉴权失败单独提示，别混进通用故障。
-      if (!(err instanceof SseAbortError)) {
+      else if (!(err instanceof SseAbortError)) {
         const unauthorized = err instanceof SseError && (err.status === 401 || err.status === 403);
         const notice = unauthorized ? '(未认证或无权限，请重新登录)' : '(流式中断，请重试)';
         setMessages((m) => m.map((x) => (x.id === assistantId && !x.content ? { ...x, content: notice } : x)));
@@ -275,5 +290,20 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
     }
     ab.current?.abort();
   }, []);
-  return { messages, sessions, activeId, health, streaming, ready, tools, send, stop, select, create, remove };
+  /**
+   * 处理 409 选择：interrupt = 先停活跃 run 再重发同一段文本（2 次发送请求）；
+   * wait / cancel 都不发请求。缺 active_run_id 时没有可停的 run，按取消处理。
+   */
+  const resolveConflict = useCallback(async (choice: ConflictChoice) => {
+    const current = conflict;
+    if (!current) return;
+    setConflict(null);
+    if (choice !== 'interrupt' || !current.activeRunId) return;
+    try { await apiRef.current.stopRun(current.activeRunId); }
+    catch (err) { console.warn('[useAgentChat] 打断活跃 run 失败，仍尝试重发', current.activeRunId, err); }
+    // 不 await：重发会一直跑到 run 结束，面板点击不能被它挂住。
+    void send(current.text);
+  }, [conflict, send]);
+
+  return { messages, sessions, activeId, health, streaming, ready, tools, conflict, send, stop, select, create, remove, resolveConflict };
 }
