@@ -66,11 +66,16 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
   const tokenRef = useRef(token);
   tokenRef.current = token;
 
-  // 提示走独立 assistant 气泡：hook 目前没有单独的 notice 通道。
-  // ponytail: client/admin 接出 banner 后可换成非持久化通道。
+  // 一次性提示（流中断、内容过期、状态未知）走 notice，由两端各自转成 toast：
+  // 写成 assistant 消息会污染会话历史，而且刷新后消失得莫名其妙。
+  const [notice, setNotice] = useState<{ text: string } | null>(null);
   const addNotice = useCallback((text: string) => {
-    setMessages((m) => [...m, { id: nextId(), role: 'assistant', content: text }]);
+    // 每次都是新对象：同一条文案连续出现两次也要各弹一次 toast。
+    setNotice({ text });
   }, []);
+  // 「上次回答未完成」是会话级状态而非一次性事件：它来自 run 的 failed 懒收敛，
+  // 用户刷新后仍应看到，所以留在页面里而不是 toast。
+  const [runFailed, setRunFailed] = useState(false);
 
   /** 单条订阅的帧分发：实时与回放共用同一套事件白名单和同一把 is_end 锁。 */
   const makeOnEvent = useCallback((targetId: string) => {
@@ -182,11 +187,14 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
     } finally {
       // 世代号变了说明已经在别的会话里，别把它的 streaming 状态清掉。
       if (seq === replaySeq.current) { runId.current = null; setStreaming(false); }
+      // 回放结束后该 run 已落库，会话列表的排序/标题要跟着更新（切走会话就不必再刷）。
+      if (seq === replaySeq.current) void refreshSessions();
     }
-  }, [makeOnEvent, addNotice]);
+  }, [makeOnEvent, addNotice, refreshSessions]);
 
   const select = useCallback(async (id: string) => {
     setActiveId(id);
+    setRunFailed(false);
     // 冲突面板属于上一个会话的发送尝试，切会话就作废。
     setConflict(null);
     // 切会话先掐掉在途订阅：否则旧 run 的迟到帧会写进新会话的气泡。
@@ -212,7 +220,7 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
     if (seq !== replaySeq.current || !state) return;
     if (state.status === 'failed') {
       // 进程重启后 running 会被懒收敛成 failed，后端不补写消息：历史里没有这条回答，只能靠提示告知。
-      addNotice('(上次回答未完成，完整回答见历史)');
+      setRunFailed(true);
       return;
     }
     if (state.status !== 'running' || !state.run_id) return;
@@ -268,6 +276,8 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
     const assistantId = nextId();
     setMessages((m) => [...m, { id: assistantId, role: 'assistant', content: '' }]);
     setTools([]);
+    // 新回答开始，上一条 failed run 不再是「最近一条」，横幅要收起来（文案否则是假的）。
+    setRunFailed(false);
     setStreaming(true);
     runId.current = null;
     const myAb = new AbortController();
@@ -336,5 +346,5 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
     }
   }, [conflict, send]);
 
-  return { messages, sessions, activeId, health, streaming, ready, tools, conflict, send, stop, select, create, remove, resolveConflict };
+  return { messages, sessions, activeId, health, streaming, ready, tools, conflict, notice, runFailed, send, stop, select, create, remove, resolveConflict };
 }

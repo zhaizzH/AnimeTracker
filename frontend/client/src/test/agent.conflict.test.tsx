@@ -17,6 +17,8 @@ const base = {
   ready: true,
   tools: [],
   conflict: null as State['conflict'],
+  notice: null as State['notice'],
+  runFailed: false,
   send: vi.fn(),
   stop: vi.fn(),
   select: vi.fn(),

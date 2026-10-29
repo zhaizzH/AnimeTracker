@@ -9,6 +9,8 @@ type ChatState = {
   activeId: string | null;
   streaming: boolean;
   conflict: { activeRunId: string | null; status: string | null; capabilities: string[] | null; text: string; error?: string } | null;
+  notice: { text: string } | null;
+  runFailed: boolean;
 };
 
 const chatState = vi.hoisted(() => ({
@@ -20,6 +22,8 @@ const select = vi.hoisted(() => vi.fn());
 const create = vi.hoisted(() => vi.fn());
 const remove = vi.hoisted(() => vi.fn());
 const resolveConflict = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const toastWarning = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/toast', () => ({ toastWarning, toastError: vi.fn(), toastSuccess: vi.fn() }));
 
 vi.mock('@shared', () => ({
   adminAgentApi: {
@@ -31,7 +35,8 @@ vi.mock('@shared', () => ({
 
 function renderChat(over: Partial<ChatState> = {}) {
   chatState.current = {
-    messages: [], sessions: [], activeId: null, streaming: false, conflict: null, ...over,
+    messages: [], sessions: [], activeId: null, streaming: false, conflict: null,
+    notice: null, runFailed: false, ...over,
   };
   return render(<AgentChat />);
 }
@@ -43,6 +48,20 @@ beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 
 describe('AgentChat', () => {
+  it('notice 变成 toast，不写进消息区', () => {
+    renderChat({ notice: { text: '部分实时内容已过期' } });
+
+    expect(toastWarning).toHaveBeenCalledWith('部分实时内容已过期');
+    expect(screen.queryByText('部分实时内容已过期')).toBeNull();
+  });
+
+  it('runFailed 渲染会话内横幅，且不弹 toast', () => {
+    renderChat({ runFailed: true });
+
+    expect(screen.getByRole('status').textContent).toContain('上次回答未完成');
+    expect(toastWarning).not.toHaveBeenCalled();
+  });
+
   it('消息区使用 aria-live=polite', () => {
     renderChat({ messages: [{ id: '1', role: 'user', content: '你好' }] });
     expect(document.querySelector('[aria-live="polite"]')).not.toBeNull();

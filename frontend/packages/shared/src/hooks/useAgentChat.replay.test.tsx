@@ -126,7 +126,9 @@ describe('useAgentChat 刷新/切会话回放', () => {
     await waitFor(() => expect(streamSseMock).toHaveBeenCalledTimes(1));
     feed(JSON.stringify({ type: 'status', content: { state: 'warning', message: '缓冲已截断-独特标记' } }));
 
-    expect(result.current.messages.some((m) => m.content.includes('缓冲已截断-独特标记'))).toBe(true);
+    // 一次性提示走 notice（两端转 toast），不再写进会话历史
+    expect(result.current.notice?.text).toContain('缓冲已截断-独特标记');
+    expect(result.current.messages.some((m) => m.content.includes('缓冲已截断-独特标记'))).toBe(false);
     // 截断后 after 无法再与后端 buffer_start 对齐：不再续订，避免重放已收帧
     expect(streamSseMock).toHaveBeenCalledTimes(1);
   });
@@ -135,9 +137,33 @@ describe('useAgentChat 刷新/切会话回放', () => {
     const api = createApi({ run_id: 'run-1', status: 'failed' });
     const { result } = await setup(api);
 
-    await waitFor(() => expect(result.current.messages.length).toBeGreaterThan(2));
+    await waitFor(() => expect(result.current.runFailed).toBe(true));
     expect(streamSseMock).not.toHaveBeenCalled();
-    expect(result.current.messages.some((m) => m.content.includes('上次回答未完成'))).toBe(true);
+    // 会话级状态，不掺进消息列表：历史仍只有那两条
+    expect(result.current.messages).toHaveLength(2);
+  });
+
+  it('切到没有 run 的会话后收掉「上次回答未完成」横幅', async () => {
+    const api = createApi({ run_id: 'run-1', status: 'failed' });
+    vi.mocked(api.sessionRun).mockImplementation((id: string) =>
+      id === 'session-1' ? Promise.resolve({ run_id: 'run-1', status: 'failed' }) : Promise.reject(notFound()));
+    const { result } = await setup(api);
+    await waitFor(() => expect(result.current.runFailed).toBe(true));
+
+    await act(async () => { await result.current.select('session-2'); });
+
+    expect(result.current.runFailed).toBe(false);
+  });
+
+  it('发新消息时收起横幅：上一条 failed run 不再是最近一条', async () => {
+    const api = createApi({ run_id: 'run-1', status: 'failed' });
+    const { result, fed } = await setup(api);
+    await waitFor(() => expect(result.current.runFailed).toBe(true));
+
+    act(() => { void result.current.send('新问题'); });
+    await waitFor(() => expect(fed.length).toBe(1));
+
+    expect(result.current.runFailed).toBe(false);
   });
 
   it.each(['done', 'cancelled'])('status=%s 不订阅也不提示', async (status) => {

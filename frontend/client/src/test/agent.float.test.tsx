@@ -16,6 +16,8 @@ const chat = {
   ready: true,
   tools: [],
   conflict: null,
+  notice: null,
+  runFailed: false,
   resolveConflict: vi.fn().mockResolvedValue(undefined),
   send: vi.fn(),
   stop: vi.fn(),

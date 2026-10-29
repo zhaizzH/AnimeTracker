@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import { adminAgentApi, useAgentChat, type ChatMsg } from '@shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toastWarning } from '@/lib/toast';
 
 function ThinkingCollapse({ text, streaming }: { text: string; streaming: boolean }) {
   const [open, setOpen] = useState(true);
@@ -37,9 +38,13 @@ export default function AgentChat() {
     stopRun: adminAgentApi.chatStopRun,
     runStreamUrl: adminAgentApi.chatRunStreamUrl,
   };
-  const { messages, sessions, activeId, streaming, send, stop, select, create, remove, conflict, resolveConflict } = useAgentChat(api);
+  const { messages, sessions, activeId, streaming, send, stop, select, create, remove, conflict, notice, runFailed, resolveConflict } = useAgentChat(api);
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  // 一次性提示（流中断 / 内容过期 / 状态未知）弹 toast：它们是事件，不该写进会话历史。
+  useEffect(() => {
+    if (notice) toastWarning(notice.text);
+  }, [notice]);
 
   // 409 时后端没接受这条消息（气泡已收回）：原文放回输入框，用户不会丢字。
   // error 更新（停 run 失败/重试）不是新一次尝试，不能再回填，否则会覆盖用户正在编辑的内容。
@@ -114,6 +119,11 @@ export default function AgentChat() {
       </aside>
 
       <section className="flex min-w-0 flex-1 flex-col p-4">
+        {runFailed && (
+          <p role="status" className="mb-2 rounded-lg border bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+            上次回答未完成，完整回答见历史
+          </p>
+        )}
         <div ref={scrollRef} className="mb-3 flex-1 overflow-auto" aria-live="polite">
           {messages.map(renderItem)}
         </div>

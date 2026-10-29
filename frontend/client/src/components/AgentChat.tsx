@@ -60,7 +60,7 @@ function ThinkingCollapse({ text, streaming }: { text: string; streaming: boolea
 
 export function AgentConversation() {
   const { activate, chat } = useClientAgentChat();
-  const { messages, activeId, health, streaming, ready, send, stop, conflict, resolveConflict } = chat;
+  const { messages, activeId, health, streaming, ready, send, stop, conflict, notice, runFailed, resolveConflict } = chat;
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -76,6 +76,11 @@ export function AgentConversation() {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
+
+  // 一次性提示（流中断 / 内容过期 / 状态未知）弹 toast：它们是事件，不该写进会话历史。
+  useEffect(() => {
+    if (notice) toast.warning(notice.text);
+  }, [notice]);
 
   const prevHealth = useRef(health);
   useEffect(() => {
@@ -119,6 +124,11 @@ export function AgentConversation() {
 
   return (
     <section className="flex min-h-0 flex-1 flex-col" aria-label="AI 对话">
+      {runFailed && (
+        <p role="status" className="border-b bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+          上次回答未完成，完整回答见历史
+        </p>
+      )}
       <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3" aria-live="polite">
         {messages.length > 0 ? (
           messages.map(renderMessage)
