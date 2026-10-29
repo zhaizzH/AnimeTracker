@@ -44,6 +44,17 @@ describe('一次性提示与会话级状态', () => {
     expect(screen.queryByText('部分实时内容已过期')).toBeNull();
   });
 
+  it('对话面板重挂载不会把同一条旧提示再弹一次', () => {
+    base.notice = { text: '部分实时内容已过期' };
+    const { rerender } = render(<AgentChatProvider><AgentConversation key="a" /></AgentChatProvider>);
+    expect(toastWarning).toHaveBeenCalledTimes(1);
+
+    // 模拟离开对话页再回来：provider 不动，只有面板换了一次实例
+    rerender(<AgentChatProvider><AgentConversation key="b" /></AgentChatProvider>);
+
+    expect(toastWarning).toHaveBeenCalledTimes(1);
+  });
+
   it('runFailed 渲染成会话内横幅（刷新后仍在），不是 toast', () => {
     base.runFailed = true;
     render(chat());

@@ -128,13 +128,18 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
     return { ended, onEvent, dispatch };
   }, [addNotice]);
 
-  const refreshSessions = useCallback(() => apiRef.current.listSessions()
-    .then((list) => {
-      const normalized = list.map((s) => ({ ...s, id: (s as { session_id?: unknown }).session_id ?? (s as { id?: unknown }).id }));
-      setSessions(normalized);
-      return normalized;
-    })
-    .catch(() => []), []);
+  // 并发刷新（挂载 + 发送收尾 + 回放收尾）会乱序返回：只认最后一次，别让旧响应盖掉新列表。
+  const sessionsRequest = useRef(0);
+  const refreshSessions = useCallback(() => {
+    const request = ++sessionsRequest.current;
+    return apiRef.current.listSessions()
+      .then((list) => {
+        const normalized = list.map((s) => ({ ...s, id: (s as { session_id?: unknown }).session_id ?? (s as { id?: unknown }).id }));
+        if (request === sessionsRequest.current) setSessions(normalized);
+        return normalized;
+      })
+      .catch(() => []);
+  }, []);
 
   const loadHistory = useCallback(async (id: string) => {
     const request = ++historyRequest.current;

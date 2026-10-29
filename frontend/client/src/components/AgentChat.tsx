@@ -33,6 +33,11 @@ export function AgentChatProvider({ children }: { children: ReactNode }) {
   const [enabled, setEnabled] = useState(false);
   const chat = useAgentChat(clientAgentApi, { enabled });
   const activate = useCallback(() => setEnabled(true), []);
+  // 一次性提示在这里消费：provider 随布局常驻，而对话面板会随路由重挂载——
+  // 把 effect 放在面板里，离开再回来会把同一条旧提示再弹一次。
+  useEffect(() => {
+    if (chat.notice) toast.warning(chat.notice.text);
+  }, [chat.notice]);
   return <AgentChatContext.Provider value={{ activate, chat }}>{children}</AgentChatContext.Provider>;
 }
 
@@ -60,7 +65,7 @@ function ThinkingCollapse({ text, streaming }: { text: string; streaming: boolea
 
 export function AgentConversation() {
   const { activate, chat } = useClientAgentChat();
-  const { messages, activeId, health, streaming, ready, send, stop, conflict, notice, runFailed, resolveConflict } = chat;
+  const { messages, activeId, health, streaming, ready, send, stop, conflict, runFailed, resolveConflict } = chat;
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -76,11 +81,6 @@ export function AgentConversation() {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
-
-  // 一次性提示（流中断 / 内容过期 / 状态未知）弹 toast：它们是事件，不该写进会话历史。
-  useEffect(() => {
-    if (notice) toast.warning(notice.text);
-  }, [notice]);
 
   const prevHealth = useRef(health);
   useEffect(() => {

@@ -264,4 +264,26 @@ describe('useAgentChat 刷新/切会话回放', () => {
     await waitFor(() => expect(result.current.streaming).toBe(false));
     expect(result.current.messages.map((m) => m.content)).toEqual(['你好', '历史正文']);
   });
+
+  it('并发刷新会话列表时，旧的慢响应不会覆盖新的结果', async () => {
+    const api = createApi();
+    let resolveSlow: (v: Record<string, unknown>[]) => void = () => {};
+    let call = 0;
+    // 第一次（挂载）故意挂住；之后的刷新立刻返回新列表
+    vi.mocked(api.listSessions).mockImplementation(() => {
+      call += 1;
+      if (call === 1) return new Promise((resolve) => { resolveSlow = resolve as (v: Record<string, unknown>[]) => void; });
+      return Promise.resolve([{ session_id: 'new' }]);
+    });
+
+    const { result } = renderHook(() => useAgentChat(api));
+    // 删会话会触发第二处刷新，不需要 ready
+    await act(async () => { await result.current.remove('other'); });
+    await waitFor(() => expect(result.current.sessions.map((s) => s.id)).toEqual(['new']));
+
+    // 挂载那次现在才返回：必须被序号守卫丢弃
+    await act(async () => { resolveSlow([{ session_id: 'old' }]); await Promise.resolve(); });
+
+    expect(result.current.sessions.map((s) => s.id)).toEqual(['new']);
+  });
 });
