@@ -8,9 +8,15 @@ const notFound = () => Object.assign(new Error('404'), { status: 404 });
 
 // streamSse 被替换成可控桩：测试直接拿到 onEvent 手动喂帧；两个错误类保留真实实现。
 const streamSseMock = vi.hoisted(() => vi.fn());
+vi.mock('../auth/stream', () => ({ streamSseWithAuth: streamSseMock }));
+// 裸 streamSse 一律抛错：hook 必须走 streamSseWithAuth（带 401 刷新闭环）。
+// 这样「有人把调用改回 streamSse」会立刻转红，而不是悄悄绕过刷新。
 vi.mock('../sse', async () => {
   const actual = await vi.importActual<typeof import('../sse')>('../sse');
-  return { ...actual, streamSse: streamSseMock };
+  return {
+    ...actual,
+    streamSse: () => { throw new Error('hook 不得直接调用 streamSse，必须走 streamSseWithAuth'); },
+  };
 });
 
 const createApi = (): AgentChatApi => ({

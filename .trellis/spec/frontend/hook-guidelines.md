@@ -121,7 +121,9 @@
 - client 的 `src/components/AgentChat.tsx` 与 admin 的 `src/pages/AgentChat.tsx` 分别渲染折叠区，不能只验证一端。
 - 历史加载只恢复 role/content，不恢复 thinking；刷新后思考区域消失不是翻译成功或服务停止思考的证据。
 - 排查连续英文单词时先确认模型原始 chunk：后端只丢弃空块与重复 payload，不补也不删空格（`normalized = raw.strip()` 仅用于去重比较，追加的是未处理的 `raw`）；不要先在前端插空格。完整链路见 [Agent 运行与提示词契约](../backend/agent-guidelines.md#agent-角色提示词与流式输出契约)。
-- SSE 的 401/403 现已在客户端显式分类（`SseError.status` 判 401/403 → 「未认证或无权限」文案），但**仍未实现自动刷新重试**：没有 Axios 那套「刷新一次 → 重开同一条流」闭环。该闭环是后续应实现的契约（见任务 `10-19-sse-client-hardening` 的 P3 待办）。
+- SSE 的 401 已有与 Axios 对齐的「刷新一次 → 重放」闭环（`packages/shared/src/auth/stream.ts` 的 `streamSseWithAuth`）：`SseError.status === 401` → `refreshWithLock()` → 用 store 里的**新令牌**重放一次；刷新失败或重放仍 401 就停，**禁止无限重试**。403 不触发刷新（刷新救不了权限），网络/协议故障原样抛出交给调用方分类。
+- 重放安全的前提是后端契约：鉴权依赖在创建 run **之前**抛 401，所以被杀掉的 `POST /stream` 没有产生 run，重放不会凭空多开一条。改变这个顺序（例如先建 run 再鉴权）会让重放变成「同会话两条 run」。
+- `useAgentChat` 的所有订阅都走 `streamSseWithAuth`，不要直接用 `streamSse`：直接调会绕过刷新闭环，token 过期时表现为「未认证」而不是静默续上。
 
 #### 服务端写入缓存矩阵
 

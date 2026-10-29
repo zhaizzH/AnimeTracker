@@ -1,15 +1,21 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { type AgentChatApi, useAgentChat } from './useAgentChat';
-import { SseAbortError } from '../sse';
+import { SseAbortError, SseError } from '../sse';
 
 /** 真实 404 来自 axios，一定带 status；裸 Error 会被 hook 当成「状态未知」。 */
 const notFound = () => Object.assign(new Error('404'), { status: 404 });
 
 const streamSseMock = vi.hoisted(() => vi.fn());
+vi.mock('../auth/stream', () => ({ streamSseWithAuth: streamSseMock }));
+// 裸 streamSse 一律抛错：hook 必须走 streamSseWithAuth（带 401 刷新闭环）。
+// 这样「有人把调用改回 streamSse」会立刻转红，而不是悄悄绕过刷新。
 vi.mock('../sse', async () => {
   const actual = await vi.importActual<typeof import('../sse')>('../sse');
-  return { ...actual, streamSse: streamSseMock };
+  return {
+    ...actual,
+    streamSse: () => { throw new Error('hook 不得直接调用 streamSse，必须走 streamSseWithAuth'); },
+  };
 });
 
 type OnEvent = (data: string) => void;
@@ -285,5 +291,13 @@ describe('useAgentChat 刷新/切会话回放', () => {
     await act(async () => { resolveSlow([{ session_id: 'old' }]); await Promise.resolve(); });
 
     expect(result.current.sessions.map((s) => s.id)).toEqual(['new']);
+  });
+
+  it('回放订阅被 401 拒绝时给「未认证」提示，而不是通用中断文案', async () => {
+    const api = createApi({ run_id: 'run-1', status: 'running' });
+    streamSseMock.mockImplementation(() => Promise.reject(new SseError('401', { status: 401 })));
+    const { result } = renderHook(() => useAgentChat(api));
+
+    await waitFor(() => expect(result.current.notice?.text).toBe('(未认证或无权限，请重新登录)'));
   });
 });

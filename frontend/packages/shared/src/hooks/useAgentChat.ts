@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '../store/auth';
-import { SseAbortError, SseError, streamSse } from '../sse';
+import { SseAbortError, SseError } from '../sse';
+import { streamSseWithAuth } from '../auth/stream';
 import { asRunConflict, type RunConflict } from '../api/conflict';
 
 export interface ChatMsg { id: string; role: 'user' | 'assistant'; content: string; thinking?: string }
@@ -168,7 +169,7 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
       // 最多续订一次：流正常结束却没收到 is_end，说明中间层掐断了回放。
       for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
-          await streamSse({ url: apiRef.current.runStreamUrl(runIdNow, frames), method: 'GET', token: tokenRef.current, signal: ac.signal, onEvent: (data) => {
+          await streamSseWithAuth({ url: apiRef.current.runStreamUrl(runIdNow, frames), method: 'GET', token: tokenRef.current, signal: ac.signal, onEvent: (data) => {
             if (seq !== replaySeq.current) return;
             const ev = parseEvent(data);
             if (!ev) return;
@@ -289,7 +290,7 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
     ab.current = myAb;
     const { onEvent } = makeOnEvent(assistantId);
     try {
-      await streamSse({ url: apiRef.current.streamUrl, body: apiRef.current.streamBody(text, sessionId || undefined), token, signal: ab.current.signal, onEvent });
+      await streamSseWithAuth({ url: apiRef.current.streamUrl, body: apiRef.current.streamBody(text, sessionId || undefined), token, signal: ab.current.signal, onEvent });
     } catch (err) {
       const rejected = asRunConflict(err);
       if (rejected) {
