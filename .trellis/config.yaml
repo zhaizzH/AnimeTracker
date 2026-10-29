@@ -12,7 +12,7 @@
 session_commit_message: "chore: 记录开发日志"
 
 # Maximum lines per journal file before rotating to a new one
-max_journal_lines: 2000
+max_journal_lines: 1200
 
 #-------------------------------------------------------------------------------
 # Session Auto-Commit

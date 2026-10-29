@@ -238,6 +238,8 @@ Main-session default: dispatch implement/check sub-agents. Sub-agent self-exempt
 Dispatch prompt starts with `Active task: <task path from task.py current>`. Read context: jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present`.
 Commit density: commit only a completed, user-visible milestone. Never create a standalone commit for progress notes, evidence pointers, or only `.trellis/tasks/**/task.json`; keep those changes for the next code milestone or the one final bookkeeping batch.
 Review timing: dispatch `trellis-check` against the **working tree before commit**, not against an already-committed hash. Reviewing after commit turns every finding into a second patch commit and leaves the flawed one in history.
+Review evidence: every review conclusion must carry `file:line` or a test name. A conclusion without evidence is a hypothesis — verify it against source before acting on it. Both directions burn: this repo once shipped a wrong "why" note into a task handoff because a review asserted a runtime behaviour that the source contradicted.
+Mutation checks: when verifying a test by temporarily breaking the implementation, the round ends with `git diff --stat` matching the expected file set. A forgotten restore looks exactly like a passing suite.
 [/workflow-state:in_progress]
 
 <!-- Per-turn breadcrumb: shown while status='in_progress' when

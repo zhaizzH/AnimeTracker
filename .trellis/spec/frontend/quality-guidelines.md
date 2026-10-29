@@ -19,7 +19,14 @@ CI 当前未强制 Vitest 和 build；不要在 spec 中把它们描述为已启
 
 ## 测试现状
 
-- 当前测试文件共 34 个：shared 12（`api/agent.test.ts`、`api/conflict.test.ts`、`api/files.test.ts`、`api/http.test.ts`、`sse.test.ts`、`auth/stream.test.ts`、`components/AuthGate.test.tsx`、`hooks/useAgentChat.enabled.test.tsx`、`hooks/useAgentChat.events.test.tsx`、`hooks/useAgentChat.stop.test.tsx`、`hooks/useAgentChat.replay.test.tsx`、`hooks/useAgentChat.conflict.test.tsx`）、client 11、admin 11。计数器口径 `find frontend -name '*.test.*' -not -path '*/node_modules/*' | wc -l`。实测用例数 shared 86 / client 49 / admin 81，合计 **216**（2026-10-29）；改动后须重新实测替换，**不得沿用历史通过数**。
+- **测试数量不在此记录**：手抄基线在本仓已经错过三次（写 202 实测 205、写 32 文件实测 33、文件清单漏掉新增文件）。要数字就现场跑：
+
+```bash
+cd frontend && npm test && npm run typecheck   # 三包用例数看末尾的 Tests 行
+find frontend -name '*.test.*' -not -path '*/node_modules/*' | wc -l   # 测试文件数
+```
+
+- 新增测试文件后**不需要**回来改本文档；本文档只记口径与约定，不记清单。
 - admin 曾只有 `src/guards.test.tsx` 一个测试（覆盖 `RequireAdmin` 的未登录跳转、非管理员拒绝和管理员放行）；重建后各页与 `AdminLayout` 均已有测试。
 - Vitest 使用 jsdom；浏览器能力 shim 内联在 `client/src/test/setup.ts`（`matchMedia` 等），不是独立文件。
 - admin 的 `vitest.setup.ts` 已注册 `@testing-library/jest-dom/vitest`，并补齐 radix-ui 在 jsdom 下必需的最小 polyfill（`hasPointerCapture`/`setPointerCapture`/`releasePointerCapture`/`scrollIntoView` 与 `ResizeObserver`）。新增用到 radix 原语的测试直接复用，不要重复定义。
