@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 
 from tests.evals.metrics import (
     all_must_contain_hit,
@@ -112,7 +112,6 @@ def aggregate_report(
     config: EvalConfig | None = None,
 ) -> EvalReport:
     """聚合多条 case 结果为整体评测报告。"""
-    cfg = config or EvalConfig()
     if not case_results:
         return EvalReport(
             total_cases=0,

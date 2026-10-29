@@ -13,7 +13,7 @@ import json
 
 import pytest
 
-from app.api.schemas.sse import AssistantResponse, Content, MessageType, serialize_sse
+from app.api.schemas.sse import Content, MessageType
 from app.api.sse import serialize_agent_event
 from app.chat.streaming import StreamConfig, stream_agent_events
 from app.chat.events import AgentEvent, AgentEventType

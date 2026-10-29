@@ -7,11 +7,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from sqlalchemy import text
 
-from app.entities.enums import EntityKind
 
 
 @dataclass(frozen=True)

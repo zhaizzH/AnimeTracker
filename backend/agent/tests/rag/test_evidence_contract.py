@@ -12,11 +12,9 @@ use_case._compact 现在输出完整的证据字段，包括：
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, replace
-from datetime import datetime
-from typing import Any, Mapping, Sequence
+from dataclasses import dataclass, replace
+from typing import Any
 
-import pytest
 
 from app.rag.retrieval import RetrievalCandidate, RagRetrievalService
 from app.rag.schemas import RetrievalQuery

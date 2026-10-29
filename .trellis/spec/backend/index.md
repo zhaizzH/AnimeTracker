@@ -44,7 +44,7 @@ cd ../agent
 uv run pytest
 ```
 
-CI 当前执行 Java `mvn -B test`、Python `uv run pytest` 和前端 typecheck；其中 Python job 在 `uv run pytest` 之前单独跑一步 `contract drift (agent <-> openapi)`（`uv run pytest tests/contracts -q`），Agent 侧出站调用的 method/path/请求字段偏离 `docs/spec/openapi.yaml` 会在此步变红。`clean test` 与前端 build 属于相应变更的提交前/交付前验证。Python 已包含 importer/indexer/backfill/scheduler、RAG、适配器、eval、Agent Prompt 与契约测试。测试通过数与规模只维护在 [质量门禁](./quality-guidelines.md#当前测试基线)，本节不复制数字；引用前必须重实测，不得沿用历史通过数。
+CI 执行哪些步骤、各用什么版本，一律以 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) 为唯一来源，本节不复述——本行曾因手写 CI 现状而与实际不一致。其中 Python job 在 `uv run pytest` 之前单独跑一步 `contract drift (agent <-> openapi)`（`uv run pytest tests/contracts -q`），Agent 侧出站调用的 method/path/请求字段偏离 `docs/spec/openapi.yaml` 会在此步变红。`clean test` 与前端 build 属于相应变更的提交前/交付前验证。Python 已包含 importer/indexer/backfill/scheduler、RAG、适配器、eval、Agent Prompt 与契约测试。测试通过数不写入 spec，见 [质量门禁](./quality-guidelines.md#当前测试基线)。
 
 - Business reactor 包含 `common`、`pojo`、`infrastructure`、`auth`、`log`、`agent`、`client`、`admin`、`app` 九个 Maven 模块；模块上限和实际职责以 [目录与依赖边界](./directory-structure.md) 及 `ArchitectureBoundaryTest` 为准
 - `check_javadoc.py` 自动化检查器已随提交 `721d5c71`（2026-10-04）删除；Javadoc 规范仍有效，恢复前以人工审查为准，详见 [质量门禁](./quality-guidelines.md#声明与语法检查自动化检查器已退役)

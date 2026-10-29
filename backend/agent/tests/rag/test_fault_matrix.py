@@ -9,9 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-import pytest
 
-from app.rag.retrieval import RagRetrievalService, RetrievalCandidate
+from app.rag.retrieval import RagRetrievalService
 from app.rag.schemas import RetrievalQuery
 from app.rag.use_case import RetrieveSubjectsUseCase
 

@@ -12,13 +12,8 @@ from typing import Protocol, Sequence, runtime_checkable
 from app.entities.enums import EntityKind, JobStatus
 from app.entities.models import (
     Character,
-    CharacterActor,
-    CharacterAlias,
     Job,
     Person,
-    PersonAlias,
-    SubjectCharacter,
-    SubjectPersonCredit,
 )
 
 

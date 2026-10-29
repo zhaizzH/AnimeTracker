@@ -6,15 +6,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
-from unittest.mock import MagicMock
 
 import pytest
 
 from app.entities.enums import EntityKind, JobStatus
 from jobs.indexer.search_repository import (
-    ClaimedJob,
     MAX_ATTEMPTS,
     SearchIndexJobRepositoryImpl,
     _sanitize_message,

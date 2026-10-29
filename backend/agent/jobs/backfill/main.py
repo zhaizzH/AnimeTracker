@@ -58,7 +58,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.report_json:
                 print(json.dumps(report.as_dict(), ensure_ascii=False, indent=2))
                 return 0
-            print(f"\n=== 回填报告 ===")
+            print("\n=== 回填报告 ===")
             print(f"总任务数: {report.total_jobs}")
             print(f"已完成:   {report.completed} ({report.coverage_pct:.1f}%)")
             print(f"待处理:   {report.pending}")
@@ -70,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
                 for kind, count in report.stale_by_kind.items():
                     print(f"  {kind}: {count}")
             if report.failure_reasons:
-                print(f"\n失败原因 TOP:")
+                print("\n失败原因 TOP:")
                 for code, cnt in report.failure_reasons.items():
                     print(f"  {code}: {cnt}")
             return 0

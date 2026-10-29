@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
 
 import pytest
 
-from app.entities.enums import EntityKind, JobStatus
+from app.entities.enums import EntityKind
 from jobs.backfill.repository import (
     BackfillReport,
-    DetailJob,
     EntityDetailJobRepository,
     compute_source_hash,
 )
@@ -258,7 +256,7 @@ class TestBackfillWorkerIntegration:
         client.get_character.assert_called_once_with(200)
 
     def test_worker_processes_person_job(self):
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import MagicMock
         from jobs.backfill.worker import BackfillWorker
 
         session = _Session(claim_rows=[

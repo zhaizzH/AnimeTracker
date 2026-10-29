@@ -6,7 +6,7 @@
 但前端仍停留在旧语义：`stop()` 只是 abort、首帧 `meta.run_id` 被丢弃、刷新后不回放。
 本任务让前端接上 run 能力：刷新能继续看、停止能通知后端、冲突能显式选择。
 
-来源：[handoff.md](../10-22-fix-agent-stream-disconnect/handoff.md) §4（步骤 6）；
+来源：[handoff.md](../archive/2026-10/10-22-fix-agent-stream-disconnect/handoff.md) §4（步骤 6）；
 三个已定决策见下文「已定决策」。
 
 ## Requirements

@@ -5,14 +5,9 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock
 
-import pytest
 
-from app.entities.enums import EntityKind
 from jobs.indexer.entity_loader import (
-    CharacterEntity,
-    EpisodeEntity,
     MultiEntityLoader,
-    PersonEntity,
     _parse_career,
 )
 from jobs.indexer.shadow import (

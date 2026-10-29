@@ -1,6 +1,6 @@
 # 执行计划：前端 chat run 重连
 
-> 关联 [prd.md](./prd.md) 与上游交接 [handoff.md](../10-22-fix-agent-stream-disconnect/handoff.md) §4。
+> 关联 [prd.md](./prd.md) 与上游交接 [handoff.md](../archive/2026-10/10-22-fix-agent-stream-disconnect/handoff.md) §4。
 > 每步先写红测试；`shared` 的 hook 测试用现有 `streamSseMock` 桩，不触网。
 
 ## 步骤 0：基线

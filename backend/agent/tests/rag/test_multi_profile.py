@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from app.entities.enums import EntityKind
 from app.rag.multi_profile import (
@@ -10,7 +9,6 @@ from app.rag.multi_profile import (
     CharacterProfileSource,
     EpisodeProfileSource,
     PersonProfileSource,
-    ProfileResult,
     build_character_profile,
     build_episode_profile,
     build_person_profile,

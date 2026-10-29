@@ -1,7 +1,6 @@
 """评测 runner 与 golden cases 加载测试。"""
 
 import json
-from pathlib import Path
 
 import pytest
 
@@ -51,7 +50,7 @@ class TestLoadGoldenCases:
 
     def test_all_cases_have_required_fields(self):
         for case in load_golden_cases():
-            assert case.id, f"case 缺少 id"
+            assert case.id, "case 缺少 id"
             assert case.category in {
                 "title_alias", "structured_filter", "subjective_semantic",
                 "person_character", "series_relation", "negation", "degradation",

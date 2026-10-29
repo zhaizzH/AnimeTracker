@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-import pytest
 
 from jobs.importer.normalize import normalize_subject
 from jobs.importer.repository import ImportRepository
@@ -259,7 +258,6 @@ class TestProfileHashConsistency:
         # indexer 使用 IndexJobRepository.load_subject()
         # 两者应当从相同的表/列读取，否则 hash 会不一致
         from jobs.importer.repository import ImportRepository
-        from jobs.indexer.repository import IndexJobRepository
 
         # 检查两个查询是否使用相同的字段和排序
         importer_session = _Session(profile_row={

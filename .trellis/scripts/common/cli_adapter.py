@@ -37,9 +37,24 @@ Usage:
 
 from __future__ import annotations
 
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import ClassVar, Literal
+
+
+def _resolve_exe(cmd: list[str]) -> list[str]:
+    """Resolve argv[0] through PATH.
+
+    Windows ships CLIs as ``pi.cmd`` / ``claude.cmd`` shims, and
+    ``CreateProcess`` does not apply PATHEXT, so a bare ``"pi"`` raises
+    ``FileNotFoundError [WinError 2]``. ``shutil.which`` does apply it and
+    returns an absolute path that ``subprocess`` can launch.
+    """
+    if not cmd:
+        return cmd
+    resolved = shutil.which(cmd[0])
+    return [resolved, *cmd[1:]] if resolved else cmd
 
 Platform = Literal[
     "claude",
@@ -475,9 +490,13 @@ class CLIAdapter:
 
             cmd.append(prompt)
 
-        return cmd
+        return _resolve_exe(cmd)
 
     def build_resume_command(self, session_id: str) -> list[str]:
+        """Public entry: resolves argv[0] so Windows ``.cmd`` shims work."""
+        return _resolve_exe(self._build_resume_command(session_id))
+
+    def _build_resume_command(self, session_id: str) -> list[str]:
         """Build CLI command for resuming a session.
 
         Args:

@@ -17,23 +17,25 @@ cd ../agent
 uv run pytest
 ```
 
-命令按变更范围分层，不要把 CI 当前状态误读成完整交付门禁：
+命令按变更范围分层；**CI 究竟跑哪几步不在本表内**，以 `.github/workflows/ci.yml` 为唯一来源。
 
 | 层级 | 当前命令/要求 | 适用范围 |
 |---|---|---|
-| CI 强制 | 前端 `npm run typecheck`；Java `mvn -B test`；Python `uv run pytest` | 每次 push/PR 的现行工作流 |
+| CI 强制 | **以 [`.github/workflows/ci.yml`](../../../.github/workflows/ci.yml) 为准**，本表不复述 CI 现状 | 每次 push/PR 的现行工作流 |
 | 提交前 | 运行受影响模块的测试；跨层改动至少补一条成功和一条权限/失败路径 | 普通代码改动 |
 | 交付前 | Java 配置迁移/模块边界运行 `mvn -B clean test`；前端可交付变更运行 `npm run build` | 配置、边界、构建产物或跨层契约变更 |
 
-CI 使用 Java 21、Node 22 与 `uv sync --dev`，配置见 `.github/workflows/ci.yml`。CI 尚未强制前端 Vitest/build；不要在 spec 中声称它们已经是 CI 门禁。
+（CI 的 JDK/Node/Python 版本与全部执行步骤见 `.github/workflows/ci.yml`，本文不复述。）
 
 ### 当前测试基线
 
-> 实测日期 2026-10-27，提交 `c10d0ed9` 之后（Java 代理补齐 chat run 三路由）。命令：`cd backend/agent && .venv/Scripts/python -m pytest tests -q`、`mvn -B -o clean test -f backend/business/pom.xml`。本节是测试基线数字的**唯一来源**；其他规范文件只链接本节。
-
-`backend/agent` 的 pytest：**862 passed, 0 xfailed**（2026-10-22 的 814 之后，新增 8 个 `tests/contracts/test_run_route_contract.py` 用例；契约子集 154）。Java 侧 `mvn -B -o clean test` 按各模块 surefire 报告合计 **125 个测试通过、0 失败、0 错误**（`common` 无用例，其余八模块均有用例；核实：`find backend/business -path "*surefire-reports*" -name "*.txt" -exec grep -h "^Tests run" {} + | awk -F'[ ,]+' '{s+=$3} END {print s}'`）。agent 模块自身 26 个（Controller 11 + Service 6 + 导入网关 9）。测试规模：`grep -rE 'def test_' backend/agent/tests | wc -l` → 661；`find backend/business -name '*Test.java' | wc -l` → 31。`check_javadoc.py` 及其回归已随提交 `721d5c71` 删除，Javadoc 检查仍以人工审查为准。改动后必须重新实测并替换日期与数字，不得沿用历史通过数。
-
-`backend/agent` 的 `uv run pytest`：**814 passed, 0 xfailed**，**0 warning**（2026-10-22 由 668 增至 814：新增 `tests/contracts/` 共 146 个契约用例——HTTP 87 / SSE 29 / pending-action 30）。Java 侧 `mvn -B test -f backend/business/pom.xml` 按各模块 surefire 报告合计 **111 个测试通过、0 失败、0 错误**（`common` 无用例，其余八模块均有用例；核实：`find backend/business -path "*surefire-reports*" -name "*.txt" -exec grep -h "^Tests run" {} + | awk -F'[ ,]+' '{s+=$3} END {print s}'`），本轮未改动 Java 代码故数字不变。测试规模：`grep -rE 'def test_' backend/agent/tests | wc -l` → 617（55 个 `test_*.py` / 72 个 `.py`，含 `conftest.py` 与 `__init__.py` 共 12 个）；`find backend/business -name '*Test.java' | wc -l` → 30。`check_javadoc.py` 及其回归 `test_check_javadoc.py` 已随提交 `721d5c71` 删除（Lombok 移除工作遗留的一次性脚本），历史基线 255 文件/1658 声明/0 违规不再可复跑；恢复前 Javadoc 检查以人工审查为准，见下文「可重复的声明与语法检查」。改动后必须重新实测并替换日期与数字，不得沿用历史通过数。
+> 测试通过**数字不在此记录**：CI 每次 push/PR 都会给出权威结果，手抄基线已两次与实际不一致（152→125 笔误、814 与 862 两段并存）。要报数字时现场跑下面的命令，不要把历史通过数写进规范。
+>
+> ```bash
+> cd backend/agent && uv run pytest -q      # Python
+> cd backend/business && mvn -B clean test  # Java（必须 clean）
+> cd frontend && npm test && npm run typecheck
+> ```
 
 - **契约测试套件**（`tests/contracts/`，2026-10-22 新增）：CI 在 `uv run pytest` 之前单独跑 `contract drift (agent <-> openapi)` 一步。范围与盲区见 [Agent↔Business 契约测试](./contract-tests.md)；**它只证明 agent 与 `docs/spec/openapi.yaml` 一致，不证明契约与 Java 源码一致**。
 
@@ -308,7 +310,9 @@ public static UserCollectionVO toUserCollectionVO(UserCollectionSubjectVO vo) {
 | 继承 | 接口契约完整，覆盖方法显式继承或补充，未复制失效说明 |
 | 维护 | 不含空模板、无意义复述、虚构异常或历史作者信息；篇幅与复杂度匹配，不为满足行数重复契约 |
 
-### 声明与语法检查（自动化检查器已退役）
+### 声明与语法检查（Java 自动化检查器已退役；Python 用 ruff）
+
+**Python 侧的自动化静态检查已接入**：`cd backend/agent && uv run ruff check .`，CI 在 `uv run pytest` 之前单独跑一步。规则集只开 pyflakes（`select = ["F"]`）：未定义名、未用导入、未用变量、f-string 无占位。**不**开 pycodestyle：`E501` 在本仓中文长注释风格下有 1271 条纯噪音，会把真信号埋掉；也不做 `ruff format`（格式化 diff 会淹没真实改动）。新增规则前先看 `--statistics` 的量级，超过 50 条就拆成独立提交。
 
 > **Warning**：`backend/business/tools/check_javadoc.py` 与 `test_check_javadoc.py` 已随提交 `721d5c71`（2026-10-04）删除，理由是 Lombok 移除工作遗留的一次性脚本、无后续引用。**上述 Javadoc 规范（覆盖、语法、真实性、继承、维护）本身仍然有效**；自动化检查恢复前，提交前验证为 `mvn -B clean test -f backend/business/pom.xml` + 人工对照规范审查。恢复路径：`git show 721d5c71^ -- backend/business/tools/` 取回检查器源码。禁止引用该命令作为现行门禁。
 

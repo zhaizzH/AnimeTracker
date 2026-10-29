@@ -152,7 +152,6 @@ async def test_stop_seals_event_stream() -> None:
 @pytest.mark.asyncio
 async def test_cancelled_run_skips_pending_action() -> None:
     """D7：被 stop 的 run 不落 pending_action。"""
-    from app.chat.pending_action import PendingAction
     from app.chat.pending_events import emit_pending_action_clear
 
     pending_written: list = []
