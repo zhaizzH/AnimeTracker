@@ -2,6 +2,9 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { type AgentChatApi, useAgentChat } from './useAgentChat';
 
+/** 真实 404 来自 axios，一定带 status；裸 Error 会被 hook 当成「状态未知」。 */
+const notFound = () => Object.assign(new Error('404'), { status: 404 });
+
 const streamSseMock = vi.hoisted(() => vi.fn());
 vi.mock('../sse', async () => {
   const actual = await vi.importActual<typeof import('../sse')>('../sse');
@@ -15,7 +18,7 @@ const createApi = (): AgentChatApi => ({
   deleteSession: vi.fn().mockResolvedValue(undefined),
   streamBody: vi.fn().mockReturnValue({}),
   streamUrl: '/agent/stream',
-  sessionRun: vi.fn().mockRejectedValue(new Error('404')),
+  sessionRun: vi.fn().mockRejectedValue(notFound()),
   stopRun: vi.fn().mockResolvedValue(undefined),
   runStreamUrl: (id: string, after: number) => `/agent/runs/${id}/stream?after=${after}`,
   health: vi.fn().mockResolvedValue('ok'),

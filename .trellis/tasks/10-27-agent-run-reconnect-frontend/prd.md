@@ -58,14 +58,14 @@
 
 ## Acceptance Criteria
 
-- [ ] AC1: 首帧 `meta.run_id` 被记录；run 结束后清空；有测试断言这两个时点。
-- [ ] AC2: 挂载时 `status=running` → 以 `after=0` 订阅回放，且新建气泡不重复拼接正文。
-- [ ] AC3: `after` 用事件帧计数推进，有测试证明帧数与文本长度无关。
-- [ ] AC4: `status=failed`/`done`/`cancelled` 不订阅，改走 `loadHistory()`；`failed` 有用户提示。
-- [ ] AC5: `stop()` 先 `stopRun` 后 `abort`（用调用顺序断言）；`run_id` 为空时只 abort。
-- [ ] AC6: 409 弹出冲突选择；选「打断并插入」会先 `stopRun(active_run_id)` 再重发；选「等待」不发请求。
-- [ ] AC7: `npm test`（shared/client/admin 三包）与 `npm run typecheck` 全绿；`npm run build` 通过。
-- [ ] AC8: 既有 SSE 行为不回归：`answer/thinking/function_call/status` 白名单、`is_end` 锁、
+- [x] AC1: 首帧 `meta.run_id` 被记录；run 结束后清空；有测试断言这两个时点。
+- [x] AC2: 挂载时 `status=running` → 以 `after=0` 订阅回放，且新建气泡不重复拼接正文。
+- [x] AC3: `after` 用事件帧计数推进，有测试证明帧数与文本长度无关。
+- [x] AC4: `status=failed`/`done`/`cancelled` 不订阅，改走 `loadHistory()`；`failed` 有用户提示。
+- [x] AC5: `stop()` 先 `stopRun` 后 `abort`（用调用顺序断言）；`run_id` 为空时只 abort。
+- [x] AC6: 409 弹出冲突选择；选「打断并插入」会先 `stopRun(active_run_id)` 再重发；选「等待」不发请求。
+- [x] AC7: `npm test`（shared/client/admin 三包）与 `npm run typecheck` 全绿；`npm run build` 通过。
+- [x] AC8: 既有 SSE 行为不回归：`answer/thinking/function_call/status` 白名单、`is_end` 锁、
       401/403 文案、主动 abort 不写中断文案。
 
 ## Constraints

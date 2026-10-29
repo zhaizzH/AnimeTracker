@@ -19,7 +19,7 @@ CI 当前未强制 Vitest 和 build；不要在 spec 中把它们描述为已启
 
 ## 测试现状
 
-- 当前测试文件共 26 个：shared 6（`api/files.test.ts`、`api/http.test.ts`、`sse.test.ts`、`components/AuthGate.test.tsx`、`hooks/useAgentChat.enabled.test.tsx`、`hooks/useAgentChat.events.test.tsx`）、client 9、admin 11（`guards.test.tsx`、`layouts/AdminLayout.test.tsx`、`pages` 下各页与 `components/auth/auth-page.test.tsx`）。计数口径 `find frontend -name '*.test.*' -not -path '*/node_modules/*' | wc -l` → 26（2026-10-19）。实测用例数 shared 34 / client 38 / admin 73，合计 **145**（2026-10-22）；改动后须重新实测替换，**不得沿用历史通过数**。
+- 当前测试文件共 32 个：shared 11（`api/agent.test.ts`、`api/conflict.test.ts`、`api/files.test.ts`、`api/http.test.ts`、`sse.test.ts`、`components/AuthGate.test.tsx`、`hooks/useAgentChat.enabled.test.tsx`、`hooks/useAgentChat.events.test.tsx`、`hooks/useAgentChat.stop.test.tsx`、`hooks/useAgentChat.replay.test.tsx`、`hooks/useAgentChat.conflict.test.tsx`）、client 10、admin 11。计数器口径 `find frontend -name '*.test.*' -not -path '*/node_modules/*' | wc -l`。实测用例数 shared 72 / client 43 / admin 76，合计 **191**（2026-10-27）；改动后须重新实测替换，**不得沿用历史通过数**。
 - admin 曾只有 `src/guards.test.tsx` 一个测试（覆盖 `RequireAdmin` 的未登录跳转、非管理员拒绝和管理员放行）；重建后各页与 `AdminLayout` 均已有测试。
 - Vitest 使用 jsdom；浏览器能力 shim 内联在 `client/src/test/setup.ts`（`matchMedia` 等），不是独立文件。
 - admin 的 `vitest.setup.ts` 已注册 `@testing-library/jest-dom/vitest`，并补齐 radix-ui 在 jsdom 下必需的最小 polyfill（`hasPointerCapture`/`setPointerCapture`/`releasePointerCapture`/`scrollIntoView` 与 `ResizeObserver`）。新增用到 radix 原语的测试直接复用，不要重复定义。

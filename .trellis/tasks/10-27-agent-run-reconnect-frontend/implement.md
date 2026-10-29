@@ -30,40 +30,29 @@
 
 实现：`runStreamUrl` 选择**显式给出**（client `/api/client/agent/runs/{id}/stream`，admin `/api/admin/agent/chat/runs/{id}/stream`），不在 hook 里由 `streamUrl` 前缀推导——两者路径段不同（`agent/runs` vs `agent/chat/runs`），推导只会引入字符串魔法。`AgentChatApi` 三个新方法设为**必填**，让 typecheck 强制 client/admin 两个注入点同步（缺失即编译失败，而不是运行时静默跳过重连）。
 
-## 步骤 3：run_id 记录与停止时序（TDD）
+## 步骤 3–6：已拆成 tracer bullet 工单
 
-- [ ] `SsePayload` 加 `meta`；首帧存 `runIdRef`，run 结束（`finally`）清空。
-- [ ] `stop()`：`runIdRef.current` 存在 → `stopRun(runId)` 再 `abort()`；
-      不存在 → 直接 `abort()`。`stopRun` 失败也要 abort。
-- [ ] 用例：顺序断言（用调用序列数组）、首帧前停止只 abort、`stopRun` 抛错仍 abort。
+后续工作的单一来源改为 [issues/](./issues/)（每个工单一个文件，按依赖顺序编号）：
 
-## 步骤 4：重连回放（TDD）
+| 工单 | 内容 | 依赖 |
+|---|---|---|
+| [01](./issues/01-run-id-and-real-stop.md) | 记录 `run_id`，`stop()` 先停 run 再 abort | 无 |
+| [02](./issues/02-reconnect-replay.md) | 刷新/切会话后增量回放，正文不重复 | 无（与 01 同文件，建议顺序做） |
+| [03](./issues/03-conflict-choice.md) | 409 冲突三选一（打断插入 / 等待 / 取消） | 01 |
+| [04](./issues/04-spec-and-deliver.md) | 规范回写 + 三包测试 + build 交付 | 01–03 |
 
-- [ ] 挂载/切会话：`sessionRun(id)`。
-  - `running` → 新建空 assistant 气泡 + 订阅 `runStreamUrl(runId, 0)`，复用同一 `ended` 锁。
-  - `failed` → `loadHistory()` + 「上次回答未完成」提示；`done`/`cancelled` → 仅 `loadHistory()`。
-- [ ] 事件计数游标：每收到一帧 `after += 1`；不订阅时游标归零。
-- [ ] `status` 的 `warning` 文案：决定在回放路径提示「部分实时内容已过期」并写进测试。
-- [ ] 用例：回放不重复拼接（历史一条 + 回放增量 → 正文只出现一次）、`failed` 不订阅、
-      `is_end` 之后不再累积。
-
-## 步骤 5：409 冲突 UI（TDD）
-
-- [ ] shared 暴露冲突错误类型（携带 `active_run_id`），`send()` 捕获后进入选择状态。
-- [ ] client 与 admin 各加选择面板：`打断并插入` / `等待` / 取消。
-      - 打断并插入：`stopRun(active_run_id)` → 重新 `send(同一文本)`。
-      - 等待 / 取消：不发请求，清掉半成品气泡。
-- [ ] 用例：409 进入选择态、打断路径先 stop 再 send、等待不发请求、取消不留下空气泡。
-
-## 步骤 6：收尾
-
-- [ ] `npm test`（三包）+ `npm run typecheck` + `npm run build`。
-- [ ] spec 回写：`frontend/hook-guidelines.md` 的 SSE 现状段落补 run 重连语义
-      （断连≠停止、after 是事件序号、回放新建气泡、409 选择）。
-- [ ] 提交。
+原步骤 3–6 的分层清单已并入上述工单的验收标准，本节不再重复（避免两处描述漂移）。
 
 ## 范围外
 
 - 后端 run 行为、Java 代理路由：已交付（`c10d0ed9`）。
 - SSE 401 自动刷新闭环：属 `10-19-sse-client-hardening` 的 P3 待办，本任务只用现有分类。
 - 历史恢复 thinking：后端不存 thinking，属独立任务。
+
+## 交接附注：已知缺口（不阻塞 AC，但别误判为已修）
+
+- **409 可能连环弹**：`stopRun` 是逻辑停止，后端 run 未立即结束；「打断并插入」的重发若仍被拒，面板会再弹一次。理想做法是识别「刚停过的 run 还在收尾」并提示等待，当前是原样再弹。
+- **`capabilities` 未读**：面板恒显三个按钮。后端目前恒发 `["interrupt"]`，若将来只给部分能力，需按它裁剪。
+- **`failed` 提示是临时气泡**：作为一条 assistant 消息写入，刷新即消失。要常驻需在 client/admin 渲染层加 notice 通道。
+- **回放正常结束不刷新会话列表**：`send()` 的 `finally` 会 `refreshSessions()`，回放路径没有，列表排序/标题可能滞后。
+- **回放落库与状态投影有毫秒级窗口**：run 已落库但状态仍是 `running` 时刷新，会「历史一条 + 回放一条」。窗口极窄，未处理。

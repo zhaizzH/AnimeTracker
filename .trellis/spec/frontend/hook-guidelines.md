@@ -38,7 +38,7 @@
 
 **1. Scope / Trigger**：改动 `packages/shared/src/api/http.ts`、`auth/coordinator.ts`、`sse.ts` 或 `hooks/useAgentChat.ts` 的请求注入、401 刷新或 SSE 帧消费行为时适用。这是前端 → Business/Agent 的跨层认证与流式契约。
 
-**2. Signatures**：`http`（Axios 实例，`baseURL='/api'`、`withCredentials`）、`sessionHttp`（仅 refresh 等会话请求）、`streamSse(url, body, { token, signal })`（原生 fetch）、`refreshWithLock()`（标签页内 Promise 复用 + Navigator Locks）。
+**2. Signatures**：`http`（Axios 实例，`baseURL='/api'`、`withCredentials`）、`sessionHttp`（仅 refresh 等会话请求）、`streamSse({ url, body?, method?, token, signal, onEvent })`（原生 fetch；`method` 默认 `POST`，`GET` 用于重连回放）、`refreshWithLock()`（标签页内 Promise 复用 + Navigator Locks）。
 
 **3. Contracts**：
 - `http` 从内存 store 注入 `Authorization: Bearer`，解包 `ApiResult<T>.data`；`code!==200` 以 `message` 拒绝。
@@ -71,6 +71,38 @@
 - Correct：SSE 独立处理 401；结束语义以 `is_end=true` 为准。
 
 > **现状（10-19 已加固）**：`packages/shared/src/sse.ts` 以空行 `\r?\n\r?\n` 分帧（帧内多行 `data:` 按规范拼接）、校验响应 Content-Type 含 `text/event-stream`、流结束时 flush 尾帧残片，并用 `signal.aborted` 区分主动 Abort（`SseAbortError`）与故障（`SseError`，带 `status`）。`useAgentChat` 按 `type` 白名单分发（`answer` / `thinking` / `function_call` / `status`），不再用 `content.text` 兜底；`is_end=true` 通过局部 `ended` 同步锁住后续帧；工具失败以 `state=end` + `result=error` 落到 `ToolStep.status: 'error'`，而 `status` 事件的 `state=error` 把 `message` 追加到回答尾部（持久化失败提示不得静默丢弃）；401/403 走独立「未认证或无权限」文案，主动停止不写中断文案。测试见 `shared/src/sse.test.ts` 与 `shared/src/hooks/useAgentChat.events.test.tsx`。新增 SSE 改动仍须一并补测试。
+
+#### Scenario: chat run 重连与并发冲突
+
+**1. Scope / Trigger**：改动 `useAgentChat` 的订阅/停止/会话切换行为，或新增消费 run 重连、409 冲突的 UI 时适用。
+
+**2. Contracts**：
+- **断连不等于停止**。卸载、刷新、abort 都只退订；run 在后端继续跑并落库。停止必须显式调用停 run 接口。
+- `stop()` 顺序是「先停 run，后 abort 本地连接」。先 abort 会让后端把它当掉线，run 继续跑完。`run_id` 尚未到达时降级为纯 abort，不排队重试。
+- 首帧 `meta.run_id` 是前端唯一能拿到 run 身份的来源；它在该 run 结束（正常/出错/abort）后必须清空，否则下一次停止会停错对象。
+- 重连游标 `after` 是**已收到的事件帧数**，与文本长度、token 数无关。收到 `status`/`warning` 降级帧即说明后端缓冲已丢过头，`after` 不再能与后端 `buffer_start` 对齐，此时**放弃续订**并提示「部分实时内容已过期」，而不是拿偏移的游标再订一次。
+- 回放必须新建一个**空** assistant 气泡：历史气泡里是已落库内容，回放会重推全量事件，复用会把正文拼两遍。
+- 回放与实时共用同一把 `is_end` 锁，不另建判据。
+- `status` 为 `failed` / `done` / `cancelled` 时**不订阅**，直接读历史；`failed` 多为进程重启后的懒收敛，额外给用户提示。
+- 同一会话已有 run 时发送返回 409，body 为 `{code, message, data:{active_run_id, status, capabilities}}`。判据只能看 `status` 与结构化字段，**不得解析中文文案**。
+- 409 的三条分支各自可断言：打断并插入 = 先停 `active_run_id` 再重发；等待 = 零发送；取消 = 零发送且不留空气泡。未发出的文本必须回到输入框，不能丢。
+
+**3. Validation & Error Matrix**：
+
+| 情况 | 契约行为 |
+|---|---|
+| 进入会话时该会话有 running run | 新建空气泡 + `after=0` 订阅回放，正文只出现一次 |
+| 进入会话时 run 已 `failed`/`done`/`cancelled` | 只读历史；`failed` 加「上次回答未完成」提示 |
+| 回放中途用户点停止 | 先停 run 再 abort；已生成正文保留，只收掉空气泡 |
+| 切换会话时旧订阅仍在途 | 先掐订阅再加载历史；旧 run 的迟到帧不得写入新会话 |
+| 发送返回 409 | 进入冲突选择态；收回本次的 user + 空 assistant 气泡，保留原文 |
+| 409 的 `data.active_run_id` 缺失 | 只能等待/取消；「打断并插入」不得可点 |
+
+**4. Tests Required**：重连与冲突改动必须补「正文不重复拼接」「游标是帧数而非字符数」「`is_end` 锁复用」「停止顺序」「三条冲突分支的请求次数」用例。断言要能杀掉变异：把「只收回本次气泡」改成清空整个会话、把游标改成文本长度，都必须转红。
+
+**5. Wrong vs Correct**：
+- Wrong：把 `after` 当文本游标；回放复用历史气泡；先 abort 再停 run；用 `message.includes('进行中')` 判冲突。
+- Correct：`after` 计帧；回放新开气泡；先停 run 后 abort；判 `status===409` + `data.active_run_id`。
 
 #### thinking 展示的现状
 
