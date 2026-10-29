@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** done (`8c07e9` 起)
+**Status:** done (`40e86e2c`)
 
 - [x] 首帧 payload 里的 `meta.run_id` 被记录；run 结束（正常结束、出错、用户 abort 三条路）后清空
 - [x] 有测试分别在「首帧到达后」与「run 结束后」断言 `run_id` 的有无
