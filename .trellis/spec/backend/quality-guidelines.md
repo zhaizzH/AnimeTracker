@@ -52,7 +52,7 @@ uv run pytest
 
 ### 已知 flaky 测试
 
-- **backlog**：`tests/rag/test_air_status.py::test_both_call_sites_use_the_shared_function` 曾于 2026-10-05 在全量 `uv run pytest` 中偶发失败（单独运行该文件通过，现象指向测试隔离/顺序依赖而非源码缺陷）。2026-10-15 全量实测（`-p no:randomly`） 669 passed，未复现。处置：首次失败先重跑确认；修复隔离另起独立任务。禁止把「重跑即绿」当作常态接受，flaky 会腐蚀门禁信任。
+- **backlog**：`tests/rag/test_air_status.py::test_both_call_sites_use_the_shared_function` 曾于 2026-10-05 在全量 `uv run pytest` 中偶发失败（单独运行该文件通过，现象指向测试隔离/顺序依赖而非源码缺陷），此后全量多次重跑未复现。处置：首次失败先重跑确认；修复隔离另起独立任务。禁止把「重跑即绿」当作常态接受，flaky 会腐蚀门禁信任。
 
 ### 已知覆盖债务
 
