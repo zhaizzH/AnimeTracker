@@ -8,7 +8,7 @@ type ChatState = {
   sessions: Record<string, unknown>[];
   activeId: string | null;
   streaming: boolean;
-  conflict: { activeRunId: string | null; status: string | null; text: string } | null;
+  conflict: { activeRunId: string | null; status: string | null; capabilities: string[] | null; text: string; error?: string } | null;
 };
 
 const chatState = vi.hoisted(() => ({
@@ -37,7 +37,7 @@ function renderChat(over: Partial<ChatState> = {}) {
 }
 
 /** 后端 409 的原文：未发出的文本留在选择态里，由 UI 恢复进输入框。 */
-const CONFLICT: ChatState['conflict'] = { activeRunId: 'run-active', status: 'running', text: '被打断的问题' };
+const CONFLICT: ChatState['conflict'] = { activeRunId: 'run-active', status: 'running', capabilities: ['interrupt'], text: '被打断的问题' };
 
 beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
@@ -114,24 +114,24 @@ describe('AgentChat', () => {
     renderChat({ conflict: CONFLICT });
 
     expect(screen.getByRole('group', { name: '会话已有回答在生成' })).not.toBeNull();
-    expect(screen.getByRole('button', { name: '打断并插入' })).not.toBeNull();
+    expect(screen.getByRole('button', { name: '停止并发送' })).not.toBeNull();
     expect(screen.getByRole('button', { name: '等待' })).not.toBeNull();
     expect(screen.getByRole('button', { name: '取消' })).not.toBeNull();
     await waitFor(() => expect(screen.getByLabelText('输入消息')).toHaveValue('被打断的问题'));
   });
 
-  it('缺 active_run_id 时「打断并插入」禁用，「等待」仍可点', () => {
-    renderChat({ conflict: { activeRunId: null, status: 'running', text: '被打断的问题' } });
+  it('缺 active_run_id 时「停止并发送」禁用，「等待」仍可点', () => {
+    renderChat({ conflict: { activeRunId: null, status: 'running', capabilities: null, text: '被打断的问题' } });
 
-    expect(screen.getByRole('button', { name: '打断并插入' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '停止并发送' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '等待' })).not.toBeDisabled();
   });
 
-  it('冲突中选打断并插入后清空输入框，选等待/取消则保留原文', async () => {
+  it('冲突中选停止并发送后清空输入框，选等待/取消则保留原文', async () => {
     const u = userEvent.setup();
     const view = renderChat({ conflict: CONFLICT });
 
-    await u.click(screen.getByRole('button', { name: '打断并插入' }));
+    await u.click(screen.getByRole('button', { name: '停止并发送' }));
     expect(resolveConflict).toHaveBeenLastCalledWith('interrupt');
     await waitFor(() => expect(screen.getByLabelText('输入消息')).toHaveValue(''));
 
@@ -145,5 +145,27 @@ describe('AgentChat', () => {
     await u.click(screen.getByRole('button', { name: '取消' }));
     expect(resolveConflict).toHaveBeenLastCalledWith('cancel');
     expect(screen.getByLabelText('输入消息')).toHaveValue('被打断的问题');
+  });
+
+  it('capabilities 显式为 [] 时禁用「停止并发送」并说明原因', () => {
+    renderChat({ conflict: { ...CONFLICT!, capabilities: [] } });
+
+    const btn = screen.getByRole('button', { name: '停止并发送' });
+    expect(btn).toBeDisabled();
+    // title 挂在外层 span：disabled 的 button 不派发 hover，提示要由 span 承载
+    expect(btn.closest('span')).toHaveAttribute('title', '当前无法打断');
+  });
+
+  it('capabilities 缺失时按可用处理：缺失是「不知道」，不是「不允许」', () => {
+    renderChat({ conflict: { ...CONFLICT!, capabilities: null } });
+
+    expect(screen.getByRole('button', { name: '停止并发送' })).not.toBeDisabled();
+  });
+
+  it('停 run 失败的内联错误渲染在面板里，面板仍在', () => {
+    renderChat({ conflict: { ...CONFLICT!, error: '无法打断当前回答，请稍后重试' } });
+
+    expect(screen.getByRole('group', { name: '会话已有回答在生成' })).not.toBeNull();
+    expect(screen.getByRole('alert').textContent).toContain('无法打断当前回答，请稍后重试');
   });
 });

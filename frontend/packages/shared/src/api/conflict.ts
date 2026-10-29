@@ -3,6 +3,8 @@ export interface RunConflict {
   /** 后端 data.active_run_id；缺失时只能等待或取消。 */
   activeRunId: string | null;
   status: string | null;
+  /** 后端 data.capabilities；`null` 表示字段缺失（「不知道」能否打断），空数组才是「不允许」。 */
+  capabilities: string[] | null;
 }
 
 /** 后端信封是 `{code, message, data}`；不管 body 还是已摊平的 data 都能识别。 */
@@ -12,11 +14,13 @@ export function asRunConflict(err: unknown): RunConflict | null {
   const raw = (error.data ?? error.body) as { active_run_id?: unknown; data?: unknown } | null | undefined;
   // 先认顶层 active_run_id；摊平后的 data 本身也可能带 data 键，只信信封才再剥一层。
   const data = (raw && typeof raw === 'object' && !('active_run_id' in raw) && 'data' in raw ? raw.data : raw) as
-    | { active_run_id?: unknown; status?: unknown }
+    | { active_run_id?: unknown; status?: unknown; capabilities?: unknown }
     | null
     | undefined;
+  const caps = data?.capabilities;
   return {
     activeRunId: typeof data?.active_run_id === 'string' ? data.active_run_id : null,
     status: typeof data?.status === 'string' ? data.status : null,
+    capabilities: Array.isArray(caps) ? caps.filter((c): c is string => typeof c === 'string') : null,
   };
 }

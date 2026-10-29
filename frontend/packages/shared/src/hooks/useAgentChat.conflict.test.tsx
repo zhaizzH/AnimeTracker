@@ -69,7 +69,7 @@ describe('useAgentChat 409 并发冲突', () => {
     const { api, result } = await setupConflict();
 
     // 判据来自结构化字段，不依赖中文文案
-    expect(result.current.conflict).toEqual({ activeRunId: 'run-active', status: 'running', text: '被拒绝的问题' });
+    expect(result.current.conflict).toEqual({ activeRunId: 'run-active', status: 'running', capabilities: ['interrupt'], text: '被拒绝的问题' });
     // 用户气泡与空气泡都不留；也没有把「中断」文案写进正文
     expect(result.current.messages).toEqual([]);
     expect(result.current.streaming).toBe(false);
@@ -77,7 +77,7 @@ describe('useAgentChat 409 并发冲突', () => {
     expect(streamSseMock).toHaveBeenCalledTimes(1);
   });
 
-  it('打断并插入：先 stopRun(active_run_id) 再用同一段文本重发（共 2 次发送）', async () => {
+  it('停止并发送：先 stopRun(active_run_id) 再用同一段文本重发（共 2 次发送）', async () => {
     const { api, result } = await setupConflict();
     const order: string[] = [];
     vi.mocked(api.stopRun).mockImplementation(() => {
@@ -121,15 +121,56 @@ describe('useAgentChat 409 并发冲突', () => {
     expect(result.current.messages).toEqual([]);
   });
 
-  it('停活跃 run 失败时仍尝试重发，不把用户卡在冲突里', async () => {
+  // 语义反转：活跃 run 还在时重发必然再 409，只能原地重试，不能自动再发。
+  it('停活跃 run 失败时不重发：面板与原文保留，并给出内联错误', async () => {
     const { api, result } = await setupConflict();
     vi.mocked(api.stopRun).mockRejectedValue(new Error('503'));
     streamSseMock.mockImplementation(() => new Promise<void>(() => {}));
 
     await choose(result, 'interrupt');
-    await waitFor(() => expect(streamSseMock).toHaveBeenCalledTimes(2));
 
     expect(api.stopRun).toHaveBeenCalledWith('run-active');
+    expect(streamSseMock).toHaveBeenCalledTimes(1);
+    expect(result.current.conflict).toEqual({
+      activeRunId: 'run-active',
+      status: 'running',
+      capabilities: ['interrupt'],
+      text: '被拒绝的问题',
+      error: '无法打断当前回答，请稍后重试',
+    });
+  });
+
+  it('停 run 失败后可原地重试：重试成功时清掉内联错误并重发一次', async () => {
+    const { api, result } = await setupConflict();
+    vi.mocked(api.stopRun).mockRejectedValueOnce(new Error('503'));
+    streamSseMock.mockImplementation(() => new Promise<void>(() => {}));
+
+    await choose(result, 'interrupt');
+    await waitFor(() => expect(result.current.conflict?.error).toBe('无法打断当前回答，请稍后重试'));
+
+    // 重试挂起期间清 error 那一行只能在 act 内部观察到，这里不做断言（属已知不可测窗口）。
+    await choose(result, 'interrupt');
+    await waitFor(() => expect(streamSseMock).toHaveBeenCalledTimes(2));
+    expect(api.stopRun).toHaveBeenCalledTimes(2);
+    expect(result.current.conflict).toBeNull();
+  });
+
+  it('双击「停止并发送」只产生一次 stopRun 与一次重发', async () => {
+    const { api, result } = await setupConflict();
+    let releaseStop: () => void = () => {};
+    vi.mocked(api.stopRun).mockImplementation(() => new Promise<void>((resolve) => { releaseStop = resolve; }));
+    streamSseMock.mockImplementation(() => new Promise<void>(() => {}));
+
+    // setConflict(null) 是异步 state：两次同步点击都会读到旧 conflict，同步锁必须拦住第二次。
+    await act(async () => {
+      const first = result.current.resolveConflict('interrupt');
+      const second = result.current.resolveConflict('interrupt');
+      releaseStop();
+      await Promise.all([first, second]);
+    });
+
+    expect(api.stopRun).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(streamSseMock).toHaveBeenCalledTimes(2));
   });
 
   it('409 缺 active_run_id 时只提供等待/取消，打断不会空转', async () => {
@@ -141,7 +182,7 @@ describe('useAgentChat 409 并发冲突', () => {
     await act(async () => { void result.current.send('问题'); });
     await waitFor(() => expect(result.current.conflict).not.toBeNull());
 
-    expect(result.current.conflict).toEqual({ activeRunId: null, status: null, text: '问题' });
+    expect(result.current.conflict).toEqual({ activeRunId: null, status: null, capabilities: null, text: '问题' });
 
     await choose(result, 'interrupt');
     expect(result.current.conflict).toBeNull();

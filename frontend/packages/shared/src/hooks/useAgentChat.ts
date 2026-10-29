@@ -6,8 +6,10 @@ import { asRunConflict, type RunConflict } from '../api/conflict';
 export interface ChatMsg { id: string; role: 'user' | 'assistant'; content: string; thinking?: string }
 export interface ToolStep { name: string; status: 'running' | 'done' | 'error'; message?: string }
 
-/** 发送被 409 拒绝时的选择态：`text` 是未发出的原文，任选项都不会丢。 */
-export interface SendConflict extends RunConflict { text: string }
+/** 发送被 409 拒绝时的选择态：`text` 是未发出的原文，任选项都不会丢。 `error` 是停止失败的内联原因。 */
+export interface SendConflict extends RunConflict { text: string; error?: string }
+/** 停不掉活跃 run 就不能重发：重发必然再 409，面板会连环弹。 */
+const STOP_FAILED = '无法打断当前回答，请稍后重试';
 export type ConflictChoice = 'interrupt' | 'wait' | 'cancel';
 const nextId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -52,6 +54,8 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
   // 当前 run 的身份，来自首帧 meta.run_id；用 ref 而非 state（首帧高频，无需重渲染）。
   const runId = useRef<string | null>(null);
   const historyRequest = useRef(0);
+  // 冲突选择的同步锁：`setConflict(null)` 是异步 state，双击会两次读到旧 conflict。
+  const resolving = useRef(false);
   // 在途回放订阅的世代号：切会话时递增，旧订阅的迟到帧一律丢弃。
   const replaySeq = useRef(0);
   useEffect(() => () => ab.current?.abort(), []);
@@ -304,18 +308,32 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
     ab.current?.abort();
   }, []);
   /**
-   * 处理 409 选择：interrupt = 先停活跃 run 再重发同一段文本（2 次发送请求）；
+   * 处理 409 选择：interrupt = 先停活跃 run，停成功才重发同一段文本；
    * wait / cancel 都不发请求。缺 active_run_id 时没有可停的 run，按取消处理。
+   * 同一次尝试只跑一遍（同步锁）；stop 失败时保留面板与原文，只写回内联错误。
    */
   const resolveConflict = useCallback(async (choice: ConflictChoice) => {
+    if (resolving.current) return;
     const current = conflict;
     if (!current) return;
-    setConflict(null);
-    if (choice !== 'interrupt' || !current.activeRunId) return;
-    try { await apiRef.current.stopRun(current.activeRunId); }
-    catch (err) { console.warn('[useAgentChat] 打断活跃 run 失败，仍尝试重发', current.activeRunId, err); }
-    // 不 await：重发会一直跑到 run 结束，面板点击不能被它挂住。
-    void send(current.text);
+    resolving.current = true;
+    try {
+      if (choice !== 'interrupt' || !current.activeRunId) { setConflict(null); return; }
+      // 用户原地重试：先清掉上一次的内联错误，否则按钮看着像没反应。
+      if (current.error) setConflict({ ...current, error: undefined });
+      try { await apiRef.current.stopRun(current.activeRunId); }
+      catch (err) {
+        // 活跃 run 还在：重发必然再 409 → 面板重开成循环。原位保留，让用户重试。
+        console.warn('[useAgentChat] 停活跃 run 失败，保留冲突面板', current.activeRunId, err);
+        setConflict({ ...current, error: STOP_FAILED });
+        return;
+      }
+      setConflict(null);
+      // 不 await：重发会一直跑到 run 结束，面板点击不能被它挂住。
+      void send(current.text);
+    } finally {
+      resolving.current = false;
+    }
   }, [conflict, send]);
 
   return { messages, sessions, activeId, health, streaming, ready, tools, conflict, send, stop, select, create, remove, resolveConflict };

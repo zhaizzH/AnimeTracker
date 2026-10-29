@@ -68,8 +68,9 @@ export function AgentConversation() {
     activate();
   }, [activate]);
   // 409 时后端没接受这条消息（气泡已收回）：原文放回输入框，用户不会丢字。
+  // error 更新（停 run 失败/重试）不是新一次尝试，不能再回填，否则会覆盖用户正在编辑的内容。
   useEffect(() => {
-    if (conflict) setInput(conflict.text);
+    if (conflict && !conflict.error) setInput(conflict.text);
   }, [conflict]);
   useEffect(() => {
     const el = scrollRef.current;
@@ -84,14 +85,16 @@ export function AgentConversation() {
     prevHealth.current = health;
   }, [health]);
 
+  const interruptBlocked = conflict?.capabilities?.includes('interrupt') === false;
+
   const submit = () => {
     if (!ready || !input.trim() || streaming || !activeId || conflict) return;
     void send(input);
     setInput('');
   };
 
-  // 打断=原文已重发，清空输入框；等待/取消都保留原文（已由冲突 effect 回填）。
-  // 没有 activeRunId 时「打断并插入」按钮是 disabled 的，所以这里不需要再判空。
+  // 停止并发送=原文已重发，清空输入框；等待/取消都保留原文（已由冲突 effect 回填）。
+  // 没有 activeRunId 或 capabilities 不含 interrupt 时该按钮是 disabled 的，所以这里不需要再判空。
   const choose = (choice: 'interrupt' | 'wait' | 'cancel') => {
     if (choice === 'interrupt') setInput('');
     void resolveConflict(choice);
@@ -126,9 +129,21 @@ export function AgentConversation() {
       {conflict && (
         <div role="group" aria-label="会话已有回答在生成" className="flex flex-wrap items-center gap-2 border-t p-2 text-sm">
           <span className="text-muted-foreground">这个会话还有一条回答正在生成</span>
-          <Button type="button" size="sm" disabled={!conflict?.activeRunId} onClick={() => choose('interrupt')}>打断并插入</Button>
+          {/* capabilities 缺失（null）是「不知道」，只有显式不含 interrupt 才禁用。 */}
+          {/* title 必须挂在外层 span：disabled 的 button 在 Chrome/Safari 不派发 hover，提示看不到。 */}
+          <span title={interruptBlocked ? '当前无法打断' : undefined}>
+            <Button
+              type="button"
+              size="sm"
+              disabled={!conflict.activeRunId || interruptBlocked}
+              onClick={() => choose('interrupt')}
+            >
+              停止并发送
+            </Button>
+          </span>
           <Button type="button" size="sm" variant="outline" onClick={() => choose('wait')}>等待</Button>
           <Button type="button" size="sm" variant="ghost" onClick={() => choose('cancel')}>取消</Button>
+          {conflict.error && <p role="alert" className="basis-full text-destructive">{conflict.error}</p>}
         </div>
       )}
       <div className="flex items-center gap-2 border-t p-2">
