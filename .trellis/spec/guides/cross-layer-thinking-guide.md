@@ -31,6 +31,8 @@ React client/admin
 
 测试文件也需核对导入和可执行性：2026-09-10 曾发现能力路由测试引用缺失符号；2026-09-12 的既有质量记录说明该测试已重写。此处保留历史教训，不将旧失败描述为当前状态；2026-09-16 本轮复核重新运行了 Business Java 测试和 Javadoc 检查，结果见 [后端质量门禁](../backend/quality-guidelines.md#当前测试基线)。
 
+**环境事实不写进 spec。** spec 只缓存「查不到的东西」（约定、取舍理由、踩过的坑）；一次查找就能得到的照抄进来只会变成陈旧副本。典型读错案例：`quality-guidelines.md` 曾手写「CI 跑哪几步」，而 `ci.yml` 早已多了 `npm test` 与 `npm run build`；也曾在同一节里并存 862/125 与 814/111 两套测试通过数。同类不要抄的：`ci.yml` 的步骤与版本、`package.json` 的 scripts、目录布局、依赖清单。写「以 `<文件>` 为准」给指针，不复制内容。
+
 ### JSON API 变更
 
 1. 修改 Java DTO/VO/Controller 或 Python Pydantic schema。

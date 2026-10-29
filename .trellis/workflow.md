@@ -237,6 +237,7 @@ Flow: `trellis-implement` -> `trellis-check` -> `trellis-update-spec` only for a
 Main-session default: dispatch implement/check sub-agents. Sub-agent self-exemption: if already running as `trellis-implement`, do NOT spawn another `trellis-implement` or `trellis-check`; if already running as `trellis-check`, do NOT spawn another `trellis-check` or `trellis-implement`. Dispatch is main session only.
 Dispatch prompt starts with `Active task: <task path from task.py current>`. Read context: jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present`.
 Commit density: commit only a completed, user-visible milestone. Never create a standalone commit for progress notes, evidence pointers, or only `.trellis/tasks/**/task.json`; keep those changes for the next code milestone or the one final bookkeeping batch.
+Review timing: dispatch `trellis-check` against the **working tree before commit**, not against an already-committed hash. Reviewing after commit turns every finding into a second patch commit and leaves the flawed one in history.
 [/workflow-state:in_progress]
 
 <!-- Per-turn breadcrumb: shown while status='in_progress' when
