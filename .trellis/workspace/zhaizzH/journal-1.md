@@ -1013,3 +1013,47 @@ Session summary was not supplied.
 
 - 按 implement.md 步骤 0 记录前端三包基线（npm test + npm run typecheck）
 - 步骤 1–2 先做 GET SSE 传输与 API 适配层，步骤 3–5 再做 run_id/回放/409 UI
+
+
+## Session 35: 项目回顾：门禁与文档漂移收口、ruff 接入、win32 派发路径
+<!-- trellis-session: v=2 fp=10573eec55c3bb37 -->
+
+**Date**: 2026-10-29
+**Task**: 项目回顾：门禁与文档漂移收口、ruff 接入、win32 派发路径
+**Branch**: `main`
+
+### Summary
+
+按回顾清单逐条收口五项。ruff 接入 backend/agent（只开 pyflakes F 规则，49 条一次修完，CI 在 pytest 前加一步，明确不开 E501/不做 format）。quality-guidelines 删掉手写 CI 现状与两段互相矛盾的测试基线（862/125 与 814/111 并存），CI 事实改为以 ci.yml 为唯一来源，index.md 与 cross-layer-thinking-guide 的「基线数字」词条同步改口径。派发 ENOENT 根因定位到 win32：bare `pi` 是 pi.CMD shim，CreateProcess 不走 PATHEXT（实测 FileNotFoundError [WinError 2]）。修了两处：仓内 .trellis/scripts/common/cli_adapter.py 用 shutil.which 解析 argv[0]；本地 .pi/extensions/trellis/index.ts 的 resolvePiCli 增加 PI_MANAGED_INSTALL_ROOT + current-version 候选（.pi 未入 Git，需重启 pi 生效）。归档 10-22 任务并把 10-27 任务内的 handoff 链接改指向 archive 路径。验证：ruff All checks passed、pytest 862 passed。
+
+### Main Changes
+
+- backend/agent：加 ruff dev 依赖与 [tool.ruff] select=["F"]；修 49 条（47 自动、手修 jobs/scheduler/main.py 缺 Any import 与 tests/evals/runner.py 未用 cfg）
+- .github/workflows/ci.yml：Python job 在 pytest 前加 lint 步 uv run ruff check .
+- .trellis/spec/backend/quality-guidelines.md：删 CI 现状手写与两段基线数字，改为「以 ci.yml 为准 + 现场跑命令」；新增 ruff 规则口径与不加规则的判据（>50 条拆独立提交）
+- .trellis/spec/backend/index.md、guides/cross-layer-thinking-guide.md：同步 CI 事实来源与「基线数字」词条
+- .trellis/scripts/common/cli_adapter.py：_resolve_exe 用 shutil.which 解析 argv[0]，build_resume_command 拆公开包装 + _build_resume_command
+- .pi/extensions/trellis/index.ts（未入 Git）：resolvePiCli 增 PI_MANAGED_INSTALL_ROOT/releases/<ver> 候选
+- 任务台账：10-22-fix-agent-stream-disconnect 归档至 archive/2026-10（--skip-branch-validation），10-27 任务两处 handoff 链接改指向 archive
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1e82dd7b` | chore(spec+ci): 收口文档漂移、接入 ruff、修复 win32 派发路径 |
+
+### Testing
+
+- [OK] backend/agent: uv run ruff check . → All checks passed
+- [OK] backend/agent: uv run pytest -q → 862 passed（与 10-27 基线一致，ruff 自动修未造成回归）
+- [OK] .trellis/scripts: cli_adapter 解析实测 pi→pi.CMD、claude→claude.EXE、pi.CMD --version rc=0
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 重启 pi 后重跑一次 trellis_subagent 派发，确认 .pi 扩展改动生效；仍失败则按 Q1-B 把「收尾强制新会话 + 只喂 git diff」写进 spec
+- 10-27-agent-run-reconnect-frontend 按 implement.md 步骤 0 记录三包基线后开工
+- journal-1.md 已 1000+ 行，接近 1800 时另开 journal-2.md
