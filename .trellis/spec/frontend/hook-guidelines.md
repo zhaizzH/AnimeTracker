@@ -124,6 +124,8 @@
 - SSE 的 401 已有与 Axios 对齐的「刷新一次 → 重放」闭环（`packages/shared/src/auth/stream.ts` 的 `streamSseWithAuth`）：`SseError.status === 401` → `refreshWithLock()` → 用 store 里的**新令牌**重放一次；刷新失败或重放仍 401 就停，**禁止无限重试**。403 不触发刷新（刷新救不了权限），网络/协议故障原样抛出交给调用方分类。
 - 重放安全的前提是后端契约：鉴权依赖在创建 run **之前**抛 401，所以被杀掉的 `POST /stream` 没有产生 run，重放不会凭空多开一条。改变这个顺序（例如先建 run 再鉴权）会让重放变成「同会话两条 run」。
 - `useAgentChat` 的所有订阅都走 `streamSseWithAuth`，不要直接用 `streamSse`：直接调会绕过刷新闭环，token 过期时表现为「未认证」而不是静默续上。
+- 刷新成功、拿新令牌重放**仍** 401 → 由 `streamSseWithAuth` 调 `setUnauthenticated()`，交给路由 guard 跳登录页。停在 `authenticated` + 死令牌会让用户对着必然失败的操作反复重试。
+- **`signed-out` 广播只用于用户主动登出**。令牌失效、刷新失败、网络故障都只影响当前标签：把这些也广播出去，会让其它标签在用户还在操作时被一起踢走（刷新失败的常见原因是网络抖动，不是会话真的没了）。
 
 #### 服务端写入缓存矩阵
 
