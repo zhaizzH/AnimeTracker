@@ -46,11 +46,69 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
   // 当前 run 的身份，来自首帧 meta.run_id；用 ref 而非 state（首帧高频，无需重渲染）。
   const runId = useRef<string | null>(null);
   const historyRequest = useRef(0);
+  // 在途回放订阅的世代号：切会话时递增，旧订阅的迟到帧一律丢弃。
+  const replaySeq = useRef(0);
   useEffect(() => () => ab.current?.abort(), []);
   // api 为调用方内联对象，引用不稳定；用 ref 保持挂载期只跑一次 effect，与旧 client 行为一致。
   // ponytail: 若日后需要响应 api 变化，可去掉 ref。
   const apiRef = useRef(api);
   apiRef.current = api;
+  const tokenRef = useRef(token);
+  tokenRef.current = token;
+
+  // 提示走独立 assistant 气泡：hook 目前没有单独的 notice 通道。
+  // ponytail: client/admin 接出 banner 后可换成非持久化通道。
+  const addNotice = useCallback((text: string) => {
+    setMessages((m) => [...m, { id: nextId(), role: 'assistant', content: text }]);
+  }, []);
+
+  /** 单条订阅的帧分发：实时与回放共用同一套事件白名单和同一把 is_end 锁。 */
+  const makeOnEvent = useCallback((targetId: string) => {
+    // 结束锁用局部对象而非 state：state 置位有渲染延迟，脏帧会在空窗期漏进来。
+    const ended = { current: false };
+    const onEvent = (data: string) => {
+      if (ended.current) return;
+      const ev = parseEvent(data);
+      if (!ev) return;
+      if (ev.meta?.run_id) runId.current = ev.meta.run_id;
+      if (ev.is_end) { ended.current = true; runId.current = null; return; }
+      const c = ev.content ?? {};
+      // 只认白名单四类事件；曾经用 `c.text` 兜底，导致 status/function_call 的 message 污染正文。
+      switch (ev.type) {
+        case 'thinking':
+          // thinking 挂在对应 assistant 消息上，随消息一起渲染在其上方
+          if (c.text) setMessages((m) => m.map((x) => (x.id === targetId ? { ...x, thinking: (x.thinking ?? '') + c.text! } : x)));
+          break;
+        case 'answer':
+          if (c.text) setMessages((m) => m.map((x) => (x.id === targetId ? { ...x, content: x.content + c.text! } : x)));
+          break;
+        case 'function_call':
+          if (!c.name) break;
+          // 失败不以 state=error 表达：后端用 state=end + result=error（middleware.py emit_function_call）。
+          // state=error 只出现在 status 事件上，别把两者混成一条判据。
+          if (c.state === 'end') {
+            const failed = c.result === 'error';
+            setTools((ts) => ts.map((t) => (t.name === c.name ? { ...t, status: failed ? 'error' : 'done', message: c.message } : t)));
+          }
+          else if (c.state === 'start') setTools((ts) => (ts.some((t) => t.name === c.name) ? ts : [...ts, { name: c.name!, status: 'running', message: c.message }]));
+          break;
+        case 'status':
+          // status 不写正文；但 state=error 的 message 是后端给用户看的持久化失败提示（回答/待确认动作
+          // 保存失败），丢弃会让用户以为一切正常，因此非空时追加到当前 assistant 消息尾部。
+          if (c.state === 'error' && c.message) {
+            setMessages((m) => m.map((x) => (x.id === targetId ? { ...x, content: `${x.content}${x.content ? '\n\n' : ''}${c.message}` } : x)));
+          } else if (c.state === 'warning') {
+            // 回放缓存的游标已被缓冲上限截断：后端先发 warning 再跳过旧帧，静默丢弃会让人以为内容完整。
+            addNotice(c.message || '(部分实时内容已过期，完整回答见历史)');
+          }
+          break;
+        default:
+          // 其它未登记类型不渲染，避免误落正文。
+          break;
+      }
+    };
+    return { ended, onEvent };
+  }, [addNotice]);
 
   const refreshSessions = useCallback(() => apiRef.current.listSessions()
     .then((list) => {
@@ -69,10 +127,73 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
     return true;
   }, []);
 
+  /** 订阅某 run 并从头回放；不阻塞 select（订阅可能活到 run 结束）。 */
+  const replayRun = useCallback(async (runIdNow: string, seq: number) => {
+    // 回放会重推全量事件：必须新开空气泡，复用 loadHistory 写的历史气泡会把正文拼两遍。
+    const assistantId = nextId();
+    setMessages((m) => [...m, { id: assistantId, role: 'assistant', content: '' }]);
+    runId.current = runIdNow;
+    setStreaming(true);
+    const ac = new AbortController();
+    ab.current = ac;
+    // 游标是「已收到的事件帧数」，与文本长度、token 数无关。
+    let frames = 0;
+    const { ended, onEvent } = makeOnEvent(assistantId);
+    try {
+      // 最多续订一次：流正常结束却没收到 is_end，说明中间层掐断了回放。
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          await streamSse({ url: apiRef.current.runStreamUrl(runIdNow, frames), method: 'GET', token: tokenRef.current, signal: ac.signal, onEvent: (data) => {
+            if (seq !== replaySeq.current) return;
+            // 截断降级帧由服务端插入，不占 run.events 索引；计数会让 after 偏移一帧而重放已收内容。
+            const ev = parseEvent(data) as { type?: string; content?: { state?: string } } | null;
+            if (!(ev?.type === 'status' && ev.content?.state === 'warning')) frames += 1;
+            onEvent(data);
+          } });
+        } catch (err) {
+          if (err instanceof SseAbortError) {
+            // 只收掉还没写进任何内容的空气泡；已有正文若被删，用户点停止会把答案抹掉。
+            if (seq === replaySeq.current) setMessages((m) => m.filter((x) => !(x.id === assistantId && !x.content)));
+            return;
+          }
+          const unauthorized = err instanceof SseError && (err.status === 401 || err.status === 403);
+          if (seq === replaySeq.current) addNotice(unauthorized ? '(未认证或无权限，请重新登录)' : '(流式中断，请重试)');
+          return;
+        }
+        if (ac.signal.aborted || ended.current) return;
+      }
+    } finally {
+      // 世代号变了说明已经在别的会话里，别把它的 streaming 状态清掉。
+      if (seq === replaySeq.current) { runId.current = null; setStreaming(false); }
+    }
+  }, [makeOnEvent, addNotice]);
+
   const select = useCallback(async (id: string) => {
     setActiveId(id);
-    if (await loadHistory(id)) setReady(true);
-  }, [loadHistory]);
+    // 切会话先掐掉在途订阅：否则旧 run 的迟到帧会写进新会话的气泡。
+    replaySeq.current += 1;
+    const seq = replaySeq.current;
+    ab.current?.abort();
+    ab.current = null;
+    runId.current = null;
+    // 旧订阅已掐掉；它的 finally 因世代号变化不会再清 streaming，这里负责收尾。
+    setStreaming(false);
+    // 工具步骤属于上一条 run，跟着切会话一起清，否则会残留在新会话的工具栏。
+    setTools([]);
+    if (!(await loadHistory(id))) return;
+    setReady(true);
+    // 无 run 时后端 404，按「没有进行中的 run」处理。
+    const state = await apiRef.current.sessionRun(id).catch(() => null);
+    if (seq !== replaySeq.current || !state) return;
+    if (state.status === 'failed') {
+      // 进程重启后 running 会被懒收敛成 failed，后端不补写消息：历史里没有这条回答，只能靠提示告知。
+      addNotice('(上次回答未完成，完整回答见历史)');
+      return;
+    }
+    if (state.status !== 'running' || !state.run_id) return;
+
+    void replayRun(state.run_id, seq);
+  }, [loadHistory, replayRun]);
   const create = useCallback(async () => {
     setReady(false);
     const s = await apiRef.current.createSession();
@@ -123,48 +244,11 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
     setTools([]);
     setStreaming(true);
     runId.current = null;
-    ab.current = new AbortController();
-    // 结束锁用局部对象而非 state：state 置位有渲染延迟，脏帧会在空窗期漏进来。
-    const ended = { current: false };
+    const myAb = new AbortController();
+    ab.current = myAb;
+    const { onEvent } = makeOnEvent(assistantId);
     try {
-      await streamSse({ url: apiRef.current.streamUrl, body: apiRef.current.streamBody(text, sessionId || undefined), token, signal: ab.current.signal, onEvent: (data) => {
-        if (ended.current) return;
-        const ev = parseEvent(data);
-        if (!ev) return;
-        if (ev.meta?.run_id) runId.current = ev.meta.run_id;
-        if (ev.is_end) { ended.current = true; runId.current = null; return; }
-        const c = ev.content ?? {};
-        // 只认白名单四类事件；曾经用 `c.text` 兜底，导致 status/function_call 的 message 污染正文。
-        switch (ev.type) {
-          case 'thinking':
-            // thinking 挂在对应 assistant 消息上，随消息一起渲染在其上方
-            if (c.text) setMessages((m) => m.map((x) => (x.id === assistantId ? { ...x, thinking: (x.thinking ?? '') + c.text! } : x)));
-            break;
-          case 'answer':
-            if (c.text) setMessages((m) => m.map((x) => (x.id === assistantId ? { ...x, content: x.content + c.text! } : x)));
-            break;
-          case 'function_call':
-            if (!c.name) break;
-            // 失败不以 state=error 表达：后端用 state=end + result=error（middleware.py emit_function_call）。
-            // state=error 只出现在 status 事件上，别把两者混成一条判据。
-            if (c.state === 'end') {
-              const failed = c.result === 'error';
-              setTools((ts) => ts.map((t) => (t.name === c.name ? { ...t, status: failed ? 'error' : 'done', message: c.message } : t)));
-            }
-            else if (c.state === 'start') setTools((ts) => (ts.some((t) => t.name === c.name) ? ts : [...ts, { name: c.name!, status: 'running', message: c.message }]));
-            break;
-          case 'status':
-            // status 不写正文；但 state=error 的 message 是后端给用户看的持久化失败提示（回答/待确认动作
-            // 保存失败），丢弃会让用户以为一切正常，因此非空时追加到当前 assistant 消息尾部。
-            if (c.state === 'error' && c.message) {
-              setMessages((m) => m.map((x) => (x.id === assistantId ? { ...x, content: `${x.content}${x.content ? '\n\n' : ''}${c.message}` } : x)));
-            }
-            break;
-          default:
-            // 其它未登记类型不渲染，避免误落正文。
-            break;
-        }
-      } });
+      await streamSse({ url: apiRef.current.streamUrl, body: apiRef.current.streamBody(text, sessionId || undefined), token, signal: ab.current.signal, onEvent });
     } catch (err) {
       // 主动停止是正常路径，不写中断文案；鉴权失败单独提示，别混进通用故障。
       if (!(err instanceof SseAbortError)) {
@@ -173,9 +257,13 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
         setMessages((m) => m.map((x) => (x.id === assistantId && !x.content ? { ...x, content: notice } : x)));
       }
     }
-    // run 在结束/出错/abort 三条路上都已终止，旧 run_id 留着会被下一次停止误用。
-    finally { runId.current = null; setStreaming(false); void refreshSessions(); }
-  }, [token, activeId, streaming, ready, refreshSessions]);
+    // 只有当前请求仍是拥有者时才收尾：切到另一个有 running run 的会话时，回放已经接管
+    // ab.current / streaming / run_id，旧 send 的 finally 不能把它们清掉。
+    finally {
+      if (ab.current === myAb) { runId.current = null; setStreaming(false); }
+      void refreshSessions();
+    }
+  }, [token, activeId, streaming, ready, refreshSessions, makeOnEvent]);
 
   // 顺序不能反：先 abort 会让后端把断连当掉线，run 继续烧 token。
   // run_id 未到达时只 abort——此时后端还没有 run 可停，排队/重试都没有意义。
