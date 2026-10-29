@@ -1103,3 +1103,44 @@ Session summary was not supplied.
 ### Next Steps
 
 - 已知缺口见 implement.md 交接附注：409 可能连环弹、capabilities 未读、failed 提示是临时气泡、回放结束不刷会话列表
+
+
+## Session 37: 修复 409 冲突连环弹：停失败不重发、单次触发、按 capabilities 裁剪
+<!-- trellis-session: v=2 fp=f9331506185daf56 -->
+
+**Date**: 2026-10-29
+**Task**: 修复 409 冲突连环弹：停失败不重发、单次触发、按 capabilities 裁剪
+**Branch**: `main`
+
+### Summary
+
+按回顾结论收口 10-27 的三个已知缺口。先纠正一个被源码证伪的前提：backend/agent/app/chat/runs.py 的 stop() 同步把状态置 CANCELLED，active_for_session 只认 RUNNING，所以「停成功（stop 成功）后重发仍会 409」不成立——真实循环入口只有「停失败后盲重发」与「双击触发两次尝试」。据此改 resolveConflict：stopRun 抛错时不再 send，改为保留面板与原文、写回内联错误、允许原地重试；加同步锁挡双击。面板接上 capabilities（显式不含 interrupt 时禁用，字段缺失按可用），文案由「打断并插入」改为「停止并发送」，因为后端没有排队能力。审查又抓到两个 UX 真问题：disabled 按钮在 Chrome/Safari 不派发 hover 导致 title 提示看不到（改挂外层 span）；回填 effect 依赖整个 conflict 对象，停失败换引用会把用户正在编辑的输入覆盖回原文（改为跳过 error 更新）。规范补上接口事实并删掉归档附注里那条错误解释。
+
+### Main Changes
+
+- shared/api/conflict.ts：RunConflict 加 capabilities: string[] | null（缺失为 null，显式数组透出，非字符串元素过滤）
+- shared/hooks/useAgentChat.ts：resolveConflict 加同步锁；stopRun 失败不重发；conflict 加 error 字段
+- client/admin：按钮文案「停止并发送」、按 capabilities 禁用、内联错误 role=alert、title 移挂 span、回填 effect 跳过 error 更新
+- .trellis/spec/frontend/hook-guidelines.md：补「stop 成功即不再是 active run」「停失败不得盲重发」「capabilities 缺失不等于不允许」「同一次尝试只执行一遍」
+- 归档任务 10-27 的 implement.md：删掉被证伪的 409 循环解释，改为真实入口（停失败盲重发 / 双击），多标签场景标为设计意图不修
+- .trellis/spec/frontend/quality-guidelines.md：基线重测为 32 文件 / 202 用例
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4888226a` | fix(shared): 409 面板不再连环弹，按 capabilities 裁剪并更正接口事实 |
+
+### Testing
+
+- [OK] frontend: shared 77 / client 46 / admin 79 = 202 全绿；typecheck 零错误
+- [OK] 变异验证：catch 改回重发、删同步锁、缺字段当空数组、null 当禁用，四条均转红
+- [OK] 后端接口事实逐字核实：runs.py:199 置 CANCELLED、:186 只认 RUNNING、chat.py:52-59 是唯一 409 闸门
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 仍存缺口（不阻塞）：failed 提示是临时气泡、回放结束不刷会话列表、多标签不同步
