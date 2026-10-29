@@ -33,6 +33,9 @@ export default function AgentChat() {
     deleteSession: adminAgentApi.chatDeleteSession,
     streamBody: adminAgentApi.chatStreamBody,
     streamUrl: '/api/admin/agent/chat/stream',
+    sessionRun: adminAgentApi.chatSessionRun,
+    stopRun: adminAgentApi.chatStopRun,
+    runStreamUrl: adminAgentApi.chatRunStreamUrl,
   };
   const { messages, sessions, activeId, streaming, send, stop, select, create, remove } = useAgentChat(api);
   const [input, setInput] = useState('');

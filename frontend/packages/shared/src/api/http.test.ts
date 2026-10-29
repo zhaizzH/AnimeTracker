@@ -42,4 +42,20 @@ describe('http 错误透出', () => {
 
     await expect(http.get('/client/me')).rejects.toThrow('未认证');
   });
+
+  it('错误对象携带 status 与结构化 data，供 409 冲突分支读取', async () => {
+    mock.onPost('/client/agent/stream').reply(409, {
+      code: 409,
+      message: '当前会话已有进行中的对话',
+      data: { active_run_id: 'abc', status: 'running', capabilities: ['interrupt'] },
+    });
+
+    const err = (await http.post('/client/agent/stream', {}).catch((e: unknown) => e)) as {
+      message: string;
+      status?: number;
+      data?: unknown;
+    };
+    expect(err.status).toBe(409);
+    expect(err.data).toEqual({ active_run_id: 'abc', status: 'running', capabilities: ['interrupt'] });
+  });
 });

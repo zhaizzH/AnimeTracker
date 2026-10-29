@@ -21,12 +21,14 @@
 
 ## 步骤 2：API 适配层（TDD）
 
-- [ ] `api/agent.ts`：`sessionRun`、`stopRun`（`runStreamUrl` 在 hook 里由 `streamUrl` 前缀推导，
+- [x] `api/agent.ts`：`sessionRun`、`stopRun`（`runStreamUrl` 在 hook 里由 `streamUrl` 前缀推导，
       或显式给出——两者择一，但 client/admin 必须一致）。
-- [ ] `api/admin/agent.ts`：对应三方法。
-- [ ] `api/http.ts` 的 `toError`：把解析后的 `data` 挂到 Error 上，供 409 UI 读取。
-- [ ] client/admin 两个注入对象（`client/src/components/AgentChat.tsx`、`admin/src/pages/AgentChat.tsx`）同步补字段。
-- [ ] 用例：路径前缀正确（client vs admin）、`stopRun` 走 POST、`sessionRun` 走 GET。
+- [x] `api/admin/agent.ts`：对应三方法。
+- [x] `api/http.ts` 的 `toError`：把解析后的 `data` 挂到 Error 上，供 409 UI 读取。
+- [x] client/admin 两个注入对象（`client/src/components/AgentChat.tsx`、`admin/src/pages/AgentChat.tsx`）同步补字段。
+- [x] 用例：路径前缀正确（client vs admin）、`stopRun` 走 POST、`sessionRun` 走 GET。
+
+实现：`runStreamUrl` 选择**显式给出**（client `/api/client/agent/runs/{id}/stream`，admin `/api/admin/agent/chat/runs/{id}/stream`），不在 hook 里由 `streamUrl` 前缀推导——两者路径段不同（`agent/runs` vs `agent/chat/runs`），推导只会引入字符串魔法。`AgentChatApi` 三个新方法设为**必填**，让 typecheck 强制 client/admin 两个注入点同步（缺失即编译失败，而不是运行时静默跳过重连）。
 
 ## 步骤 3：run_id 记录与停止时序（TDD）
 

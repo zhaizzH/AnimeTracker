@@ -12,3 +12,10 @@ export const chatCreateSession = () => post<Record<string, unknown>>('/admin/age
 export const chatHistory = (sessionId: string) => get<Record<string, unknown>[]>(`/admin/agent/chat/sessions/${encodeURIComponent(sessionId)}/history`);
 export const chatDeleteSession = (sessionId: string) => post<void>(`/admin/agent/chat/sessions/${encodeURIComponent(sessionId)}/remove`);
 export const chatStreamBody = (message: string, sessionId?: string) => ({ content: message, ...(sessionId ? { session_id: sessionId } : {}) });
+
+// ── chat run（重连/状态/停止）────────────────────────────────────────────
+export const chatSessionRun = (sessionId: string) =>
+  get<{ run_id: string; status: string }>(`/admin/agent/chat/sessions/${encodeURIComponent(sessionId)}/run`);
+export const chatStopRun = (runId: string) => post<void>(`/admin/agent/chat/runs/${encodeURIComponent(runId)}/stop`);
+export const chatRunStreamUrl = (runId: string, after: number) =>
+  `/api/admin/agent/chat/runs/${encodeURIComponent(runId)}/stream?after=${after}`;

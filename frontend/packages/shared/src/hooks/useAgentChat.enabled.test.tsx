@@ -15,6 +15,9 @@ const createApi = (): AgentChatApi => ({
   deleteSession: vi.fn().mockResolvedValue(undefined),
   streamBody: vi.fn().mockReturnValue({}),
   streamUrl: '/agent/stream',
+  sessionRun: vi.fn().mockRejectedValue(new Error('404')),
+  stopRun: vi.fn().mockResolvedValue(undefined),
+  runStreamUrl: (id: string, after: number) => `/agent/runs/${id}/stream?after=${after}`,
   health: vi.fn().mockResolvedValue('ok'),
 });
 

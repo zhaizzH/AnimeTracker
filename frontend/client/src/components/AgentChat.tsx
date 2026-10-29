@@ -15,6 +15,9 @@ const clientAgentApi = {
   deleteSession: agentApi.deleteSession,
   streamBody: agentApi.streamBody,
   streamUrl: '/api/client/agent/stream',
+  sessionRun: agentApi.sessionRun,
+  stopRun: agentApi.stopRun,
+  runStreamUrl: agentApi.runStreamUrl,
   health: agentApi.health,
 };
 

@@ -20,14 +20,21 @@ const AUTH_ENDPOINT = /^\/client\/auth\/(login|register|verify-email|resend-code
 /** 优先暴露后端 Result.message，避免 axios 的 “Request failed with status code 401” 掩盖真实原因 */
 function toError(error: AxiosError): Error {
   const body = error.response?.data as ApiResult<unknown> | undefined;
-  return new Error(body?.message || error.message || '请求失败');
+  // status / data 供调用方分支：409 冲突的 active_run_id 在 data 里，不在 message 里。
+  // 只有真的存在才挂键，避免 `'data' in err` 在网络错误下误判。
+  return Object.assign(new Error(body?.message || error.message || '请求失败'), {
+    ...(error.response?.status !== undefined && { status: error.response.status }),
+    ...(body?.data !== undefined && { data: body.data }),
+  });
 }
 
 http.interceptors.response.use(
   (res) => {
     const body = res.data as ApiResult<unknown>;
     if (body.code === 200) return body.data as never;
-    return Promise.reject(new Error(body.message || '请求失败'));
+    return Promise.reject(
+      Object.assign(new Error(body.message || '请求失败'), { status: res.status, data: body.data }),
+    );
   },
   async (error: AxiosError) => {
     const original = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined;

@@ -23,6 +23,12 @@ export interface AgentChatApi {
   deleteSession: (id: string) => Promise<void>;
   streamBody: (message: string, sessionId?: string) => Record<string, unknown>;
   streamUrl: string;
+  /** 某会话当前 run 状态；无 run 时后端 404。 */
+  sessionRun: (id: string) => Promise<{ run_id: string; status: string }>;
+  /** 逻辑停止当前 run（不打断底层节点），幂等。 */
+  stopRun: (runId: string) => Promise<void>;
+  /** 重连订阅地址；after 是已收到的事件帧数。 */
+  runStreamUrl: (runId: string, after: number) => string;
   health?: () => Promise<string>;
 }
 
