@@ -78,3 +78,38 @@
 ### Next Steps
 
 - GLOSSARY.md 的 ExternalSource/ExternalReference 改动来源未知，待确认是否由其它会话写入
+
+
+## Session 43: retro 收口：按路径暂存、否定断言先建基线
+<!-- trellis-session: v=2 fp=1e5dc96f935421b6 -->
+
+**Date**: 2026-10-29
+**Task**: retro 收口：按路径暂存、否定断言先建基线
+**Branch**: `main`
+
+### Summary
+
+本轮 retro 两条落地。第一条是真实污染风险：本会话前八个提交都用 git add -A，而 .trellis/spec/GLOSSARY.md 在会话外被写入 8 行（ExternalSource/ExternalReference，19:51），若它早出现二十分钟就会被捆进我的提交。workflow.md 提交步骤因此加「先 git status --short，出现不属于自己的脏路径就按路径显式 add」。第二条踩过一次：断言「刷新失败不应登出」却忘了 beforeEach 已把 store 复位成 unauthenticated，断言恒红与实现无关，白跑一轮；前端质量门禁加「否定断言前先建立正向基线」。
+
+### Main Changes
+
+- .trellis/workflow.md：提交步骤新增 Staging scope（按路径暂存）
+- .trellis/spec/frontend/quality-guidelines.md：新增「否定断言前先建立正向基线」
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3024f514` | chore(spec): 提交按路径暂存，否定断言需先建正向基线 |
+
+### Testing
+
+- [OK] 未跑测试：仅改文档；spec 链接与锚点检查通过
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- GLOSSARY.md 的 8 行改动仍未确认来源，保持未提交
