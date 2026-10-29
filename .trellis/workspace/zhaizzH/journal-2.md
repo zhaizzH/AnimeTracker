@@ -41,3 +41,40 @@
 ### Next Steps
 
 - 下一次 add_session 应自动开 journal-2.md（当前 1263 行 > 新阈值 1200）
+
+
+## Session 42: SSE 刷新成功但重放仍 401：置为未认证交 guard 跳登录页
+<!-- trellis-session: v=2 fp=5e340c88b707976c -->
+
+**Date**: 2026-10-29
+**Task**: SSE 刷新成功但重放仍 401：置为未认证交 guard 跳登录页
+**Branch**: `main`
+
+### Summary
+
+收口 SSE 401 闭环的最后一环。此前只有「刷新失败」会置未认证；「刷新成功换到新令牌、重放仍被拒」这条路谁也没置位，store 停在 authenticated + 死令牌，用户对着必然失败的操作反复重试。改为在 streamSseWithAuth 的 retry catch 里，仅在重放也是 401 时调 setUnauthenticated()，由既有 guard 跳登录页。刻意不广播 signed-out——那个事件语义是用户主动登出，令牌失效与网络抖动只影响当前标签，广播会让别的标签在用户操作中被一起踢走；这条口径写进了 hook-guidelines。审查补了两条变异缺口：重放 502 不得登出、刷新失败不得额外踢人，并把重复的「重放仍 401」用例合并。另注意：工作树里 .trellis/spec/GLOSSARY.md 有 8 行非本会话的改动（ExternalSource/ExternalReference，19:51 写入），未纳入本次提交。
+
+### Main Changes
+
+- shared/auth/stream.ts：retry catch 内仅对 401 调 setUnauthenticated()
+- shared/auth/stream.test.ts：合并重复用例，补「重放 502」与「刷新失败不踢人」两条断言
+- .trellis/spec/frontend/hook-guidelines.md：重放仍 401 → 置未认证；signed-out 广播只用于主动登出
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `58a03cec` | fix(shared): 刷新成功但重放仍 401 时置为未认证 |
+
+### Testing
+
+- [OK] frontend: shared 88 / client 49 / admin 81 全绿；typecheck 零错误
+- [OK] 变异：删置位、放宽为任何错误都置位、刷新失败也置位，三条均转红
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- GLOSSARY.md 的 ExternalSource/ExternalReference 改动来源未知，待确认是否由其它会话写入

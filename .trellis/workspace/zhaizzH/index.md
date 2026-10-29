@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 41
+- **Total Sessions**: 42
 - **Last Active**: 2026-10-29
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~43 | Active |
+| `journal-2.md` | ~80 | Active |
 | `journal-1.md` | ~1263 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 42 | 2026-10-29 | SSE 刷新成功但重放仍 401：置为未认证交 guard 跳登录页 | `58a03cec` | `main` |
 | 41 | 2026-10-29 | retro 收口：删手抄基线、审查证据要求、变异还原核对、journal 降阈值 | `3e8ff339` | `main` |
 | 40 | 2026-10-29 | SSE 401 自动刷新闭环（10-19 P3 收口） | `a03144c1` | `main` |
 | 39 | 2026-10-29 | 收尾两个可感知缺口：旧提示重弹、会话列表乱序 | `50a112ff` | `main` |
