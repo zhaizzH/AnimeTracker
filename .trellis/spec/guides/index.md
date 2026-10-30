@@ -7,6 +7,7 @@
 | 主题 | 内容 |
 |---|---|
 | [跨层契约与代码复用](./cross-layer-thinking-guide.md) | 端到端契约、事实核对、项目术语表、复用所有者与重复检查 |
+| [审查与验收判定标准](./review-bar.md) | 一条审查结论何时成立：可见物必须观测、未复现不报、断言要能杀变异 |
 | [Agent 编排与运行](../backend/agent-guidelines.md) | 角色工具、Prompt 生效、日期与流式输出排障 |
 | [领域术语表](../GLOSSARY.md) | 领域语言单一来源（Subject/Collection/Evidence 等） |
 | [架构决策记录](../adr/README.md) | 难以反转且无上下文会困惑的决策（ADR） |

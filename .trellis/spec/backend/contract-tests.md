@@ -132,6 +132,12 @@ Python 直连 `:8090` 的 409 仍是 `{"detail": ...}`；两种形状由 Java �
 - **SSE 侧**：改 `app/api/sse.py` 或 `app/api/schemas/sse.py` 时，除了契约套件，还要跑 `tests/api/test_sse_serialization.py`（帧形态与响应头的第一道回归）。
 - **PendingAction 侧**：改 `app/chat/pending_action.py` 时同时跑 `tests/contracts/test_preview_contract.py` 与既有的 `tests/agent/test_collection_type.py`、`test_subject_resolution.py`（后两者用 `by_alias=True` 做往返）。
 - **契约侧**：改 `docs/spec/openapi.yaml` 后必须跑契约套件；孤儿 schema 与悬空 `$ref` 都会被打成红灯。run 路由的收录由 `tests/contracts/test_run_route_contract.py` 额外钉住，删除六条 operation、`after` 查询或 409 声明会变红。
+- **文档链接侧**：改 `.trellis/spec/**` 下的 markdown 链接（尤其归档/移动任务目录后）必须跑 `uv run pytest tests/contracts/test_spec_links_resolve.py`。断链看着正常、点进去 404，2026-10-30 归档五个任务时一次断掉三条。
+
+### 两个容易读错的计数事实
+
+- **用例数不是回归信号**。`test_http_contract.py` 对 `CALL_SITES` 参数化，新增一个出站调用点会让总数 +2（两处 parametrize 各 +1）。判断契约是否被削弱看 `git diff`，不看通过数——2026-10-30 就因为 154→156 花了一个回合确认它没削弱断言。
+- **新增机械检查前，先手工跑一次抽取、看候选分布再定判据**。判据宽到需要一张豁免表才绿，说明它测的不是你以为的东西。2026-10-30 写「spec 正文里的路径必须存在」这个检查，因为把 `*.test.ts(x)` 命名模式、`spring.sql` 配置键、历史文件名都当成路径，重写了三遍才收窄成「只查 markdown 链接目标」。
 
 ## 7. Wrong vs Correct
 
