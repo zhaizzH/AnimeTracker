@@ -8,6 +8,7 @@ class AgentEventType(str, Enum):
     THINKING = "thinking"
     FUNCTION_CALL = "function_call"
     STATUS = "status"
+    UI_ACTION = "ui_action"
     END = "end"
 
 

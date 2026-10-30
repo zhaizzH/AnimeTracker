@@ -83,25 +83,36 @@ for event in run.events[start - run.buffer_start:]:
 
 ## D3 前端 `onUiAction` 的签名与 dispatch 位置
 
-`useAgentChat` 选项新增：
+`useAgentChat` 选项新增（**实现用单对象，不用位置参数**）：
 
 ```ts
-onUiAction?: (action: string, params: Record<string, unknown>, label?: string) => void
+export interface UiAction {
+  action: string;
+  params: Record<string, unknown>;
+  path?: string;
+  label?: string;
+}
+onUiAction?: (action: UiAction) => void
 ```
+
+> 原定案的 `(action, params, label?)` 装不下 D4 的 `path`；四个位置参数更容易错位，故改为单对象。
+> 实现见 `frontend/packages/shared/src/hooks/useAgentChat.ts` 与 `client/src/components/AgentChat.tsx`。
 
 `dispatch` 的 switch 加：
 
 ```ts
-case 'ui_action':
-  if (ev.meta?.replayed) break;              // D1：重放不执行
-  if (typeof ev.meta?.action === 'string') {
-    onUiActionRef.current?.(
-      ev.meta.action,
-      (ev.meta.params as Record<string, unknown>) ?? {},
-      typeof ev.meta.label === 'string' ? ev.meta.label : undefined,
-    );
-  }
+case 'ui_action': {
+  const m = ev.meta ?? {};
+  if (m.replayed) break;                      // D1：重放不执行
+  if (typeof m.action !== 'string') break;    // 契约破坏，静默丢弃
+  onUiActionRef.current?.({
+    action: m.action,
+    params: m.params ?? {},
+    path: typeof m.path === 'string' ? m.path : undefined,
+    label: typeof m.label === 'string' ? m.label : undefined,
+  });
   break;
+}
 ```
 
 - **不写正文、不进 tools 列表**（与 spec 一致）
@@ -116,17 +127,18 @@ case 'ui_action':
 
 ### 与 child 1 的接缝
 
-本任务**只**在 `AgentChat.tsx` 提供 `onUiAction` 实现，调用 child 1 的两个 setter：
+本任务**只**在 `AgentChat.tsx` 提供 `onUiAction` 实现，调用 child 1 的两个 setter；**不改 `AIAssistantFloat.tsx` 内部**：
 
 ```ts
-onUiAction={(action, params, label) => {
+const onUiAction = ({ path, label }: UiAction) => {
+  if (!path || !isInternalPath(path)) return;   // D4 守卫
   markAgentNavigation();
-  navigate(buildPath(action, params));   // 见 D4
+  navigate(path);
   if (label) showNavHint(label);
-}}
+};
 ```
 
-不改 `AIAssistantFloat.tsx` 内部。
+**副作用**：provider 现在依赖 `useNavigate`，因此**必须在 Router 内渲染**。生产侧唯一挂载点是 `ClientLayout`（天然在内）；测试必须包 `MemoryRouter`。已写进 `frontend/component-guidelines.md`。
 
 ## D4 前端 path 构造：直接用服务端给的 path，不重复实现映射
 

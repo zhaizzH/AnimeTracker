@@ -1,12 +1,14 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { ChevronRightIcon } from 'lucide-react';
-import { agentApi, type ChatMsg, useAgentChat } from '@shared';
+import { agentApi, type ChatMsg, type UiAction, useAgentChat } from '@shared';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import AgentMarkdown from './AgentMarkdown';
+import { markAgentNavigation, showNavHint } from './agentNavigation';
 
 const clientAgentApi = {
   listSessions: agentApi.listSessions,
@@ -29,9 +31,25 @@ interface AgentChatContextValue {
 
 const AgentChatContext = createContext<AgentChatContextValue | null>(null);
 
+/**
+ * 只接受站内绝对路径：`//` 与 `/\\` 都会被浏览器当成协议相对 URL 而跳去外站，`javascript:`
+ * 等其它形式不以 `/` 开头。廉价兜底，不替代服务端的 action 白名单。
+ */
+const isInternalPath = (path: string) => /^\/(?![/\\])/.test(path);
+
 export function AgentChatProvider({ children }: { children: ReactNode }) {
   const [enabled, setEnabled] = useState(false);
-  const chat = useAgentChat(clientAgentApi, { enabled });
+  const navigate = useNavigate();
+  // 服务端下发 path，前端不重复实现 action→URL 映射（design D4）；非站内一律丢弃。
+  // 顺序固定「标记 → navigate → 提示」，反了浮窗的 location.key effect 会先把面板关掉。
+  const onUiAction = (action: UiAction) => {
+    const path = action.path;
+    if (!path || !isInternalPath(path)) return;
+    markAgentNavigation();
+    navigate(path);
+    if (action.label) showNavHint(action.label);
+  };
+  const chat = useAgentChat(clientAgentApi, { enabled, onUiAction });
   const activate = useCallback(() => setEnabled(true), []);
   // 一次性提示在这里消费：provider 随布局常驻，而对话面板会随路由重挂载——
   // 把 effect 放在面板里，离开再回来会把同一条旧提示再弹一次。

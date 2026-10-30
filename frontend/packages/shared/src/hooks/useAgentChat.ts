@@ -14,10 +14,28 @@ const STOP_FAILED = '无法打断当前回答，请稍后重试';
 export type ConflictChoice = 'interrupt' | 'wait' | 'cancel';
 const nextId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
+/** 前端执行的一次跳转指令：全部字段由服务端下发，前端不重建 action→URL 映射。 */
+export interface UiAction {
+  action: string;
+  params: Record<string, unknown>;
+  /** 服务端构造好的站内路径；缺失或非站内时调用方不跳转（design D4）。 */
+  path?: string;
+  /** 浮层系统提示文案，可选。 */
+  label?: string;
+}
+
 interface SsePayload {
   type?: string;
   is_end?: boolean;
-  meta?: { run_id?: string };
+  meta?: {
+    run_id?: string;
+    action?: string;
+    params?: Record<string, unknown>;
+    path?: string;
+    label?: string;
+    /** 仅重放段出现：该帧已执行过，前端忽略，不重复导航。 */
+    replayed?: boolean;
+  };
   content?: { text?: string; name?: string; state?: string; message?: string; result?: string };
 }
 
@@ -41,7 +59,10 @@ export interface AgentChatApi {
   health?: () => Promise<string>;
 }
 
-export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: boolean } = {}) {
+export function useAgentChat(
+  api: AgentChatApi,
+  { enabled = true, onUiAction }: { enabled?: boolean; onUiAction?: (action: UiAction) => void } = {},
+) {
   const token = useAuthStore((s) => s.token);
   const [sessions, setSessions] = useState<Record<string, unknown>[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -66,6 +87,9 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
   apiRef.current = api;
   const tokenRef = useRef(token);
   tokenRef.current = token;
+  // 调用方传内联函数，进 useCallback 依赖会让 makeOnEvent 每次渲染重建：与 apiRef 同理用 ref。
+  const onUiActionRef = useRef(onUiAction);
+  onUiActionRef.current = onUiAction;
 
   // 一次性提示（流中断、内容过期、状态未知）走 notice，由两端各自转成 toast：
   // 写成 assistant 消息会污染会话历史，而且刷新后消失得莫名其妙。
@@ -87,7 +111,7 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
       if (ev.meta?.run_id) runId.current = ev.meta.run_id;
       if (ev.is_end) { ended.current = true; runId.current = null; return; }
       const c = ev.content ?? {};
-      // 只认白名单四类事件；曾经用 `c.text` 兜底，导致 status/function_call 的 message 污染正文。
+      // 只认白名单事件；曾经用 `c.text` 兜底，导致 status/function_call 的 message 污染正文。
       switch (ev.type) {
         case 'thinking':
           // thinking 挂在对应 assistant 消息上，随消息一起渲染在其上方
@@ -116,6 +140,21 @@ export function useAgentChat(api: AgentChatApi, { enabled = true }: { enabled?: 
             addNotice(c.message || '(部分实时内容已过期，完整回答见历史)');
           }
           break;
+        case 'ui_action': {
+          // 不写正文、不进 tools：跳转是副作用，不是对话内容。
+          // replayed 判断放在这里（而不是 replayRun）——实时与回放共用本 dispatch，两条路径自动都受保护。
+          const m = ev.meta ?? {};
+          if (m.replayed) break;
+          // 服务端是唯一生产者，非法帧属契约破坏，静默丢弃而不补救。
+          if (typeof m.action !== 'string') break;
+          onUiActionRef.current?.({
+            action: m.action,
+            params: m.params ?? {},
+            path: typeof m.path === 'string' ? m.path : undefined,
+            label: typeof m.label === 'string' ? m.label : undefined,
+          });
+          break;
+        }
         default:
           // 其它未登记类型不渲染，避免误落正文。
           break;

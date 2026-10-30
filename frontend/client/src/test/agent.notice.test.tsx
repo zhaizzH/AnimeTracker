@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { AgentChatProvider, AgentConversation } from '@/components/AgentChat';
 import { useAgentChat } from '@shared';
 
@@ -25,7 +26,8 @@ vi.mock('@shared', async (importOriginal) => {
 });
 vi.mock('sonner', () => ({ toast: { warning: toastWarning, success: vi.fn(), error: vi.fn() } }));
 
-const chat = () => <AgentChatProvider><AgentConversation /></AgentChatProvider>;
+// provider 内的 onUiAction 用 useNavigate，必须放在 Router 里
+const chat = () => <MemoryRouter><AgentChatProvider><AgentConversation /></AgentChatProvider></MemoryRouter>;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -46,11 +48,11 @@ describe('一次性提示与会话级状态', () => {
 
   it('对话面板重挂载不会把同一条旧提示再弹一次', () => {
     base.notice = { text: '部分实时内容已过期' };
-    const { rerender } = render(<AgentChatProvider><AgentConversation key="a" /></AgentChatProvider>);
+    const { rerender } = render(<MemoryRouter><AgentChatProvider><AgentConversation key="a" /></AgentChatProvider></MemoryRouter>);
     expect(toastWarning).toHaveBeenCalledTimes(1);
 
     // 模拟离开对话页再回来：provider 不动，只有面板换了一次实例
-    rerender(<AgentChatProvider><AgentConversation key="b" /></AgentChatProvider>);
+    rerender(<MemoryRouter><AgentChatProvider><AgentConversation key="b" /></AgentChatProvider></MemoryRouter>);
 
     expect(toastWarning).toHaveBeenCalledTimes(1);
   });

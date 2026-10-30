@@ -9,7 +9,8 @@ import asyncio
 import pytest
 
 from app.chat.event_sink import emit_answer_delta, emit_function_call
-from app.chat.events import AgentEventType
+import app.chat.runs as runs_module
+from app.chat.events import AgentEvent, AgentEventType
 from app.chat.run_state import RunState
 from app.chat.runs import ChatRunManager, RunStatus
 from app.chat.streaming import StreamConfig, stream_agent_events
@@ -56,6 +57,19 @@ async def _drain(subscriber) -> list:
     async for event in subscriber:
         seen.append(event)
     return seen
+
+# `ui_action` 目前没有业务节点在产（属 navigation-graph），所以测试直接给 `start()` 喂脚本化
+# 事件迭代器——这正是 `ChatRunManager` 的公开入口，不碰 `_drive` 写入侧。
+UI_ACTION_META = {
+    "action": "open_anime_index",
+    "params": {"year": 2022},
+    "path": "/anime?year=2022&page=1",
+    "label": "2022 年的番",
+}
+
+async def _scripted(events: list[AgentEvent]):
+    for event in events:
+        yield event
 
 
 @pytest.mark.asyncio
@@ -267,6 +281,108 @@ async def test_subscribe_replays_from_cursor() -> None:
     assert tail == all_events[1:]
     assert [e for e in all_events if e.type is AgentEventType.END].__len__() == 1
 
+
+@pytest.mark.asyncio
+async def test_replay_marks_ui_action_but_keeps_frames_one_to_one() -> None:
+    """D1：重放段的 `ui_action` 仍下发（不跳帧）但补 `replayed=true`。
+
+    帧数必须与 `run.events` 保持 1:1：前端 `after` 是已收帧数、后端 `start` 是缓冲下标，
+    跳帧会让两者错位，后续重连重放/遗漏其它帧。
+    """
+    manager = ChatRunManager(store=None)
+    run = await manager.start(
+        session_id="s1",
+        user_id=1,
+        events=_scripted([
+            AgentEvent(type=AgentEventType.ANSWER, text="A"),
+            AgentEvent(type=AgentEventType.UI_ACTION, meta=dict(UI_ACTION_META)),
+            AgentEvent(type=AgentEventType.ANSWER, text="B"),
+        ]),
+    )
+    await asyncio.wait_for(run.task, timeout=1.0)
+
+    replayed = await _drain(manager.subscribe(run.run_id, after=0))
+    assert len(replayed) == len(run.events), "重放帧数必须与缓冲下标 1:1"
+
+    marked = [e for e in replayed if e.type is AgentEventType.UI_ACTION]
+    assert len(marked) == 1, "重放段不得跳过 ui_action"
+    assert marked[0].meta["replayed"] is True
+    assert marked[0].meta["path"] == UI_ACTION_META["path"]
+    assert marked[0].meta["run_id"] == run.run_id
+
+    buffered = run.events[1]
+    assert "replayed" not in buffered.meta, "缓冲里那份保持原样供回溯，不得原地改"
+
+@pytest.mark.asyncio
+async def test_live_subscription_does_not_mark_ui_action() -> None:
+    """实时段不打标：只有重放才要求前端忽略。"""
+    release = asyncio.Event()
+
+    async def events():
+        yield AgentEvent(type=AgentEventType.UI_ACTION, meta=dict(UI_ACTION_META))
+        await release.wait()
+
+    manager = ChatRunManager(store=None)
+    run = await manager.start(session_id="s1", user_id=1, events=events())
+
+    subscriber = manager.subscribe(run.run_id)
+    first = await subscriber.__anext__()
+    assert first.type is AgentEventType.UI_ACTION
+    assert "replayed" not in first.meta
+    assert first.meta["run_id"] == run.run_id
+    # 真正锁住「meta 不被剔除」：只断言 run_id 不够，run_id 是 _with_run_id 补的，
+    # 不能证明 ui_action 自身的载荷 survived（path/label 都在其中）
+    assert first.meta["action"] == UI_ACTION_META["action"]
+    assert first.meta["path"] == UI_ACTION_META["path"]
+    assert first.meta["label"] == UI_ACTION_META["label"]
+
+    release.set()
+    await asyncio.wait_for(run.task, timeout=1.0)
+    await subscriber.aclose()
+
+@pytest.mark.asyncio
+async def test_two_consecutive_reconnects_neither_duplicate_nor_skip() -> None:
+    """游标回归：after 用前端口径（已收帧数）续订时不得重放或遗漏任何帧。"""
+    manager = ChatRunManager(store=None)
+    run = await manager.start(
+        session_id="s1",
+        user_id=1,
+        events=_scripted([
+            AgentEvent(type=AgentEventType.ANSWER, text="1"),
+            AgentEvent(type=AgentEventType.UI_ACTION, meta=dict(UI_ACTION_META)),
+            AgentEvent(type=AgentEventType.ANSWER, text="2"),
+        ]),
+    )
+    await asyncio.wait_for(run.task, timeout=1.0)
+
+    first = await _drain(manager.subscribe(run.run_id, after=0))
+    second = await _drain(manager.subscribe(run.run_id, after=len(first)))
+    assert len(first) == len(run.events)
+    assert second == [], f"续订不应再收到帧，实际 {[e.type for e in second]}"
+    assert [e.text for e in first if e.type is AgentEventType.ANSWER] == ["1", "2"]
+
+@pytest.mark.asyncio
+async def test_truncated_buffer_still_warns_first(monkeypatch) -> None:
+    """Q14 不回归：游标被截断时首帧仍是 warning，之后的 `ui_action` 照常打标。"""
+    monkeypatch.setattr(runs_module, "MAX_BUFFER_EVENTS", 3)
+    manager = ChatRunManager(store=None)
+    run = await manager.start(
+        session_id="s1",
+        user_id=1,
+        events=_scripted([
+            AgentEvent(type=AgentEventType.ANSWER, text="1"),
+            AgentEvent(type=AgentEventType.ANSWER, text="2"),
+            AgentEvent(type=AgentEventType.ANSWER, text="3"),
+            AgentEvent(type=AgentEventType.UI_ACTION, meta=dict(UI_ACTION_META)),
+        ]),
+    )
+    await asyncio.wait_for(run.task, timeout=1.0)
+    assert run.buffer_start > 0, "前提：缓冲确实被截断"
+
+    seen = await _drain(manager.subscribe(run.run_id, after=0))
+    assert seen[0].type is AgentEventType.STATUS and seen[0].state == "warning"
+    marked = [e for e in seen if e.type is AgentEventType.UI_ACTION]
+    assert marked and marked[0].meta["replayed"] is True
 
 @pytest.mark.asyncio
 async def test_persist_future_resolves_after_persistence() -> None:

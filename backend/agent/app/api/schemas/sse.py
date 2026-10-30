@@ -21,6 +21,7 @@ class MessageType(str, Enum):
     THINKING = "thinking"
     FUNCTION_CALL = "function_call"
     STATUS = "status"
+    UI_ACTION = "ui_action"
 
 
 class AssistantResponse(BaseModel):

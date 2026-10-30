@@ -66,6 +66,27 @@ cd ../business && mvn -B clean test   # 若动了 Java 透传
 cd ../../frontend && pnpm test
 ```
 
+## 公共测试缝（已确认，开工前定）
+
+基线：`cd backend/agent && uv run pytest -q` → **862 passed**（2026-10-30 实测）。
+全部为既有测试文件，不新建只为本实现服务的钩子。
+
+| 缝 | 位置 | 能捕获 | 捕获不到 |
+|---|---|---|---|
+| 契约 enum 双向对齐 | `tests/contracts/test_sse_contract.py`（`test_all_serializable_event_types_are_covered` / `test_message_type_matches_agent_event_type`） | 两层枚举漏改任一处、openapi 与代码漂移 | 手写错误但两侧一致的情况 |
+| `_sample_events()` 采样 | 同文件 | **只加枚举不加样本会漏掉序列化路径**，必须补带完整 meta 的 `UI_ACTION` 事件 | —— |
+| 序列化行为 | `tests/api/test_sse_serialization.py` | `meta` 非空时保留、空 meta 被 `exclude_none` 剔除、结束帧形态不变 | 真实 HTTP 传输 |
+| 重放/实时差异 | `tests/agent/test_chat_run_manager.py`（`test_subscribe_replays_from_cursor` 相邻） | 重放段带 `replayed`、实时段不带、**帧数与缓冲下标 1:1（游标不错位）** | 前端 `after` 的真实累加 |
+| dispatch 白名单 | `shared/src/hooks/useAgentChat.events.test.tsx`（已存在） | `ui_action` 不落正文、不进 tools、`onUiAction` 被调、参数正确 | 真实路由跳转 |
+| 重放帧忽略 | `shared/src/hooks/useAgentChat.replay.test.tsx`（已存在） | 带 `replayed` 的 `ui_action` 不触发回调 | —— |
+| 客户端的指纹 | `client/src/test/agent.float.test.tsx`（child 1 已扩到 10 用例） | `markAgentNavigation` / `showNavHint` 效果、`clearNavHint` 作废 | 未覆盖 `onUiAction` 接线（本任务补） |
+
+**两侧都要测的理由**：后端保证「重放段仍下发但打标」，前端保证「带标就不执行」。
+任一侧单测都拦不住「两边都以为对方会拦」——必须在两侧各自断言。
+
+**否定断言先建正向基线**（`quality-guidelines.md`）：
+测「`ui_action` 不落正文」前，先在同一用例里断言一个 `answer` 帧**确实**落了正文。
+
 ## 不做
 
 - 不实现产生事件的业务节点

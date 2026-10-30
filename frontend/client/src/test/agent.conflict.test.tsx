@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { AgentChatProvider, AgentConversation } from '@/components/AgentChat';
 import { useAgentChat } from '@shared';
 
@@ -40,7 +41,8 @@ vi.mock('@shared', async (importOriginal) => {
 /** 后端 409 的原文：未发出的文本留在选择态里，UI 负责恢复进输入框。 */
 const CONFLICT = { activeRunId: 'run-active', status: 'running', capabilities: ['interrupt'], text: '被打断的问题' } as State['conflict'];
 
-const chat = () => <AgentChatProvider><AgentConversation /></AgentChatProvider>;
+// provider 内的 onUiAction 用 useNavigate，必须放在 Router 里
+const chat = () => <MemoryRouter><AgentChatProvider><AgentConversation /></AgentChatProvider></MemoryRouter>;
 
 beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);

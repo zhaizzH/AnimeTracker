@@ -43,14 +43,14 @@ const answer = (text: string) => JSON.stringify({ type: 'answer', content: { tex
 const end = () => JSON.stringify({ content: {}, is_end: true });
 
 /** 挂载 hook，把 streamSse 每次订阅的 onEvent 收进数组，等回放订阅建立后返回。 */
-async function setup(api: AgentChatApi) {
+async function setup(api: AgentChatApi, options?: Parameters<typeof useAgentChat>[1]) {
   const fed: OnEvent[] = [];
   const ends: (() => void)[] = [];
   streamSseMock.mockImplementation((opts: { onEvent: OnEvent }) => {
     fed.push(opts.onEvent);
     return new Promise<void>((resolve) => { ends.push(() => resolve()); });
   });
-  const { result, unmount } = renderHook(() => useAgentChat(api));
+  const { result, unmount } = renderHook(() => useAgentChat(api, options));
   await waitFor(() => expect(result.current.ready).toBe(true));
   const feed = (data: string, index = 0) => act(() => { fed[index](data); });
   /** 让第 index 次订阅正常结束（无 is_end），模拟中间层掐断。 */
@@ -111,6 +111,25 @@ describe('useAgentChat 刷新/切会话回放', () => {
     finish(0);
     await waitFor(() => expect(streamSseMock).toHaveBeenCalledTimes(2));
     expect((streamSseMock.mock.calls[1][0] as { url: string }).url).toBe('/agent/runs/run-1/stream?after=2');
+  });
+
+  it('带 replayed 标记的 ui_action 在回放中不执行，正文照旧累加', async () => {
+    const onUiAction = vi.fn();
+    const api = createApi({ run_id: 'run-1', status: 'running' });
+    const { feed, assistants } = await setup(api, { onUiAction });
+
+    await waitFor(() => expect(streamSseMock).toHaveBeenCalledTimes(1));
+    // 正向基线：同一订阅里的 answer 帧确实落正文
+    feed(answer('正文'));
+    feed(JSON.stringify({
+      type: 'ui_action',
+      content: {},
+      meta: { action: 'open_anime_index', params: { year: 2022 }, path: '/anime?year=2022', replayed: true },
+    }));
+    feed(answer('继续'));
+
+    expect(assistants().at(-1)?.content).toBe('正文继续');
+    expect(onUiAction).not.toHaveBeenCalled();
   });
 
   it('回放与实时共用同一把 is_end 锁：结束后到达的帧不再累积', async () => {

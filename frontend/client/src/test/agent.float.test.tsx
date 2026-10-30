@@ -161,7 +161,7 @@ describe('全局 AI 助手浮窗', () => {
   it('流式期间显示停止按钮并调用 stop', async () => {
     const user = userEvent.setup();
     vi.mocked(useAgentChat).mockImplementation(() => ({ ...chat, streaming: true }));
-    render(<AgentChatProvider><AgentConversation /></AgentChatProvider>);
+    render(<MemoryRouter><AgentChatProvider><AgentConversation /></AgentChatProvider></MemoryRouter>);
 
     const stopButton = await screen.findByRole('button', { name: /停\s*止/ });
     await user.click(stopButton);
@@ -250,5 +250,50 @@ describe('全局 AI 助手浮窗 · agent 导航保持与系统提示', () => {
     await user.click(screen.getByRole('button', { name: '打开 AI 助手' }));
     expect(screen.getByRole('dialog', { name: 'AI 助手' })).not.toBeNull();
     expect(hint()).toBeNull();
+  });
+});
+
+describe('全局 AI 助手浮窗 · onUiAction 接线与 path 兜底', () => {
+  type UiAction = { action: string; params: Record<string, unknown>; path?: string; label?: string };
+  /** 取 AgentChatProvider 最近一次传给 useAgentChat 的 onUiAction 实现。 */
+  const uiAction = () => {
+    const calls = vi.mocked(useAgentChat).mock.calls;
+    const options = calls[calls.length - 1][1] as { onUiAction?: (action: UiAction) => void } | undefined;
+    if (!options?.onUiAction) throw new Error('AgentChatProvider 未向 useAgentChat 传 onUiAction');
+    return options.onUiAction;
+  };
+  const pathname = () => screen.getByRole('status', { name: '当前路径' }).textContent;
+
+  it('按服务端下发的 path 跳转、标记 agent 导航并显示 label 提示', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await user.click(screen.getByRole('button', { name: '打开 AI 助手' }));
+
+    act(() => uiAction()({ action: 'open_schedule', params: {}, path: '/schedule', label: '日程' }));
+
+    await waitFor(() => expect(pathname()).toBe('/schedule'));
+    // 顺序是「标记 → navigate → 提示」的旁证：反了面板会先被关掉，提示也就看不见
+    expect(screen.getByRole('dialog', { name: 'AI 助手' })).not.toBeNull();
+    expect(await screen.findByText('⚡ 已跳转到「日程」')).toBeInTheDocument();
+  });
+
+  it('非站内 path 一律丢弃：不跳转、不标记、不提示', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await user.click(screen.getByRole('button', { name: '打开 AI 助手' }));
+
+    // 正向基线：同一个调用入口喂一条合法 path，必须真的跳——否则下面的否定断言测的是「从来没生效过」。
+    // 基线不带 label：本用例同时断言「无提示」，基线若自带提示就把该否定断言变成假红。
+    act(() => uiAction()({ action: 'open_schedule', params: {} , path: '/schedule' }));
+    await waitFor(() => expect(pathname()).toBe('/schedule'));
+    expect(screen.queryByText(/已跳转到/)).toBeNull();
+
+    for (const path of ['javascript:alert(1)', 'https://evil.example/x', '//evil.example/x', '/\\evil.example', '', undefined]) {
+      act(() => uiAction()({ action: 'open_schedule', params: {}, path, label: '日程' }));
+    }
+
+    expect(pathname()).toBe('/schedule');
+    expect(screen.getByRole('dialog', { name: 'AI 助手' })).not.toBeNull();
+    expect(screen.queryByText(/已跳转到/)).toBeNull();
   });
 });

@@ -33,6 +33,7 @@
   - client：与 admin 同栈——shadcn/ui（`client/src/components/ui/*`）+ Tailwind CSS v4 + shadcn 令牌，外壳为本应用自维护的 `client/src/components/app-shell.tsx`。
 - client 的页面样式使用 shadcn/Tailwind 令牌（`bg-background`、`text-foreground`、`text-muted-foreground`、`border` 等）；不要在组件中扩散大段重复 inline style。
 - 深色模式由两端的 `ThemeBridge` 同步 `html.dark` 与 `color-scheme`（唯一写入点）。`ThemeBridge` 挂在路由**之上**（`main.tsx`，`<ThemeBridge />` 与 `AuthGate`/`RouterProvider` 同级），不得挂进 `ClientLayout`/`AdminLayout`：挂进外壳会让外壳之外的路由（未登录的 login、`path: '*'` 的 404）拿不到 `html.dark`，表现为这些页面不跟随已保存的深浅色。
+- **`AgentChatProvider` 必须在 Router 之内**：它（`client/src/components/AgentChat.tsx`）内部调 `useNavigate` 执行 agent 导航，缺 Router 上下文时运行期直接抛 `useNavigate() may be used only in the context of a <Router>`。生产侧唯一挂载点是 `layouts/ClientLayout.tsx`（`router.tsx` 中 `path: '/'` 的 element，天然在 `RouterProvider` 内）；**新增测试或新布局挂它时一律包 `MemoryRouter`**，不要只包 `QueryClientProvider`。admin 不使用该 provider。
 - 两端均支持暗色（Tailwind `dark:` 变体 + `@custom-variant dark (&:is(.dark *))`），统一以 `html.dark` 为切换开关。
 - 令牌来源：各应用 `src/index.css` 的 `@theme inline` 块（shadcn CSS 变量，light/`.dark` 双套）；新颜色/圆角一律用令牌，不要硬编码色值。
 

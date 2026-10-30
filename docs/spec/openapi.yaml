@@ -5028,8 +5028,13 @@ components:
       properties:
         type:
           type: "string"
-          enum: ["answer", "thinking", "function_call", "status"]
-          description: "事件类型；无 `end` 取值。"
+          enum: ["answer", "thinking", "function_call", "status", "ui_action"]
+          description: |-
+            事件类型；无 `end` 取值。
+            `ui_action` 是前端执行路由跳转的指令，载荷在 `meta`：
+            `action`（白名单动作名）、`params`（动作参数）、`path`（服务端构造好的站内路径，
+            前端直接 `navigate`）、`label`（浮层提示文案）、`replayed`（仅重放段出现；
+            前端见到即忽略，不重复导航）。
         content:
           type: "object"
           description: "事件载荷；各子字段均可选，空值不序列化。"
@@ -5062,7 +5067,10 @@ components:
           type: "object"
           nullable: true
           additionalProperties: true
-          description: "附加元数据；空时不出现在 wire 上。"
+          description: |-
+            附加元数据；空时不出现在 wire 上（`meta={}` 会被剔除）。
+            每帧由服务端补 `run_id`；`ui_action` 帧另含 `action` / `params` / `path` / `label`，
+            重放段的 `ui_action` 帧额外带 `replayed=true`。
         is_end:
           type: "boolean"
           description: "是否为流结束帧。"

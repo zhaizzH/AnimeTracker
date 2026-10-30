@@ -19,7 +19,7 @@ import asyncio
 import logging
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any
 
@@ -251,6 +251,11 @@ class ChatRunManager:
             )
         start = max(after, run.buffer_start)
         for event in run.events[start - run.buffer_start :]:
+            # D1：重放段照常下发 ui_action（帧数与缓冲下标保持 1:1，不跳帧），
+            # 只补 replayed 标记，执行权交给前端。实时段不打标。
+            if event.type is AgentEventType.UI_ACTION:
+                yield self._with_run_id(run, self._mark_replayed(event))
+                continue
             yield self._with_run_id(run, event)
         if run.status is not RunStatus.RUNNING:
             return
@@ -281,6 +286,14 @@ class ChatRunManager:
             arguments=event.arguments,
             meta={**event.meta, "run_id": run.run_id},
         )
+
+    @staticmethod
+    def _mark_replayed(event: AgentEvent) -> AgentEvent:
+        """给重放段的 `ui_action` 补 `meta.replayed=true`。
+
+        `AgentEvent` 是 frozen 的，且缓冲里那份要保持原样供回溯，所以重建而不原地改。
+        """
+        return replace(event, meta={**event.meta, "replayed": True})
 
     # ---------------------------------------------------------------- 驱动
 

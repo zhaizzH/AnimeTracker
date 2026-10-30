@@ -37,9 +37,9 @@ const frame = (type: string, content: Record<string, unknown>, isEnd = false) =>
   JSON.stringify({ type, content, ...(isEnd ? { is_end: true } : {}) });
 
 /** 渲染 hook、等它进入 ready，再发一条消息，返回喂帧与读取当前状态的能力。 */
-async function setup() {
+async function setup(options?: Parameters<typeof useAgentChat>[1]) {
   const api = createApi();
-  const { result } = renderHook(() => useAgentChat(api));
+  const { result } = renderHook(() => useAgentChat(api, options));
   await waitFor(() => expect(result.current.ready).toBe(true));
 
   let onEvent: OnEvent = () => {};
@@ -122,6 +122,55 @@ describe('useAgentChat 事件分发', () => {
     feed(frame('answer', { text: '正文' }), frame('status', { text: '工具执行中' }));
 
     expect(lastAssistant()?.content).toBe('正文');
+  });
+});
+
+const uiAction = (meta: Record<string, unknown>) =>
+  JSON.stringify({ type: 'ui_action', content: {}, meta });
+
+describe('useAgentChat ui_action 事件', () => {
+  it('不写正文、不进 tools，onUiAction 收到 action/params/path/label', async () => {
+    const onUiAction = vi.fn();
+    const { feed, result, lastAssistant } = await setup({ onUiAction });
+
+    // 正向基线：同一用例里 answer 帧确实落正文，后面的否定断言才有意义
+    feed(frame('answer', { text: '正文' }));
+    expect(lastAssistant()?.content).toBe('正文');
+
+    feed(uiAction({ action: 'open_anime_index', params: { year: 2022 }, path: '/anime?year=2022&page=1', label: '2022 年的番' }));
+
+    expect(lastAssistant()?.content).toBe('正文');
+    expect(result.current.tools).toEqual([]);
+    expect(onUiAction).toHaveBeenCalledTimes(1);
+    expect(onUiAction).toHaveBeenCalledWith({
+      action: 'open_anime_index',
+      params: { year: 2022 },
+      path: '/anime?year=2022&page=1',
+      label: '2022 年的番',
+    });
+  });
+
+  it('action 缺失或非字符串时静默丢弃', async () => {
+    const onUiAction = vi.fn();
+    const { feed } = await setup({ onUiAction });
+
+    // 正向基线：同一条通道喂一帧合法 action 必须被调用，否则「没被调用」可能只是通道没通
+    feed(uiAction({ action: 'open_profile', path: '/profile' }));
+    expect(onUiAction).toHaveBeenCalledTimes(1);
+    onUiAction.mockClear();
+
+    feed(uiAction({ path: '/anime' }), uiAction({ action: 42, path: '/anime' }));
+
+    expect(onUiAction).not.toHaveBeenCalled();
+  });
+
+  it('params 缺省时补空对象，label 缺省不传假值', async () => {
+    const onUiAction = vi.fn();
+    const { feed } = await setup({ onUiAction });
+
+    feed(uiAction({ action: 'open_profile', path: '/profile' }));
+
+    expect(onUiAction).toHaveBeenCalledWith({ action: 'open_profile', params: {}, path: '/profile' });
   });
 });
 

@@ -149,14 +149,16 @@ candidates = [item for item in candidates if item.subject_id in allowed_subject_
 #### 2. Signatures
 
 - 序列化单一入口：`app/api/sse.py`；结束事件必须设置 `is_end=true`。
-- **两层枚举，别搞混**：内部事件 `AgentEvent` / `AgentEventType` 定义在 `app/chat/events.py`（**五值**，含 `END`）；wire 侧 `AssistantResponse` / `MessageType` 定义在 `app/api/schemas/sse.py`（**四值**，无 `end`）。`app/api/sse.py:10-11` 把 `AgentEventType.END` 显式转成 `is_end=true` 后再转成 `MessageType.ANSWER`，即内部五值 → wire 四值的唯一收敛点。
+- **两层枚举，别搞混**：内部事件 `AgentEvent` / `AgentEventType` 定义在 `app/chat/events.py`（**六值**：answer / thinking / function_call / status / ui_action / `END`）；wire 侧 `AssistantResponse` / `MessageType` 定义在 `app/api/schemas/sse.py`（**五值**：上述前五个，**无 `end`**）。`app/api/sse.py:10-11` 把 `AgentEventType.END` 显式转成 `is_end=true` 后再转成 `MessageType.ANSWER`，即内部六值 → wire 五值的唯一收敛点。
 - 传输路径：浏览器只请求 Spring 代理路径（`/api/{client,admin}/agent/...`），不配置或直连 Agent 的 `:8090`。
 - **wire 帧格式（不得凭 spec 文字推断）**：每帧只有 `data:` 行、`\n\n` 分帧、类型在 JSON 内部的 `type` 字段；不使用 `event:` / `id:` / `retry:` 行。
 
 #### 3. Contracts
 
 - 响应头保持 `Content-Type: text/event-stream`、`Cache-Control: no-cache`、`X-Accel-Buffering: no`。
-- `MessageType` 只有 `answer / thinking / function_call / status` —— **不存在 `end` 类型**。内部 `AgentEventType` 多一个 `END`，但它不会出现在 wire 上。
+- `MessageType` 只有 `answer / thinking / function_call / status / ui_action` —— **不存在 `end` 类型**。内部 `AgentEventType` 多一个 `END`，但它不会出现在 wire 上。
+- **`ui_action` 的载荷全在 `meta`**：`content` 为空对象，`meta` 含 `action` / `params` / `path` / `label`；重放段的该帧额外带 `replayed=true`。**重放不跳帧**——帧数与 `run.events` 下标必须 1:1，否则前端 `after`（已收帧数）游标错位会导致其它事件重复或遗漏；执行权交给前端（见 `app/chat/runs.py::_mark_replayed`）。
+- `meta` 在 `ui_action` 帧上**必须非空**：`serialize_agent_event` 传 `meta=event.meta or None`，`exclude_none=True` 会把空 dict 剔除，前端就拿不到 action。
 - 结束帧为 `type="answer"`（默认值）+ `is_end=true` + 空 `content`。
 - `exclude_none=True` 使每帧字段集随事件类型变化；前端因此必须把 `content` 子字段视为可选。`meta={}` 会保留，`meta=None` 被剔除。
 - 改事件字段时必须同时看两个文件：内部结构改 `app/chat/events.py`，wire 结构改 `app/api/schemas/sse.py`，并同步前端 `useAgentChat.ts`。`docs/spec/openapi.yaml` 的 `/api/client/agent/stream` 已声明 `text/event-stream` 与单帧 `SSEFrame` schema，但事件内容字段的语义仍以源码为准；本节口径由 `backend/agent/tests/contracts/test_sse_contract.py` 自动钉住（详见 [Agent↔Business 契约测试](./contract-tests.md#3-contracts)）。
@@ -177,19 +179,20 @@ candidates = [item for item in candidates if item.subject_id in allowed_subject_
 
 - Good：新增事件字段时同步 `app/chat/events.py`（内部）、`app/api/schemas/sse.py`（wire）、`app/api/sse.py`（序列化）与前端 `useAgentChat.ts`，并补帧格式回归。
 - Base：只改内部实现，不动 wire 契约。
-- Bad：在 spec 或任务描述里写「五值联合（含 end）」，或在 JSON 外新增 `event:` 行。
+- Bad：在 spec 或任务描述里写「五值联合（含 end）」——wire 合法取值恰好是五个且**不含** `end`，这种写法容易被误读为 `end` 是枚举值；应写「把 `end` 写进 `type` 枚举」。另不得在 JSON 外新增 `event:` 行。
 
 #### 6. Tests Required
 
 - `tests/api/test_sse_serialization.py` 钉住帧形态、`exclude_none`、`end` 语义、响应头与逐帧消费（当前回归入口）。
 - 新增/修改事件字段时同步断言 `AgentEventType` 与 `MessageType` 两侧取值，以及结束帧形态。
 - 枚举一致性是**通过契约 enum 传递**的：`test_all_serializable_event_types_are_covered` 断言 `AgentEventType`（去 END）等于契约 enum，`test_message_type_matches_agent_event_type` 断言 `MessageType` 也等于该 enum，故两者必然相等（注意后者的 docstring 写作「与 AgentEventType 同步」，但它实际比的是契约 enum）。
-- 契约侧对齐由 `backend/agent/tests/contracts/test_sse_contract.py` 负责（四值枚举、`content` 子字段集、单帧 `SSEFrame`、错误语义分离、唯一 `is_end` 收尾）；两侧必须同时绿，见 [契约测试](./contract-tests.md#6-tests-required)。
+- 契约侧对齐由 `backend/agent/tests/contracts/test_sse_contract.py` 负责（五值枚举、`content` 子字段集、单帧 `SSEFrame`、错误语义分离、唯一 `is_end` 收尾）；两侧必须同时绿，见 [契约测试](./contract-tests.md#6-tests-required)。
+- **只加枚举不加样本等于没测**：`_sample_events()` 必须为每个 `AgentEventType` 造一个带载荷的代表事件，否则序列化路径失去覆盖。新增 `ui_action` 时必须补一个含完整 `meta` 的样本。
 
 #### 7. Wrong vs Correct
 
 - Wrong：把 `end` 当作 `type` 枚举值（旧 spec 文字曾如此表述）；或假设每个帧都带 `content` 子字段。
-- Correct：类型枚举只有四值，结束由 `is_end=true` 表达；消费方把 `content` 子字段视为可选。实现以 `app/api/sse.py:10-11` 为准，spec 文字与之冲突时以代码为权威。
+- Correct：wire 类型枚举五个（不含 `end`），结束由 `is_end=true` 表达；消费方把 `content` 子字段视为可选。实现以 `app/api/sse.py:10-11` 为准，spec 文字与之冲突时以代码为权威。
 
 ### Scenario: Chat run 生命周期与重连
 

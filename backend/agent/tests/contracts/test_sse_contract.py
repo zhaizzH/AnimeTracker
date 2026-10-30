@@ -51,6 +51,17 @@ def _sample_events() -> list[AgentEvent]:
             message="搜索番剧调用成功",
         ),
         AgentEvent(type=AgentEventType.STATUS, state="running", message="处理中"),
+        # `ui_action` 必须带**非空** meta：空 dict 会被 `exclude_none=True` 剔除，
+        # 只加枚举不加样本会让序列化路径失去覆盖（design D5）。
+        AgentEvent(
+            type=AgentEventType.UI_ACTION,
+            meta={
+                "action": "open_anime_index",
+                "params": {"year": 2022},
+                "path": "/anime?year=2022&page=1",
+                "label": "2022 年的番",
+            },
+        ),
         AgentEvent(type=AgentEventType.END),
     ]
 
@@ -63,7 +74,7 @@ def test_contract_type_enum_has_no_end() -> None:
     """``end`` 不是 wire 类型——结束以 ``is_end`` 表达。"""
     enum = _frame_schema()["properties"]["type"]["enum"]
     assert "end" not in enum, f"契约 type 枚举不得包含 'end'：{enum}"
-    assert set(enum) == {"answer", "thinking", "function_call", "status"}
+    assert set(enum) == {"answer", "thinking", "function_call", "status", "ui_action"}
 
 
 def test_observed_types_are_subset_of_contract_enum() -> None:

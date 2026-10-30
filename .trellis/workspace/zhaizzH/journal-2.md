@@ -150,3 +150,46 @@
 ### Next Steps
 
 - `10-29-ui-action-event` 可开工（与前端无交叠）；接上 `onUiAction` 时只需调 `markAgentNavigation` → `navigate(meta.path)` → `showNavHint(label)`，不必再改 `AIAssistantFloat.tsx`
+
+---
+
+## Session 44 - 2026-10-30
+
+### 任务
+
+`10-29-ui-action-event`：`ui_action` SSE 事件端到端打通（第二棵子树）。
+
+### 关键决策（实现前已定）
+
+- **重放打标而非跳帧**：跳帧会让前端 `after`（已收帧数）与后端 `run.events` 下标错位，后续重连重复/遗漏正文。改 `meta.replayed=true`，帧数保持 1:1，执行权在前端。
+- **前端直接用服务端 `meta.path`**，不重复实现 action→URL 映射；`label` 也由服务端下发。
+
+### 实现期两处偏差（已回写 design.md）
+
+- `onUiAction` 改单对象 `UiAction`——原位置参数装不下 `path`。
+- `AgentChatProvider` 现在依赖 `useNavigate`，**必须在 Router 内**；测试须包 `MemoryRouter`。已写进 `frontend/component-guidelines.md`。
+
+### 流程
+
+1. `trellis-implement`：7 处契约改动 + 测试，后端 862→867
+2. `trellis-check` 独立审：五个重点全部通过，两次变异（重放改跳帧 / 实时段也打标）均转红
+3. check 报 2 必须修（spec 残留「四值」、测试文件路径不存在）+ 6 建议修，全部处理
+
+### Spec 漂移修复（本轮最大收获）
+
+实现让 8 处 spec 说法失效。最险的两处：
+- `guides/cross-layer-thinking-guide.md:71` 仍写「type 四值」
+- `agent-ui-actions.md` 的 Tests Required 指向 `tests/chat/test_runs_replay.py`（**该目录不存在**）
+- `test_live_subscription_does_not_mark_ui_action` 只断言 `run_id`——`run_id` 是 `_with_run_id` 补的，证明不了 `ui_action` 载荷幸存；已补 `action`/`path`/`label` 断言
+
+### Testing
+
+- [OK] 后端 `uv run pytest -q`：867 passed；`tests/contracts`：154 passed；`ruff check`：All checks passed
+- [OK] 前端 `npm test`：shared 92 / client 72 / admin 81
+- [OK] `npm run typecheck`：三包无错误
+- [OK] 变异 2 条由 check 执行，均转红并还原
+
+### Next Steps
+
+- `10-29-navigation-graph` 可开工：事件通道已通，`navigation_emitter` 只需 `emit_ui_action(action, params, path, label)`
+- 注意 navigation-graph 的 D1（嵌套图 `navigation_intent` 必须由 `run_domain_agent` 显式回传）——不做这步整条链静默失效

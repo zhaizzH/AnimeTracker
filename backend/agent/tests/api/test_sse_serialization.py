@@ -79,6 +79,23 @@ def test_meta_is_serialized_when_present() -> None:
     )))
     assert data["meta"] == {"persistence": "answer", "success": False}
 
+def test_ui_action_carries_meta_and_empty_content() -> None:
+    """``ui_action`` 的载荷全在 ``meta``，``content`` 为空对象。
+
+    断言 meta 不被剔除——`meta={}` 会被 `event.meta or None` 变成 None 后
+    被 `exclude_none` 剔除，那前端就拿不到 action/path（design D2）。
+    """
+    meta = {
+        "action": "open_anime_index",
+        "params": {"year": 2022},
+        "path": "/anime?year=2022&page=1",
+        "label": "2022 年的番",
+    }
+    data = _payload(serialize_agent_event(AgentEvent(type=AgentEventType.UI_ACTION, meta=meta)))
+    assert data["type"] == "ui_action"
+    assert data["content"] == {}
+    assert data["meta"] == meta
+
 def test_end_event_uses_is_end_marker_not_type_end() -> None:
     """``end`` 不进入 ``MessageType``；靠 ``is_end=true`` 表达。"""
     data = _payload(serialize_agent_event(AgentEvent(type=AgentEventType.END)))

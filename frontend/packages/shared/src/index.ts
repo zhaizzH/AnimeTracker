@@ -14,7 +14,7 @@ export { AuthGate } from './components/AuthGate';
 export { useAuthStatus } from './hooks/useAuthStatus';
 export { bootstrapAuth, retryBootstrapAuth, refreshWithLock, publishSessionAvailable, publishSignedOut, completeLogout } from './auth/coordinator';
 export { useAgentChat } from './hooks/useAgentChat';
-export type { ChatMsg, ToolStep, SendConflict, ConflictChoice } from './hooks/useAgentChat';
+export type { ChatMsg, ToolStep, SendConflict, ConflictChoice, UiAction } from './hooks/useAgentChat';
 // API 模块以命名空间暴露，避免跨模块同名导出（list/schedule/remove）在扁平 re-export 时冲突。
 export * as authApi from './api/auth';
 export * as subjectsApi from './api/subjects';

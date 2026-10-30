@@ -177,7 +177,7 @@ _Avoid_: navigate_agent、导航助手——命名若带 agent 会暗示它有�
 _Avoid_: 前端指令、ui command——不是通用 RPC，一期仅覆盖五个只读页面跳转
 
 **Replayed frame**：
-断线重连时从 run 缓冲重发的事件帧，带 `replayed` 标记。前端照常接收以维持游标对齐，但不执行其中的 UI action。
+断线重连时从 run 缓冲重发的事件帧；**仅 `ui_action` 帧**带 `replayed` 标记。前端照常接收以维持游标对齐，但不执行其中的 UI action。
 _Avoid_: 重放跳过、dedup——不是丢帧也不是按 id 去重，是「照发但不执行」
 
 **TurnState**：
@@ -185,7 +185,7 @@ _Avoid_: 重放跳过、dedup——不是丢帧也不是按 id 去重，是「�
 _Avoid_: turn context、session state——与 PendingAction 区分：那个是待持久化的意图，这个是已发生的事实
 
 **AgentEvent**：
-SSE 事件信封，内部五值（answer / thinking / function_call / status / end），wire 四值（无 end，结束由 `is_end` 表达）。**设计待加** `ui_action`，见 [backend/agent-ui-actions.md](./backend/agent-ui-actions.md)，未实现前仍为四值。
+SSE 事件信封，内部六值（answer / thinking / function_call / status / ui_action / end），wire 五值（无 end，结束由 `is_end` 表达）。`ui_action` 自 2026-10-30 起已实现，载荷在 `meta`。
 _Avoid_: stream event、chunk
 
 **Session**：

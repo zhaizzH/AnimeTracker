@@ -75,7 +75,7 @@ CI 步骤位于 `.github/workflows/ci.yml` 的 `backend-python` job，名为 `co
 - 契约文件自身必须内部自洽：`$ref` 全部可解析、**无孤儿 schema**、不含只存在于 Java 测试类的夹具路径（`/api/client/subjects/1`、`/api/client/private`、`/api/admin/private`、`/actuator/health`）。
 - 每个 agent 出站调用的 method+path 必须解析到唯一 operation。
 - 静态可判定的请求字段必须出现在该 operation 的 request schema properties 或 `parameters` 中。
-- SSE：`type` 枚举**四值**（`answer`/`thinking`/`function_call`/`status`），**不存在 `end`**；每帧含 `type`、`content`、`is_end`、整数 `timestamp`；`content` 子字段限定为 `text`/`node`/`parent_node`/`state`/`message`/`result`/`name`/`arguments`。
+- SSE：`type` 枚举**五值**（`answer`/`thinking`/`function_call`/`status`/`ui_action`），**不存在 `end`**；每帧含 `type`、`content`、`is_end`、整数 `timestamp`；`content` 子字段限定为 `text`/`node`/`parent_node`/`state`/`message`/`result`/`name`/`arguments`（`ui_action` 帧的 `content` 为空对象，载荷在 `meta`）。
 - SSE 分帧：单行 `data: ` + JSON + 空行，不使用 `event:` 行。
 - 错误语义分离：**工具失败** = `function_call` + `state=end` + `result=error`；**持久化失败** = `status` + `state=error` + 非空 `message`。两者不得混用。
 - 恰好一个 `is_end=true` 帧收尾，且其后无任何帧（异常路径同样要产生）。
@@ -109,7 +109,9 @@ Python 直连 `:8090` 的 409 仍是 `{"detail": ...}`；两种形状由 Java �
 | 调用点 method/path 无匹配 operation | 失败并报 method、path、`file:line` |
 | 路径只能通配匹配但调用点不含运行时 ID | 失败（疑似拼写错误），除非显式进白名单 |
 | 请求字段契约未声明 | 失败并指名 operation、字段、调用点 |
-| 事件 `type` 超出四值枚举 | 失败并指名越界值 |
+| 事件 `type` 超出五值枚举 | 失败并指名越界值 |
+| `ui_action` 帧的 `meta` 为空 | 前端拿不到 action（`exclude_none` 剔除空 dict）；契约测试样本必须带完整 meta |
+| 重放段跳过 `ui_action` 而不打标 | 帧数与 `run.events` 下标错位，前端 `after` 游标失准 → 后续重连重复或遗漏事件 |
 | 帧出现未声明的 `content` 子字段 | 失败并指名该键 |
 | 工具失败被写成 `state=error` | 失败（约定是 `state=end` + `result=error`） |
 | pending action 键模板/TTL 变动 | 失败并报期望值与实际值 |
