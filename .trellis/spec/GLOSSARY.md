@@ -130,6 +130,14 @@ _Avoid_: 融合、merge、blend
 按实体类型构建并嵌入的确定性规范文本，带版本与内容哈希。
 _Avoid_: 档案、document、chunk
 
+**ExternalSource**：
+一个外部百科页面对应的来源记录（当前仅萌娘百科），可回溯到原始页面地址；萌百删除请求按它整页撤销。
+_Avoid_: 来源、source document、语料——「语料」是集合概念，不是单条来源
+
+**ExternalReference**：
+从 `ExternalSource` 切分出的**非权威**文本片段，用于补充目录之外的背景知识；可与 Subject 关联。它**不是** Evidence，不得覆盖目录事实。
+_Avoid_: 知识片段、chunk、document——`Profile` 已占用「确定性生成的规范文本」语义，两者不可混称
+
 **gate / 发布门禁**：
 索引激活前的强制检查：校验同版本的多份评估报告与阈值，任一缺失/不一致/不达标即 fail-closed；通过并经人工确认后才允许激活。
 _Avoid_: 部署、promote
@@ -156,8 +164,28 @@ _Avoid_: 域节点、route、skill、worker
 选择 Domain agent 的结构化意图路由节点；检测到待确认动作加明确确认时，确定性强制走「推荐」。
 _Avoid_: 意图路由、classifier、dispatcher
 
+**NavigationIntent**：
+Domain agent 写入 state 的结构化跳转意图（action + 参数），不含 URL；由 navigation_emitter 纯函数节点翻译成 UI action。
+_Avoid_: 跳转参数、route state——不含路由目标，与 Gateway router 的 `route_target` 不是一回事
+
+**navigation_emitter**：
+图后路由上的纯函数节点，把 NavigationIntent 翻译成 path + query 并发出 UI action。不挂 LLM、不产 answer 文本；不是 Domain agent。
+_Avoid_: navigate_agent、导航助手——命名若带 agent 会暗示它有对话能力
+
+**UI action**：
+导航节点发到 wire 上的事件，前端收到后执行路由跳转。可逆、无持久副作用，故**不走** PendingAction 两阶段。
+_Avoid_: 前端指令、ui command——不是通用 RPC，一期仅覆盖五个只读页面跳转
+
+**Replayed frame**：
+断线重连时从 run 缓冲重发的事件帧，带 `replayed` 标记。前端照常接收以维持游标对齐，但不执行其中的 UI action。
+_Avoid_: 重放跳过、dedup——不是丢帧也不是按 id 去重，是「照发但不执行」
+
+**TurnState**：
+单次图执行内的共享可变事实（本回合写入是否成功、待确认动作是否已清理），供跨工具传递「已发生了什么」。不落 Redis，跨轮即失效。
+_Avoid_: turn context、session state——与 PendingAction 区分：那个是待持久化的意图，这个是已发生的事实
+
 **AgentEvent**：
-SSE 事件信封，四类：answer / thinking / function_call / status；**没有 end 类型**，结束由结束标志表达。
+SSE 事件信封，内部五值（answer / thinking / function_call / status / end），wire 四值（无 end，结束由 `is_end` 表达）。**设计待加** `ui_action`，见 [backend/agent-ui-actions.md](./backend/agent-ui-actions.md)，未实现前仍为四值。
 _Avoid_: stream event、chunk
 
 **Session**：

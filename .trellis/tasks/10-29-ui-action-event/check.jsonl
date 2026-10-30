@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/backend/agent-ui-actions.md", "reason": "核对 §6 七处清单是否全部落实、重放过滤是否放在读取侧、Good/Bad 用例是否被覆盖"}
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "SSE 契约章节的 Validation & Error Matrix 与 Tests Required，逐条比对实现是否偏离"}
+{"file": ".trellis/spec/backend/contract-tests.md", "reason": "确认契约测试两侧（tests/contracts 与 tests/api）都绿，且 enum 传递断言未被绕过"}

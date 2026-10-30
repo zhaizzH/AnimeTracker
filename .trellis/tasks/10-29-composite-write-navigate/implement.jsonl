@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/write-operations.md", "reason": "预览→确认→执行协议、write_guard 硬门禁、PendingAction 三变体的持久化失败矩阵——写入门控必须与它一致"}
+{"file": ".trellis/spec/adr/0001-agent-write-two-phase-preview-confirm.md", "reason": "两阶段协议的原始决策依据，复合指令不得绕过"}
+{"file": ".trellis/spec/backend/agent-ui-actions.md", "reason": "复合指令的顺序保证（先写后导航）与 navigation_intent 的写入时机"}
+{"file": ".trellis/spec/GLOSSARY.md", "reason": "PendingAction、Preview → confirm → execute、NavigationIntent 的规范术语"}

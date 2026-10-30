@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/agent-ui-actions.md", "reason": "图结构、navigation_intent、navigation_emitter 纯函数约束与 5 个 action 白名单的唯一契约来源"}
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "组合与路由章节：「路由即工具权限边界」不变量、Domain agent 定义、新增工具先确定最小可见节点"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "决定 navigation_emitter 与 navigation.py 的落地位置（它非 Domain agent，不能沿 client/ 目录惯例）"}
+{"file": ".trellis/spec/GLOSSARY.md", "reason": "NavigationIntent / UI action / Domain agent 的规范定义，命名必须一致"}

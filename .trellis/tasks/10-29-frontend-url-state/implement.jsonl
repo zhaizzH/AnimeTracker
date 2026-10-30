@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "组件状态与 URL 的边界约定，浮层这类全局组件的挂载位置与关闭时机"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "useAgentChat 等 hook 的改造规范；浮层标记位导出方式需符合 hook 约定"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "原型目录与新增文件的归属；哪些放 shared、哪些各端自持"}
+{"file": ".trellis/spec/backend/agent-ui-actions.md", "reason": "§4.3 明确要求改 AIAssistantFloat 的关闭逻辑，本任务是该要求的前置落地"}
+{"file": ".trellis/tasks/10-29-frontend-url-state/prototype.md", "reason": "已审查通过的原型：V1 浮层内系统提示、浮层尺寸不动、窄屏方案否掉"}

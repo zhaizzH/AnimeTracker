@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/backend/agent-ui-actions.md", "reason": "核对图后路由是否只由 navigation_intent 驱动、emitter 是否静默、白名单是否被绕过"}
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "确认 admin 路径未受影响、三个 Domain agent 工具集符合「最小可见节点」、无权限边界破坏"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "新文件的模块归属是否符合目标九模块与 app/ 拆分约定"}

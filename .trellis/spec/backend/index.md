@@ -16,6 +16,7 @@
 |---|---|
 | [架构与模块边界](./directory-structure.md) | 目标九模块、现有实现对照、Auth/Infrastructure/Java Agent 设计、app/rag 拆分（2026-10-05）、pojo/Converter 与迁移验收 |
 | [Agent 编排与运行](./agent-guidelines.md) | 角色工具、Prompt、组合路由、SSE 事件契约、Gateway 解析、认证与配置 |
+| [Agent 驱动 UI（设计定稿，未实现）](./agent-ui-actions.md) | 自然语言导航、图后路由链、`ui_action` 事件与重放过滤 |
 | [Agent 安全写操作](./write-operations.md) | 预览→确认→执行协议、`write_guard` 硬门禁、PendingAction 三变体差异、持久化失败矩阵、SUBJECT_RESOLUTION 选择 |
 | [Agent 离线任务](./offline-jobs.md) | importer / indexer / backfill / scheduler 的幂等、锁、重试与错误分类 |
 | [数据与存储](./database-guidelines.md) | MySQL、MyBatis、SQLAlchemy、Redis、MinIO 公开 URL、Schema 与存储约束 |

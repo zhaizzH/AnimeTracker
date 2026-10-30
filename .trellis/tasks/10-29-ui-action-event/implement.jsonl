@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/agent-ui-actions.md", "reason": "本任务的唯一契约来源：§6 列出 ui_action 必须同步的 7 处文件清单与重放过滤语义"}
+{"file": ".trellis/spec/backend/agent-guidelines.md", "reason": "SSE 事件契约章节：两层枚举（内部 AgentEventType 五值 / wire MessageType 四值）与传递断言的既有约定，改动必须遵守"}
+{"file": ".trellis/spec/backend/contract-tests.md", "reason": "契约套件范围与运行方式，test_sse_contract.py 的断言口径"}
+{"file": ".trellis/spec/GLOSSARY.md", "reason": "AgentEvent 与 UI action 的规范术语，避免同义词混用导致文档漂移"}
