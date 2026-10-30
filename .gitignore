@@ -155,4 +155,5 @@ docs/deploy
 # 原型构建产物（scripts/prototype.vite.config.mts）
 frontend/.prototype-dist/
 # 原型 dev server 的依赖预构建缓存
-.trellis/tasks/10-29-frontend-url-state/prototype/.vite/
+# 原型 dev server 的依赖预构建缓存（按目录名匹配，任务归档换路径后仍生效）
+**/prototype/.vite/
