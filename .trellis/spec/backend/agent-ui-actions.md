@@ -57,7 +57,7 @@ Command(update={
 
 普通工具返回值会变成 `ToolMessage` 内容、**不进 state**，图的条件边读不到。也**不走** `emit_pending_action_*` ContextVar——那是 PendingAction 持久化通道（SSE 收尾落 Redis，TTL 600s）；`navigation_intent` 只在单次图内活。
 
-**嵌套图必须显式回传**：`run_domain_agent` 内的 `create_agent` 是嵌套图，工具的 `Command` 只写内层 state。实测外层图的 `navigation_intent` 仍为 `None`，条件边永远走不到 emitter。因此 `agent_stream` 返回 dict 增加 `navigation_intent=latest_state.get(...)`，`run_domain_agent` 在返回值里带上该字段。详见 [navigation-graph/design.md](../../tasks/10-29-navigation-graph/design.md) D1。
+**嵌套图必须显式回传**：`run_domain_agent` 内的 `create_agent` 是嵌套图，工具的 `Command` 只写内层 state。实测外层图的 `navigation_intent` 仍为 `None`，条件边永远走不到 emitter。因此 `agent_stream` 返回 dict 增加 `navigation_intent=latest_state.get(...)`，`run_domain_agent` 在返回值里带上该字段。详见 [navigation-graph/design.md](../../tasks/archive/2026-10/10-29-navigation-graph/design.md) D1。
 
 约束：
 - `open_subject` 的 `subjectId` 必须是**前序工具已解析出的真实 ID**（来自 `subject_resolution` 或 RAG 候选）。工具不接受标题字符串——标题解析属于原 Domain agent 的职责，且必须经权威回查。
@@ -86,7 +86,7 @@ Command(update={
 
 **`AIAssistantFloat.tsx` 的关闭逻辑必须改**：当前 `useEffect(() => setOpen(false), [location.key])` 在任何路由变化时关面板。agent 导航会触发它，聊天界面随即消失——这会让整个特性失效。改为：agent 发起的导航（带标记）不关面板，用户手动点导航链接仍关。
 
-具体接口由 [frontend-url-state/design.md](../../tasks/10-29-frontend-url-state/design.md) 定义：模块级 `markAgentNavigation()`（一次性标记）与 `showNavHint(label)`（浮层内系统提示，本地瞬时状态、不进会话历史）。调用顺序固定为「标记 → `navigate` → 提示」，反了面板会先被关掉。
+具体接口由 [frontend-url-state/design.md](../../tasks/archive/2026-10/10-29-frontend-url-state/design.md) 定义：模块级 `markAgentNavigation()`（一次性标记）与 `showNavHint(label)`（浮层内系统提示，本地瞬时状态、不进会话历史）。调用顺序固定为「标记 → `navigate` → 提示」，反了面板会先被关掉。
 
 ## 5. 一期 action 白名单（5 个）
 
@@ -126,7 +126,7 @@ Command(update={
 
 定案：**重放段照常下发 `ui_action`，但补 `meta.replayed=true`；前端见到该标记直接忽略**。帧数与缓冲下标保持 1:1，游标天然对齐，且保留可回溯性。语义细化为「重放帧仍下发，执行权在前端」。
 
-写入侧仍然不动：若在 `_drive()` 就不入缓冲，改的是写入路径，保护错了对象。详见 [ui-action-event/design.md](../../tasks/10-29-ui-action-event/design.md) D1。
+写入侧仍然不动：若在 `_drive()` 就不入缓冲，改的是写入路径，保护错了对象。详见 [ui-action-event/design.md](../../tasks/archive/2026-10/10-29-ui-action-event/design.md) D1。
 
 ## 7. Validation & Error Matrix
 
@@ -154,7 +154,7 @@ Command(update={
 - `tests/agent/test_navigation_emitter.py`：纯函数映射、白名单外 action 拒绝、`subjectId` 必填、执行后清空 state、不产 answer 文本。
 - `tests/agent/test_graph_post_routing.py`：`navigation_intent` 非空才走 emitter；三个 Domain agent 都能到达；admin 路径不受影响。
 - `tests/agent/test_request_navigation_tool.py`：参数校验、非法值不写 state、复合指令下写入未完成时不发导航。
-- `tests/chat/test_runs_replay.py`：重放段 `ui_action` 带 `replayed` 标记且**帧数与缓冲一致**，实时段不打标；连续两次重连用前端口径的 `after` 不重复不遗漏；缓冲截断 warning 行为不回归。
+- `tests/agent/test_chat_run_manager.py`：重放段 `ui_action` 带 `replayed` 标记且**帧数与缓冲一致**，实时段不打标；连续两次重连用前端口径的 `after` 不重复不遗漏；缓冲截断 warning 行为不回归。实际用例：`test_replay_marks_ui_action_but_keeps_frames_one_to_one`、`test_live_subscription_does_not_mark_ui_action`、`test_two_consecutive_reconnects_neither_duplicate_nor_skip`、`test_truncated_buffer_still_warns_first`（`tests/chat/` 目录不存在，重放契约住在 run manager 测试里）。
 - `tests/agent/test_run_domain_agent.py`：内层工具写 `navigation_intent` 后，`run_domain_agent` 返回值带该字段（锁嵌套图回传）。
 - `tests/api/test_sse_serialization.py` + `tests/contracts/test_sse_contract.py`：五值 wire 枚举、`meta` 保留、结束帧形态不变。
 - 前端：`useAgentChat.uiAction.test.tsx`（事件不进正文/工具列表、回调被调）、`AIAssistantFloat` 的 agent 导航不关面板、`AnimeIndex` 筛选 URL 归一化回归。

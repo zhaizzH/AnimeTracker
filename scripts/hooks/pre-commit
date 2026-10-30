@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# 提交前守卫：拦住两类事故。
+#
+# 安装（.git/hooks 不受版本控制，换机后重跑这一行）：
+#   cp scripts/hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+#
+# 自查：装满产物的暂存区跑一次 ./.git/hooks/pre-commit，应以退出码 1 结束。
+#
+# 1) 构建产物 / 依赖缓存被误暂存（2026-10-30 实际发生：归档任务目录名变化后
+#    .gitignore 规则失配，prototype/.vite 缓存把 102,019 行带进暂存区）
+# 2) 单次提交体量异常（通常是 1) 的伴生症状，或误 add 了大目录）
+#
+# 按「产物特征」判断而非已知路径清单——换目录、换工具仍生效。
+set -u
+
+MAX_LINES=5000
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged" ] && exit 0
+
+# 1) 产物特征
+blocked=$(printf '%s\n' "$staged" | grep -E \
+  '(^|/)(node_modules|\.vite|dist|build|\.prototype-dist|target|__pycache__|\.venv|\.pytest_cache)/' \
+  | head -20)
+if [ -n "$blocked" ]; then
+  echo "pre-commit 拒绝：暂存区包含构建产物/依赖缓存：" >&2
+  printf '  %s\n' $blocked >&2
+  echo "先 git restore --staged <path>，再把对应目录加进 .gitignore。" >&2
+  exit 1
+fi
+
+# 2) 体量（只统计新增/删除行，二进制或改名不计）
+lines=$(git diff --cached --numstat | awk '{ if ($1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/) s += $1 + $2 } END { print s + 0 }')
+if [ "$lines" -gt "$MAX_LINES" ]; then
+  echo "pre-commit 拒绝：本次提交 $lines 行（上限 $MAX_LINES）。" >&2
+  echo "确认不是误 add 大目录：git diff --cached --stat | tail -5" >&2
+  exit 1
+fi
+
+exit 0
