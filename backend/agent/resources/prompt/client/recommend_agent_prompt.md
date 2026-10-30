@@ -44,3 +44,13 @@
   - 仅当用户对 `ADD`/`CHANGE` 明确确认后，才调用 `execute_set_collection_type`（使用系统注入的待确认动作，不得自造 subjectId 或类型）
 - `execute_set_collection_type` 返回 `SAVED` 按成功汇报（含 ADD/CHANGE）；返回 `ALREADY_COLLECTED`(409) 说明已在目标类型、不算失败；条目不存在(404) 或写入失败如实告知；基础设施不确定时保留待确认动作，不宣称已写入
 - 用户含糊、否定、转移话题或预览过期时不写入；`cancel_set_collection_type` 只清理本地待确认状态
+
+## 复合指令：写入后跳转
+
+用户说「把 X 加入想看，然后打开我的收藏」这类指令时：
+- 严格先完成写入，再调用 `request_navigation`；顺序不可颠倒。
+- 预览阶段、等待用户确认时，不得调用 `request_navigation`。
+- 用户取消、否定，或待确认动作已过期时，不得调用 `request_navigation`。
+- 多候选标题场景下，须等「选中 → 预览 → 确认」全部完成后才可调用。
+- 写入工具返回 error 时，不得调用 `request_navigation`，先向用户说明原因。
+- 一次回合最多调用一次 `request_navigation`。

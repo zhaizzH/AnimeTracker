@@ -488,3 +488,31 @@ async def test_resolve_session_run_uses_projection_when_memory_is_empty() -> Non
     info = await manager.resolve_session_run("s1")
     assert info is not None
     assert (info.run_id, info.status, info.event_count) == ("r9", "done", 4)
+
+# ---------------------------------------------------------------- turn-bag 生命周期（design D2）
+
+@pytest.mark.asyncio
+async def test_drive_installs_turn_state_and_resets_after_run() -> None:
+    """turn-bag 由 `_drive` 安装（Token 绑定创建它的 Context），跑完后清空。"""
+    from app.agent.client.actions.turn_state import get_turn_state, mark_pending_resolved
+
+    inside: list = []
+
+    class _TurnReadingWorkflow:
+        async def astream(self, _state, stream_mode):
+            turn = get_turn_state()
+            inside.append(turn)
+            mark_pending_resolved()
+            inside.append(get_turn_state().pending_resolved)
+            emit_answer_delta("A")
+            yield "values", {}
+
+    assert get_turn_state() is None
+
+    manager = ChatRunManager(store=None)
+    run = await manager.start(session_id="s1", user_id=1, events=_events(_TurnReadingWorkflow()))
+    await asyncio.wait_for(run.task, timeout=1.0)
+
+    assert inside[0] is not None, "run 内必须有 turn-bag"
+    assert inside[1] is True, "打标对同一回合可见"
+    assert get_turn_state() is None, "run 结束后必须 reset，避免跨回合残留"

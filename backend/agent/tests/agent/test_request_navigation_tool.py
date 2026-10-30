@@ -6,7 +6,17 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.outputs import ChatGeneration, ChatResult
 from langgraph.types import Command
 
+from app.agent.client.actions.turn_state import (
+    mark_pending_resolved,
+    reset_turn_state,
+    set_turn_state,
+)
 from app.agent.client.navigation import build_request_navigation_tool
+from app.chat.pending_events import (
+    get_pending_action_event,
+    reset_pending_action_collector,
+    set_pending_action_collector,
+)
 
 def _call(**kwargs) -> Command:
     tool_obj = build_request_navigation_tool()
@@ -110,3 +120,66 @@ def test_tool_runs_inside_real_create_agent_without_value_error() -> None:
 
     assert result["navigation_intent"] == {"action": "open_profile", "params": {}}
     assert isinstance(result["messages"][-1], AIMessage)
+
+# ---------------------------------------------------------------- 写入门控（design D1/D2）
+
+class _WritePending:
+    type = "ADD_TO_WISHLIST"
+    user_id = 2
+    expires_at = None
+
+def _gated_call(*, gated: bool, pending) -> Command:  # noqa: ANN001 - 测试替身
+    tool_obj = build_request_navigation_tool(gated=gated)
+    return tool_obj.func(action="open_collections", tool_call_id="call_1", pending_action=pending)
+
+def test_gated_tool_rejects_navigation_while_write_pending_unresolved() -> None:
+    token = set_turn_state()
+    try:
+        result = _gated_call(gated=True, pending=_WritePending())
+    finally:
+        reset_turn_state(token)
+
+    _assert_rejected(result)
+
+def test_gated_tool_allows_navigation_after_write_resolved() -> None:
+    """D1 核心修复：写成功后 state 里 pending 仍在，门控必须放行。"""
+    token = set_turn_state()
+    try:
+        mark_pending_resolved()
+        result = _gated_call(gated=True, pending=_WritePending())
+    finally:
+        reset_turn_state(token)
+
+    assert result.update["navigation_intent"] == {"action": "open_collections", "params": {}}
+
+def test_ungated_tool_ignores_write_pending() -> None:
+    """search / discover 无写工具，不挂门控。"""
+    token = set_turn_state()
+    try:
+        result = _gated_call(gated=False, pending=_WritePending())
+    finally:
+        reset_turn_state(token)
+
+    assert result.update["navigation_intent"]["action"] == "open_collections"
+
+def test_gated_tool_allows_pure_navigation_without_pending() -> None:
+    token = set_turn_state()
+    try:
+        result = _gated_call(gated=True, pending=None)
+    finally:
+        reset_turn_state(token)
+
+    assert result.update["navigation_intent"]["action"] == "open_collections"
+
+def test_gated_tool_does_not_write_intent_or_state_when_rejected() -> None:
+    token = set_turn_state()
+    pending_token = set_pending_action_collector()
+    try:
+        result = _gated_call(gated=True, pending=_WritePending())
+        pending_event = get_pending_action_event()
+    finally:
+        reset_pending_action_collector(pending_token)
+        reset_turn_state(token)
+
+    assert set(result.update) == {"messages"}, "被拒绝时只回 ToolMessage"
+    assert pending_event is None

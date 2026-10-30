@@ -47,8 +47,7 @@ class TurnState:
     与 PendingAction collector 同为 ContextVar 承载的流内状态，但用途不同：
     collector 是「待持久化的意图」，本对象是「已发生的事实」，不落 Redis。
     """
-    write_outcome: Literal["none", "succeeded", "failed"] = "none"
-    pending_cleared: bool = False
+    pending_resolved: bool = False
 ```
 
 安装点与 `pending_action_collector` 同一处：`ChatRunManager._drive` 里
@@ -57,70 +56,82 @@ class TurnState:
 
 ### 打标点
 
-只改 `PreviewableAction.execute`（`app/agent/client/actions/previewable.py`）一处，
+只改 `PreviewableAction`（`app/agent/client/actions/previewable.py`）两处，
 三条写链路（wishlist / collection_type / collection_progress）自动全覆盖：
 
 ```python
-result = self.do_execute(pending=pending, user=user)
-action, response = self.classify_result(result=result, pending=pending, user=user)
-if isinstance(action, Clear):
+def cancel(self) -> dict:
     emit_pending_action_clear()
-    mark_write_cleared(succeeded=_has_success(response))   # 新增
-elif isinstance(action, Replace):
-    emit_pending_action_replace(action.new_pending)
+    mark_pending_resolved()      # 取消也是「本回合 pending 已结束」
+    return {"cancelled": True}
+
+def execute(self, ...):
+    ...
+    if isinstance(action, Clear):
+        emit_pending_action_clear()
+        mark_pending_resolved()  # 写入已定（成功或确定性失败），pending 结束
+    elif isinstance(action, Replace):
+        emit_pending_action_replace(action.new_pending)
+    return response
 ```
 
-`_has_success(response)`：三条链路的 response 都有 `succeeded` 列表
-（wishlist 是 `{"succeeded","skipped","failed"}`，另两条同形态），
-非空即为 `succeeded`，否则 `failed`。
+**为什么只有 `pending_resolved` 一个布尔量，没有 `write_outcome` 三态**（2026-10-30 修正）：
+初稿设计了 `write_outcome: Literal["none","succeeded","failed"]`，靠 response 里的
+`succeeded` 列表判定成功。实现前核对三条链路，发现**只有 wishlist 有 `succeeded`**：
 
-**关键区分**：`Clear` 在「确定性失败（已收藏、条目失败）」时也会发。
-不能拿 `Clear` 本身当「写成功」，必须看 `succeeded` 是否非空——
-否则「这部已经在看过了，然后打开我的收藏」会被判成写入成功而导航，属于撒谎。
+| 链路 | `classify_result` 成功形态 | 确定性失败形态 |
+|---|---|---|
+| wishlist | `{"succeeded": [...], "skipped": [...], "failed": [...]}` | `{"failed": [...]}`（`succeeded` 空） |
+| collection_type | `{"state": "SAVED", ...}` | `{"state": "ALREADY_COLLECTED", ...}` / `{"error": True, "code": 409/404}` |
+| collection_progress | `{"state": "COMPLETED", ...}` | `{"error": True, "code": 404}` |
 
-同时记录 `pending_cleared=True`，供「取消」分支判定。
+要区分「真写入」与「确定性失败」就得为三条各写一套判据，脆弱且与链路细节耦合。
+更重要的是：**这个区分对门控没用**。按 D3 的表，「确定性失败」与「成功」**都允许导航**
+（区别只在 prompt 是否*主动*导航，那是 prompt 的事，TurnState 读不到）。
+初稿门控伪码里两个分支也都 `return None`，三态本身就是死字段。
+
+`Keep`（基础设施错误，写入结果不确定）**不**打标：pending 还在，下次重试仍被门控拦住，这是对的。
 
 ### 门控规则
 
-`request_navigation` 在 recommend 节点注册时注入 `turn_state`：
+`request_navigation` 在 recommend 注册时传 `gated=True`，工具**调用时**读 turn state：
 
 ```python
+WRITE_PENDING_TYPES = {"ADD_TO_WISHLIST", "SET_COLLECTION_TYPE", "COLLECTION_PROGRESS_UPDATE"}
+_SUBJECT_RESOLUTION = "SUBJECT_RESOLUTION"
+
 def _navigation_gate(*, pending, turn: TurnState) -> dict | None:
+    """写入类 pending 存在且本回合尚未结束时，拒绝导航。"""
     ptype = getattr(pending, "type", None)
-    if ptype in WRITE_PENDING_TYPES or ptype == SUBJECT_RESOLUTION:
-        # state 里的 pending 是回合开始时的快照；本回合已写成功并清空则放行
-        if turn.write_outcome == "succeeded" and turn.pending_cleared:
-            return None
-        if turn.pending_cleared:
-            return None          # 用户取消/确定性失败：pending 已无，属纯导航，放行与否见 D3
+    if ptype is None or turn.pending_resolved:
+        return None      # 没有待确认动作，或本回合已结束（成功/取消/确定性失败）
+    if ptype in WRITE_PENDING_TYPES or ptype == _SUBJECT_RESOLUTION:
         return {"error": True, "message": "写入尚未完成，请先确认或取消待确认动作"}
     return None
 ```
 
-`WRITE_PENDING_TYPES = {"ADD_TO_WISHLIST", "SET_COLLECTION_TYPE", "COLLECTION_PROGRESS_UPDATE"}`。
-
-**`SUBJECT_RESOLUTION` 这次列入拒绝集**（与 implement.md 相反）：
-因为门控现在读的是 turn-bag 而非粘滞 state，选完候选 → 预览 → 确认 → 写成功 →
-`write_outcome=succeeded` 后自然放行，不存在「堵死多候选链路」的问题。
-不列入反而留了洞：多候选未选时就允许导航，用户会看到「还没写入就跳走了」。
+**关键点**：`state["pending_action"]` 是**回合开始时的 Redis 快照**，写成功后不会更新。
+所以「pending 存在」这个信息本身不可靠——必须与 `turn.pending_resolved` 联合判断，
+否则会在「写成功、正要导航」那一刻把唯一该放行的导航拦死。
 
 ### 为什么不直接读 `get_pending_action_event()`
 
 零新增机制，但 `CLEAR` 同时覆盖「写成功」与「确定性失败」，语义混。
-D2 的 `write_outcome` 三态能准确表达「本回合写入已完成」，且不需要导航工具去理解
-PendingAction 的持久化协议。耦合方向更干净。
+本 child 定案的 `pending_resolved` 同样做到「不需要导航工具去理解 PendingAction 的
+持久化协议」，且比三态更省（三态对门控是死字段，见 D2）。耦合方向同样干净。
 
 ## D3 取消 / 过期 / 否定分支的行为
 
-| 场景 | 本回合状态 | 期望行为 |
-|---|---|---|
-| 用户确认，写成功 | `succeeded` + `pending_cleared` | **允许导航** |
-| 用户取消（调 `cancel_*`） | `pending_cleared=True`，`write_outcome=none` | 允许导航（pending 已清，等同纯导航），但 prompt 不应主动导航 |
-| 用户否定但未调取消工具 | pending 仍在，`write_outcome=none` | **拒绝导航** |
-| pending 已过期 | `require_confirmed_write` 已拒写；turn 无打标 | **拒绝导航** |
-| 写入确定性失败（全部已收藏） | `failed` + `pending_cleared` | 允许导航，但 prompt 不应主动导航 |
-| 多候选未选 | `SUBJECT_RESOLUTION` 在，无打标 | **拒绝导航** |
-| 纯导航（无 pending） | 全部默认 | 允许 |
+| 场景 | `state["pending_action"]` | `turn.pending_resolved` | 期望行为 |
+|---|---|---|---|
+| 用户确认，写成功 | 写入类（快照，未变） | `True` | **允许导航** |
+| 用户取消（调 `cancel_*`） | 写入类（快照，未变） | `True` | 允许导航（等同纯导航），但 prompt 不应主动导航 |
+| 用户否定但未调取消工具 | 写入类 | `False` | **拒绝导航** |
+| pending 已过期 | 写入类 | `False`（`Keep` 不打标） | **拒绝导航** |
+| 写入确定性失败（全部已收藏） | 写入类 | `True`（`Clear` 打标） | 允许导航，但 prompt 不应主动导航 |
+| 基础设施错误（`Keep`） | 写入类 | `False` | **拒绝导航**（pending 还在，可重试） |
+| 多候选未选（`SUBJECT_RESOLUTION`） | `SUBJECT_RESOLUTION` | `False` | **拒绝导航** |
+| 纯导航（无 pending） | `None` | 无关 | 允许 |
 
 「允许但 prompt 不应主动导航」的两行：硬门控只保证**不违反先写后导航**，
 是否导航交给模型按 prompt 决定。这两行不需要额外硬约束——导航可逆、无持久副作用，
@@ -161,14 +172,16 @@ child 3 已在三个 Domain agent 注册 `request_navigation`，工厂签名预�
 request_navigation = build_request_navigation_tool(turn_state=get_turn_state())
 ```
 
-`get_turn_state()` 在**图执行时**被工具读取（ContextVar），不是在工厂构造时定值——
-工厂在 lifespan 组装期跑一次，那时没有 turn 上下文。因此工具内部要**延迟读取**：
+`get_turn_state()` 必须在**工具调用时**读取（ContextVar），不能在工厂构造期定值——
+工厂在 lifespan 组装期跑一次，那时没有 turn 上下文。因此门控要写在工具函数体里：
 
 ```python
 @tool
 def request_navigation(...):
-    turn = get_turn_state()      # 调用时才读
-    ...
+    turn = get_turn_state()      # 调用时才读；工厂期读到的是「无回合」
+    gate = _navigation_gate(pending=state.get("pending_action"), turn=turn)
+    if gate is not None:
+        return _error_command(gate["message"], tool_call_id)
 ```
 
 工厂参数退化为「是否启用门控」的开关，而非具体实例。
@@ -177,14 +190,14 @@ child 3 实际交付时**没有预留任何参数位**（刻意的：留一个�
 
 ## D6 测试清单
 
-- **门控正向**：state 里 pending 为 `ADD_TO_WISHLIST`，turn-bag 为
-  `succeeded + pending_cleared` → 允许写 `navigation_intent`（锁 D1 的核心修复）
+- **门控正向**：state 里 pending 为 `ADD_TO_WISHLIST`，turn-bag 为 `pending_resolved=True`
+  → 允许写 `navigation_intent`（锁 D1 的核心修复）
 - **门控负向**：pending 为写入类、turn-bag 默认 → 拒绝且 state 无 intent
 - **多候选**：`SUBJECT_RESOLUTION` 在、无打标 → 拒绝；
   模拟走完选候选 → 预览 → 确认（打标）→ 允许
-- **取消分支**：`pending_cleared=True`、`write_outcome=none` → 不拒绝（行为由 prompt 决定）
+- **取消分支**：`pending_resolved=True` → 不拒绝（行为由 prompt 决定）
 - **过期分支**：pending 过期且无打标 → 拒绝
-- **确定性失败**：`write_outcome=failed` → 不被判为写成功
+- **确定性失败**：`Clear` 同样打标 → 允许导航（与成功同待遇，区别只在 prompt）
 - **不回归**：纯导航三节点可用；`admin_agent` 无该工具；
   三条写链路既有测试全绿（`PreviewableAction` 加了打标，不能改变其返回 dict）
 

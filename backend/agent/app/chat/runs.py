@@ -23,6 +23,7 @@ from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any
 
+from app.agent.client.actions.turn_state import reset_turn_state, set_turn_state
 from app.chat.events import AgentEvent, AgentEventType
 from app.chat.pending_events import (
     PendingActionEvent,
@@ -310,6 +311,9 @@ class ChatRunManager:
         failed = False
         error_message: str | None = None
         pending_token = set_pending_action_collector()
+        # turn-bag：本回合共享可变事实（写入是否已结束），供导航门控读取。
+        # 与 collector 同纪律：Token 绑定创建它的 Context，必须由 _drive 自己 reset。
+        turn_token = set_turn_state()
         try:
             async for event in events:
                 if run.status is RunStatus.CANCELLED:
@@ -390,6 +394,7 @@ class ChatRunManager:
                 self._finish(run)
                 await self._project(run)
                 reset_pending_action_collector(pending_token)
+                reset_turn_state(turn_token)
                 if run.persist_future is not None and not run.persist_future.done():
                     run.persist_future.set_result(None)
 

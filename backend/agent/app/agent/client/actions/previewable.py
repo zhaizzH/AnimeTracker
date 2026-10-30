@@ -18,6 +18,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, ClassVar, Generic, TypeVar
 
+from app.agent.client.actions.turn_state import mark_pending_resolved
 from app.agent.client.actions.write_guard import require_confirmed_write
 from app.chat.pending_events import (
     emit_pending_action_clear,
@@ -61,6 +62,8 @@ class PreviewableAction(ABC, Generic[P]):
     def cancel(self) -> dict:
         """取消当前待确认动作，只清理本地状态，不修改后端数据。"""
         emit_pending_action_clear()
+        # 取消也是「本回合 pending 已结束」：门控据此放行后续导航（design D2/D3）
+        mark_pending_resolved()
         return {"cancelled": True}
 
     def execute(
@@ -83,6 +86,9 @@ class PreviewableAction(ABC, Generic[P]):
         action, response = self.classify_result(result=result, pending=pending, user=user)
         if isinstance(action, Clear):
             emit_pending_action_clear()
+            # 写入已定（成功或确定性失败）：pending 结束，本回合导航门控放行。
+            # Keep 不打标——基础设施错误时 pending 还在，可重试，门控应继续拦。
+            mark_pending_resolved()
         elif isinstance(action, Replace):
             emit_pending_action_replace(action.new_pending)
         return response

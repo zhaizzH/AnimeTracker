@@ -13,60 +13,65 @@
 ```python
 @dataclass
 class TurnState:
-    write_outcome: Literal["none", "succeeded", "failed"] = "none"
-    pending_cleared: bool = False
+    pending_resolved: bool = False
 ```
 
-ContextVar 承载，`set_turn_state()` / `get_turn_state()` / `reset_turn_state(token)`，
-安装点在 `ChatRunManager._drive`（紧邻现有 `set_pending_action_collector`，同样的 Token 纪律）。
+ContextVar 承载，`set_turn_state()` / `get_turn_state()` / `reset_turn_state(token)` /
+`mark_pending_resolved()`，安装点在 `ChatRunManager._drive`（紧邻现有
+`set_pending_action_collector`，同样的 Token 纪律）。
 
-打标只改 `PreviewableAction.execute` 一处，三条写链路全覆盖：
+打标改 `PreviewableAction` 的 **两个** 方法（`cancel` 与 `execute`），三条写链路自动全覆盖：
 
 ```python
-if isinstance(action, Clear):
+def cancel(self) -> dict:
     emit_pending_action_clear()
-    mark_write_cleared(succeeded=bool(response.get("succeeded")))
+    mark_pending_resolved()      # 取消也是「本回合 pending 已结束」
+    return {"cancelled": True}
+
+def execute(self, ...):
+    ...
+    if isinstance(action, Clear):
+        emit_pending_action_clear()
+        mark_pending_resolved()
+    elif isinstance(action, Replace):
+        emit_pending_action_replace(action.new_pending)
+    return response
 ```
 
-**不能用 `Clear` 本身当「写成功」**：确定性失败（已收藏、条目失败）也发 `Clear`，
-必须看 `succeeded` 列表是否非空。
+**只有一个布尔量，没有 `write_outcome` 三态**（2026-10-30 修正，详见 design D2）：
+三条链路的成功形态各不相同（只有 wishlist 有 `succeeded` 列表，
+另两条是 `{"state": "SAVED"}` / `{"state": "COMPLETED"}`），
+而「确定性失败」与「成功」对门控**同等放行**（区别只在 prompt 是否主动导航）。
+`Keep`（基础设施错误）**不**打标——pending 还在，可重试，门控应继续拦。
 
 ## 切片 2：门控（工具已在 child 3 注册）
 
 文件：`app/agent/client/navigation.py`
 
+**child 3 交付的签名是 `build_request_navigation_tool()`，没有 `gated` 参数**
+（刻意不留死开关）。本 child 先加回 `*, gated: bool = False`。
+
 ```python
+WRITE_PENDING_TYPES = {"ADD_TO_WISHLIST", "SET_COLLECTION_TYPE", "COLLECTION_PROGRESS_UPDATE"}
+_SUBJECT_RESOLUTION = "SUBJECT_RESOLUTION"
+
 def _navigation_gate(*, pending, turn) -> dict | None:
     ptype = getattr(pending, "type", None)
-    if ptype in WRITE_PENDING_TYPES or ptype == SUBJECT_RESOLUTION:
-        if turn.pending_cleared:
-            return None            # 本回合已清空（写成功 / 取消 / 确定性失败）
+    if ptype is None or turn.pending_resolved:
+        return None   # 无待确认动作，或本回合已结束（成功/取消/确定性失败）
+    if ptype in WRITE_PENDING_TYPES or ptype == _SUBJECT_RESOLUTION:
         return {"error": True, "message": "写入尚未完成，请先确认或取消待确认动作"}
     return None
 ```
 
-- `WRITE_PENDING_TYPES = {"ADD_TO_WISHLIST", "SET_COLLECTION_TYPE", "COLLECTION_PROGRESS_UPDATE"}`
-- `SUBJECT_RESOLUTION` **列入**拒绝集：门控现在读 turn-bag 而非粘滞 state，
-  走完「选候选 → 预览 → 确认」后 `pending_cleared=True` 自然放行，不会堵死多候选链路
-- `turn` 在工具内部**调用时** `get_turn_state()`，不在工厂构造期定值（lifespan 组装时无 turn 上下文）
-- 返回错误走 `Command(update={"messages": [ToolMessage(...)]})`，不写 `navigation_intent`
+- `state["pending_action"]` 是**回合开始时的 Redis 快照**，写成功后不更新，
+  所以必须与 `turn.pending_resolved` **联合**判断，否则会在「写成功、正要导航」时把唯一该放行的导航拦死
+- `SUBJECT_RESOLUTION` **列入**拒绝集：门控读 turn-bag 而非粘滞 state，
+  走完「选候选 → 预览 → 确认」后自然放行，不会堵死多候选链路
+- `gated=True` 时在**工具函数体里**读 `get_turn_state()` 并跑门控（不能工厂构造期定值）
+- 拒绝时返回 `Command(update={"messages": [ToolMessage(...)]})`，不写 `navigation_intent`
 
 **这是本任务的关键安全点**：不能把「先写后导航」只交给 prompt 自觉。
-
-## 切片 2：prompt 约束
-
-文件：`resources/prompt/client/recommend_agent_prompt.md`
-
-追加规则（中文，与现有风格一致）：
-- 写入操作完成后，可以调用 `request_navigation` 附加一次页面跳转
-- **预览阶段、等待用户确认时，不得调用** `request_navigation`
-- 用户取消、否定或待确认动作已过期时，不得调用
-- 多候选标题场景下，须等选中 → 预览 → 确认全部完成后才可调用
-
-注意：prompt 是 Managed prompt（Redis 为准、本地文件兜底），改文件后需确认线上 Redis 里的
-`client_recommend_agent_prompt` 同步更新。**这一条属于验收项**，只改文件会导致本地过、线上不生效。
-
-search / discover 的 prompt 不加这段（它们没有写工具），其基础说明属 child 3。
 
 ## 切片 3：注册点改造
 
@@ -89,7 +94,7 @@ search / discover 的 prompt 不加这段（它们没有写工具），其基础
 
 ## 测试
 
-- **门控正向**：state 里 pending 为 `ADD_TO_WISHLIST`、turn-bag 为 `pending_cleared=True` → 允许（锁 D1 核心修复）
+- **门控正向**：state 里 pending 为 `ADD_TO_WISHLIST`、turn-bag 为 `pending_resolved=True` → 允许（锁 D1 核心修复）
 - 预览阶段调 `request_navigation` 被拒（pending 为写入类且未清空）
 - `SUBJECT_RESOLUTION` 未走完时被拒；走完后放行（多候选链路不堵死）
 - 取消 / 过期 / 确定性失败三分支行为符合 design D3 表
@@ -102,6 +107,23 @@ search / discover 的 prompt 不加这段（它们没有写工具），其基础
 cd backend/agent && uv run pytest
 cd ../business && mvn -B clean test
 ```
+
+## 公共测试缝（已确认，开工前定）
+
+基线：`cd backend/agent && uv run pytest -q` → **899 passed**（2026-10-30 实测）。
+
+| 缝 | 位置 | 能捕获 | 捕获不到 |
+|---|---|---|---|
+| 门控规则（纯函数） | **新** `tests/agent/test_navigation_gate.py` | 八种 `(pending, resolved)` 组合的放行/拒绝、`Keep` 不打标 | 真实写入链路 |
+| TurnState 生命周期 | `tests/agent/test_chat_run_manager.py`（已存在，扩） | `_drive` 装了 turn state、写成功后 `pending_resolved=True`、`Keep` 保持 False | —— |
+| 三条写链路不回归 | `tests/agent/test_wishlist.py` / `test_collection_type.py` / `test_collection_progress.py`（均已存在） | 打标没改变它们的返回 dict | —— |
+| 工具门控接线 | `tests/agent/test_request_navigation_tool.py`（已存在，child 3 建的） | `gated=True` + 写入类 pending + 未 resolved → 拒绝且不写 intent；`gated=False` 无门控 | 真实模型是否遵守 prompt |
+| prompt 文本 | `tests/agent/test_client_prompt_contract.py`（已存在） | recommend prompt 含「写完后才可导航」「预览阶段不得导航」 | 模型遵循程度 |
+
+**必须遵守的断言强度**：
+- 门控是纯函数，八种组合**逐条参数化**，不要合成一个「短路」测试。
+- 「写入成功后允许导航」这条必须有：它是原设计的缺陷点（读 state 快照会把它拦死）。
+- 打标改动后，三条写链路既有测试必须保持绿——它们的返回 dict 是模型可见的契约。
 
 ## 不做
 

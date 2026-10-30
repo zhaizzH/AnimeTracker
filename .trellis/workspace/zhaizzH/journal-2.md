@@ -224,3 +224,37 @@
 
 - `10-29-composite-write-navigate` 是最后一个 child。开工前读它的 design.md D1/D2：**门控必须读 TurnState，不能读 `state["pending_action"]`**——后者是回合开始时的快照，写成功后不更新，会拦掉唯一该放行的那次导航
 - 本 child 删掉了 `gated` 参数，child 4 需先加回
+
+---
+
+## Session 46 - 2026-10-30
+
+### 任务
+
+`10-29-composite-write-navigate`：复合指令「写入后导航」（五任务树最后一个 child）。
+
+### 关键决策（实现前修正了设计漏洞）
+
+- **`write_outcome` 三态 → 单个 `pending_resolved` 布尔量**。初稿靠 response 的 `succeeded` 列表判成功，
+  但我核了三条写链路：只有 wishlist 有 `succeeded`，另两条是 `{"state":"SAVED"}` / `{"state":"COMPLETED"}`。
+  更关键：确定性失败与成功对门控**同等放行**（区别只在 prompt），且初稿门控伪码两个分支都 `return None`——三态是死字段。
+- **打标要改 `PreviewableAction` 的两个方法**（`cancel` + `execute` 的 Clear 分支），只改 execute 会漏取消。
+- **`gateway_router` 会用 `current_question` 覆盖 `write_confirmed`**——图级写入测试必须用确认词，
+  手塞 `write_confirmed=True` 会被覆盖成 False，写入被门禁拦下（这个坑我踩了一次并修掉）。
+
+### 流程
+
+1. 开工前修 design.md D2/D3/实现计划（三态 → 布尔量）
+2. `trellis-implement`：7 切片，后端 899→929
+3. `trellis-check`：0 必须修，4 建议；变异复现 3 红
+4. 修 4 条建议：补图级 execute→导航用例、加写类型集合等值断言、修文档遗留 `pending_cleared`/`write_outcome`、spec 状态行改「全部已实现」；931 passed
+
+### Testing
+
+- [OK] `uv run pytest -q`：931 passed；`tests/contracts`：156 passed；`ruff check`：All checks passed
+- [OK] 变异 2 组由 check 执行（删打标 / 去掉 gated=True），均按预期转红并还原
+
+### Next Steps
+
+- **运维**：线上 Redis `agent:prompt:client_recommend_agent_prompt` 需同步「复合指令：写入后跳转」六条
+- 五任务树代码全部完成，父任务 `10-29-agent-ui-actions` 的跨 child 验收可开始

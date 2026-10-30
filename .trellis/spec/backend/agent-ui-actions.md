@@ -1,6 +1,6 @@
 # Agent 驱动 UI：导航意图、图后路由与 `ui_action` 事件
 
-> **状态**：§4.1–§6（SSE 通道、`request_navigation` 工具契约、重放打标、Java 透传）**已实现**（`10-29-ui-action-event`，2026-10-30）。**尚未实现**：图后路由边与 `navigation_emitter` 节点（`10-29-navigation-graph`）、写入后导航门控（`10-29-composite-write-navigate`）——`app/agent/graph.py` 当前仍是单次路由无环。
+> **状态**：**全部已实现**（2026-10-30）。§4.1–§6（SSE 通道、`request_navigation` 工具、重放打标、Java 透传）由 `10-29-ui-action-event` 落地；图后路由边与 `navigation_emitter` 由 `10-29-navigation-graph` 落地；写入后导航门控由 `10-29-composite-write-navigate` 落地。
 > 前置阅读：[Agent 编排与流式协议](./agent-guidelines.md)、[Agent 安全写操作](./write-operations.md)、[ADR 0001](../adr/0001-agent-write-two-phase-preview-confirm.md)。
 
 ## 1. 目标与非目标

@@ -9,11 +9,22 @@ from typing import Annotated, Any, Literal
 
 from langchain_core.messages import ToolMessage
 from langchain_core.tools import InjectedToolCallId, tool
+from langgraph.prebuilt import InjectedState
 from langgraph.types import Command
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from app.agent.client.actions.turn_state import TurnState, get_turn_state
+
 _YEAR_MIN = 1900
 _YEAR_MAX = 2100
+
+# 写入类 pending：这些类型未结束时一律拒绝导航（design D2）
+WRITE_PENDING_TYPES = {
+    "ADD_TO_WISHLIST",
+    "SET_COLLECTION_TYPE",
+    "COLLECTION_PROGRESS_UPDATE",
+}
+_SUBJECT_RESOLUTION = "SUBJECT_RESOLUTION"
 
 class _AnimeIndexParams(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -53,12 +64,33 @@ _PARAM_MODELS: dict[str, type[BaseModel] | None] = {
     "open_profile": None,
 }
 
-def build_request_navigation_tool():
+def _pending_type(pending: Any) -> str | None:
+    if isinstance(pending, dict):
+        return pending.get("type")
+    return getattr(pending, "type", None)
+
+def _navigation_gate(*, pending: Any, turn: TurnState | None) -> dict | None:
+    """写入类 pending 存在且本回合尚未结束时拒绝导航；放行返回 None。
+
+    ``pending`` 是**回合开始时的 Redis 快照**，写成功后不会更新（design D1），
+    所以必须与 ``turn.pending_resolved``（本回合实时事实）联合判断。
+    ``turn`` 为 None（无回合上下文）时对写入类 pending 保守拒绝。
+    """
+    ptype = _pending_type(pending)
+    if ptype is None:
+        return None  # 无待确认动作：纯导航
+    if turn is not None and turn.pending_resolved:
+        return None  # 本回合 pending 已结束（成功 / 取消 / 确定性失败）
+    if ptype in WRITE_PENDING_TYPES or ptype == _SUBJECT_RESOLUTION:
+        return {"error": True, "message": "写入尚未完成，请先确认或取消待确认动作"}
+    return None
+
+def build_request_navigation_tool(*, gated: bool = False):
     """构建导航工具。
 
-    ponytail: 写入门控属 child 4（composite-write-navigate），本工厂**没有**门控参数。
-    删掉占位 `gated` 参数是刻意的：留一个调用期不读的开关，会让 child 4 传 `gated=True`
-    却静默不生效。child 4 落地时加回参数与门控 body（三行）。
+    ``gated=True``（recommend_agent）额外跑写入门控：写入未完成不得导航。
+    门控在**工具调用时**读 ``get_turn_state()``，不能工厂构造期定值——工厂在
+    lifespan 组装期跑一次，那时没有回合上下文。
     """
 
     @tool
@@ -66,6 +98,7 @@ def build_request_navigation_tool():
         action: str,
         params: dict[str, Any] | None = None,
         tool_call_id: Annotated[str, InjectedToolCallId] = "",
+        pending_action: Annotated[Any, InjectedState("pending_action")] = None,
     ) -> Command:
         """请求前端跳转到只读页面（不执行任何写入）。
 
@@ -84,6 +117,10 @@ def build_request_navigation_tool():
                 tool_call_id=tool_call_id,
             )]})
 
+        if gated:
+            gate = _navigation_gate(pending=pending_action, turn=get_turn_state())
+            if gate is not None:
+                return _error(gate["message"])
         if action not in _PARAM_MODELS:
             return _error(f"不支持的导航 action：{action}")
         raw = params or {}
