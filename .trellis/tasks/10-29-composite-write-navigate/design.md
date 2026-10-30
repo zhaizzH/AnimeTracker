@@ -172,8 +172,8 @@ def request_navigation(...):
 ```
 
 工厂参数退化为「是否启用门控」的开关，而非具体实例。
-若 child 3 已按 `turn_state` 实例传参实现，本 child 需把它改成 `gated: bool`，
-并在工具内部 `get_turn_state()`。这一点在 child 3 落地时直接按延迟读取写，可避免返工。
+child 3 实际交付时**没有预留任何参数位**（刻意的：留一个调用期不读的开关会让 `gated=True` 静默不生效）。
+本 child 需给 `build_request_navigation_tool` 加回 `gated: bool` 参数，并在工具内部调用时 `get_turn_state()`。
 
 ## D6 测试清单
 

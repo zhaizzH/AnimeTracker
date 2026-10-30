@@ -27,6 +27,14 @@ def test_domain_prompts_report_registered_rag_capability() -> None:
         assert "不要猜测或声称当前功能开关状态" in content
 
 
+def test_domain_prompts_document_request_navigation() -> None:
+    for filename in DOMAIN_PROMPTS:
+        content = (PROMPT_DIR / filename).read_text(encoding="utf-8")
+
+        assert "request_navigation" in content
+        assert "open_anime_index" in content
+        assert "严禁编造" in content
+
 def test_recommend_prompt_preserves_structured_constraints() -> None:
     content = (PROMPT_DIR / "recommend_agent_prompt.md").read_text(encoding="utf-8")
 

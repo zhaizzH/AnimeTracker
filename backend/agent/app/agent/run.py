@@ -106,4 +106,9 @@ def run_domain_agent(
         model=model_name,
     )
     text = stream["streamed_text"]
-    return {"result": text, "messages": [AIMessage(content=text)]}
+    return {
+        "result": text,
+        "messages": [AIMessage(content=text)],
+        # 工具在内层图写的意图必须显式回传，否则外层 navigation_emitter 永不执行（design D1）
+        "navigation_intent": stream.get("navigation_intent"),
+    }

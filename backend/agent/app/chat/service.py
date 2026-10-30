@@ -150,6 +150,8 @@ class ChatService:
                 "pending_action": pending_action,
                 "pending_preview_id": getattr(pending_action, "preview_id", None),
                 "write_confirmed": False,
+                # 显式初始化，避免上一轮导航意图残留
+                "navigation_intent": None,
             }
             return state
 

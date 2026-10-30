@@ -394,6 +394,7 @@ _WILDCARD_ALLOWED: set[tuple[str, int]] = {
     ("backend/agent/app/agent/tools/subject_catalog.py", 11),               # /subjects/{id}
     ("backend/agent/app/agent/tools/subject_catalog.py", 20),               # /subjects/{id}/episodes
     ("backend/agent/app/agent/tools/subject_catalog.py", 50),               # /tags/{tag}/subjects
+    ("backend/agent/app/agent/navigation_emitter.py", 93),                # /subjects/{id}（open_subject 权威回查）
 }
 
 

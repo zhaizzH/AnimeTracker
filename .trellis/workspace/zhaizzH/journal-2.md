@@ -193,3 +193,34 @@
 
 - `10-29-navigation-graph` 可开工：事件通道已通，`navigation_emitter` 只需 `emit_ui_action(action, params, path, label)`
 - 注意 navigation-graph 的 D1（嵌套图 `navigation_intent` 必须由 `run_domain_agent` 显式回传）——不做这步整条链静默失效
+
+---
+
+## Session 45 - 2026-10-30
+
+### 任务
+
+`10-29-navigation-graph`：图后路由链 + `navigation_emitter` + `request_navigation` 工具（第三棵子树）。
+
+### 关键决策
+
+- **D1 嵌套图回传落地**：`run_domain_agent` / `agent_stream` 显式带出 `navigation_intent`。不做这步 emitter 永不执行且**零报错**。
+- **D2 工具带 `ToolMessage`**：只写 intent 会 `ValueError`（探针实测）。
+- **删掉 `gated` 占位参数**（偏离 design D6）：留一个调用期不读的开关，会让 child 4 传 `gated=True` 却静默不生效，比三行改动危险。已把变更同步到 child 4 的 design/implement。
+- **`tab` 与 `weekday` 星期约定相反**（check 发现）：`open_schedule.tab` 0=周一…6=周日，`open_anime_index.weekday` 0=周日…6=周六。模型按一套填另一套会**整体错一天且 Pydantic 不报错**。已在工具 docstring 写明。
+
+### 流程
+
+1. `trellis-implement`：四切片，后端 867→898
+2. `trellis-check`：0 必须修，3 建议 + 2 备注；**变异实测证明图测试走真实 Domain agent 路径**（删回传时 run 测试与三条图测试同时红）
+3. 修 4 条建议：删 `gated`、docstring 写星期语义、补白名单外 action 用例、工具构建提到工厂体；899 passed
+
+### Testing
+
+- [OK] `uv run pytest -q`：899 passed；`tests/contracts`：156 passed；`ruff check`：All checks passed
+- [OK] 变异 3 条由 check 执行（删回传 / 删 search 注册 / 注册到 admin），均按预期转红并还原
+
+### Next Steps
+
+- `10-29-composite-write-navigate` 是最后一个 child。开工前读它的 design.md D1/D2：**门控必须读 TurnState，不能读 `state["pending_action"]`**——后者是回合开始时的快照，写成功后不更新，会拦掉唯一该放行的那次导航
+- 本 child 删掉了 `gated` 参数，child 4 需先加回

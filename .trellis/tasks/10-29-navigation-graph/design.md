@@ -128,8 +128,19 @@ return Command(update={
 `meta.params` 下发时也用 snake_case；URL query 键名由 emitter 的映射表决定（`tags`→`tag`）。
 前端不读 params 构造 URL（见 `ui-action-event/design.md` D4），所以不存在两端命名漂移。
 
-**默认值不写入 URL**：`sort=score`、`order=desc`、`page=1`、`tab=all` 缺省时不出现在 query 里，
-与 child 1「保持地址栏干净」一致。
+**默认值不写入 URL**：`sort=score`、`order=desc`、`page=1`、`tab=all` 缺省时不出现在 query 里。
+
+> 前三个与前端取值等价：`AnimeIndex` 的 `FILTER_DEFAULTS` 只含 4 个筛选键（不含 `page`），
+> `page` 由 `params.get('page') ?? 1` 派生。注意 `AnimeIndex.nav()` 自己**总是**写 `page`
+> （用户操作后地址栏会多一个 `page=1`），而 emitter 在 `page=1` 时不写——**URL 形态不同但渲染与请求等价**，
+> 不是不一致。`tab=all` 由 `_collections` 单独判断。
+
+**星期两套约定相反，必须在工具 docstring 里写明**（否则模型按一套填另一套，整体错一天且 Pydantic 不报错）：
+
+| 参数 | 约定 | 依据 |
+|---|---|---|
+| `open_anime_index.weekday` | **0=周日 … 6=周六** | `AnimeIndex.tsx` 的 `WEEKDAYS` 索引；后端 `airWeekday` 口径 |
+| `open_schedule.tab` | **0=周一 … 6=周日** | `Schedule.tsx:11-13` 的 `WEEK` 下标，`tabToWeekday(i) = (i+1)%7` |
 
 ### `path` 与 `label` 由 emitter 生成
 
@@ -213,13 +224,16 @@ meta 必非空 → 不会被 `exclude_none` 剔除（见 `ui-action-event/design
 本 child 把 `request_navigation` 注册到**三个 Domain agent**，**不做任何写入门控**。
 门控在 child 4 以「构造参数 + turn-bag」形式加入（见 `composite-write-navigate/design.md` D2）。
 
-为了让 child 4 不改工具签名，本 child 的工具工厂就预留：
+容许 child 4 不改**注册点**，但**不预留参数位**（2026-10-30 修正）：
 
 ```python
-def build_request_navigation_tool(*, turn_state: TurnState | None = None):
+def build_request_navigation_tool():   # 无 gated 参数
 ```
 
-`turn_state=None` 时门控不生效（纯导航场景）。child 4 只在 recommend 注册时传入。
+初稿写的是 `build_request_navigation_tool(*, gated: bool = False)`，实现时发现
+「保留一个调用期不读的开关」比「三行改动」更危险：child 4 传 `gated=True` 会**静默不生效**。
+所以本 child 直接不传参数；child 4 落地时加回 `gated` 参数与门控 body（并确保门控在
+**工具调用时**读 turn-bag，不是工厂构造期定值）。
 
 **注意**：`build_search_agent` / `build_discover_agent` / `build_recommend_agent` 三个工厂
 都要加这一行注册，且 recommend 的调用点在 child 4 会再改一次——这是预期的，

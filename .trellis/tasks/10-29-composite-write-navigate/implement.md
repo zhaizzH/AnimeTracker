@@ -70,8 +70,14 @@ search / discover 的 prompt 不加这段（它们没有写工具），其基础
 
 ## 切片 3：注册点改造
 
-`app/agent/client/recommend.py`：`build_request_navigation_tool(gated=True)`。
-search / discover 保持 `gated=False`（纯导航无门控）。
+**child 3 交付时删掉了 `gated` 参数**（留一个调用期不读的开关会让传 `True` 静默不生效），所以本 child 要先给
+`build_request_navigation_tool` 加回 `gated: bool` 参数：
+
+- `app/agent/client/recommend.py`：`build_request_navigation_tool(gated=True)`
+- search / discover 保持 `build_request_navigation_tool()`（纯导航无门控，不传参）
+
+加回参数时**门控必须在工具调用时读取** `get_turn_state()`，不能在工厂构造期定值——工厂在 lifespan 组装期
+跑一次，那时没有 turn 上下文。
 
 ## 切片 4：端到端验证
 

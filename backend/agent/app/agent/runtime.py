@@ -187,6 +187,9 @@ def agent_stream(
         return {
             "streamed_text": "".join(answer_chunks),
             "streamed_thinking": "".join(thinking_chunks),
+            # 嵌套图（create_agent）的 state 与调用方隔离，意图只在这里可见，
+            # 不回传则外层条件边永远读不到（design D1）。
+            "navigation_intent": latest_state.get("navigation_intent"),
         }
     except Exception as exc:
         error_type = classify_error(exc)

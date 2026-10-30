@@ -8,6 +8,7 @@ from app.agent.client.recommend import build_recommend_agent
 from app.agent.client.gateway import build_gateway_router
 from app.agent.client.search import build_search_agent
 from app.agent.dependencies import AgentDependencies
+from app.agent.navigation_emitter import build_navigation_emitter
 from app.agent.state import AgentState
 
 _ALLOWED_TARGETS = ("search_agent", "discover_agent", "recommend_agent")
@@ -29,6 +30,9 @@ def _route_from_gateway(state: AgentState) -> str:
     return target
 
 
+def _route_after_domain(state: AgentState) -> str:
+    return "navigation_emitter" if state.get("navigation_intent") else END
+
 def build_graph(dependencies: AgentDependencies) -> Any:
     graph = StateGraph(AgentState)
     graph.add_node("gateway_router", build_gateway_router(dependencies))
@@ -36,6 +40,7 @@ def build_graph(dependencies: AgentDependencies) -> Any:
     graph.add_node("discover_agent", build_discover_agent(dependencies))
     graph.add_node("recommend_agent", build_recommend_agent(dependencies))
     graph.add_node("admin_agent", build_admin_agent(dependencies))
+    graph.add_node("navigation_emitter", build_navigation_emitter(dependencies))
 
     graph.add_conditional_edges(
         START,
@@ -47,8 +52,10 @@ def build_graph(dependencies: AgentDependencies) -> Any:
         _route_from_gateway,
         {"search_agent": "search_agent", "discover_agent": "discover_agent", "recommend_agent": "recommend_agent"},
     )
-    graph.add_edge("search_agent", END)
-    graph.add_edge("discover_agent", END)
-    graph.add_edge("recommend_agent", END)
+    for node in _ALLOWED_TARGETS:
+        graph.add_conditional_edges(
+            node, _route_after_domain, {"navigation_emitter": "navigation_emitter", END: END}
+        )
+    graph.add_edge("navigation_emitter", END)
     graph.add_edge("admin_agent", END)
     return graph.compile()

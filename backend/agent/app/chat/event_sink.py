@@ -37,6 +37,13 @@ def emit_thinking_delta(text: str) -> None:
     emit_event(AgentEvent(type=AgentEventType.THINKING, text=text))
 
 
+def emit_ui_action(*, action: str, params: dict, path: str, label: str) -> None:
+    emit_event(AgentEvent(
+        type=AgentEventType.UI_ACTION,
+        # meta 必须非空：serialize 侧 exclude_none 会剔除空 meta
+        meta={"action": action, "params": params, "path": path, "label": label},
+    ))
+
 def emit_function_call(*, node, state, message=None, result=None, name=None, arguments=None, parent_node=None) -> None:
     emit_event(AgentEvent(
         type=AgentEventType.FUNCTION_CALL,

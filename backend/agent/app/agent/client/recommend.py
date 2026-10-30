@@ -3,6 +3,7 @@ from app.agent.client.actions import build_action_tools
 from app.agent.client.actions.collection_type import build_collection_type_tools
 from app.agent.client.actions.subject_resolution import build_subject_resolution_tools
 from app.agent.client.collections import build_collection_read_tools
+from app.agent.client.navigation import build_request_navigation_tool
 from app.agent.client.rag_tools import build_rag_tools
 from app.agent.ports import AgentChatModelSlot
 from app.agent.run import run_domain_agent
@@ -17,6 +18,9 @@ def build_recommend_agent(dependencies: AgentDependencies):
     # 按标题设置收藏类型（想看/看过/在看/搁置/抛弃）复用同一解析链路
     collection_type_tools = build_collection_type_tools(dependencies.business, dependencies.retrieval)
 
+    # 工具在工厂体构建一次：闭包内每请求重建会重造 BaseTool 与 pydantic schema
+    navigation_tool = build_request_navigation_tool()
+
     def recommend_agent(state):
         return run_domain_agent(
             state,
@@ -28,6 +32,8 @@ def build_recommend_agent(dependencies: AgentDependencies):
                 *collection_read_tools,
                 *recommend_action_tools,
                 get_current_time,
+                # 门控属 child 4；本任务不做写入门控
+                navigation_tool,
             ],
             prompt_key="client_recommend_agent_prompt",
             prompt_path="client/recommend_agent_prompt.md",

@@ -19,7 +19,7 @@
    - 合法 → `Command(update={"navigation_intent": {...}, "messages": [ToolMessage(...)]})`
      **两者都必须带 ToolMessage**，否则工具节点抛 `ValueError`
    - 零 IO、不发事件、不调 LLM；**不加 `@tool_call_status`**（不在工具面板显示）
-   - 工厂签名 `build_request_navigation_tool(gated: bool = False)`，门控在工具内部**延迟** `get_turn_state()`（child 4 用）
+   - 工厂签名 `build_request_navigation_tool()`——**不预留 `gated` 参数位**。留一个调用期不读的开关会让 child 4 传 `gated=True` 却静默不生效；child 4 落地时加回参数与门控 body（详见 [design.md](./design.md) D6）
 3. `run_domain_agent` / `agent_stream` 增加 `navigation_intent` 回传（design D1，**不做这步整条链无效**）
 
 **TDD**：非法 action / 缺 subjectId / year 越界三种否定用例先红。
@@ -80,6 +80,28 @@ def navigation_emitter(state):
 ```bash
 cd backend/agent && uv run pytest
 ```
+
+## 公共测试缝（已确认，开工前定）
+
+基线：`cd backend/agent && uv run pytest -q` → **867 passed**；`tests/contracts` 154 passed（2026-10-30 实测）。
+
+| 缝 | 位置 | 能捕获 | 捕获不到 |
+|---|---|---|---|
+| 图入口/路由 | `tests/agent/test_capability_route.py::test_user_entry_routes_to_gateway_router`（已存在） | `_route_from_entry` 的 admin/user 分流不被新边破坏 | 新条件边本身 |
+| 条件边 | **新** `tests/agent/test_graph_post_routing.py`（无既有可扩） | intent 为空直连 END；**三个 Domain agent 各自都能到达 emitter**；admin 不经 emitter | 真实模型是否会调工具 |
+| emitter 纯函数 | **新** `tests/agent/test_navigation_emitter.py` | 5 个 action 的 path/label 映射、默认值不进 query、`tags`→重复 `tag`、`open_subject` 回查失败不发事件、清空 intent、不产 answer | —— |
+| 工具参数校验 | **新** `tests/agent/test_request_navigation_tool.py` | 白名单外拒绝、缺 `subjectId` 拒绝、取值域越界拒绝、非法不写 state | 模型是否按 prompt 选对 action |
+| 嵌套图回传 | **新** `tests/agent/test_run_domain_agent.py` | 内层工具写的 `navigation_intent` 出现在 `run_domain_agent` 返回值里（**锁 design D1，不做这步整条链静默失效**） | 真实 `create_agent` 完整 ReAct 循环 |
+| prompt 包含新工具说明 | `tests/agent/test_client_prompt_contract.py`（已存在） | 三个 Domain prompt 提到 `request_navigation` | 模型遵循程度 |
+
+**选新的理由**：`test_capability_route.py` 只管「entry/gateway 选哪个节点」，没有图结构断言；
+而本任务改的正是图的边——用建图后的真实 `graph.astream` 跑短路径，比 mock 节点更真。
+新建三个文件是因为职责不同（图 / emitter / 工具），混一个文件会让定位变慢。
+
+**必须遵守的断言强度**：
+- 三个 Domain agent 各一条用例，不能只测一个——漏注册一个就少一整条能力，而单点测试发现不了。
+- `test_run_domain_agent.py` 必须走真实 `create_agent` + 假模型返回 `tool_calls`，不能手写 state 注入。
+- emitter 的「不发事件」断言前，先用同一条路径证明**合法 intent 确实发了事件**（正向基线）。
 
 ## 不做
 
