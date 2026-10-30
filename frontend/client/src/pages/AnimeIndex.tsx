@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { SearchIcon, XIcon } from 'lucide-react';
@@ -18,6 +18,16 @@ const SORTS = [
 ];
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 const ALL = '__all__';
+// 四个可写进 URL 的筛选字段；默认值在 URL 缺省时生效、不写入地址栏
+const FILTER_KEYS = ['sort', 'order', 'year', 'weekday'] as const;
+type FilterKey = (typeof FILTER_KEYS)[number];
+const FILTER_DEFAULTS: Record<FilterKey, string | undefined> = { sort: 'score', order: 'desc', year: undefined, weekday: undefined };
+// 非法数值（?year=abc）当未筛选：NaN 带进 queryKey/请求参数会直接打到后端
+function toNum(value: string | null): number | undefined {
+  if (!value) return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
 // 折叠时按热度展示的标签数，其余收入“展开全部”
 const TAG_LIMIT = 12;
 
@@ -27,28 +37,56 @@ export default function AnimeIndex() {
   // 标签以 URL 为唯一来源：详情页标签链接直达 /anime?tag=x，切换标签无需组件重挂载即可生效
   const selectedTags = params.getAll('tag');
   const [keyword, setKeyword] = useState(q);
-  const [filters, setFilters] = useState<{ sort?: string; order?: 'asc' | 'desc'; year?: number; weekday?: number }>({ sort: 'score', order: 'desc' });
+  // q 只在提交时变，同步是幂等的；用 key={q} 重挂会丢输入焦点
+  useEffect(() => setKeyword(q), [q]);
+  // 筛选以 URL 为唯一来源（与本文件既有约定一致）：四个字段都从 params 派生，默认值不在 URL 时生效
+  const sort = params.get('sort') ?? 'score';
+  const order = params.get('order') === 'asc' ? 'asc' : 'desc';
+  const year = toNum(params.get('year'));
+  const weekday = toNum(params.get('weekday'));
   const page = Number(params.get('page') ?? 1);
 
   const { data: tags } = useQuery({ queryKey: ['tags'], queryFn: tagsApi.list });
   const { data: years } = useQuery({ queryKey: ['subjects', 'years'], queryFn: subjectsApi.years });
+  // queryKey 用原始标量：对象每次渲染都是新引用，标量天然稳定，且漏字段会让换筛选不重查
   const { data, isLoading } = useQuery({
-    queryKey: ['subjects', 'search', q, filters, page, selectedTags],
-    queryFn: () => subjectsApi.search({ q, page, size: 24, sort: 'score', order: 'desc', ...filters, tag: selectedTags.length ? selectedTags : undefined }),
+    queryKey: ['subjects', 'search', q, sort, order, year, weekday, page, selectedTags],
+    queryFn: () =>
+      subjectsApi.search({
+        q,
+        page,
+        size: 24,
+        sort,
+        order,
+        year,
+        weekday,
+        tag: selectedTags.length ? selectedTags : undefined,
+      }),
   });
 
-  // 所有筛选变更都回写 URL，并统一重置到第 1 页
-  const nav = (over: { q?: string; tags?: string[]; page?: number } = {}) => {
-    const next = new URLSearchParams();
-    const text = over.q ?? q;
+  // 以当前 params 为底重建：保留 q/tag 等未提及的键；默认值不写进 URL，保持地址栏干净
+  // 筛选值用字符串（与 URL 编码一致），page 用数字（翻页回调直接给数字）
+  const nav = (patch: Partial<Record<FilterKey | 'q', string | undefined>> & { tags?: string[]; page?: number } = {}) => {
+    const next = new URLSearchParams(params);
+    const text = patch.q ?? q;
     if (text) next.set('q', text);
-    (over.tags ?? selectedTags).forEach((t) => next.append('tag', t));
-    next.set('page', String(over.page ?? 1));
+    else next.delete('q');
+    if (patch.tags) {
+      next.delete('tag');
+      patch.tags.forEach((t) => next.append('tag', t));
+    }
+    let touchedFilter = false;
+    FILTER_KEYS.forEach((key) => {
+      if (!(key in patch)) return;
+      touchedFilter = true;
+      const value = patch[key];
+      if (value == null || value === FILTER_DEFAULTS[key]) next.delete(key);
+      else next.set(key, value);
+    });
+    // 筛选与标签变更都回第 1 页；翻页本身（只传 page）不被重置
+    const resetsPage = touchedFilter || patch.tags != null || patch.q != null;
+    next.set('page', String(patch.page ?? (resetsPage ? 1 : page)));
     setParams(next);
-  };
-  const applyFilters = (patch: Partial<typeof filters>) => {
-    setFilters((f) => ({ ...f, ...patch }));
-    nav();
   };
   // 展开与搜索词只是视图状态，不进 URL；已选标签始终置顶，避免 URL 带入的冷门标签被折叠隐藏
   const [tagsExpanded, setTagsExpanded] = useState(false);
@@ -77,7 +115,6 @@ export default function AnimeIndex() {
     nav({ tags: [...next] });
   };
   const reset = () => {
-    setFilters({ sort: 'score', order: 'desc' });
     setKeyword('');
     setParams({});
   };
@@ -103,7 +140,7 @@ export default function AnimeIndex() {
           <Button type="submit" variant="outline">搜索</Button>
         </form>
 
-        <Select value={filters.year != null ? String(filters.year) : ALL} onValueChange={(v) => applyFilters({ year: v === ALL ? undefined : Number(v) })}>
+        <Select value={year != null ? String(year) : ALL} onValueChange={(v) => nav({ year: v === ALL ? undefined : v })}>
           <SelectTrigger className="w-[110px]" aria-label="年份"><SelectValue placeholder="年份" /></SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>全部年份</SelectItem>
@@ -111,7 +148,7 @@ export default function AnimeIndex() {
           </SelectContent>
         </Select>
 
-        <Select value={filters.weekday != null ? String(filters.weekday) : ALL} onValueChange={(v) => applyFilters({ weekday: v === ALL ? undefined : Number(v) })}>
+        <Select value={weekday != null ? String(weekday) : ALL} onValueChange={(v) => nav({ weekday: v === ALL ? undefined : v })}>
           <SelectTrigger className="w-[110px]" aria-label="播出星期"><SelectValue placeholder="播出星期" /></SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>全部星期</SelectItem>
@@ -119,14 +156,14 @@ export default function AnimeIndex() {
           </SelectContent>
         </Select>
 
-        <Select value={filters.sort} onValueChange={(v) => applyFilters({ sort: v })}>
+        <Select value={sort} onValueChange={(v) => nav({ sort: v })}>
           <SelectTrigger className="w-[110px]" aria-label="排序"><SelectValue /></SelectTrigger>
           <SelectContent>
             {SORTS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
           </SelectContent>
         </Select>
 
-        <Select value={filters.order} onValueChange={(v) => applyFilters({ order: v as 'asc' | 'desc' })}>
+        <Select value={order} onValueChange={(v) => nav({ order: v })}>
           <SelectTrigger className="w-[90px]" aria-label="方向"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="desc">降序</SelectItem>

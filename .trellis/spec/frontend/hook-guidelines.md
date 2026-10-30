@@ -179,8 +179,30 @@
 
 - 当前 client AnimeIndex（`q/page`）、MyCollections（`tab/page`）与 Schedule（`year/quarter/tab`）已把筛选写入 URL；admin Subjects/Logs 的筛选仍主要保存在本地 state。规范中的“可分享筛选”是目标模式，不得当成所有页面的现行事实。
 - 新增 URL 筛选时必须定义：字段编码、默认值、刷新/返回可恢复性，以及筛选变化时页码归零。
+- **URL → 控件的回显是双向的**：受控输入/下拉的 `value` 必须从 URL 派生，或用 effect 同步（外部导航改了 URL 后要跟随）。
+  用 `useState(初始值)` 只取挂载时快照的做法，会让外部导航后控件显示旧值，再提交又把 URL 覆盖回去。
+  参考 `AnimeIndex` 的 `useEffect(() => setKeyword(q), [q])`（不要用 `key={q}` 重挂，会丢焦点）。
+- **非法 URL 值必须收尾**：`Number('abc')` 是 `NaN`。`NaN` 进 `queryKey` 会制造永远不命中的缓存键，进请求参数会把 `NaN` 发给后端。
+  数值型筛选一律用 `Number.isFinite` 收窄，非法即视为未筛选。
 
 ### 主题状态
 
 `useThemeStore` 仅持久化非敏感 UI 偏好；`resolveMode` 在 followSystem 时读取 `prefers-color-scheme`。持久化新字段前先确认不含身份、令牌或服务端权威数据。
 followSystem 已订阅系统主题变化：两端 `theme-bridge.tsx` 在 effect 内以 `media.addEventListener('change', apply)` 注册（旧浏览器回退 `addListener`），并在清理函数中注销监听。浏览器不支持 `matchMedia` 时的降级路径以各端源码为准。
+
+### 模块级瞬时 UI 状态的生命周期
+
+模块级变量（`let` + listener 集合）适合「非组件上下文要写、组件里要读」的瞬时状态，
+参考 `client/src/components/agentNavigation.ts`。但它绕过了 React 的卸载语义，**必须显式定义何时作废**。
+
+新增这类状态时同时回答四个问题，缺一项就是 bug：
+
+1. **谁写**：写入口全部导出，不隐式改写。
+2. **谁读**：用 `useSyncExternalStore` 订阅，不在 render 里直接读模块变量（不触发重渲）。
+3. **何时清空**：不给清空路径的瞬时状态会变成过期假信息——用户换了页面/换了对象，屏幕上还是上一次的提示。
+   清空点要选在「原条件不再成立」的那一刻（如用户手动导航时），并确认它不与其它验收要求冲突。
+4. **跨测试残留**：模块级状态在用例之间不重置，会让后续用例随机通过。测试文件必须 `afterEach` 复位（导出复位函数，或复用已有的 `clear*`）。
+
+反例（本仓真实发生过，2026-10-30）：`navHint` 只有写入口没有清空路径，
+第一次 agent 导航后提示永久贴在浮层里，用户跳到别的页面仍看到「已跳转到」；
+同时因模块级状态未在测试间复位，只能靠各用例用不同文案「碰巧」互不干扰。

@@ -25,6 +25,14 @@ export function showNavHint(label: string): void  // 浮层内插一条系统提
 - 面板**关闭**时收到 hint：入队，下次打开时显示。理由：agent 导航发生前面板可能本来就是关的
   （用户在 `/agent` 页之外，浮层默认收起），丢掉提示用户就看不到「刚才发生了什么」。
   队列只保留**最后一条**，不累积——连续两次导航只显示最后一次。
+- **hint 的作废时机（2026-10-30 补，原设计遗漏）**：用户**手动**路由变化时立即清空。
+  否则第一次 agent 导航的提示会永久贴在面板里，用户之后跳 `/schedule`、关面板再开，
+  看到的还是「⚡ 已跳转到「2022 年的番」」——已不在那个页面，属于过期假信息。
+  - 清空点挂在 `AIAssistantFloat` 的 `location.key` effect 的**非 agent 分支**：
+    `if (consumeAgentNavigation()) return;` 之后跟 `setOpen(false); clearNavHint();`
+  - **不能改成「打开面板时清空」**：prd 的「面板关闭时收到 hint，下次打开显示」要求保留，
+    两者会直接冲突。
+  - `agentNavigation.ts` 导出 `clearNavHint()`，与 `showNavHint` 同一套 listener 通知。
 - 系统提示不进入 `useAgentChat` 的 `messages`（那是会话历史，会持久化到后端）。
   它是**本地瞬时 UI 状态**，与 `notice` 同性质。刷新后消失，不补。
 - 尺寸/位置完全不动（V1 定案），不做窄屏自动收起（V3 已否）。
@@ -64,6 +72,13 @@ const weekday = params.get('weekday') ? Number(params.get('weekday')) : undefine
 - `queryKey` 用**原始标量**而非新对象：`['subjects','search', q, sort, order, year, weekday, page, selectedTags]`。
   现有代码的 `filters` 对象每次渲染都是新引用，靠 tanstack 的结构化 key 比较才没炸；
   迁到标量后天然稳定，不必额外 `useMemo`。
+- **非法 URL 值必须收窄**（2026-10-30 补）：`Number('abc')` 是 `NaN`，若直接进 queryKey 与请求参数，
+  会产生永远不命中的缓存键并把 `NaN` 发给后端。`year` / `weekday` 都要 `Number.isFinite` 兜住，
+  非法即视为未筛选。`order` 用三元收窄成联合类型，不用 `as` 断言（比原设计更好）。
+- **关键词输入框要跟 q 走**（2026-10-30 补）：`const [keyword, setKeyword] = useState(q)` 只取挂载时的值。
+  外部导航到 `/anime?q=2022` 后结果按 2022 查，但输入框仍显示旧值，再点搜索会把 URL 覆盖回去——
+  违反「筛选控件显示值与新状态一致」，且 child 2 的 `open_anime_index` 带 `q?` 会直接踩。
+  用 effect 同步 `q → keyword`；不要用 `key={q}` 重挂（会丢焦点）。
 - `queryFn` 的 `subjectsApi.search({...})` 参数同理直接用标量展开。
   现有 `sort: 'score', order: 'desc', ...filters` 的写法删掉，改为显式传 7 个字段。
 - `nav()` 重写为：以**当前 params 为底**重建 `URLSearchParams`（`new URLSearchParams(params)`），

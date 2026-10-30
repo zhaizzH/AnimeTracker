@@ -1,10 +1,11 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ClientLayout } from '@/layouts/ClientLayout';
 import Agent from '@/pages/Agent';
 import { AgentChatProvider, AgentConversation } from '@/components/AgentChat';
+import { clearNavHint, consumeAgentNavigation, markAgentNavigation, showNavHint } from '@/components/agentNavigation';
 import { useAgentChat } from '@shared';
 
 const chat = {
@@ -68,12 +69,15 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  // agentNavigation 是模块级 store，跨用例残留会让「提示已清空」类断言随机通过
+  clearNavHint();
+  consumeAgentNavigation();
   authState.user = { ...(authState.user as Record<string, unknown>), id: 1, username: 'tester' };
 });
 afterAll(() => vi.restoreAllMocks());
 
 function Page({ name }: { name: string }) {
-  return <><span>{name}</span><Link to="/schedule">前往日程</Link></>;
+  return <><span>{name}</span><Link to="/schedule">前往日程</Link><Link to="/collections">前往收藏</Link></>;
 }
 
 function Pathname() {
@@ -87,6 +91,7 @@ function TestApp() {
         <Route path="/" element={<ClientLayout />}>
           <Route index element={<Page name="首页" />} />
           <Route path="schedule" element={<Page name="日程" />} />
+          <Route path="collections" element={<Page name="收藏" />} />
           <Route path="agent" element={<Agent />} />
         </Route>
       </Routes>
@@ -162,5 +167,88 @@ describe('全局 AI 助手浮窗', () => {
     await user.click(stopButton);
 
     expect(chat.stop).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('全局 AI 助手浮窗 · agent 导航保持与系统提示', () => {
+  const hint = () => screen.queryByText(/已跳转到/);
+
+  it('标记 agent 导航后，路由变化不关面板', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await user.click(screen.getByRole('button', { name: '打开 AI 助手' }));
+    expect(screen.getByRole('dialog', { name: 'AI 助手' })).not.toBeNull();
+
+    // child 2 的调用顺序：先标记，再 navigate
+    act(() => markAgentNavigation());
+    await user.click(screen.getAllByRole('link', { name: '前往日程' })[0]);
+
+    expect(await screen.findByText('日程')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'AI 助手' })).not.toBeNull();
+  });
+
+  it('标记是一次性的：用后复位，用户下一次手动导航仍照旧关闭', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await user.click(screen.getByRole('button', { name: '打开 AI 助手' }));
+
+    act(() => markAgentNavigation());
+    await user.click(screen.getAllByRole('link', { name: '前往日程' })[0]);
+    expect(await screen.findByText('日程')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'AI 助手' })).not.toBeNull();
+
+    // 第二次导航未标记，必须关
+    await user.click(screen.getAllByRole('link', { name: '前往收藏' })[0]);
+    expect(await screen.findByText('收藏')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'AI 助手' })).toBeNull());
+  });
+
+  it('showNavHint 后面板内出现系统提示，且不写入会话历史', async () => {
+    const user = userEvent.setup();
+    const before = chat.messages;
+    renderApp();
+    await user.click(screen.getByRole('button', { name: '打开 AI 助手' }));
+
+    act(() => showNavHint('番剧索引 · 2022 年'));
+
+    expect(await screen.findByText(/番剧索引 · 2022 年/)).toBeInTheDocument();
+    // 瞬时 UI 状态，不进 messages（那会持久化到后端）
+    expect(chat.messages).toBe(before);
+    expect(chat.messages).toHaveLength(0);
+  });
+
+  it('面板关闭时收到 hint，下次打开显示最后一条，不累积', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    act(() => showNavHint('第一次'));
+    act(() => showNavHint('第二次'));
+    expect(hint()).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: '打开 AI 助手' }));
+    expect(await screen.findByText(/已跳转到「第二次」/)).toBeInTheDocument();
+    expect(screen.queryByText(/第一次/)).toBeNull();
+    expect(screen.getAllByText(/已跳转到/)).toHaveLength(1);
+  });
+
+  it('用户手动导航时作废上一条提示，再开面板不再显示', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await user.click(screen.getByRole('button', { name: '打开 AI 助手' }));
+
+    act(() => markAgentNavigation());
+    await user.click(screen.getAllByRole('link', { name: '前往日程' })[0]);
+    act(() => showNavHint('日程'));
+    expect(await screen.findByText(/已跳转到「日程」/)).toBeInTheDocument();
+
+    // 用户手动跳转：面板关，提示随之作废
+    await user.click(screen.getAllByRole('link', { name: '前往收藏' })[0]);
+    expect(await screen.findByText('收藏')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'AI 助手' })).toBeNull());
+
+    // 关键：重开面板后旧提示不得复活（不清空则会残留「日程」）
+    await user.click(screen.getByRole('button', { name: '打开 AI 助手' }));
+    expect(screen.getByRole('dialog', { name: 'AI 助手' })).not.toBeNull();
+    expect(hint()).toBeNull();
   });
 });

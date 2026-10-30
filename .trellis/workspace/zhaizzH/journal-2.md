@@ -113,3 +113,40 @@
 ### Next Steps
 
 - GLOSSARY.md 的 8 行改动仍未确认来源，保持未提交
+
+---
+
+## Session 43 - 2026-10-30
+
+### 任务
+
+`10-29-frontend-url-state`（Agent 驱动 UI 五任务树的第一个 child）：`AnimeIndex` 筛选 URL 归一化 + 浮层 agent 导航保持与系统提示。
+
+### 关键决策
+
+- **hint 作废时机**（原设计遗漏）：用户手动路由变化时 `clearNavHint()`。不能改成「开面板时清空」——prd 要求「面板关闭时收到 hint，下次打开显示」，两者冲突。
+- **关键词框跟随 q**：用 effect 同步而非 `key={q}` 重挂（后者丢焦点）。child 2 的 `open_anime_index` 带 `q?`，不修会被踩。
+- **URL 数值收窄**：`Number.isFinite`，非法值视为未筛选，不让 `NaN` 进 queryKey/请求。
+
+### 流程
+
+1. `trellis-implement` 首轮：63 用例，但 `navHint` 无清空路径（真 bug）
+2. `trellis-check` 独立审：确认该 bug + 发现 S1/S2/S3/S4，并用 3 个变异验证 D4 四条断言真能杀
+3. 派回修 4 项：70 用例
+4. 自己抽验 3 个变异（删 `clearNavHint` / 删 keyword 同步 / 去掉 `Number.isFinite`）全部转红，`cp` 还原后 diff stat 一致
+
+### Spec 更新
+
+- `frontend/quality-guidelines.md`：**修正与事实相反的说法**——CI 早已强制 `npm test` + `npm run build`（commit `e1aa3142`），原文写「CI 当前未强制」。另注明本地无 pre-commit hook。
+- `frontend/hook-guidelines.md`：新增「URL → 控件的回显是双向的」「非法 URL 值必须收尾」「模块级瞬时 UI 状态的生命周期」三节，后者给出新增这类状态必答的四个问题（谁写/谁读/何时清空/跨测试残留）。
+
+### Testing
+
+- [OK] `npm test -w client`：11 文件 / 70 用例（基线 49 → 63 → 70）
+- [OK] `npm run typecheck -w client`：无错误
+- [OK] `npm run build -w client`：通过
+- [OK] 变异验证 3 条，全部转红并还原
+
+### Next Steps
+
+- `10-29-ui-action-event` 可开工（与前端无交叠）；接上 `onUiAction` 时只需调 `markAgentNavigation` → `navigate(meta.path)` → `showNavHint(label)`，不必再改 `AIAssistantFloat.tsx`

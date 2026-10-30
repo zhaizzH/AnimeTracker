@@ -52,6 +52,7 @@ export function showNavHint(label: string): void
 
 1. `useEffect(() => setOpen(false), [location.key])` 改为：标记为真则跳过关闭并**立即复位**；未标记照旧关闭
 2. 面板内渲染最后一条 hint：`⚡ 已跳转到{label}`
+2b. **用户手动路由变化时清空 hint**（`clearNavHint()`）：否则提示会永久贴在面板里，成为过期假信息。清空点只能挂在非 agent 分支，不能改成「开面板时清空」（与 prd「下次打开显示」冲突）。详见 [design.md](./design.md) D1。
 3. 面板关闭时收到 hint 入队，下次打开显示；队列只留最后一条
 4. hint 是本地瞬时状态，**不进** `useAgentChat` 的 `messages`（那会持久化到后端）
 5. 尺寸/位置不动，不做窄屏收起
@@ -75,6 +76,25 @@ export function showNavHint(label: string): void
 cd frontend && npm test -w client
 cd frontend && npm run typecheck -w client
 ```
+
+## 公共测试缝（已确认，开工前定）
+
+全部为**既有测试文件与既有渲染入口**，不新增只为本实现存在的测试钩子。
+
+| 缝 | 位置 | 能捕获 | 捕获不到 |
+|---|---|---|---|
+| `renderAt(path)` + `subjectsApi.search` mock | `client/src/test/anime-index.tag-url.test.tsx`（已有） | URL → 查询参数映射、控件回显、换筛选重查 | —— |
+| 同上，mock 按 `year` 分支返回不同 `content` | 同一文件的 `search.mockImplementation` | 卡片**集合**真的换了（PRD 硬要求） | 真实后端过滤逻辑 |
+| 同上，mock 返回未完成 Promise | 同一文件 | 重查期间骨架屏、结束后旧列表不残留 | 骨架屏停留时长 |
+| `renderApp(path)` + `Link` 导航 | `client/src/test/agent.float.test.tsx`（已有） | 浮层在路由变化时开/关 | 真实浏览器 location.key 行为 |
+| 直接调用 `markAgentNavigation()` / `showNavHint()` | 同一文件，配合 `act` | 标记后不关面板、用后复位、提示渲染 | 与真实 `ui_action` 事件的联调（属 child 2） |
+| `useAgentChat` mock | 同上（已 mock 整个 hook） | 提示不进会话历史（`messages` 不变） | —— |
+
+**选择理由**：两个测试文件都已存在且覆盖相邻行为（标签 URL 同步、浮层路由关闭），
+在其上扩充比新建文件更能锁住真实回归；且都走真实组件 + 真实 router，不 mock 被测逻辑。
+
+**新文件**：无。若某条断言无法落在上述两文件内（例如需要单独驱动 setter 而不渲染整页），
+才新建 `client/src/test/agent.navigation-hint.test.tsx`，且必须同样走真实组件渲染。
 
 ## 不做
 

@@ -11,11 +11,13 @@ npm run build
 
 | 层级 | 当前命令/要求 | 适用范围 |
 |---|---|---|
-| CI 强制 | `npm run typecheck` | 当前 `.github/workflows/ci.yml` 的前端门禁 |
+| CI 强制 | `npm run typecheck` + `npm test` + `npm run build` | 当前 `.github/workflows/ci.yml` 的 `frontend` job（三段顺序跑） |
 | 提交前 | `npm test` 或受影响 workspace 的 Vitest | 普通组件、Hook、API 和状态改动 |
 | 交付前 | `npm run build` | 路由、依赖、构建配置或可交付前端变更 |
 
-CI 当前未强制 Vitest 和 build；不要在 spec 中把它们描述为已启用的 CI 门禁。项目没有 lint/format script，不能假设存在额外静态检查。
+三者在 CI 里都已强制（`e1aa3142` 补上 test 与 build；此前本文曾写「CI 未强制 Vitest 和 build」，与事实相反，2026-10-30 核实纠正）。
+项目没有 lint/format script，不能假设存在额外前端静态检查（后端 Python 侧有 ruff，在 CI 的 `backend-python` job 单独一步）。
+**本地没有 pre-commit hook**：门禁只在 push/PR 时触发，提交前须自己跑上述命令。
 
 ## 测试现状
 

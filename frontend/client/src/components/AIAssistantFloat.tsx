@@ -5,15 +5,22 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { AgentConversation } from './AgentChat';
+import { clearNavHint, consumeAgentNavigation, useNavHint } from './agentNavigation';
 
 export default function AIAssistantFloat() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const wasOpen = useRef(false);
+  // 最近一条导航提示（本地瞬时状态，不进会话历史）；面板关闭时也保留，下次打开补显示
+  const navHint = useNavHint();
 
   useEffect(() => {
+    // agent 发起的导航保留面板与提示；标记一次性消费，用户后续手动导航仍照旧关闭
+    if (consumeAgentNavigation()) return;
     setOpen(false);
+    // 用户手动跳走后，上一条「已跳转到」已不成立，留着就是过期假信息
+    clearNavHint();
   }, [location.key]);
   useEffect(() => {
     if (!open) return;
@@ -88,6 +95,14 @@ export default function AIAssistantFloat() {
             </div>
           </header>
           <div className="flex min-h-0 flex-1 flex-col">
+            {navHint && (
+              <p
+                role="status"
+                className="border-b px-3 py-2 text-xs text-muted-foreground"
+              >
+                ⚡ 已跳转到「{navHint}」
+              </p>
+            )}
             <AgentConversation />
           </div>
         </section>
