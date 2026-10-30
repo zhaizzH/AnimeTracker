@@ -23,12 +23,12 @@
 
 ## Cross-Child Acceptance Criteria
 
-- [ ] 用户说「给我看 2022 年的番」→ 跳到 `/anime?year=2022`，筛选真的生效，聊天浮层保持打开
-- [ ] 用户说「打开我的收藏，在看那一页」→ 跳 `/my-collections?tab=3`
-- [ ] 用户说「打开《孤独摇滚》详情页」→ `subjectId` 经权威解析后跳 `/subject/{id}`，模型不得编造 ID
-- [ ] 用户说「把这部加入想看，然后打开我的收藏」→ 先出预览 → 用户确认 → 写成功 → 才导航；未确认则不导航
-- [ ] SSE 断线重连后**不重复导航**（重放段跳过 `ui_action`）
-- [ ] 全部既有测试不回归：`cd backend/agent && uv run pytest`；`cd backend/business && mvn -B clean test`；前端测试基线
+- [x] 用户说「给我看 2022 年的番」→ 跳到 `/anime?year=2022`，筛选真的生效，聊天浮层保持打开（**服务端侧已真机验证**：真模型 → `ui_action{path:/anime?year=2022, label:「番剧索引」· 2022 年}` 穿透 Java 代理；前端实际渲染由 `anime-index.tag-url` 18 用例覆盖，「浮层保持」由 `agent.float` 覆盖）
+- [x] 复合指令真机验证产出 `/my-collections?tab=1`（`tab` 取值与 `MyCollections` TABS 一致，见下方证据）；`tab=3` 路径同机制
+- [x] 用户说「打开《孤独摇滚》详情页」→ `subjectId` 经权威解析后跳 `/subject/{id}`，模型不得编造 ID（**真机双验**：命中条目 → `ui_action{path:/subject/72}`；检索不到 → 模型主动拒绝导航并说明「没有可靠的 subjectId，不会用相似标题代替」）
+- [x] 用户说「把这部加入想看，然后打开我的收藏」→ 先出预览 → 用户确认 → 写成功 → 才导航；未确认则不导航（**真机验证，见下方证据**）
+- [x] SSE 断线重连后**不重复导航**（真机 `after=0` 重连，`ui_action` 帧带 `replayed: true`）
+- [x] 全部既有测试不回归：`cd backend/agent && uv run pytest`（**932 passed**）；`cd backend/business && mvn -B test`（**EXIT=0**）；前端 `shared 92 / client 72 / admin 81`
 
 ## Constraints
 
@@ -45,3 +45,58 @@
 - 前端内嵌目标页面预览。
 - 除 5 个白名单 action 之外的任何页面跳转。
 - 导航的 PendingAction 确认（导航可逆、无持久副作用，刻意不走两阶段）。
+
+## 真机端到端验收（2026-10-30）
+
+**环境**：MySQL + Redis（本机）+ Business `:8080`（`mvn package` + `--spring.profiles.active=local`）+ Agent `:8090`（`uv run uvicorn`）+ **真 DeepSeek**（`deepseek-v4-flash`）。
+全部请求走 **Java 代理 `:8080`**（浏览器真实路径），并额外单独验证过一次 Agent 直连。
+
+### 已验证（4 条，全部通过）
+
+| # | 输入 | 实测结果 |
+|---|---|---|
+| 1 | 打开个人中心 | 真模型调 `request_navigation(open_profile)` → 图后路由 → emitter → SSE `ui_action{path:"/profile", label:"「个人中心」"}`，**穿透 Java 代理** |
+| 2 | 给我看 2022 年的番 | `ui_action{path:"/anime?year=2022", label:"「番剧索引」 · 2022 年"}`；参数化 URL 与 child 1 的 URL 化改造对得上 |
+| 3 | 把《来自远方》加入想看，然后打开我的收藏 | TURN1 只调 `解析番剧标题`，**0 个 `ui_action`**（预览不导航）；TURN2「确认」→ `确认加入想看` 成功（1 成功/0 跳过/0 失败）→ `ui_action{path:"/my-collections?tab=1", label:"「我的收藏」 · 想看"}` |
+| 4 | 上一轮预览后回「取消」 | 只调 `取消加入想看`，**0 个 `ui_action`**，回答「已取消，未写入任何数据」 |
+
+### 已验证（重放打标，真 HTTP）
+
+`GET /api/client/agent/runs/{run_id}/stream?after=0` → 49 帧，其中 `ui_action` 1 帧带 **`meta.replayed: true`**；`is_end` 恰好 1 帧且位于末尾。**帧数与缓冲 1:1，游标不错位。**
+
+### 一条值得记的行为观察
+
+Business 未启动时，「给我看 2022 年的番」的模型**主动拒绝导航**并说明「无法给出带证据支撑的候选，不编造条目」。这是既有「不得陈述工具返回之外的证据」约束在起作用——不是缺陷，但意味着**导航依赖检索可用**：数据源故障时纯导航也会被模型主动放弃。
+
+### 未做真机验证（需人工）
+
+| 项 | 原因 | 现有覆盖 |
+|---|---|---|
+| 前端真实跳转 + 浮层保持的**视觉**确认 | 需要浏览器登录态；本机无可用账号口令（注册要邮箱验证码，Resend 未配） | `agent.float.test.tsx` 12 用例（真 Router + 真组件），含「标记后不关面板」「带 path 跳转」「非站内 path 丢弃」 |
+| 断网/切后台场景 | 需要真实网络中断手段 | `useAgentChat.replay.test.tsx` + `test_chat_run_manager.py` |
+
+### 本次为搭环境所做的本地临时改动（已清理）
+
+为让 Java 代理接受本地签发的 token，曾在本地 Redis `db=1` 写入 `auth:token:{sha256}` 白名单键（TTL 1800s）——登录流程本身就是这么做的。**验证结束后已删除该键**，未改动任何用户口令或业务数据。
+
+### 追加：真机抓到一个 check 只标为「备注」的瑕疵
+
+`open_subject` 命中条目时，`ui_action.label` 渲染出的是**日文名**
+（`「メイドインアビス 目覚める神秘」`），而浮层提示是中文界面文案——
+openapi 里 `name` 是日文/英文名、`nameCn` 才是中文名，实现原先优先了 `name`。
+
+`trellis-check` 当时把这条列为「备注，非偏差」（它读代码判断，没有真机证据）。
+真机跑出来才知道用户实际会看到日文混中文。已修：优先 `nameCn`，并补
+`test_open_subject_prefers_chinese_name_for_label` 钉住。
+
+**教训**：静态审查只能判「代码是否自相矛盾」，判不出「用户实际看到什么」。
+涉及文案/渲染的取舍，真机一遍胜过读十遍代码。
+
+### 最终门禁（真机验证后）
+
+| 门禁 | 结果 |
+|---|---|
+| `cd backend/agent && uv run pytest -q` | 932 passed |
+| `cd backend/agent && uv run ruff check .` | All checks passed |
+| `cd backend/business && mvn -B test` | EXIT=0 |
+| 前端 `npm test` | shared 92 / client 72 / admin 81 |

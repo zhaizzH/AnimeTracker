@@ -93,7 +93,9 @@ def build_navigation_emitter(dependencies: AgentDependencies):
             detail = dependencies.business.request("GET", f"/api/client/subjects/{subject_id}")
             if not isinstance(detail, dict) or detail.get("error"):
                 return {"navigation_intent": None}
-            name = detail.get("name") or detail.get("nameCn") or "条目"
+            # 优先中文名：浮层提示是中文界面文案，openapi 里 name 是日文/英文名
+            # （真机实测：优先 name 会让提示出现「メイドインアビス 目覚める神秘」）
+            name = detail.get("nameCn") or detail.get("name") or "条目"
             path, label = f"/subject/{subject_id}", f"「{name}」"
         elif action in _MAPPING:
             path, label = _MAPPING[action](params)

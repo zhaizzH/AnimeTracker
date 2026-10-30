@@ -30,7 +30,9 @@ class _Business:
 
     def request(self, method, path, *, params=None, token=None, json_body=None):  # noqa: ANN001, ANN201
         assert method == "GET"
-        assert path == "/api/client/subjects/84"
+        # 断言回查打在「intent 里的那个 id」上，不写死 84（否则加用例就得改桩）
+        assert path.startswith("/api/client/subjects/"), path
+        self.last_path = path
         return self.detail
 
 def _run(intent: dict, *, detail=None) -> tuple[dict, list[AgentEvent]]:
@@ -107,6 +109,19 @@ def test_open_subject_uses_looked_up_name() -> None:
 
     assert event.meta["path"] == "/subject/84"
     assert event.meta["label"] == "「孤独摇滚！」"
+
+def test_open_subject_prefers_chinese_name_for_label() -> None:
+    """浮层提示是中文界面文案：openapi 里 name 是日文/英文名，必须优先 nameCn。
+
+    真机实测过：优先 name 会渲染出「⚡ 已跳转到「メイドインアビス 目覚める神秘」」。
+    """
+    event = _single_action(
+        {"action": "open_subject", "params": {"subject_id": 72}},
+        detail={"id": 72, "name": "メイドインアビス 目覚める神秘", "nameCn": "来自深渊 觉醒的神秘"},
+    )
+
+    assert event.meta["path"] == "/subject/72"
+    assert event.meta["label"] == "「来自深渊 觉醒的神秘」"
 
 def test_open_subject_lookup_failure_emits_nothing_but_clears_intent() -> None:
     for detail in ({"error": True}, None, "boom"):

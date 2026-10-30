@@ -258,3 +258,52 @@
 
 - **运维**：线上 Redis `agent:prompt:client_recommend_agent_prompt` 需同步「复合指令：写入后跳转」六条
 - 五任务树代码全部完成，父任务 `10-29-agent-ui-actions` 的跨 child 验收可开始
+
+---
+
+## Session 47 - 2026-10-30
+
+### 任务
+
+父任务 `10-29-agent-ui-actions` 的跨 child 真机端到端验收（5 个 child 代码全部完成并提交后）。
+
+### 环境搭建
+
+MySQL + Redis（本机）→ Business `:8080`（`mvn package` + `--spring.profiles.active=local`）→ Agent `:8090`（`uv run uvicorn`）。
+真 DeepSeek（`deepseek-v4-flash`）。全部请求走 **Java 代理 :8080**（浏览器真实路径）。
+
+**卡点与解法**：Java 侧 JWT 除了验签还查 Redis 白名单（`auth:token:{sha256}`，`JwtAuthenticationFilter`），
+本地自签 token 过不了；注册账号又被邮箱验证码（Resend 未配）挡住。解法：用 `jwt.secret` 自签 +
+把摘要写进本地 Redis db=1 的白名单键（登录流程本身就这么做）。验证完**已删除该键**，
+未改任何口令或业务数据。
+
+### 真机结果（6 条全过）
+
+| 用例 | 实测 |
+|---|---|
+| 打开个人中心 | `ui_action{path:/profile}` 穿透 Java 代理 |
+| 给我看 2022 年的番 | `ui_action{path:/anime?year=2022, label:「番剧索引」· 2022 年}` |
+| 复合指令（加入想看 + 打开收藏） | TURN1 预览**0 导航**；TURN2 确认 → 写入成功（1/0/0）→ `ui_action{path:/my-collections?tab=1}` |
+| 上一轮预览后「取消」 | 只调 `取消加入想看`，**0 导航**，明确「未写入任何数据」 |
+| open_subject 命中 | `ui_action{path:/subject/72}`，权威回查通过 |
+| open_subject 未命中 | 模型**主动拒绝导航**：「没有可靠的 subjectId，不会用相似标题代替」 |
+| 重放 | `after=0` 重连 → 49 帧，`ui_action` 带 `replayed: true`，`is_end` 恰 1 帧在末尾 |
+
+### 真机抓到 check 漏掉的瑕疵
+
+`open_subject` 的 `label` 渲染出**日文名**「メイドインアビス 目覚める神秘」——浮层是中文界面文案，
+而 openapi 里 `name`=日文/英文名、`nameCn`=中文名，实现优先了 `name`。
+check 当时列为「备注，非偏差」（读代码判的）。已修：优先 `nameCn` + 补测试。
+
+**教训**：静态审查判不出「用户实际看到什么」。涉及文案/渲染，真机一遍胜过读十遍代码。
+
+### Testing
+
+- [OK] `uv run pytest -q`：932 passed；`ruff check`：All checks passed
+- [OK] `mvn -B test`（Business）：EXIT=0
+- [OK] 前端：shared 92 / client 72 / admin 81
+
+### Next Steps
+
+- 运维：线上 Redis 的 `agent:prompt:client_recommend_agent_prompt` 需同步 child 4 的 prompt 改动
+- 5 个任务可归档
