@@ -164,6 +164,16 @@ Phase 3: Finish  → verify, update spec, commit, and wrap up
 - `implement.jsonl` / `check.jsonl` — spec and research manifests for sub-agent context. They do not replace `implement.md`.
 - Lightweight tasks may be PRD-only. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start`.
 
+### Matt Skills Inside Trellis
+
+Trellis owns task state, persistence, dispatch, and commits. Matt skills own requirement discovery, ticket shaping, test-driven implementation, review, and retrospectives. They are complementary, not two competing workflows.
+
+- New or unclear requirements: use `grill-with-docs` for discovery, then persist the outcome in Trellis artifacts.
+- New multi-session scopes only: use `to-spec`, then `to-tickets`; publish the spec as Trellis artifacts and tickets as Trellis parent/child tasks. Never create a duplicate `.scratch/` ticket tree.
+- Existing Trellis tasks: resume their artifacts. Do not rerun upstream Matt discovery/spec/ticket steps just because execution is starting.
+- Every code implementation uses `tdd`; every pre-commit quality check uses the Standards + Spec axes from `code-review`. Agent platforms without a Skill tool read the corresponding `.agents/skills/<name>/SKILL.md` directly.
+- Every task runs `retro` once after its final check. Use `pr` only when a pull request is requested.
+
 ### Parent / Child Task Trees
 
 Use a parent task when one user request contains several independently verifiable deliverables. The parent task owns the source requirement set, the task map, cross-child acceptance criteria, and final integration review; it normally should not be the implementation target unless it also has direct work.
@@ -199,9 +209,11 @@ Preserve existing task fields and artifacts. If the correct status cannot be det
 <!-- Per-turn breadcrumb: shown throughout Phase 1 (status='planning') -->
 
 [workflow-state:planning]
-Load `trellis-brainstorm`; stay in planning.
+Stay in planning. New/unclear requirement: load `grill-with-docs` for discovery and `trellis-brainstorm` for Trellis routing/artifact gates; do not repeat settled questions. Existing task: resume its artifacts and skip upstream Matt discovery/spec/ticket steps.
+New multi-session scope only: `to-spec` -> `to-tickets`, publishing only to Trellis artifacts/tasks (never a duplicate `.scratch/` tree).
 Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`; ask for review before `task.py start`.
 Multi-deliverable scope: consider a parent task plus independently verifiable child tasks; dependencies must be written in child artifacts, not implied by tree position.
+For code changes, confirm public test seams once and record them in `implement.md` (or `prd.md` for a lightweight task).
 Sub-agent mode: curate `implement.jsonl` and `check.jsonl` as spec/research manifests before start.
 [/workflow-state:planning]
 
@@ -212,9 +224,11 @@ Sub-agent mode: curate `implement.jsonl` and `check.jsonl` as spec/research mani
      into a sub-agent. -->
 
 [workflow-state:planning-inline]
-Load `trellis-brainstorm`; stay in planning.
+Stay in planning. New/unclear requirement: load `grill-with-docs` for discovery and `trellis-brainstorm` for Trellis routing/artifact gates; do not repeat settled questions. Existing task: resume its artifacts and skip upstream Matt discovery/spec/ticket steps.
+New multi-session scope only: `to-spec` -> `to-tickets`, publishing only to Trellis artifacts/tasks (never a duplicate `.scratch/` tree).
 Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`; ask for review before `task.py start`.
 Multi-deliverable scope: consider a parent task plus independently verifiable child tasks; dependencies must be written in child artifacts, not implied by tree position.
+For code changes, confirm public test seams once and record them in `implement.md` (or `prd.md` for a lightweight task).
 Inline mode: skip jsonl curation; Phase 2 reads artifacts/specs via `trellis-before-dev`.
 [/workflow-state:planning-inline]
 
@@ -233,7 +247,8 @@ Sub-agent dispatch protocol applies to all platforms and all sub-agents, includi
 
 [workflow-state:in_progress]
 Tools: `trellis-implement` / `trellis-research` are sub-agent types only (Task/Agent tool, NOT Skill; there is no skill by these names). `trellis-update-spec` is a skill. `trellis-check` exists as both; prefer the Agent form when verifying after code changes.
-Flow: `trellis-implement` -> `trellis-check` -> `trellis-update-spec` only for a durable new contract -> commit (Phase 3.4) -> `/trellis:finish-work`.
+Flow: `trellis-implement` + Matt `tdd` -> `trellis-check` + Matt Standards/Spec review -> `retro` once (Phase 3.3a) -> `trellis-update-spec` only for a durable new contract -> commit (Phase 3.4) -> `/trellis:finish-work`.
+Matt mapping: Trellis artifacts replace `/implement` input and `/to-spec` output; Trellis tasks replace `/to-tickets` output. Do not invoke Matt `/implement` or create duplicate tickets. Sub-agents without a Skill tool read `.agents/skills/tdd/SKILL.md` and `.agents/skills/code-review/SKILL.md` directly.
 Main-session default: dispatch implement/check sub-agents. Sub-agent self-exemption: if already running as `trellis-implement`, do NOT spawn another `trellis-implement` or `trellis-check`; if already running as `trellis-check`, do NOT spawn another `trellis-check` or `trellis-implement`. Dispatch is main session only.
 Dispatch prompt starts with `Active task: <task path from task.py current>`. Read context: jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present`.
 Commit density: commit only a completed, user-visible milestone. Never create a standalone commit for progress notes, evidence pointers, or only `.trellis/tasks/**/task.json`; keep those changes for the next code milestone or the one final bookkeeping batch.
@@ -248,7 +263,8 @@ Mutation checks: when verifying a test by temporarily breaking the implementatio
      instead of dispatching sub-agents. -->
 
 [workflow-state:in_progress-inline]
-Flow: `trellis-before-dev` -> edit -> `trellis-check` -> validation -> `trellis-update-spec` only for a durable new contract -> commit (Phase 3.4) -> `/trellis:finish-work`.
+Flow: `trellis-before-dev` -> Matt `tdd` red-green slices -> Matt Standards/Spec review of the working tree -> validation -> `retro` once (Phase 3.3a) -> `trellis-update-spec` only for a durable new contract -> commit (Phase 3.4) -> `/trellis:finish-work`.
+Read `.agents/skills/tdd/SKILL.md` and `.agents/skills/code-review/SKILL.md`; use only the test seams confirmed during planning. Do not rerun upstream Matt skills for an existing Trellis task.
 Do not dispatch implement/check sub-agents in inline mode.
 Read context: `prd.md` -> `design.md if present` -> `implement.md if present`, plus relevant spec/research loaded by skills.
 Commit density: commit only a completed, user-visible milestone. Never create a standalone commit for progress notes, evidence pointers, or only `.trellis/tasks/**/task.json`; keep those changes for the next code milestone or the one final bookkeeping batch.
@@ -256,6 +272,7 @@ Commit density: commit only a completed, user-visible milestone. Never create a 
 
 ### Phase 3: Finish
 - 3.2 Debug retrospective `[on demand]`
+- 3.3a Matt retrospective `[required · once]`
 - 3.3 Spec update `[conditional · once]`
 - 3.4 Commit changes `[required · once]`
 - 3.5 Wrap-up reminder
@@ -288,9 +305,10 @@ When a user request matches one of these intents inside an active task, route fi
 
 [Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
 
-- Planning or unclear requirements -> `trellis-brainstorm`.
-- `in_progress` implementation/check -> dispatch `trellis-implement` / `trellis-check`.
-- Repeated debugging -> `trellis-break-loop`; spec updates -> `trellis-update-spec`.
+- New/unclear requirements -> `grill-with-docs` for discovery plus `trellis-brainstorm` for artifact gates; existing tasks resume artifacts without repeating upstream Matt steps.
+- New multi-session scope only -> `to-spec` -> `to-tickets`, with Trellis as the sole tracker.
+- `in_progress` implementation/check -> dispatch `trellis-implement` / `trellis-check`; their Matt TDD/review contract is defined in Phase 2.
+- Repeated debugging -> `trellis-break-loop`; spec updates -> `trellis-update-spec`; final retrospective -> `retro`.
 
 [/Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
 
@@ -343,9 +361,11 @@ Skip when `python ./.trellis/scripts/task.py current --source` already points to
 
 #### 1.1 Requirement exploration `[required · repeatable]`
 
-Load the `trellis-brainstorm` skill and explore requirements interactively with the user per the skill's guidance.
+For a new or unclear requirement, load `grill-with-docs` and follow its interview process; load `trellis-brainstorm` for Trellis routing and artifact gates. When their interview formats differ, Matt's grilling rounds govern discovery while Trellis governs what must be persisted. Record decisions in `prd.md`, `design.md` when needed, `.trellis/spec/GLOSSARY.md`, and ADRs as appropriate.
 
-The brainstorm skill will guide you to:
+For an existing Trellis task, read its current artifacts and continue from unresolved decisions. Do not restart discovery, run `to-spec`, or run `to-tickets` merely because the task has entered a new session. Only a new multi-session scope uses `to-spec` followed by `to-tickets`; publish their outputs exclusively as Trellis artifacts and parent/child tasks, never as a second `.scratch/` tracker.
+
+The combined discovery/planning process must:
 - Ask one question at a time
 - Prefer researching over asking the user
 - Prefer offering options over open-ended questions
@@ -353,6 +373,7 @@ The brainstorm skill will guide you to:
 - Split large scopes into a parent task plus child tasks when the deliverables can be verified independently
 - Keep `prd.md` focused on requirements and acceptance criteria
 - For complex tasks, produce `design.md` and `implement.md` before implementation starts
+- For code changes, confirm the public test seams with the user once and record them in `implement.md` (or `prd.md` for a lightweight task), including what each seam catches and misses
 
 When considering a parent/child split:
 - Use a parent task when one request contains several independently verifiable deliverables.
@@ -455,7 +476,7 @@ After artifact review, flip the task status to `in_progress`:
 python ./.trellis/scripts/task.py start <task-dir>
 ```
 
-For lightweight tasks, `prd.md` can be enough. For complex tasks, `prd.md`, `design.md`, and `implement.md` must exist and be reviewed before start. On sub-agent-dispatch platforms, `implement.jsonl` and `check.jsonl` must both have real curated entries before start. Runtime consumers tolerate missing or seed-only manifests for compatibility, but that tolerance is not a planning-ready state.
+For lightweight tasks, `prd.md` can be enough. For complex tasks, `prd.md`, `design.md`, and `implement.md` must exist and be reviewed before start. Code changes also need user-confirmed public test seams recorded in the reviewed artifacts. On sub-agent-dispatch platforms, `implement.jsonl` and `check.jsonl` must both have real curated entries before start. Runtime consumers tolerate missing or seed-only manifests for compatibility, but that tolerance is not a planning-ready state.
 
 After this command succeeds, the breadcrumb auto-switches to `[workflow-state:in_progress]`, and the rest of Phase 2 / 3 follows.
 
@@ -485,6 +506,8 @@ If `task.py start` errors with a session-identity message (no context key from h
 Goal: turn reviewed planning artifacts into code that passes quality checks.
 
 #### 2.1 Implement `[required · repeatable]`
+
+**Matt execution contract**: every code implementation follows `.agents/skills/tdd/SKILL.md`: use only the public seams confirmed in Phase 1, write one behavior test that fails for the expected reason, then write the minimal implementation that makes it pass. Repeat one vertical slice at a time; leave refactoring to review. Do not invoke Matt `/implement`: the Trellis implement agent already fills that role, and its no-commit rule overrides Matt's commit instruction. If a code change has no confirmed automated seam, return to planning instead of inventing an implementation-coupled test.
 
 [Claude Code, Cursor, OpenCode, codex-sub-agent, CodeBuddy, Droid, Pi, ZCode, Snow, Oh My Pi]
 
@@ -541,6 +564,8 @@ The platform prelude auto-handles the context load requirement:
 
 #### 2.2 Quality check `[required · repeatable]`
 
+**Matt review contract**: apply `.agents/skills/code-review/SKILL.md` to the task-owned working-tree diff before commit, with two separately reported axes: Standards (Trellis specs plus the skill's full smell baseline) and Spec (the task's PRD/design/execution acceptance criteria). The Trellis working-tree rule replaces the skill's committed fixed-point range; the Trellis recursion guard replaces its parallel-subagent dispatch. Keep review findings evidence-based with `file:line` or test names.
+
 [Claude Code, Cursor, OpenCode, codex-sub-agent, Kiro, Gemini, Qoder, CodeBuddy, Copilot, Droid, Pi, Oh My Pi, ZCode, Snow, Reasonix, Trae, Grok, Kimi Code]
 
 Spawn the check sub-agent:
@@ -590,6 +615,10 @@ If this task involved repeated debugging (the same issue was fixed multiple time
 - Propose prevention
 
 The goal is to capture debugging lessons so the same class of issue doesn't recur.
+
+#### 3.3a Matt retrospective `[required · once]`
+
+After the final full-scope check and before drafting commits, load `retro` once for every task, including tasks with no debugging loop. Review the current session and present environment-improvement candidates in severity order. Do not expand the task by implementing unrelated improvements. Durable contracts discovered by the task still go through Phase 3.3; the retrospective does not replace that gate.
 
 #### 3.3 Spec update `[conditional · once]`
 
@@ -663,7 +692,7 @@ The AI drives a batched commit of this task's code changes so `/finish-work` can
 
 #### 3.5 Wrap-up reminder
 
-After the above, remind the user they can run `/finish-work` to wrap up (archive the task, record the session).
+If the user requests a pull request, load `pr` to shape its body and evidence. After the above, remind the user they can run `/finish-work` to wrap up (archive the task, record the session).
 
 ---
 

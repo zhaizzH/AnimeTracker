@@ -152,3 +152,7 @@ skills-lock.json
 docs/deploy
 .playwright-mcp
 .pi
+# 原型构建产物（scripts/prototype.vite.config.mts）
+frontend/.prototype-dist/
+# 原型 dev server 的依赖预构建缓存
+.trellis/tasks/10-29-frontend-url-state/prototype/.vite/
